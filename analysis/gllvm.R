@@ -44,7 +44,7 @@ for(i in 1:nrow(setup)) {
     rm(model)
     gc()
     .torch$cuda$empty_cache()
-    })
+    },silent = TRUE)
   }
   auc[[i]] = sub_auc
   

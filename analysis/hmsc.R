@@ -18,6 +18,7 @@ for(i in 1:nrow(setup[setup$sites < 260, ])) {
     
     X = data_sets[[counter]]$env_weights
     Y = data_sets[[counter]]$response
+    tmp = data_sets[[counter]]$setup
     
     ### split into train and test ###
     train_X = data_sets[[counter]]$train_X
