@@ -1,13 +1,7 @@
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
-sites = c(50, 70, 100, 140, 180, 260, 320, 400, 500)
-species = c(0.1, 0.2, 0.3, 0.4,0.5)
-env = c(3,5,7)
+load("data_sets.RData")
 
-
-setup = expand.grid(sites, species, env)
-colnames(setup) = c("sites", "species", "env")
-setup = setup[order(setup$sites,decreasing = FALSE),]
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 
@@ -17,22 +11,22 @@ useCPU()
 set.seed(42)
 
 
-
+counter = 1
 for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
   for(j in 1:10){
-    .torch$cuda$empty_cache()
-    tmp = setup[i,]
-    sim = simulate_SDM(env = tmp$env,sites = 2*tmp$sites,species = as.integer(tmp$species*tmp$sites))
-    X = sim$env_weights
-    Y = sim$response
+    
+    X = data_sets[[counter]]$env_weights
+    Y = data_sets[[counter]]$response
     
     ### split into train and test ###
-    indices = sample.int(nrow(X), 0.5*nrow(X))
-    train_X = X[indices, ]
-    train_Y = Y[indices, ]
-    test_X = X[-indices, ]
-    test_Y = Y[-indices, ]
+    train_X = data_sets[[counter]]$train_X
+    train_Y = data_sets[[counter]]$train_Y
+    test_X = data_sets[[counter]]$test_X
+    test_Y = data_sets[[counter]]$test_Y
+    sim = data_sets[[counter]]$sim
+    counter = counter + 1L
+    
     
     
     model = createModel(train_X, train_Y)
@@ -56,7 +50,7 @@ for(i in 1:nrow(setup)) {
   auc[[i]] = sub_auc
   
   cpu_dmvp = list(
-    setup = setup,
+    setup = setup[i,],
     result_corr_acc = result_corr_acc,
     result_env = result_env,
     result_rmse_env = result_rmse_env,
