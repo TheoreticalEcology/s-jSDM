@@ -9,12 +9,12 @@ deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE){
 
   ### define constants ###
   n_app = 100L
-  if(is.null(batch_size)) batch_size = nrow(X)
+  if(is.null(batch_size)) batch_size = nrow(model$X)
   r_dim = ncol(model$Y)
   n_latent = model$nLatent
   cpu_wo_dataset = matrix(0, nrow = epochs)
 
-  stepSize = floor(nrow(X)/batch_size)
+  stepSize = floor(nrow(model$X)/batch_size)
   steps = stepSize * epochs
 
   eps = .torch$tensor(0.00001, dtype = .dtype)$to(.device)
@@ -106,7 +106,7 @@ deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE){
     width = 80
   )
 
-  data = .torch$utils$data$TensorDataset(.torch$tensor(X, dtype = .dtype), .torch$tensor(Y, dtype = .dtype))
+  data = .torch$utils$data$TensorDataset(.torch$tensor(model$X, dtype = .dtype), .torch$tensor(model$Y, dtype = .dtype))
   dataLoader =  .torch$utils$data$DataLoader(data,batch_size = batch_size,
                                              shuffle = TRUE,
                                              num_workers = 0L,

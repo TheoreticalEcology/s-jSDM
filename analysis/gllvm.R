@@ -2,7 +2,7 @@ if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(gllvm)
 load("data_sets.RData")
-
+TMB::openmp(n = 4L)
 
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
@@ -21,7 +21,7 @@ for(i in 1:nrow(setup)) {
     
     X = data_sets[[counter]]$env_weights
     Y = data_sets[[counter]]$response
-    
+    tmp = data_sets[[counter]]$setup
     ### split into train and test ###
     train_X = data_sets[[counter]]$train_X
     train_Y = data_sets[[counter]]$train_Y
@@ -30,6 +30,7 @@ for(i in 1:nrow(setup)) {
     sim = data_sets[[counter]]$sim
     counter = counter + 1L
     
+    try({
     time = system.time({
     model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]])
     })
@@ -43,7 +44,7 @@ for(i in 1:nrow(setup)) {
     rm(model)
     gc()
     .torch$cuda$empty_cache()
-    #saveRDS(setup, file = "benchmark.RDS")
+    })
   }
   auc[[i]] = sub_auc
   
