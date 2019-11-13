@@ -37,7 +37,7 @@ for(i in 1:nrow(setup[setup$sites < 260, ])) {
              studyDesign = studyDesign, ranLevels = list(sample = rL), distr = "probit")
     time =
       system.time({
-        model = sampleMcmc(model, thin = 1, samples = 10000, transient = 1000,verbose = 100,
+        model = sampleMcmc(model, thin = 1, samples = 10000, transient = 1000,verbose = 5000,
                        nChains = 1L)
       })
     correlation = computeAssociations(model)[[1]]$mean
