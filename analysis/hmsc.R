@@ -53,6 +53,7 @@ for(i in 1:nrow(setup[setup$sites < 260, ])) {
     result_time[i,j] = time[3]
     
     pred = Hmsc:::predict.Hmsc(model, XData = data.frame(test_X), type = "response")
+    pred = apply(abind::abind(pred, along = -1L), 2:3, mean)
     sub_auc[[j]] = list(pred = pred, true = test_Y)
     rm(model)
     gc()
