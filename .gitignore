@@ -4,4 +4,6 @@
 .Ruserdata
 .RDS
 *.RDS
-results/
+/results
+*.rds
+*.rdata

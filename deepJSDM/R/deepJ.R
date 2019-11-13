@@ -58,7 +58,7 @@ deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE){
         pars = c(unlist(model$weights), model$rawSigma)
         previous = lapply(pars, function(w) w$clone()$detach())
         opt = model$optimizer(params = pars, lr = model$params$lr)
-        model$params$lr <<- 0.95*model$params$lr
+        model$params$lr <<- 0.9*model$params$lr
         loss =
           opt$step(function(){
             mu = train.deepJmodel(model, Xs)

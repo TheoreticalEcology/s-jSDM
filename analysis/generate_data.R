@@ -26,7 +26,7 @@ for(i in 1:nrow(setup)) {
     test_X = X[-indices, ]
     test_Y = Y[-indices, ]
     
-    data_sets[[counter]] = list(setup = tmp, X = X, Y = Y, train_X = train_X, train_Y = train_Y, test_X = test_X, test_Y, test_Y, sim = sim)
+    data_sets[[counter]] = list(setup = tmp, X = X, Y = Y, train_X = train_X, train_Y = train_Y, test_X = test_X, test_Y = test_Y, sim = sim)
     counter = counter + 1L
   }
   

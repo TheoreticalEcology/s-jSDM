@@ -1,4 +1,4 @@
-if(version$minor > 5) RNGkind(sample.kind="Rounding")
+if(version$minor > 5) RNGkind(sampleee.kind="Rounding")
 library(deepJSDM)
 load("data_sets.RData")
 
@@ -7,7 +7,8 @@ result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow
 auc = vector("list", nrow(setup))
 
 
-useGPU(1L)
+useGPU(2L)
+.torch$manual_seed(42L)
 set.seed(42)
 
 
@@ -33,7 +34,7 @@ for(i in 1:nrow(setup)) {
     model = layer_dense(model,ncol(train_Y),FALSE, FALSE)
     model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 1.0,optimizer = "LBFGS",reset = TRUE)
     time = system.time({
-      model = deepJ(model, epochs = 15L,batch_size = nrow(train_X),corr = FALSE)
+      model = deepJ(model, epochs = 8L,batch_size = nrow(train_X),corr = FALSE)
     })
 
     result_corr_acc[i,j] =  sim$corr_acc(model$sigma())
@@ -57,7 +58,7 @@ for(i in 1:nrow(setup)) {
     result_time= result_time,
     auc = auc
   )
-  saveRDS(gpu_dmvp, "results/gpu_dmvp.RDS")
+  saveRDS(gpu_dmvp, "results/gpu_dmvp2.RDS")
 }
 
 

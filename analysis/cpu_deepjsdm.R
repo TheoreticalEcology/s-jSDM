@@ -7,7 +7,9 @@ auc = vector("list", nrow(setup))
 
 
 useCPU()
-.torch$set_num_threads(4L) 
+.torch$set_num_threads(6L)
+.torch$manual_seed(42L)
+
 set.seed(42)
 
 
@@ -34,7 +36,7 @@ for(i in 1:nrow(setup)) {
     model = layer_dense(model,ncol(train_Y),FALSE, FALSE)
     model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 1.0,optimizer = "LBFGS",reset = TRUE)
     time = system.time({
-      model = deepJ(model, epochs = 15L,batch_size = nrow(train_X),corr = FALSE)
+      model = deepJ(model, epochs = 8L,batch_size = nrow(train_X),corr = FALSE)
     })
     
     result_corr_acc[i,j] =  sim$corr_acc(model$sigma())
@@ -46,7 +48,6 @@ for(i in 1:nrow(setup)) {
     rm(model)
     gc()
     .torch$cuda$empty_cache()
-    #saveRDS(setup, file = "benchmark.RDS")
   }
   auc[[i]] = sub_auc
   
@@ -58,6 +59,6 @@ for(i in 1:nrow(setup)) {
     result_time= result_time,
     auc = auc
   )
-  saveRDS(cpu_dmvp, "results/cpu_dmvp.RDS")
+  saveRDS(cpu_dmvp, "results/cpu_dmvp2.RDS")
 }
 

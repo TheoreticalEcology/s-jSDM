@@ -8,4 +8,16 @@ The goal of deepJSDM is to ...
 
 ## Installation
 
-Coming soon...
+
+```{r}
+devtools::install_github("TheoreticalEcology/deepJSDM", subdir = "deepJSDM")
+deepJSDM::install_install_pytorch()
+
+```
+
+
+## Example
+```
+
+
+```
