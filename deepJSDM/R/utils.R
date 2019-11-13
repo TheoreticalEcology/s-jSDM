@@ -38,4 +38,15 @@ gpuInfo = function(){
   print(.torch$cuda$get_device_properties(.device))
 }
 
+#' is_torch_available
+#' check whetcher torch is available
+#' @export
+is_torch_available = function() {
+  #implementation_module <- resolve_implementation_module()
+  if (reticulate::py_module_available("torch")) {
+      TRUE
+  } else {
+     FALSE
+  }
+}
 

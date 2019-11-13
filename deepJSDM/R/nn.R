@@ -61,7 +61,7 @@ compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", r
   }
   if(!length(model$losses) > 0)model$losses = NULL
   if((length(model$raw_weights) > 0) && reset) model = assignWeights(model)
-
+  model$losses[sapply(model$losses, is.null)] <- NULL
   ## cov and optimizer
   r_dim = ncol(model$Y)
   model$rawSigma =
