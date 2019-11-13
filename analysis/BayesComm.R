@@ -6,7 +6,7 @@ load("data_sets.RData")
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 
-
+.C("omp_set_num_threads_ptr", as.integer(6L))
 
 set.seed(42)
 
