@@ -2,12 +2,12 @@
 #' Fit deepJ function
 #'
 #' @param model model of class deepJmodel
-#' @param epochs number of epochs
-#' @param batch_size batch_size
-#' @param corr constrain sigma as correlation matrix
+#' @param nLatent number of latent variables
+#' @param corr constrain occurence matrix to correlation matrix
+#' @param parallel parallel threads for prefetching  
 #' @export
 
-deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE){
+deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE, parallel = 0L){
 
   ### define constants ###
   n_app = 100L
@@ -107,13 +107,13 @@ deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE){
     clear = FALSE,
     width = 80
   )
-
+  init_fun = function() torch$multiprocessing$set_start_method("spawn", TRUE)
   data = .torch$utils$data$TensorDataset(.torch$tensor(model$X, dtype = .dtype), .torch$tensor(model$Y, dtype = .dtype))
   dataLoader =  .torch$utils$data$DataLoader(data,batch_size = batch_size,
                                              shuffle = TRUE,
-                                             num_workers = 0L,
+                                             num_workers = as.integer(parallel),
                                              drop_last = TRUE,
-                                             pin_memory = TRUE)
+                                             pin_memory = TRUE, worker_init_fn = reticulate::py_func(init_fun))
 
 
   for(i in 1:epochs){

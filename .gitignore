@@ -7,3 +7,5 @@
 /results
 *.rds
 *.rdata
+results/*.csv
+*.csv
