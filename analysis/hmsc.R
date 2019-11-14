@@ -6,13 +6,15 @@ load("data_sets.RData")
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 
-.C("omp_set_num_threads_ptr", as.integer(6L))
+OpenMPController::omp_set_num_threads(6L)
+RhpcBLASctl::omp_set_num_threads(6L)
+RhpcBLASctl::blas_set_num_threads(6L)
 
-set.seed(42,)
+set.seed(42)
 
 
 counter = 1
-for(i in 1:nrow(setup[setup$sites < 260, ])) {
+for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
   for(j in 1:10){
     
@@ -57,8 +59,6 @@ for(i in 1:nrow(setup[setup$sites < 260, ])) {
     sub_auc[[j]] = list(pred = pred, true = test_Y)
     rm(model)
     gc()
-    .torch$cuda$empty_cache()
-    #saveRDS(setup, file = "benchmark.RDS")
   }
   auc[[i]] = sub_auc
   
