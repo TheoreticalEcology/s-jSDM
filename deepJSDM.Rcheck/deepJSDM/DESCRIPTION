@@ -9,11 +9,9 @@ Description: More about what it does (maybe more than one line)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Imports: 
-    reticulate,
-    progress,
-    rlang,
-    mvtnorm
+Imports: reticulate, progress, rlang, mvtnorm
 RoxygenNote: 6.1.1
-Suggests: 
-    testthat
+Suggests: testthat
+NeedsCompilation: no
+Packaged: 2019-11-13 23:12:40 UTC; max
+Built: R 3.6.1; ; 2019-11-13 23:12:46 UTC; unix

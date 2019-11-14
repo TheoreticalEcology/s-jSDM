@@ -1,0 +1,119 @@
+* using log directory ‘/home/max/projects/deepJSDM/deepJSDM.Rcheck’
+* using R version 3.6.1 (2019-07-05)
+* using platform: x86_64-pc-linux-gnu (64-bit)
+* using session charset: UTF-8
+* using options ‘--no-manual --as-cran’
+* checking for file ‘deepJSDM/DESCRIPTION’ ... OK
+* checking extension type ... Package
+* this is package ‘deepJSDM’ version ‘0.1.0’
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking serialization versions ... OK
+* checking whether package ‘deepJSDM’ can be installed ... OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... NOTE
+Non-standard file/directory found at top level:
+  ‘LICENSE.md’
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking R files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... WARNING
+dim:
+  function(x)
+dim.torch.Tensor:
+  function(a)
+
+sqrt:
+  function(x)
+sqrt.torch.Tensor:
+  function(a)
+
+exp:
+  function(x)
+exp.torch.Tensor:
+  function(a)
+
+mean:
+  function(x, ...)
+mean.torch.Tensor:
+  function(a, b, dim)
+
+print:
+  function(x, ...)
+print.deepJmodel:
+  function(model)
+
+plot:
+  function(x, ...)
+plot.deepJmodel:
+  function(model, ...)
+
+predict:
+  function(object, ...)
+predict.deepJmodel:
+  function(model, newdata, train, batch_size)
+
+See section ‘Generic functions and methods’ in the ‘Writing R
+Extensions’ manual.
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... NOTE
+File ‘deepJSDM/R/zzz.R’:
+  .onLoad calls:
+    packageStartupMessage("Pytorch not found, run install_pytorch() \n")
+
+See section ‘Good practice’ in '?.onAttach'.
+
+compileModel: no visible global function definition for ‘runif’
+layer_dense: no visible global function definition for ‘rnorm’
+layer_varational_dense: no visible global function definition for
+  ‘rnorm’
+plot.deepJmodel: no visible global function definition for ‘plot’
+plot.deepJmodel: no visible global function definition for ‘points’
+plot.deepJmodel: no visible global function definition for ‘lines’
+plot.deepJmodel: no visible global function definition for
+  ‘smooth.spline’
+simulate_SDM: no visible global function definition for ‘runif’
+simulate_SDM: no visible global function definition for ‘cov2cor’
+zScores: no visible global function definition for ‘pnorm’
+Undefined global functions or variables:
+  cov2cor lines plot pnorm points rnorm runif smooth.spline
+Consider adding
+  importFrom("graphics", "lines", "plot", "points")
+  importFrom("stats", "cov2cor", "pnorm", "rnorm", "runif",
+             "smooth.spline")
+to your NAMESPACE file.
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking examples ... NONE
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ... OK
+  Running ‘testthat.R’
+* DONE
+Status: 1 WARNING, 2 NOTEs
