@@ -5,10 +5,15 @@
 \title{deepJ
 Fit deepJ function}
 \usage{
-deepJ(model, epochs = 150, batch_size = NULL, corr = FALSE)
+deepJ(model, epochs = 150, batch_size = NULL, corr = FALSE,
+  parallel = 0L)
 }
 \arguments{
 \item{model}{model of class deepJmodel}
+
+\item{corr}{constrain occurence matrix to correlation matrix}
+
+\item{parallel}{parallel threads for prefetching}
 
 \item{nLatent}{number of latent variables}
 }
