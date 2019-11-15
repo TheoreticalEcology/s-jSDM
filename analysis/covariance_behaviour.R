@@ -2,17 +2,19 @@ if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(gllvm)
 library(BayesComm)
-OpenMPController::omp_set_num_threads(1L)
-RhpcBLASctl::omp_set_num_threads(1L)
-RhpcBLASctl::blas_set_num_threads(1L)
-TMB::openmp(n = 1L)
+n = 3L
+OpenMPController::omp_set_num_threads(n)
+RhpcBLASctl::omp_set_num_threads(n)
+RhpcBLASctl::blas_set_num_threads(n)
+TMB::openmp(n = n)
+seed = 42L
+
 set.seed(seed)
 .torch$manual_seed(seed)
 
-sites = seq(20,by = 10, length.out = 20)
+sites = seq(20,by = 10, length.out = 25)
 species = 20L
 env = 3L
-seed = 42L
 
 
 data_set = vector("list", 10L)
@@ -25,7 +27,7 @@ for(i in 1:length(sites)) {
 }
 
 
-useGPU(2L)
+useGPU(1L)
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 10L)
 for(i in 1:length(sites)) {
   for(j in 1:10){
