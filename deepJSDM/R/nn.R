@@ -176,7 +176,12 @@ predict.deepJmodel = function(model, newdata = NULL, train = FALSE, batch_size =
 }
 
 
-
+#' train.deepJmodel
+#' 
+#' train function
+#' 
+#' @param model model
+#' @param data data
 #' @export
 train.deepJmodel = function(model, data){
   for(i in 1:model$layer){

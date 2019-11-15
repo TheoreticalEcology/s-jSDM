@@ -51,6 +51,8 @@ layer_dense = function(model, hidden = 10L, activation = "relu", bias = TRUE, l1
 #' @param model model
 #' @param hidden hidden units
 #' @param activation activation function
+#' @param sd sd for gaussian prior
+#' @param kl_weight kl_weight for prior
 #' @export
 
 layer_varational_dense = function(model, hidden = 10L, activation = "relu", sd = 20.0, kl_weight = 0.1) {

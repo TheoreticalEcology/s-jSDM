@@ -11,7 +11,7 @@
     .device <<- .torch$device("cpu")
   }
   }, error = function(e) e)
-  if("error" %in% class(error)) cat("Pytorch not found, run install_pytorch() \n")
+  if("error" %in% class(error)) packageStartupMessage("Pytorch not found, run install_pytorch() \n")
 }
 
 .onAttach <- function(libname, pkgname) {

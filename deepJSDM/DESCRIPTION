@@ -12,5 +12,8 @@ LazyData: true
 Imports: 
     reticulate,
     progress,
-    rlang
+    rlang,
+    mvtnorm
 RoxygenNote: 6.1.1
+Suggests: 
+    testthat

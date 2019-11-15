@@ -28,20 +28,20 @@ simulate_SDM = function(
   seed = 42
 ){
   # Check Inputs:
-  require(assertthat, quietly = TRUE)
-  assert_that(is.count(env),
-              is.count(sites),
-              is.count(species),
-              is.flag(correlation),
-              length(weight_range) == 2,
-              sites > 0,
-              env > 0,
-              species > 0,
-              weight_range[1] < weight_range[2],
-              link %in% c("probit", "logit", "idential"),
-              response %in% c("pa", "count"),
-              !(link == "probit" && response == "count")
-  )
+  # require(assertthat, quietly = TRUE)
+  # assert_that(is.count(env),
+  #             is.count(sites),
+  #             is.count(species),
+  #             is.flag(correlation),
+  #             length(weight_range) == 2,
+  #             sites > 0,
+  #             env > 0,
+  #             species > 0,
+  #             weight_range[1] < weight_range[2],
+  #             link %in% c("probit", "logit", "idential"),
+  #             response %in% c("pa", "count"),
+  #             !(link == "probit" && response == "count")
+  # )
 
   if(!is.null(seed)) set.seed(seed)
 

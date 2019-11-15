@@ -6,7 +6,7 @@ zScores = function(model) {
   n_app = 100L
   r_dim = ncol(model$Y)
   n_latent = model$nLatent
-  batch_size = nrow(X)
+  batch_size = nrow(model$X)
 
   eps = .torch$tensor(0.00001, dtype = .dtype)$to(.device)
   zero = .torch$tensor(0.0, dtype = .dtype)$to(.device)

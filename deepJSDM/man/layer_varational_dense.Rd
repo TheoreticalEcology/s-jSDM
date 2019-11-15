@@ -13,6 +13,10 @@ layer_varational_dense(model, hidden = 10L, activation = "relu",
 \item{hidden}{hidden units}
 
 \item{activation}{activation function}
+
+\item{sd}{sd for gaussian prior}
+
+\item{kl_weight}{kl_weight for prior}
 }
 \description{
 add_varational_dense function

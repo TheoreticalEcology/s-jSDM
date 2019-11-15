@@ -1,9 +1,10 @@
+#' @method dim torch.Tensor
 #' @export
 "dim.torch.Tensor" = function(a) {
   .torch$as_tensor(a$shape)
 }
 
-
+#' @method + torch.Tensor
 #' @export
 "+.torch.Tensor" = function(a, b) {
   .torch$add(a, b)
@@ -29,7 +30,10 @@
   .torch$pow(a,b)
 }
 
-
+#' Matmul
+#' matmul operator
+#' @param a a
+#' @param b b
 #' @export
 "%*%.torch.Tensor" = function(a, b) {
   .torch$matmul(a,b)
