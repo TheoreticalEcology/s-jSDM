@@ -1,11 +1,13 @@
 library(deepJSDM)
 library(gllvm)
+useGPU(2L)
+Sys.setenv(CUDA_VISIBLE_DEVICES="2")
+
 n = 6L
 OpenMPController::omp_set_num_threads(n)
 RhpcBLASctl::omp_set_num_threads(n)
 RhpcBLASctl::blas_set_num_threads(n)
 TMB::openmp(n = n)
-.torch$set_num_threads(n)
 
 new_model = function(env, pa){
   model = createModel(as.matrix(env), as.matrix(pa))
@@ -25,6 +27,7 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
   
   ## CPU
   useCPU()
+  .torch$set_num_threads(n)
   env_scaled = mlr::normalizeFeatures(env)
   model_cpu = new_model(env_scaled, pa)
   model_cpu = compileModel(model_cpu,nLatent = as.integer(ncol(pa)/2), lr = lr, optimizer = optimizer,reset = TRUE)
@@ -39,7 +42,7 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
   
   ## GPU
   useGPU(2L)
-  model_gpu = new_model(ncol(env), ncol(pa))
+  model_gpu = new_model(env_scaled, pa)
   model_gpu = compileModel(model_gpu,nLatent = as.integer(ncol(pa)/2), lr = lr, optimizer = optimizer,reset = TRUE)
   time_gpu= system.time({model_gpu = deepJ(model_gpu, epochs = epochs, batch_size = batch_size)})
   gpu = 
@@ -50,21 +53,7 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
     )
   rm(model_gpu)
   .torch$cuda$empty_cache()
-  
-  ## GLLVM
-  time_gl = system.time({model_gl = gllvm::gllvm(pa, data.frame(env_scaled), family = binomial("probit"))})
-  gl = 
-    list(
-      time = time_gl[3],
-      weights = t(coef(model_gl)$Xcoef),
-      cov = gllvm::getResidualCov(model_gl)$cov
-    )
-  rm(model_gl)
-  return(results = list(
-    cpu = cpu,
-    gpu = gpu,
-    gl = gl
-  ))
+ 
 }
 
 

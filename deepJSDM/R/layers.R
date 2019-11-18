@@ -9,7 +9,7 @@
 #' @param l2 l2 regularizer
 #' @export
 
-layer_dense = function(model, hidden = 10L, activation = "relu", bias = TRUE, l1 = 0.0, l2 = 0.0) {
+layer_dense = function(model, hidden = 10L, activation = "relu", bias = TRUE, l1 = 0.0, l2 = 0.0, device = .device, dtype = .dtype) {
 
   ####
   hidden = as.integer(abs(hidden))
@@ -55,7 +55,7 @@ layer_dense = function(model, hidden = 10L, activation = "relu", bias = TRUE, l1
 #' @param kl_weight kl_weight for prior
 #' @export
 
-layer_varational_dense = function(model, hidden = 10L, activation = "relu", sd = 20.0, kl_weight = 0.1) {
+layer_varational_dense = function(model, hidden = 10L, activation = "relu", sd = 20.0, kl_weight = 0.1, device = .device, dtype = .dtype) {
 
   ####
   hidden = as.integer(abs(hidden))

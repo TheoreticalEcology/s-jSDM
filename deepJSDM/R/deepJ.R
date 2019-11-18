@@ -7,7 +7,7 @@
 #' @param parallel parallel threads for prefetching  
 #' @export
 
-deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE, parallel = 0L){
+deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE, parallel = 0L, device = .device, dtype = .dtype){
 
   ### define constants ###
   n_app = 100L
@@ -108,12 +108,14 @@ deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE, parallel 
     width = 80
   )
   init_fun = function() torch$multiprocessing$set_start_method("spawn", TRUE)
-  data = .torch$utils$data$TensorDataset(.torch$tensor(model$X, dtype = .dtype), .torch$tensor(model$Y, dtype = .dtype))
+  data = .torch$utils$data$TensorDataset(.torch$tensor(model$X, dtype = .dtype, device = .torch$device("cpu")), .torch$tensor(model$Y, dtype = .dtype, device = .torch$device("cpu")))
+  if(.device$type == "cpu") pin_memory = FALSE
+  else pin_memory = TRUE
   dataLoader =  .torch$utils$data$DataLoader(data,batch_size = batch_size,
                                              shuffle = TRUE,
                                              num_workers = as.integer(parallel),
                                              drop_last = TRUE,
-                                             pin_memory = TRUE, worker_init_fn = reticulate::py_func(init_fun))
+                                             pin_memory = pin_memory)
 
 
   for(i in 1:epochs){

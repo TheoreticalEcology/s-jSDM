@@ -4,9 +4,9 @@
 .Ruserdata
 .RDS
 *.RDS
-/results
 *.rds
 *.rdata
 results/*.csv
 *.csv
 data_sets.RData
+*.pdf

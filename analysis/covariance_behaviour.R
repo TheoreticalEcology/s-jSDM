@@ -2,7 +2,12 @@ if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(gllvm)
 library(BayesComm)
-n = 3L
+library(Hmsc)
+Sys.setenv(CUDA_VISIBLE_DEVICES="0")
+useGPU(0L)
+
+
+n = 6L
 OpenMPController::omp_set_num_threads(n)
 RhpcBLASctl::omp_set_num_threads(n)
 RhpcBLASctl::blas_set_num_threads(n)
@@ -17,20 +22,20 @@ species = 20L
 env = 3L
 
 
-data_set = vector("list", 10L)
+data_set = vector("list", 25L)
 for(i in 1:length(sites)) {
-  tmp = vector("list", 10L)
-  for(j in 1:10){
+  tmp = vector("list", 5L)
+  for(j in 1:5){
     tmp[[j]] = simulate_SDM(env, sites = sites[i], species = species)
   }
   data_set[[i]] = tmp
 }
 
 
-useGPU(1L)
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 10L)
+#### gpu dmvp ####
+result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
 for(i in 1:length(sites)) {
-  for(j in 1:10){
+  for(j in 1:5){
     .torch$cuda$empty_cache()
     X = data_set[[i]][[j]]$env_weights
     Y = data_set[[i]][[j]]$response
@@ -50,7 +55,6 @@ for(i in 1:length(sites)) {
     rm(model)
     gc()
     .torch$cuda$empty_cache()
-    #saveRDS(setup, file = "benchmark.RDS")
   }
 
 }
@@ -63,9 +67,11 @@ gpu_behvaiour = list(
 )
 saveRDS(gpu_behvaiour, "results/gpu_behvaiour_sites.RDS")
 
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 10L)
+
+#### gllvm ####
+result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
 for(i in 1:length(sites)) {
-  for(j in 1:10){
+  for(j in 1:5L){
     X = data_set[[i]][[j]]$env_weights
     Y = data_set[[i]][[j]]$response
     sim = data_set[[i]][[j]]
@@ -111,9 +117,11 @@ gllvm_behvaiour = list(
 saveRDS(gllvm_behvaiour, "results/gllvm_behvaiour_sites.RDS")
 
 
+
+#### bc ####
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 10L)
 for(i in 1:length(sites)) {
-  for(j in 1:10){
+  for(j in 1:5L){
     X = data_set[[i]][[j]]$env_weights
     Y = data_set[[i]][[j]]$response
     sim = data_set[[i]][[j]]
@@ -154,3 +162,47 @@ bc_behvaiour = list(
 )
 
 saveRDS(bc_behvaiour, "results/bc_behvaiour_sites.RDS")
+
+
+
+#### hmsc ####
+result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 10L)
+for(i in 1:length(sites)) {
+  for(j in 1:5L){
+    X = data_set[[i]][[j]]$env_weights
+    Y = data_set[[i]][[j]]$response
+    sim = data_set[[i]][[j]]
+    
+   
+    # HMSC:
+    studyDesign = data.frame(sample = as.factor(1:nrow(Y)))
+    model = Hmsc(Y = Y, XData = data.frame(X), XFormula = ~0 + .,
+                 studyDesign = studyDesign, distr = "probit")
+    time =
+      system.time({
+        model = sampleMcmc(model, thin = 1, samples = 10000, transient = 1000,verbose = 5000,
+                           nChains = 1L)
+      })
+    correlation = computeAssociations(model)[[1]]$mean
+    species_weights = Hmsc::getPostEstimate(model,parName = "Beta")$mean
+    
+    
+    try({
+      result_corr_acc[i,j] =  sim$corr_acc(correlation)
+      result_env[i,j] = mean(as.vector(species_weights > 0) == as.vector(sim$species_weights > 0))
+      result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(sim$species_weights))^2))
+      result_time[i,j] = time[3]
+      rm(model)
+      gc()
+    })
+  }
+}
+
+hmsc_behvaiour = list(
+  result_corr_acc = result_corr_acc,
+  result_env = result_env,
+  result_rmse_env = result_rmse_env,
+  result_time= result_time
+)
+
+saveRDS(bc_behvaiour, "results/hmsc_behvaiour_sites.RDS")

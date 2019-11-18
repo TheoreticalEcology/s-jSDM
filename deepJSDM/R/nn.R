@@ -39,7 +39,7 @@ createModel = function(X = NULL, Y = NULL, Traits = NULL){
 #' @param reset reset weights
 #' @param control control options for optimizer "adamax" or "LBFGS"
 #' @export
-compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", reset = TRUE, control = list()) {
+compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", reset = TRUE, control = list(), device = .device, dtype = .dtype) {
   if(!is.null(model$params$nLatent)) nLatent = model$params$nLatent
   n_latent = nLatent
   model$params$nLatent = nLatent
@@ -132,7 +132,7 @@ extractWeights = function(model) {
 #' assignWeights
 #' assign weights
 #' @param model model deepJSDM
-assignWeights = function(model) {
+assignWeights = function(model, device = .device, dtype = .dtype) {
   for(i in 1:length(model$weights)){
     for(j in 1:length(model$weights[[i]])){
       if(!is.null(model$weights[[i]][[j]])) model$weights[[i]][[j]]$data = .torch$tensor(model$raw_weights[[i]]$w[[j]], device =.device, dtype = .dtype)$to(.device)$data
@@ -143,7 +143,7 @@ assignWeights = function(model) {
 
 
 #' @export
-predict.deepJmodel = function(model, newdata = NULL, train = FALSE, batch_size = NULL){
+predict.deepJmodel = function(model, newdata = NULL, train = FALSE, batch_size = NULL, device = .device, dtype = .dtype){
   if(is.null(newdata)) result = model$X
   else result = newdata
 
