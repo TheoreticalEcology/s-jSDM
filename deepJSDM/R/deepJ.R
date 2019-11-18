@@ -25,6 +25,8 @@ deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE, parallel 
   alpha = .torch$tensor(1.70169, dtype = .dtype)$to(.device)
   half = .torch$tensor(0.5, dtype = .dtype)$to(.device)
   old = Inf
+  
+  if(.device$type == "cuda") .torch$cuda$set_device(.device)
 
   state =
   ### get step function ####

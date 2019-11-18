@@ -261,3 +261,25 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
   legend("bottomright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1)
 }
 # }
+
+
+
+#### runtime case study ####
+runtime = readRDS("results/case_study_runtime.RDS")
+runtime_result = data.frame( data_set = names(runtime), cpu = rep(0, length(runtime)), gpu = rep(0, length(runtime)))
+for(i in 1:length(runtime)){
+  runtime_result[i,2] = runtime[[i]]$cpu$time/3600
+  runtime_result[i,3] = runtime[[i]]$gpu$time/3600
+}
+
+
+#### covariance behaviour ####
+gpu_beh = readRDS(file = "results/gpu_behaviour_sites.RDS")
+gllvm_beh = readRDS(file = "results/gllvm_behaviour_sites.RDS")
+bc_beh = readRDS(file = "results/bc_behaviour_sites.RDS")
+
+xx = 1:25
+plot(apply(gpu_beh$result_corr_acc, 1, mean))
+summary(lm(apply(bc_beh$result_corr_acc, 1, function(k) mean(k, na.rm = T))~xx))
+summary(lm(apply(gpu_beh$result_corr_acc, 1, mean)~xx))
+        

@@ -1,7 +1,6 @@
 library(deepJSDM)
 library(gllvm)
 useGPU(2L)
-Sys.setenv(CUDA_VISIBLE_DEVICES="2")
 
 n = 6L
 OpenMPController::omp_set_num_threads(n)
@@ -9,7 +8,7 @@ RhpcBLASctl::omp_set_num_threads(n)
 RhpcBLASctl::blas_set_num_threads(n)
 TMB::openmp(n = n)
 
-new_model = function(env, pa){
+new_model = function(env, pa, device = .device, dtype = .dtype){
   model = createModel(as.matrix(env), as.matrix(pa))
   model = layer_dense(model, hidden = ncol(pa), FALSE, FALSE)
   return(model)
@@ -53,7 +52,7 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
     )
   rm(model_gpu)
   .torch$cuda$empty_cache()
- 
+  return(list(cpu = cpu, gpu = gpu))
 }
 
 
@@ -104,6 +103,6 @@ result = list(bird_result = bird_result,
               fungi_result = fungi_result,
               mosquitos_result = mosquitos_result)
 
-saveRDS(file = "results/case_study_runtime.RDS")
+saveRDS(result, file = "results/case_study_runtime.RDS")
 
 

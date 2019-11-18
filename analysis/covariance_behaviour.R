@@ -3,9 +3,7 @@ library(deepJSDM)
 library(gllvm)
 library(BayesComm)
 library(Hmsc)
-Sys.setenv(CUDA_VISIBLE_DEVICES="0")
-useGPU(0L)
-
+useGPU(1L)
 
 n = 6L
 OpenMPController::omp_set_num_threads(n)
@@ -59,13 +57,13 @@ for(i in 1:length(sites)) {
 
 }
 
-gpu_behvaiour = list(
+gpu_behaviour = list(
   result_corr_acc = result_corr_acc,
   result_env = result_env,
   result_rmse_env = result_rmse_env,
   result_time= result_time
 )
-saveRDS(gpu_behvaiour, "results/gpu_behvaiour_sites.RDS")
+saveRDS(gpu_behaviour, "results/gpu_behaviour_sites.RDS")
 
 
 #### gllvm ####
@@ -108,13 +106,13 @@ for(i in 1:length(sites)) {
   }
 }
   
-gllvm_behvaiour = list(
+gllvm_behaviour = list(
     result_corr_acc = result_corr_acc,
     result_env = result_env,
     result_rmse_env = result_rmse_env,
     result_time= result_time
   )
-saveRDS(gllvm_behvaiour, "results/gllvm_behvaiour_sites.RDS")
+saveRDS(gllvm_behaviour, "results/gllvm_behaviour_sites.RDS")
 
 
 
@@ -125,7 +123,7 @@ for(i in 1:length(sites)) {
     X = data_set[[i]][[j]]$env_weights
     Y = data_set[[i]][[j]]$response
     sim = data_set[[i]][[j]]
-  
+    try({
     time =
       system.time({
         model = BayesComm::BC(Y, X,model = "full", its = 10000)
@@ -151,17 +149,18 @@ for(i in 1:length(sites)) {
       rm(model)
       gc()
     })
+    }, silent = TRUE)
   }
 }
 
-bc_behvaiour = list(
+bc_behaviour = list(
   result_corr_acc = result_corr_acc,
   result_env = result_env,
   result_rmse_env = result_rmse_env,
   result_time= result_time
 )
 
-saveRDS(bc_behvaiour, "results/bc_behvaiour_sites.RDS")
+saveRDS(bc_behaviour, "results/bc_behaviour_sites.RDS")
 
 
 
@@ -176,8 +175,9 @@ for(i in 1:length(sites)) {
    
     # HMSC:
     studyDesign = data.frame(sample = as.factor(1:nrow(Y)))
+    rL = HmscRandomLevel(units = studyDesign$sample)
     model = Hmsc(Y = Y, XData = data.frame(X), XFormula = ~0 + .,
-                 studyDesign = studyDesign, distr = "probit")
+                 studyDesign = studyDesign, ranLevels = list(sample = rL),distr = "probit")
     time =
       system.time({
         model = sampleMcmc(model, thin = 1, samples = 10000, transient = 1000,verbose = 5000,
@@ -198,11 +198,11 @@ for(i in 1:length(sites)) {
   }
 }
 
-hmsc_behvaiour = list(
+hmsc_behaviour = list(
   result_corr_acc = result_corr_acc,
   result_env = result_env,
   result_rmse_env = result_rmse_env,
   result_time= result_time
 )
 
-saveRDS(bc_behvaiour, "results/hmsc_behvaiour_sites.RDS")
+saveRDS(hmsc_behaviour, "results/hmsc_behaviour_sites.RDS")
