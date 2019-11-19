@@ -3,7 +3,7 @@ library(deepJSDM)
 library(gllvm)
 library(BayesComm)
 library(Hmsc)
-useGPU(1L)
+useGPU(2L)
 
 n = 6L
 OpenMPController::omp_set_num_threads(n)
@@ -15,12 +15,12 @@ seed = 42L
 set.seed(seed)
 .torch$manual_seed(seed)
 
-sites = seq(20,by = 10, length.out = 25)
-species = 20L
+sites = seq(50,by = 20, length.out = 15)
+species = 50L
 env = 3L
 
 
-data_set = vector("list", 25L)
+data_set = vector("list", 15L)
 for(i in 1:length(sites)) {
   tmp = vector("list", 5L)
   for(j in 1:5){
@@ -41,9 +41,9 @@ for(i in 1:length(sites)) {
     
     model = createModel(X, Y)
     model = layer_dense(model, ncol(Y),FALSE, FALSE)
-    model = compileModel(model, nLatent = 10L,lr = 1.0,optimizer = "LBFGS",reset = TRUE)
+    model = compileModel(model, nLatent = 25L,lr = 0.02,optimizer = "adamax",reset = TRUE)
     time = system.time({
-      model = deepJ(model, epochs = 8L,batch_size = nrow(X),corr = FALSE)
+      model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(X)*0.1),corr = FALSE)
     })
     
     result_corr_acc[i,j] =  sim$corr_acc(model$sigma())
@@ -63,7 +63,43 @@ gpu_behaviour = list(
   result_rmse_env = result_rmse_env,
   result_time= result_time
 )
-saveRDS(gpu_behaviour, "results/gpu_behaviour_sites.RDS")
+saveRDS(gpu_behaviour, "results/gpu_behaviour_sites_adamax.RDS")
+
+
+result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
+for(i in 1:length(sites)) {
+  for(j in 1:5){
+    .torch$cuda$empty_cache()
+    X = data_set[[i]][[j]]$env_weights
+    Y = data_set[[i]][[j]]$response
+    sim = data_set[[i]][[j]]
+    
+    model = createModel(X, Y)
+    model = layer_dense(model, ncol(Y),FALSE, FALSE)
+    model = compileModel(model, nLatent = 25L,lr = 1.0,optimizer = "LBFGS",reset = TRUE)
+    time = system.time({
+      model = deepJ(model, epochs = 8L,batch_size = nrow(X),corr = FALSE)
+    })
+    
+    result_corr_acc[i,j] =  sim$corr_acc(model$sigma())
+    result_env[i,j] = mean(as.vector(model$raw_weights[[1]][[1]][[1]] > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(model$raw_weights[[1]][[1]][[1]]) - as.vector(sim$species_weights))^2))
+    result_time[i,j] = time[3]
+    rm(model)
+    gc()
+    .torch$cuda$empty_cache()
+  }
+  
+}
+
+gpu_behaviour = list(
+  result_corr_acc = result_corr_acc,
+  result_env = result_env,
+  result_rmse_env = result_rmse_env,
+  result_time= result_time
+)
+saveRDS(gpu_behaviour, "results/gpu_behaviour_sites_lbfgs.RDS")
+
 
 
 #### gllvm ####
@@ -117,7 +153,7 @@ saveRDS(gllvm_behaviour, "results/gllvm_behaviour_sites.RDS")
 
 
 #### bc ####
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 10L)
+result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
 for(i in 1:length(sites)) {
   for(j in 1:5L){
     X = data_set[[i]][[j]]$env_weights
@@ -165,7 +201,7 @@ saveRDS(bc_behaviour, "results/bc_behaviour_sites.RDS")
 
 
 #### hmsc ####
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 10L)
+result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
 for(i in 1:length(sites)) {
   for(j in 1:5L){
     X = data_set[[i]][[j]]$env_weights

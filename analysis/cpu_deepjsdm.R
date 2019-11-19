@@ -34,9 +34,9 @@ for(i in 1:nrow(setup)) {
     
     model = createModel(train_X, train_Y)
     model = layer_dense(model,ncol(train_Y),FALSE, FALSE)
-    model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 1.0,optimizer = "LBFGS",reset = TRUE)
+    model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 0.01,optimizer = "adamax",reset = TRUE)
     time = system.time({
-      model = deepJ(model, epochs = 8L,batch_size = nrow(train_X),corr = FALSE)
+      model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
     })
     
     result_corr_acc[i,j] =  sim$corr_acc(model$sigma())
@@ -59,6 +59,6 @@ for(i in 1:nrow(setup)) {
     result_time= result_time,
     auc = auc
   )
-  saveRDS(cpu_dmvp, "results/cpu_dmvp2.RDS")
+  saveRDS(cpu_dmvp, "results/cpu_dmvp3.RDS")
 }
 
