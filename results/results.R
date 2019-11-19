@@ -1,4 +1,4 @@
-cpu = readRDS(file = "results/cpu_dmvp2.RDS")
+cpu = readRDS(file = "results/cpu_dmvp3.RDS")
 gpu = readRDS(file = "results/gpu_dmvp3.RDS")
 gllvm = readRDS(file = "results/gllvm.RDS")
 bc = readRDS(file = "results/BayesComm.RDS")
@@ -9,10 +9,9 @@ len = ncol(gpu$auc[[100]][[1]]$pred)
 mean(sapply(1:len, function(l) Metrics::auc(gpu$auc[[100]][[1]]$true[,l], gpu$auc[[100]][[1]]$pred[,l])))
 
 
-pdf(file = "Fig1_speed.pdf", width = 5.5, height = 3.5)
+pdf(file = "figures/Fig_1.pdf", width = 9, height = 9.8)
 
-
-par(mfrow = c(4,3), mgp = c(2.7,0.6,0), mar = c(1.1, 2.5, 1,1.4))
+par(mfrow = c(4,3), mgp = c(2.3,0.6,0), mar = c(0.6, 2.3, 0.6,0.7), oma = c(3,2.0,3,0))
 ######### Run time ######### 
 
 
@@ -25,18 +24,24 @@ hmsc_log = log(apply(hmsc$result_time[complete.cases(hmsc$result_time),],1,mean)
 
 spar = 0.5
 e = 5L
-lwd = 2.0
+lwd = 2.2
 for(i in (as.character(unique(number)))[c(1,3,5)]){
 #for(e in c(3,5,7)){
   lineT = rep(1,5) #1:5
   names(lineT) =  (as.character(unique(number)))
-  plot(NULL, NULL, xlim = c(1,nrow(setup)-4), ylim = c(-0.5,8), xaxt = "n", main = "",yaxt = "n", xlab = "", ylab = "Log(time) in seconds", xpd = NA, xaxs = "i")
+  if( i == "0.1") {
+    ylab = "time in minutes"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1,nrow(setup)-4), ylim = c(-0.5,8), xaxt = "n", main = "",yaxt = "n", xlab = "", ylab = ylab, xpd = NA, xaxs = "i", font = 2)
   title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
+  if(i == "0.1") text(-18, 8*1.06, pos = 2, labels = "A", font = 2, xpd = NA, cex = 1.2)
   # 1 -> 150
-  tt = seq(0.01, log(4000), length.out = 10)
+  tt = seq(2, log(4000), length.out = 7)
   tt = exp(tt)
   #axis(1)
-  axis(2, at = round(log(tt),2),labels = c(round(tt,1)), las = 2)
+  axis(2, at = round(log(tt),1),labels = c(round(tt/60,1)), las = 2)
  # axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
   axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
   for(k in seq(1, nrow(setup), by = 15)[-1]){
@@ -81,12 +86,14 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
 e = 5L
   lineT = rep(1,5) #1:5
   names(lineT) =  (as.character(unique(number)))
-  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "", ylab = "COV accuracy", xpd = NA, xaxs = "i")
-  # 1 -> 150
-  #axis(1)
-  axis(2)
- # axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
-  #axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
+  if( i == "0.1") {
+    ylab = "Covariance accuracy"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "", ylab = ylab, xpd = NA, xaxs = "i")
+  axis(2, las = 2)
+  if(i == "0.1") text(-18, 1*1.06, pos = 2, labels = "B", font = 2, xpd = NA, cex = 1.2)
   
   for(k in seq(1, nrow(setup), by = 15)[-1]){
     abline(v = k, col = "grey")
@@ -135,12 +142,16 @@ e = 5L
 lineT = rep(1,5) #1:5
 names(lineT) =  (as.character(unique(number)))
 for(i in (as.character(unique(number)))[c(1,3,5)]){
-plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "", ylab = "ENV sign accuracy", xpd = NA, xaxs = "i")
-# 1 -> 150
-#axis(1)
-axis(2)
-#axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
-#axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
+  
+  if( i == "0.1") {
+    ylab = "Env sign accuracy"
+  } else {
+    ylab = ""
+  }
+plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "", ylab = ylab, xpd = NA, xaxs = "i")
+axis(2, las = 2)
+if(i == "0.1") text(-18, 1*1.06, pos = 2, labels = "C", font = 2, xpd = NA, cex = 1.2)
+
 
 for(k in seq(1, nrow(setup), by = 15)[-1]){
   abline(v = k, col = "grey")
@@ -186,10 +197,17 @@ e = 5L
 lineT = rep(1,5) #1:5
 names(lineT) =  (as.character(unique(number)))
 for(i in (as.character(unique(number)))[c(1,3,5)]){
-  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.0,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = "Env RMSE", xpd = NA, xaxs = "i")
+  if( i == "0.1") {
+    ylab = "Env rmse"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.0,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "i")
   # 1 -> 150
   #axis(1)
-  axis(2)
+  if(i == "0.1") text(-18, 1*1.06, pos = 2, labels = "D", font = 2, xpd = NA, cex = 1.2)
+  
+  axis(2, las = 2)
   axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
   #axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
   
@@ -220,9 +238,12 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
 }
 # }
 
-
+dev.off()
 
  
+
+
+
  
 ##### Predictive Performance ####
  
@@ -244,15 +265,23 @@ hmsc_auc = unlist(lapply(auc_hmsc, function(tmp) mean(apply(tmp, 1,mean))))
 
 
 #for(e in c(3,5,7)){
+pdf(file = "figures/Fig_3.pdf", width = 9, height = 3.2)
 e = 5L
 lineT = rep(1,5) #1:5
 names(lineT) =  (as.character(unique(number)))
-par(mfrow = c(1,3), mgp = c(3,0.6,0))
+par(mfrow = c(1,3), mgp = c(2.1,0.6,0), mar = c(0.6, 1.5, 0.6,0.7), oma = c(2.5,2.0,2.6,0))
 for(i in (as.character(unique(number)))[c(1,3,5)]){
-  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = "AUC", main = paste0(as.numeric(i)*100, "% species"), xaxs = "i")
+  if( i == "0.1") {
+    ylab = "AUC"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, main = "", xaxs = "i", xpd = NA)
+  title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
+  
   # 1 -> 150
   #axis(1)
-  axis(2)
+  axis(2, las = 2)
   axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
   axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
   
@@ -277,15 +306,15 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
   tmp_gpu = tmp_gpu[complete.cases(tmp_gpu)]
   
   
-  lines(smooth.spline(x = X[1:length(tmp_cpu)], tmp_cpu,spar = 0.5), lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_gpu)], tmp_gpu,spar = 0.5), col = "red", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_gllvm)], tmp_gllvm,spar = 0.5), col = "blue", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_bc)], tmp_bc,spar = 0.5), col = "green", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_hmsc)], tmp_hmsc,spar = 0.5), col = "violet", lwd= 1.5, lty = lineT[[i]])
+  lines(smooth.spline(x = X[1:length(tmp_cpu)], tmp_cpu,spar = 0.5), lwd= lwd, lty = 1)
+  lines(smooth.spline(x = X[1:length(tmp_gpu)], tmp_gpu,spar = 0.5), col = "red", lwd= lwd, lty = 1)
+  lines(smooth.spline(x = X[1:length(tmp_gllvm)], tmp_gllvm,spar = 0.5), col = "blue", lwd= lwd, lty = 1)
+  lines(smooth.spline(x = X[1:length(tmp_bc)], tmp_bc,spar = 0.5), col = "green", lwd= lwd, lty = 1)
+  lines(smooth.spline(x = X[1:length(tmp_hmsc)], tmp_hmsc,spar = 0.5), col = "violet", lwd= lwd, lty =1)
   legend("bottomright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1)
 }
 # }
-
+dev.off()
 
 
 #### runtime case study ####
@@ -326,18 +355,29 @@ mean_conf = function(mat, col = "red", alpha = 0.1, spar = 0.4) {
 
 
 par(mfrow = c(1,2), mar = c(2.3, 3, 1, 1), mgp = c(2.7, 1, 0))
-plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.5, 1.0), ylab = "accuracy", xlab = "Sites", yaxt = "n", xpd = NA, main = "covariance accuracy")
+
+plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.5, 1.0), ylab = "accuracy", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
+axis(1, at = sites[seq(1, length(sites), by = 2)], labels = sites[seq(1, length(sites), by = 2)])
+text(x = 30, y = 1.07, pos = 2, labels = "A", xpd = NA, cex = 1.2, font = 2)
+for(i in seq(1, length(sites), by = 2)) abline(v = sites[i], col = addA("grey", 0.3))
+for(i in seq(0.5, 1.0, 0.1)) abline(h = i, col = addA("grey", 0.3))
+title("covariance accuracy",line = 1, xpd = NA)
 axis(2, las = 2)
+
 mean_conf(gpu_beh_adam$result_corr_acc)
 #mean_conf(gpu_beh_lbfgs$result_corr_acc, "black")
 mean_conf(bc_beh$result_corr_acc, "green")
 mean_conf(gllvm_beh$result_corr_acc, "blue")
 mean_conf(hmsc_beh$result_corr_acc, "violet")
-legend("bottomright", legend = c("G-DMVP", "BC", "GLLVM", "HMSC"), lty = 1L, col = c("red", "green", "blue", "violet"), lwd = 2, bty = "n")
+#legend("bottomright", legend = c("G-DMVP", "BC", "GLLVM", "HMSC"), lty = 1L, col = c("red", "green", "blue", "violet"), lwd = 2, bty = "n")
 
 
-
-plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.5, 1.0), ylab = "accuracy", xlab = "Sites", yaxt = "n", xpd = NA, main = "env accuracy")
+plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.5, 1.0), ylab = "accuracy", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
+axis(1, at = sites[seq(1, length(sites), by = 2)], labels = sites[seq(1, length(sites), by = 2)])
+text(x = 30, y = 1.07, pos = 2, labels = "B", xpd = NA, cex = 1.2, font = 2)
+for(i in seq(1, length(sites), by = 2)) abline(v = sites[i], col = addA("grey", 0.3))
+for(i in seq(0.5, 1.0, 0.1)) abline(h = i, col = addA("grey", 0.3))
+title("env accuracy",line = 1, xpd = NA)
 axis(2, las = 2)
 mean_conf(gpu_beh_adam$result_env)
 #mean_conf(gpu_beh_lbfgs$result_env, "black")
@@ -352,30 +392,32 @@ legend("bottomright", legend = c("G-DMVP", "BC", "GLLVM", "HMSC"), lty = 1L, col
 
 
 
-
-
-
-
 #### large scale results ####
+
 large_scale = readRDS("results/large_scale.RDS")
 setup = large_scale$setup
+
+
+lwd = 2.3
+pdf(file = "figures/Fig_2.pdf", width = 9, height = 6)
 par(mfrow = c(3,3), mgp = c(3,0.6,0), mar = c(0.5, 2.4, 0.5, 1), oma = c(4,2,2,1))
 xx = unique(setup$sites)
 for(i in unique(setup$species)) {
     lineT = rep(1,5) #1:5
     if(i == 300) {
-      ylab = "Log(time) in seconds"
+      ylab = "time in minutes"
     } else {
       ylab = ""
     }
-    plot(NULL, NULL, xlim = c(min(xx),max(xx)), ylim = c(2.5,max(log(large_scale$result_time[,1]))*1.1), xaxt = "n", xlab = "",main = paste0(i, " species"),yaxt = "n",  ylab = ylab, xpd = NA)
-    # 1 -> 150
-    tt = seq(0.01, log(600), length.out = 5)
+    plot(NULL, NULL, xlim = c(min(xx),max(xx)), ylim = c(2.5,max(log(large_scale$result_time[,1]))*1.1), xaxt = "n", xlab = "",main = "",yaxt = "n",  ylab = ylab, xpd = NA)
+    title(main = paste0(i, " species"), line = 1.1, xpd = NA)
+    if(i == 300) text(x = 1700, y = 7.2, pos = 2, labels = "A", xpd = NA, cex = 1.5, font = 2)
+    for(k in seq(1, length(xx), by = 2)) abline(v = xx[k], col = addA("grey", 0.3))
+    tt = seq(2.5, 6.5, length.out = 6)
     tt = exp(tt)
-    #axis(1)
-    axis(2, at = round(log(tt),2),labels = c(round(tt,1)), las = 2)
-   # axis(1, at = xx[seq(1, 14,by = 3)], labels = xx[seq(1, 14,by = 3)])
-    lines(smooth.spline(x = xx, log(result$result_time[setup$species == i]),spar = 0.5), lwd= 2, lty = 1, col = "darkred")
+    axis(2, at = round(log(tt),2),labels = c(round(tt/60,1)), las = 2)
+    for(k in tt) abline(h = log(k), col = addA("grey", 0.3))
+    lines(smooth.spline(x = xx, log(result$result_time[setup$species == i]),spar = 0.5), lwd= lwd, lty = 1, col = "red")
     
 }
 
@@ -387,12 +429,12 @@ for(i in unique(setup$species)) {
     ylab = ""
   }
   plot(NULL, NULL, xlim = c(min(xx),max(xx)), ylim = c(0.5, 1.0), xaxt = "n",yaxt = "n",  ylab = ylab, xlab = "",  xpd = NA)
-  # 1 -> 150
-  #axis(1)
-  
+  if(i == 300) text(x = 1700, y = 1.0*1.028, pos = 2, labels = "B", xpd = NA, cex = 1.5, font = 2)
+  for(k in seq(1, length(xx), by = 2)) abline(v = xx[k], col = addA("grey", 0.3))
   axis(2, las = 2)
+  for(k in seq(0.5, 1.0, 0.1)) abline(h =k, col = addA("grey", 0.3))
   # axis(1, at = xx[seq(1, 14,by = 3)], labels = xx[seq(1, 14,by = 3)])
-  lines(smooth.spline(x = xx, (result$result_corr_acc[setup$species == i,1]),spar = 0.5), lwd= 2, lty = 1, col = "darkred")
+  lines(smooth.spline(x = xx, (result$result_corr_acc[setup$species == i,1]),spar = 0.5),  lty = 1, col = "red", lwd = lwd)
   
 }
 
@@ -403,11 +445,15 @@ for(i in unique(setup$species)) {
   } else {
     ylab = ""
   }
-  plot(NULL, NULL, xlim = c(min(xx),max(xx)), ylim = c(0.5, 1.0), xaxt = "n",yaxt = "n",  ylab = ylab,xlab = "", xpd = NA)
-  # 1 -> 150
+  plot(NULL, NULL, xlim = c(min(xx),max(xx)), ylim = c(0.5, 1.0), xaxt = "n",yaxt = "n",  ylab = ylab,xlab = "Number of sites x100", xpd = NA, lwd = lwd)
+  if(i == 300) text(x = 1700, y = 1.0*1.028, pos = 2, labels = "C", xpd = NA, cex = 1.5, font = 2)
+  for(k in seq(1, length(xx), by = 2)) abline(v = xx[k], col = addA("grey", 0.3))
+  axis(2, las = 2)
+  for(k in seq(0.5, 1.0, 0.1)) abline(h =k, col = addA("grey", 0.3))
   #axis(1)
   axis(2, las = 2)
-   axis(1, at = xx[seq(1, 14,by = 3)], labels = xx[seq(1, 14,by = 3)])
-  lines(smooth.spline(x = xx, (result$result_env[setup$species == i,1]),spar = 0.5), lwd= 2, lty = 1, col = "darkred")
+  axis(1, at = xx[seq(1, length(xx), by = 2)], labels = xx[seq(1, length(xx), by = 2)]/100)
+  lines(smooth.spline(x = xx, (result$result_env[setup$species == i,1]),spar = 0.5), lwd= lwd, lty = 1, col = "red")
   
 }
+dev.off()
