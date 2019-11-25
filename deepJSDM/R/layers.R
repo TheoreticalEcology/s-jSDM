@@ -69,7 +69,7 @@ layer_varational_dense = function(model, hidden = 10L, activation = "relu", sd =
     zeros = .torch$zeros(as.integer(c(shape[1], shape[2])),dtype = .dtype, device = .device)$to(.device)
     ones = .torch$tensor(matrix(sd, shape[1], shape[2]),dtype = .dtype, device = .device)$to(.device)
     prior = .torch$distributions$Normal(zeros, ones)
-    one = .torch$tensor(1.0)
+    one = .torch$tensor(1.0, dtype = .dtype, device = .device)$to(.device)
     # precision = function(a) {
     #   return(.torch$tensor(0.0001) + .torch$nn$functional$softplus(a))
     # }
@@ -87,7 +87,15 @@ layer_varational_dense = function(model, hidden = 10L, activation = "relu", sd =
                return(.torch$tensor(0.0001) + .torch$nn$functional$softplus(a))
              }
               function(X, W, train) {
-                wr = .torch$distributions$Normal(W[[1]], precision(W[[2]]))$sample()
+                zeros = .torch$zeros(W[[2]]$shape,dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
+                ones = .torch$ones(W[[2]]$shape,dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
+               # ones = .torch$tensor(matrix(sd, shape[1], shape[2]),dtype = .dtype, device = .device)$to(.device)
+                
+                #wr = .torch$distributions$Normal(W[[1]], precision(W[[2]]))$sample()
+                
+                vv = .torch$mul(W[[2]]$reshape(-1L) , .torch$distributions$Normal(zeros, ones)$sample())
+                wr = .torch$add(W[[1]] , vv$reshape(W[[2]]$shape))
+                
                 .torch$nn$functional$linear(X, wr$t())
                 }}),
            loss = rlang::expr({
@@ -96,7 +104,7 @@ layer_varational_dense = function(model, hidden = 10L, activation = "relu", sd =
              }
              function() {
                wr = .torch$distributions$Normal(w, precision(sd))
-               return(.torch$sum(.torch$distributions$kl_divergence(wr, prior)) * kl_weight)
+               return(.torch$mean(.torch$distributions$kl_divergence(wr, prior)) * kl_weight)
              }
            }))
     returnList
