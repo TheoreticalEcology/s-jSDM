@@ -40,13 +40,12 @@ for(i in 1:nrow(setup)) {
     time =
       system.time({
         model = sampleMcmc(model, thin = 1, samples = 10000, transient = 1000,verbose = 5000,
-                       nChains = 1L)
+                       nChains = 2L)
       })
+    
+    
     correlation = computeAssociations(model)[[1]]$mean
     species_weights = Hmsc::getPostEstimate(model,parName = "Beta")$mean
-    
-    
-    
     
     
     result_corr_acc[i,j] =  sim$corr_acc(correlation)

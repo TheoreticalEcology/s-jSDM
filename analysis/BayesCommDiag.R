@@ -14,8 +14,10 @@ set.seed(42)
 
 
 counter = 1
-for(i in which(setup$env == 5L)) {
+for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
+  post = vector("list", 10)
+  
   for(j in 1:10){
     
     X = data_sets[[counter]]$env_weights
@@ -35,10 +37,11 @@ for(i in which(setup$env == 5L)) {
   
     time =
       system.time({
-        model = BayesComm::BC(train_Y, train_X,model = "full", its = 10000)
+        model1 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 2500)
+        model2 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 2500)
       })
     
-    cov = summary(model, "R")$statistics[,1]
+    cov = summary(model1, "R")$statistics[,1]
     covFill = matrix(0,ncol(train_Y), ncol(train_Y))
     covFill[upper.tri(covFill)] = cov
     correlation = t(covFill)
@@ -46,22 +49,36 @@ for(i in which(setup$env == 5L)) {
     species_weights = matrix(NA, ncol(train_X), ncol(train_Y))
     n = paste0("B$sp",1:ncol(train_Y) )
     for(v in 1:ncol(train_Y)){
-      smm = BayesComm:::summary.bayescomm(model, n[v])
+      smm = BayesComm:::summary.bayescomm(model1, n[v])
       species_weights[,v]= smm$statistics[-1,1]
     }
+    
+    m1 = lapply(model1$trace$B, function(mc) coda::as.mcmc(mc))
+    m2 = lapply(model2$trace$B, function(mc) coda::as.mcmc(mc))
+    beta.psrfs = lapply(1:length(model1$trace$B), function(i) coda::gelman.diag(coda::as.mcmc.list(list(m1[[i]], m2[[i]])),multivariate = FALSE)$psrf)
+    
+    
+    m1 = coda::as.mcmc(model1$trace$R)
+    m2 = coda::as.mcmc(model2$trace$R)
+    cov.psrf = coda::gelman.diag(coda::as.mcmc.list(list(m1, m2)),multivariate = FALSE)$psrf
+    
+    diag = list(post = list(m1 = m1, m2 = m2), psrf.beta = beta.psrfs, psrf.gamma = cov.psrf)
+    
     
     result_corr_acc[i,j] =  sim$corr_acc(correlation)
     result_env[i,j] = mean(as.vector(species_weights > 0) == as.vector(sim$species_weights > 0))
     result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(sim$species_weights))^2))
     result_time[i,j] = time[3]
     
-    pred = BayesComm:::predict.bayescomm(model, test_X)
+    pred = BayesComm:::predict.bayescomm(model1, test_X)
     pred = apply(pred, 1:2, mean)
     sub_auc[[j]] = list(pred = pred, true = test_Y)
-    rm(model)
+    rm(model1)
+    rm(model2)
     gc()
   }
   auc[[i]] = sub_auc
+  post[[i]] = diag
   
   bc = list(
     setup = setup[i,],
@@ -69,7 +86,8 @@ for(i in which(setup$env == 5L)) {
     result_env = result_env,
     result_rmse_env = result_rmse_env,
     result_time= result_time,
-    auc = auc
+    auc = auc,
+    post = post
   )
-  saveRDS(bc, "results/BayesComm.RDS")
+  saveRDS(bc, "results/BayesCommDiag.RDS")
 }
