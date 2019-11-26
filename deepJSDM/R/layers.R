@@ -70,25 +70,29 @@ layer_varational_dense = function(model, hidden = 10L, activation = "relu", sd =
     ones = .torch$tensor(matrix(sd, shape[1], shape[2]),dtype = .dtype, device = .device)$to(.device)
     prior = .torch$distributions$Normal(zeros, ones)
     one = .torch$tensor(1.0, dtype = .dtype, device = .device)$to(.device)
-    # precision = function(a) {
-    #   return(.torch$tensor(0.0001) + .torch$nn$functional$softplus(a))
-    # }
+    
+    sd_p = sd
     w = .torch$tensor(matrix(rnorm(shape[1]*shape[2], 0, 0.001), shape[1], shape[2]),dtype = .dtype, requires_grad = TRUE,device = .device)$to(.device)
     sd = .torch$tensor(exp(matrix(rnorm(shape[1]*shape[2], 0, 0.001), shape[1], shape[2])),dtype = .dtype, requires_grad = TRUE,device = .device)$to(.device)
     kl_weight = .torch$tensor(kl_weight, device = .device, dtype = .dtype)$to(.device)
     #W = .torch$distributions$Normal(W[[1]], precision(W[[2]]))$sample()
     #if(bias) B = .torch$tensor(matrix(rnorm(shape[2], 0, 0.001), shape[2],1), dtype = .dtype, requires_grad = TRUE,device = .device)$to(.device)
     #else B = NULLI
+    zeros = .torch$zeros(as.integer(shape),dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
+    ones = .torch$ones(as.integer(shape),dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
     returnList =
       list(weights = list(w = w, sd = sd),
-           loss_env = list(prior = prior, kl_weight = kl_weight),
+           loss_env = list(prior = prior, kl_weight = kl_weight, shape = shape, sd_p = sd_p),
            feedforward = rlang::expr({
+             #zeros = .torch$zeros(as.integer(shape),dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
+            # ones = .torch$ones(as.integer(shape),dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
+             
              precision = function(a) {
                return(.torch$tensor(0.0001) + .torch$nn$functional$softplus(a))
              }
               function(X, W, train) {
                 zeros = .torch$zeros(W[[2]]$shape,dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
-                ones = .torch$ones(W[[2]]$shape,dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
+                 ones = .torch$ones(W[[2]]$shape,dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
                # ones = .torch$tensor(matrix(sd, shape[1], shape[2]),dtype = .dtype, device = .device)$to(.device)
                 
                 #wr = .torch$distributions$Normal(W[[1]], precision(W[[2]]))$sample()
@@ -99,11 +103,18 @@ layer_varational_dense = function(model, hidden = 10L, activation = "relu", sd =
                 .torch$nn$functional$linear(X, wr$t())
                 }}),
            loss = rlang::expr({
+             zeros = .torch$zeros(as.integer(shape),dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
+             ones = .torch$ones(as.integer(shape),dtype = .dtype, device = .device)$to(.device)$reshape(-1L)
+             
+             sdT = .torch$tensor(matrix(sd_p, shape[1], shape[2]),dtype = .dtype, device = .device)$to(.device)
+             prior = .torch$distributions$Normal(zeros, sdT$reshape(-1L))
+             
              precision = function(a) {
                return(.torch$tensor(0.0001) + .torch$nn$functional$softplus(a))
              }
              function() {
-               wr = .torch$distributions$Normal(w, precision(sd))
+               wr = .torch$distributions$Normal(w$reshape(-1L), precision(sd$reshape(-1L)))
+               
                return(.torch$mean(.torch$distributions$kl_divergence(wr, prior)) * kl_weight)
              }
            }))

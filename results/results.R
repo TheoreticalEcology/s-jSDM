@@ -6,28 +6,31 @@ hmsc = readRDS(file = "results/hmsc.RDS")
 
 
 
-len = ncol(gpu$auc[[100]][[1]]$pred)
-mean(sapply(1:len, function(l) Metrics::auc(gpu$auc[[100]][[1]]$true[,l], gpu$auc[[100]][[1]]$pred[,l])))
-
 
 pdf(file = "figures/Fig_1.pdf", width = 9, height = 9.8)
 
+
+addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
+mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4) {
+  sites2 = sites[complete.cases(mat)]
+  mat = mat[complete.cases(mat),]
+  
+  m = apply(mat, 1, mean)
+  sd = apply(mat, 1, sd)
+  upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
+  lower = smooth.spline(y = m - sd, x = sites2, spar = spar)$y
+  polygon(c(sites2, rev(sites2)), c(upper, rev(lower)), border = NA, col =addA(col, alpha))
+  lines(smooth.spline(y = m, x = sites2, spar = spar), col = col, lwd = 2.0)
+}
 par(mfrow = c(4,3), mgp = c(2.3,0.6,0), mar = c(0.6, 2.3, 0.6,0.7), oma = c(3,2.0,3,0))
 ######### Run time ######### 
 
 
 number = setup$species
-cpu_log = log(apply(cpu$result_time[complete.cases(cpu$result_time),],1,mean))
-gpu_log = log(apply(gpu$result_time[complete.cases(gpu$result_time),],1,mean))
-gllvm_log = log(apply(gllvm$result_time[complete.cases(gllvm$result_time),],1,mean))
-bc_log = log(apply(bc$result_time[complete.cases(bc$result_time),],1,mean))
-hmsc_log = log(apply(hmsc$result_time[complete.cases(hmsc$result_time),],1,mean))
-
 spar = 0.5
 e = 5L
 lwd = 2.2
 for(i in (as.character(unique(number)))[c(1,3,5)]){
-#for(e in c(3,5,7)){
   lineT = rep(1,5) #1:5
   names(lineT) =  (as.character(unique(number)))
   if( i == "0.1") {
@@ -38,64 +41,28 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
   plot(NULL, NULL, xlim = c(1,nrow(setup)-4), ylim = c(-0.5,8), xaxt = "n", main = "",yaxt = "n", xlab = "", ylab = ylab, xpd = NA, xaxs = "i", font = 2)
   title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
   if(i == "0.1") text(-18, 8*1.06, pos = 2, labels = "A", font = 2, xpd = NA, cex = 1.2)
-  # 1 -> 150
   tt = seq(2, log(4000), length.out = 7)
   tt = exp(tt)
-  #axis(1)
   axis(2, at = round(log(tt),1),labels = c(round(tt/60,1)), las = 2)
- # axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
   axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
   for(k in seq(1, nrow(setup), by = 15)[-1]){
     abline(v = k, col = "grey")
   }
-  
-  #for(i in (as.character(unique(number)))[c(1,3,5)]){
     cat(i, "\n")
     X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
-    tmp_cpu = cpu_log[as.character(number) == i & setup$env == e]
-    tmp_gpu = gpu_log[as.character(number) == i & setup$env == e]
-    tmp_gllvm =gllvm_log[as.character(number) == i & setup$env == e]
-    tmp_bc = bc_log[as.character(number) == i & setup$env == e]
-    tmp_hmsc =hmsc_log[as.character(number) == i & setup$env == e]
-    
-    tmp_cpu = tmp_cpu[complete.cases(tmp_cpu)]
-    tmp_gpu = tmp_gpu[complete.cases(tmp_gpu)]
-    tmp_gllvm = tmp_gllvm[complete.cases(tmp_gllvm)]
-    tmp_bc = tmp_bc[complete.cases(tmp_bc)]
-    tmp_hmsc = tmp_hmsc[complete.cases(tmp_hmsc)]
-
-    lines(smooth.spline(x = X[1:length(tmp_cpu)], tmp_cpu,spar = spar), lwd=lwd, lty = lineT[[i]])
-    lines(smooth.spline(x = X[1:length(tmp_gpu)], tmp_gpu,spar = spar), col = "red", lwd= lwd, lty = lineT[[i]])
-    lines(smooth.spline(x = X[1:length(tmp_gllvm)], tmp_gllvm,spar = spar), col = "blue", lwd= lwd, lty = lineT[[i]])
-    try(lines(smooth.spline(x = X[1:length(tmp_bc)], tmp_bc,spar = spar), col = "green", lwd= lwd, lty = lineT[[i]]))
-    try(lines(smooth.spline(x = X[1:length(tmp_hmsc)], tmp_hmsc,spar = spar), col = "violet", lwd= lwd, lty = lineT[[i]]))
+    mean_conf(X, log(cpu$result_time[as.character(number) == i & setup$env == e, ]), col = "black")
+    mean_conf(X, log(gpu$result_time[as.character(number) == i & setup$env == e, ]), col = "red")
+    mean_conf(X, log(gllvm$result_time[as.character(number) == i & setup$env == e, ]), col = "blue")
+    mean_conf(X, log(bc$result_time[as.character(number) == i & setup$env == e, ]), col = "green")
+    mean_conf(X, log(hmsc$result_time[as.character(number) == i & setup$env == e, ]), col = "violet")
   legend("topleft", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1)
 }
 
 
 ######### Covariance accuracy #########
-cpu_cov = (apply(cpu$result_corr_acc[complete.cases(cpu$result_corr_acc),],1,mean))
-gpu_cov = (apply(gpu$result_corr_acc[complete.cases(gpu$result_corr_acc),],1,mean))
-gllvm_cov = (apply(gllvm$result_corr_acc[complete.cases(gllvm$result_corr_acc),],1,mean))
-bc_cov = (apply(bc$result_corr_acc[complete.cases(bc$result_corr_acc),],1,mean))
-hmsc_cov = (apply(hmsc$result_corr_acc[complete.cases(hmsc$result_corr_acc),],1,mean))
-
-
-mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4) {
-  sites2 = sites[complete.cases(mat)]
-  mat = mat[complete.cases(mat),]
-  
-  m = apply(mat, 1, mean)
-  sd = apply(mat, 1, sd)
-  upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
-  lower = smooth.spline(y = m - sd, x = sites2, spar = spar)$y
-  polygon(c(sites2, rev(sites2)), c(upper, rev(lower)), border = NA, col = addA(col, alpha))
-  lines(smooth.spline(y = m, x = sites2, spar = spar), col = col, lwd = 2.0)
-}
 
 
 for(i in (as.character(unique(number)))[c(1,3,5)]){
-#for(e in c(3,5,7)){
 e = 5L
   lineT = rep(1,5) #1:5
   names(lineT) =  (as.character(unique(number)))
@@ -113,24 +80,6 @@ e = 5L
   } 
     cat(i, "\n")
      X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
-    # tmp_cpu = cpu_cov[as.character(number) == i & setup$env == e]
-    # tmp_gpu = gpu_cov[as.character(number) == i & setup$env == e]
-    # tmp_gllvm =gllvm_cov[as.character(number) == i& setup$env == e]
-    # tmp_bc =bc_cov[as.character(number) == i& setup$env == e]
-    # tmp_hmsc =hmsc_cov[as.character(number) == i& setup$env == e]
-    # 
-    # tmp_cpu = tmp_cpu[complete.cases(tmp_cpu)]
-    # tmp_gllvm = tmp_gllvm[complete.cases(tmp_gllvm)]
-    # tmp_bc = tmp_bc[complete.cases(tmp_bc)]
-    # tmp_hmsc = tmp_hmsc[complete.cases(tmp_hmsc)]
-    # tmp_gpu = tmp_gpu[complete.cases(tmp_gpu)]
-    # 
-    # 
-    # lines(smooth.spline(x = X[1:length(tmp_cpu)], tmp_cpu,spar = 0.5), lwd= 1.5, lty = lineT[[i]])
-    # lines(smooth.spline(x = X[1:length(tmp_gpu)], tmp_gpu,spar = 0.5), col = "red", lwd= 1.5, lty = lineT[[i]])
-    # lines(smooth.spline(x = X[1:length(tmp_gllvm)], tmp_gllvm,spar = 0.5), col = "blue", lwd= 1.5, lty = lineT[[i]])
-    # lines(smooth.spline(x = X[1:length(tmp_bc)], tmp_bc,spar = 0.5), col = "green", lwd= 1.5, lty = lineT[[i]])
-    # lines(smooth.spline(x = X[1:length(tmp_hmsc)], tmp_hmsc,spar = 0.5), col = "violet", lwd= 1.5, lty = lineT[[i]])
     mean_conf(X, cpu$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "black")
     mean_conf(X, gpu$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "red")
     mean_conf(X, gllvm$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "blue")
@@ -145,15 +94,6 @@ e = 5L
   
 
 ######### ENV accuracy ######### 
-  
-cpu_cov = (apply(cpu$result_env[complete.cases(cpu$result_env),],1,mean))
-gpu_cov = (apply(gpu$result_env[complete.cases(gpu$result_env),],1,mean))
-gllvm_cov = (apply(gllvm$result_env[complete.cases(gllvm$result_env),],1,mean))
-bc_cov = (apply(bc$result_env[complete.cases(bc$result_env),],1,mean))
-hmsc_cov = (apply(hmsc$result_env[complete.cases(hmsc$result_env),],1,mean))
-
-
-#for(e in c(3,5,7)){
 e = 5L
 lineT = rep(1,5) #1:5
 names(lineT) =  (as.character(unique(number)))
@@ -167,48 +107,24 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
 plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "", ylab = ylab, xpd = NA, xaxs = "i")
 axis(2, las = 2)
 if(i == "0.1") text(-18, 1*1.06, pos = 2, labels = "C", font = 2, xpd = NA, cex = 1.2)
-
-
 for(k in seq(1, nrow(setup), by = 15)[-1]){
   abline(v = k, col = "grey")
 }
   cat(i, "\n")
   X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
-  tmp_cpu = cpu_cov[as.character(number) == i & setup$env == e]
-  tmp_gpu = gpu_cov[as.character(number) == i & setup$env == e]
-  tmp_gllvm =gllvm_cov[as.character(number) == i& setup$env == e]
-  tmp_bc =bc_cov[as.character(number) == i& setup$env == e]
-  tmp_hmsc =hmsc_cov[as.character(number) == i& setup$env == e]
-  
-  tmp_cpu = tmp_cpu[complete.cases(tmp_cpu)]
-  tmp_gllvm = tmp_gllvm[complete.cases(tmp_gllvm)]
-  tmp_bc = tmp_bc[complete.cases(tmp_bc)]
-  tmp_hmsc = tmp_hmsc[complete.cases(tmp_hmsc)]
-  tmp_gpu = tmp_gpu[complete.cases(tmp_gpu)]
-  
-  
-  lines(smooth.spline(x = X[1:length(tmp_cpu)], tmp_cpu,spar = 0.5), lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_gpu)], tmp_gpu,spar = 0.5), col = "red", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_gllvm)], tmp_gllvm,spar = 0.5), col = "blue", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_bc)], tmp_bc,spar = 0.5), col = "green", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_hmsc)], tmp_hmsc,spar = 0.5), col = "violet", lwd= 1.5, lty = lineT[[i]])
+  mean_conf(X, cpu$result_env[as.character(number) == i & setup$env == e, ], col = "black")
+  mean_conf(X, gpu$result_env[as.character(number) == i & setup$env == e, ], col = "red")
+  mean_conf(X, gllvm$result_env[as.character(number) == i & setup$env == e, ], col = "blue")
+  mean_conf(X, bc$result_env[as.character(number) == i & setup$env == e, ], col = "green")
+  mean_conf(X, hmsc$result_env[as.character(number) == i & setup$env == e, ], col = "violet")
   legend("bottomright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1)
 }
-# }
 
 
 
 
 ######### ENV rmse ######### 
 
-cpu_rmse = (apply(cpu$result_rmse_env[complete.cases(cpu$result_rmse_env),],1,mean))
-gpu_rmse = (apply(gpu$result_rmse_env[complete.cases(gpu$result_rmse_env),],1,mean))
-gllvm_rmse = (apply(gllvm$result_rmse_env[complete.cases(gllvm$result_rmse_env),],1,mean))
-bc_rmse = (apply(bc$result_rmse_env[complete.cases(bc$result_rmse_env),],1,mean))
-hmsc_rmse = (apply(hmsc$result_rmse_env[complete.cases(hmsc$result_rmse_env),],1,mean))
-
-
-#for(e in c(3,5,7)){
 e = 5L
 lineT = rep(1,5) #1:5
 names(lineT) =  (as.character(unique(number)))
@@ -219,41 +135,22 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
     ylab = ""
   }
   plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.0,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "i")
-  # 1 -> 150
-  #axis(1)
   if(i == "0.1") text(-18, 1*1.06, pos = 2, labels = "D", font = 2, xpd = NA, cex = 1.2)
   
   axis(2, las = 2)
   axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
-  #axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
-  
   for(k in seq(1, nrow(setup), by = 15)[-1]){
     abline(v = k, col = "grey")
   }
   cat(i, "\n")
   X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
-  tmp_cpu = cpu_cov[as.character(number) == i & setup$env == e]
-  tmp_gpu = gpu_cov[as.character(number) == i & setup$env == e]
-  tmp_gllvm =gllvm_cov[as.character(number) == i& setup$env == e]
-  tmp_bc =bc_cov[as.character(number) == i& setup$env == e]
-  tmp_hmsc =hmsc_cov[as.character(number) == i& setup$env == e]
-  
-  tmp_cpu = tmp_cpu[complete.cases(tmp_cpu)]
-  tmp_gllvm = tmp_gllvm[complete.cases(tmp_gllvm)]
-  tmp_bc = tmp_bc[complete.cases(tmp_bc)]
-  tmp_hmsc = tmp_hmsc[complete.cases(tmp_hmsc)]
-  tmp_gpu = tmp_gpu[complete.cases(tmp_gpu)]
-  
-  
-  lines(smooth.spline(x = X[1:length(tmp_cpu)], tmp_cpu,spar = 0.5), lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_gpu)], tmp_gpu,spar = 0.5), col = "red", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_gllvm)], tmp_gllvm,spar = 0.5), col = "blue", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_bc)], tmp_bc,spar = 0.5), col = "green", lwd= 1.5, lty = lineT[[i]])
-  lines(smooth.spline(x = X[1:length(tmp_hmsc)], tmp_hmsc,spar = 0.5), col = "violet", lwd= 1.5, lty = lineT[[i]])
+  mean_conf(X, cpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "black")
+  mean_conf(X, gpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "red")
+  mean_conf(X, gllvm$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "blue")
+  mean_conf(X, bc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "green")
+  mean_conf(X, hmsc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "violet")
   legend("bottomright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1)
 }
-# }
-
 dev.off()
 
  
