@@ -5,6 +5,7 @@ load("data_sets.RData")
 
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
+diagnosis = vector("list", nrow(setup))
 
 OpenMPController::omp_set_num_threads(6L)
 RhpcBLASctl::omp_set_num_threads(6L)
@@ -14,7 +15,10 @@ set.seed(42)
 
 
 counter = 1
-for(i in which(setup$env == 5L)) {
+subset = which(setup$env == 5L & setup$species %in% c(0.1, 0.3, 0.5))
+sub_data = as.vector(apply(cbind(subset*10 - 9, subset*10), 1, function(s) seq(s[1], s[2], by = 1)))
+
+for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
   post = vector("list", 10)
   for(j in 1:10){
@@ -29,8 +33,8 @@ for(i in which(setup$env == 5L)) {
     test_X = data_sets[[counter]]$test_X
     test_Y = data_sets[[counter]]$test_Y
     sim = data_sets[[counter]]$sim
-    counter = counter + 1L
     
+    if(counter %in% sub_data){
     
     # HMSC:
     hmsc = list()
@@ -66,11 +70,14 @@ for(i in which(setup$env == 5L)) {
     pred = Hmsc:::predict.Hmsc(model, XData = data.frame(test_X), type = "response")
     pred = apply(abind::abind(pred, along = -1L), 2:3, mean)
     sub_auc[[j]] = list(pred = pred, true = test_Y)
+    post[[j]] = diag
     rm(model)
     gc()
+    }
+    counter = counter + 1L
   }
   auc[[i]] = sub_auc
-  post[[i]] = diag
+  diagnosis[[i]] = post
   
   hmsc = list(
     setup = setup[i,],
@@ -79,7 +86,7 @@ for(i in which(setup$env == 5L)) {
     result_rmse_env = result_rmse_env,
     result_time= result_time,
     auc = auc,
-    post = post
+    post = diagnosis
   )
   saveRDS(hmsc, "results/hmscDiag.RDS")
 }

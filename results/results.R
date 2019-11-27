@@ -4,7 +4,8 @@ gllvm = readRDS(file = "results/gllvm.RDS")
 bc = readRDS(file = "results/BayesComm.RDS")
 hmsc = readRDS(file = "results/hmsc.RDS")
 
-
+bc = readRDS(file = "results/BayesCommDiag.RDS")
+hmsc = readRDS(file = "results/hmscDiag.RDS")
 
 
 pdf(file = "figures/Fig_1.pdf", width = 9, height = 9.8)
@@ -14,7 +15,6 @@ addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x
 mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4) {
   sites2 = sites[complete.cases(mat)]
   mat = mat[complete.cases(mat),]
-  
   m = apply(mat, 1, mean)
   sd = apply(mat, 1, sd)
   upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
@@ -170,14 +170,13 @@ for(k in 1:nrow(setup)){
 }
 
 number = setup$species
-cpu_auc = unlist(lapply(auc_cpu, function(tmp) mean(apply(tmp, 1,mean))))
-gpu_auc = unlist(lapply(auc_gpu, function(tmp) mean(apply(tmp, 1,mean))))
-gllvm_auc = unlist(lapply(auc_gllvm, function(tmp) mean(apply(tmp, 1,mean))))
-bc_auc = unlist(lapply(auc_bc, function(tmp) mean(apply(tmp, 1,mean))))
-hmsc_auc = unlist(lapply(auc_hmsc, function(tmp) mean(apply(tmp, 1,mean))))
+cpu_auc = t(unlist(sapply(auc_cpu, function(tmp) (apply(tmp, 1,mean)))))
+gpu_auc = t(unlist(sapply(auc_gpu, function(tmp) (apply(tmp, 1,mean)))))
+gllvm_auc = t(unlist(sapply(auc_gllvm, function(tmp) (apply(tmp, 1,mean)))))
+bc_auc = t(unlist(sapply(auc_bc, function(tmp) (apply(tmp, 1,mean)))))
+hmsc_auc = t(unlist(sapply(auc_hmsc, function(tmp) (apply(tmp, 1,mean)))))
 
 
-#for(e in c(3,5,7)){
 pdf(file = "figures/Fig_3.pdf", width = 9, height = 3.2)
 e = 5L
 lineT = rep(1,5) #1:5
@@ -191,9 +190,6 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
   }
   plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, main = "", xaxs = "i", xpd = NA)
   title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
-  
-  # 1 -> 150
-  #axis(1)
   axis(2, las = 2)
   axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
   axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
@@ -201,32 +197,15 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
   for(k in seq(1, nrow(setup), by = 15)[-1]){
     abline(v = k, col = "grey")
   }
-  
-  #for(i in (as.character(unique(number)))){
   cat(i, "\n")
   X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
-  tmp_cpu = cpu_auc[as.character(number) == i & setup$env == e]
-  tmp_gpu = gpu_auc[as.character(number) == i & setup$env == e]
-  tmp_gllvm =gllvm_auc[as.character(number) == i& setup$env == e]
-  tmp_bc =bc_auc[as.character(number) == i& setup$env == e]
-  tmp_hmsc =hmsc_auc[as.character(number) == i& setup$env == e]
-  
-  
-  tmp_cpu = tmp_cpu[complete.cases(tmp_cpu)]
-  tmp_gllvm = tmp_gllvm[complete.cases(tmp_gllvm)]
-  tmp_bc = tmp_bc[complete.cases(tmp_bc)]
-  tmp_hmsc = tmp_hmsc[complete.cases(tmp_hmsc)]
-  tmp_gpu = tmp_gpu[complete.cases(tmp_gpu)]
-  
-  
-  lines(smooth.spline(x = X[1:length(tmp_cpu)], tmp_cpu,spar = 0.5), lwd= lwd, lty = 1)
-  lines(smooth.spline(x = X[1:length(tmp_gpu)], tmp_gpu,spar = 0.5), col = "red", lwd= lwd, lty = 1)
-  lines(smooth.spline(x = X[1:length(tmp_gllvm)], tmp_gllvm,spar = 0.5), col = "blue", lwd= lwd, lty = 1)
-  lines(smooth.spline(x = X[1:length(tmp_bc)], tmp_bc,spar = 0.5), col = "green", lwd= lwd, lty = 1)
-  lines(smooth.spline(x = X[1:length(tmp_hmsc)], tmp_hmsc,spar = 0.5), col = "violet", lwd= lwd, lty =1)
+  mean_conf(X, cpu_auc[as.character(number) == i & setup$env == e, ], col = "black")
+  mean_conf(X, gpu_auc[as.character(number) == i & setup$env == e, ], col = "red")
+  mean_conf(X, rbind(gllvm_auc,matrix(NA, nrow(setup) - nrow(gllvm_auc), 10L))[as.character(number) == i & setup$env == e, ], col = "blue")
+  mean_conf(X, rbind(bc_auc,matrix(NA, nrow(setup) - nrow(bc_auc), 10L))[as.character(number) == i & setup$env == e, ], col = "green")
+  mean_conf(X, rbind(hmsc_auc,matrix(NA, nrow(setup) - nrow(hmsc_auc), 10L))[as.character(number) == i & setup$env == e, ], col = "violet")
   legend("bottomright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1)
 }
-# }
 dev.off()
 
 
