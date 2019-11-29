@@ -91,7 +91,7 @@ for(i in 1:nrow(setup)) {
     result_rmse_env = result_rmse_env,
     result_time= result_time,
     auc = auc,
-    post = post
+    post = diagnosis
   )
   saveRDS(bc, "results/BayesCommDiag.RDS")
 }

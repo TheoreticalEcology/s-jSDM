@@ -54,7 +54,7 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
     mean_conf(X, log(gpu$result_time[as.character(number) == i & setup$env == e, ]), col = "red")
     mean_conf(X, log(gllvm$result_time[as.character(number) == i & setup$env == e, ]), col = "blue")
     mean_conf(X, log(bc$result_time[as.character(number) == i & setup$env == e, ]), col = "green")
-    mean_conf(X, log(hmsc$result_time[as.character(number) == i & setup$env == e, ]), col = "violet")
+    mean_conf(X, log(hmsc$result_time[as.character(number) == i & setup$env == e, ]/2), col = "violet")
   legend("topleft", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1)
 }
 

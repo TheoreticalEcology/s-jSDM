@@ -5,12 +5,15 @@
 #' @param nLatent number of latent variables
 #' @param corr constrain occurence matrix to correlation matrix
 #' @param parallel parallel threads for prefetching  
+#' @param sampling number of samples
+#' @param device which device to use (is derived from the environment)
+#' @param dtype which dtype (is derived from the environment)
 #' @export
 
-deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE, parallel = 0L, device = .device, dtype = .dtype){
+deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE, parallel = 0L, sampling = 100L, device = .device, dtype = .dtype){
 
   ### define constants ###
-  n_app = 100L
+  n_app = as.integer(sampling)
   if(is.null(batch_size)) batch_size = nrow(model$X)
   r_dim = ncol(model$Y)
   n_latent = model$nLatent

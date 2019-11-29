@@ -38,8 +38,10 @@ createModel = function(X = NULL, Y = NULL, Traits = NULL){
 #' @param optimizer optimizer, adamax or LBFGS
 #' @param reset reset weights
 #' @param control control options for optimizer "adamax" or "LBFGS"
+#' @param l1 l1 on covariances
+#' @param l2 l2 on covariances
 #' @export
-compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", reset = TRUE, control = list(), device = .device, dtype = .dtype) {
+compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", reset = TRUE, control = list(),l1 = 0.0, l2 = 0.0, device = .device, dtype = .dtype) {
   if(!is.null(model$params$nLatent)) nLatent = model$params$nLatent
   n_latent = nLatent
   model$params$nLatent = nLatent
@@ -61,7 +63,10 @@ compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", r
   }
   if(!length(model$losses) > 0)model$losses = NULL
   if((length(model$raw_weights) > 0) && reset) model = assignWeights(model)
-  model$losses[sapply(model$losses, is.null)] <- NULL
+  
+
+  
+  
   ## cov and optimizer
   r_dim = ncol(model$Y)
   model$rawSigma =
@@ -81,6 +86,26 @@ compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", r
   if(!is.null(model$raw_sigma)) {
     model$rawSigma$data = .torch$tensor(model$raw_sigma, dtype = .dtype, device = .device)$to(.device)$data
   }
+  
+  
+  if(l1 > 0.0) {
+    l1 = .torch$tensor(l1, device = .device, dtype = .dtype)$to(.device)
+    model$losses[[length(model$losses) + 1]] = function() {
+      ss = .torch$matmul(model$rawSigma, model$rawSigma$t())
+      .torch$mul(l1,  .torch$sum(.torch$abs(.torch$triu(ss, 1L))))
+    }
+  }
+  
+  if(l2 > 0.0) {
+    l2 = .torch$tensor(l2, device = .device, dtype = .dtype)$to(.device)
+    model$losses[[length(model$losses) + 1]] = function() {
+      ss = .torch$matmul(model$rawSigma, model$rawSigma$t())
+      .torch$mul(l2,  .torch$sum(.torch$pow(.torch$triu(ss, 1L), 2.0)))
+    }
+  }
+    
+  model$losses[sapply(model$losses, is.null)] <- NULL
+  
 
   model$nLatent = nLatent
 
