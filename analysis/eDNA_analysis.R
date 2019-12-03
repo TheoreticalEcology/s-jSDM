@@ -41,8 +41,6 @@ for(i in 1:50) {
   .torch$cuda$empty_cache()
   result[[i]] = weights
 }
-result[sapply(result, is.null)] = NULL
-plot(NULL, NULL, xlim = c(1, 50), ylim = c(-0.1,0.1))
 
 
 
@@ -62,22 +60,6 @@ rem = function(m) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Figure 4
 
 
@@ -88,7 +70,7 @@ par(mar = c(1,1,2,1), oma = c(1,1,0.3,1))
 
 ## A
 cols = viridis::viridis(20)
-
+breaks = seq(-1,1, length.out = 21)
 arrow_label = function() {
   arrows(x0 = c(0.3, 0.7), x1 = c(0.0, 1.0), y0 = rep(-0.03,2), y1 = rep(-0.03,2), xpd = NA,code = 2, length =0.04)
   arrows(y0 = c(0.3, 0.7), y1 = c(0.0, 1.0), x0 = rep(-0.03,2), x1 = rep(-0.03,2), xpd = NA,code = 2, length =0.04)
@@ -204,5 +186,24 @@ text(x = 0.45*186, pos = 4, y = -11, labels = "Species", xpd = NA, cex = 0.9)
 dev.off()
 
 
-
-
+par(mfrow = c(1,1))
+plot(NULL, NULL, xlim = c(1, 186), ylim = c(0, 1), xaxt = "n", xaxs = "i", yaxt = "n", yaxs = "i")
+sb = function(m,i){
+  v = abs(m/sum(abs(m)))
+  v = c(0, v)
+  for(j in 2:8){
+    rect(xleft = i-0.5, xright = i+0.5, ybottom = sum(v[1:j-1]), ytop = sum(v[1:j]), col = cols[j-1],border = "black")
+  }
+  return(v)
+}
+sb2 = 
+  function(m,i){
+    v = abs(m/sum(abs(m)))
+    v = c(0, v)
+    rect(xleft = i-0.5, xright = i+0.5, ybottom = 0, ytop = 1L, col = cols[which.max(v)-1],border = "black")
+    return(v)
+  }
+rr = matrix(NA, 186, 7)
+for(i in 1:ncol(beta[hbeta$rowInd, hbeta$colInd])){
+  rr[i,] = sb(beta[hbeta$rowInd, hbeta$colInd][,i],i )[2:8]
+}
