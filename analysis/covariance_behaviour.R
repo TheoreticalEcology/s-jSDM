@@ -5,7 +5,7 @@ library(BayesComm)
 library(Hmsc)
 useGPU(2L)
 
-n = 6L
+n = 3L
 OpenMPController::omp_set_num_threads(n)
 RhpcBLASctl::omp_set_num_threads(n)
 RhpcBLASctl::blas_set_num_threads(n)
@@ -154,7 +154,9 @@ saveRDS(gllvm_behaviour, "results/gllvm_behaviour_sites.RDS")
 
 #### bc ####
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
+posterior = vector("list", length(sites))
 for(i in 1:length(sites)) {
+  sub_posterior = vector("list", 5L)
   for(j in 1:5L){
     X = data_set[[i]][[j]]$env_weights
     Y = data_set[[i]][[j]]$response
@@ -162,20 +164,32 @@ for(i in 1:length(sites)) {
     try({
     time =
       system.time({
-        model = BayesComm::BC(Y, X,model = "full", its = 10000)
+        model1 = BayesComm::BC(Y, X,model = "full", its = 50000, thin = 50, burn = 2500)
+        model2 = BayesComm::BC(Y, X,model = "full", its = 50000, thin = 50, burn = 2500)
       })
     
-    cov = summary(model, "R")$statistics[,1]
-    covFill = matrix(0,ncol(Y), ncol(Y))
+    cov = summary(model1, "R")$statistics[,1]
+    covFill = matrix(0,ncol(train_Y), ncol(train_Y))
     covFill[upper.tri(covFill)] = cov
     correlation = t(covFill)
     
-    species_weights = matrix(NA, ncol(X), ncol(Y))
-    n = paste0("B$sp",1:ncol(Y) )
-    for(v in 1:ncol(Y)){
-      smm = BayesComm:::summary.bayescomm(model, n[v])
+    species_weights = matrix(NA, ncol(train_X), ncol(train_Y))
+    n = paste0("B$sp",1:ncol(train_Y) )
+    for(v in 1:ncol(train_Y)){
+      smm = BayesComm:::summary.bayescomm(model1, n[v])
       species_weights[,v]= smm$statistics[-1,1]
     }
+    
+    m1 = lapply(model1$trace$B, function(mc) coda::as.mcmc(mc))
+    m2 = lapply(model2$trace$B, function(mc) coda::as.mcmc(mc))
+    beta.psrfs = lapply(1:length(model1$trace$B), function(i) coda::gelman.diag(coda::as.mcmc.list(list(m1[[i]], m2[[i]])),multivariate = FALSE)$psrf)
+    
+    
+    m1 = coda::as.mcmc(model1$trace$R)
+    m2 = coda::as.mcmc(model2$trace$R)
+    cov.psrf = coda::gelman.diag(coda::as.mcmc.list(list(m1, m2)),multivariate = FALSE)$psrf
+    
+    diag = list(post = list(m1 = m1, m2 = m2), psrf.beta = beta.psrfs, psrf.gamma = cov.psrf)
     
     try({
       result_corr_acc[i,j] =  sim$corr_acc(correlation)
@@ -184,16 +198,22 @@ for(i in 1:length(sites)) {
       result_time[i,j] = time[3]
       rm(model)
       gc()
+      
+      sub_posterior[[j]] = diag
+      
     })
     }, silent = TRUE)
   }
+  posterior[[i]] = sub_posterior
 }
+
 
 bc_behaviour = list(
   result_corr_acc = result_corr_acc,
   result_env = result_env,
   result_rmse_env = result_rmse_env,
-  result_time= result_time
+  result_time= result_time,
+  posterior = posterior
 )
 
 saveRDS(bc_behaviour, "results/bc_behaviour_sites.RDS")
@@ -202,7 +222,9 @@ saveRDS(bc_behaviour, "results/bc_behaviour_sites.RDS")
 
 #### hmsc ####
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
+posterior = vector("list", length(sites))
 for(i in 1:length(sites)) {
+  sub_posterior = vector("list", 5L)
   for(j in 1:5L){
     X = data_set[[i]][[j]]$env_weights
     Y = data_set[[i]][[j]]$response
@@ -216,9 +238,19 @@ for(i in 1:length(sites)) {
                  studyDesign = studyDesign, ranLevels = list(sample = rL),distr = "probit")
     time =
       system.time({
-        model = sampleMcmc(model, thin = 1, samples = 10000, transient = 1000,verbose = 5000,
-                           nChains = 1L)
+        model = sampleMcmc(model, thin = 50, samples = 1000, transient = 50,verbose = 5000,
+                           nChains = 2L,nParallel = 2L)
       })
+    posterior = convertToCodaObject(model)
+    ess.beta = effectiveSize(posterior$Beta)
+    psrf.beta = gelman.diag(posterior$Beta, multivariate=FALSE)$psrf
+    
+    ess.gamma = effectiveSize(posterior$Gamma)
+    psrf.gamma = gelman.diag(posterior$Gamma, multivariate=FALSE)$psrf
+    
+    diag = list(post = posterior, ess.beta = ess.beta, psrf.beta = psrf.beta, ess.gamma = ess.gamma, psrf.gamma = psrf.gamma)
+    
+    
     correlation = computeAssociations(model)[[1]]$mean
     species_weights = Hmsc::getPostEstimate(model,parName = "Beta")$mean
     
@@ -230,15 +262,18 @@ for(i in 1:length(sites)) {
       result_time[i,j] = time[3]
       rm(model)
       gc()
+      sub_posterior[[j]] = diag
     })
   }
+  posterior[[i]] = sub_posterior
 }
 
 hmsc_behaviour = list(
   result_corr_acc = result_corr_acc,
   result_env = result_env,
   result_rmse_env = result_rmse_env,
-  result_time= result_time
+  result_time= result_time,
+  posterior = posterior
 )
 
 saveRDS(hmsc_behaviour, "results/hmsc_behaviour_sites.RDS")

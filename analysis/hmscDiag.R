@@ -10,9 +10,7 @@ diagnosis = vector("list", nrow(setup))
 OpenMPController::omp_set_num_threads(6L)
 RhpcBLASctl::omp_set_num_threads(6L)
 RhpcBLASctl::blas_set_num_threads(6L)
-
 set.seed(42)
-
 
 counter = 1
 subset = which(setup$env == 5L & setup$species %in% c(0.1, 0.3, 0.5))
@@ -21,6 +19,8 @@ sub_data = as.vector(apply(cbind(subset*10 - 9, subset*10), 1, function(s) seq(s
 for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
   post = vector("list", 10)
+  
+  
   for(j in 1:10){
     
     X = data_sets[[counter]]$env_weights
@@ -48,14 +48,14 @@ for(i in 1:nrow(setup)) {
                        nChains = 2L)
       })
     
-    post = convertToCodaObject(model)
-    ess.beta = effectiveSize(post$Beta)
-    psrf.beta = gelman.diag(post$Beta, multivariate=FALSE)$psrf
+    posterior = convertToCodaObject(model)
+    ess.beta = effectiveSize(posterior$Beta)
+    psrf.beta = gelman.diag(posterior$Beta, multivariate=FALSE)$psrf
     
-    ess.gamma = effectiveSize(post$Gamma)
-    psrf.gamma = gelman.diag(post$Gamma, multivariate=FALSE)$psrf
+    ess.gamma = effectiveSize(posterior$Gamma)
+    psrf.gamma = gelman.diag(posterior$Gamma, multivariate=FALSE)$psrf
     
-    diag = list(post = post, ess.beta = ess.beta, psrf.beta = psrf.beta, ess.gamma = ess.gamma, psrf.gamma = psrf.gamma)
+    diag = list(post = posterior, ess.beta = ess.beta, psrf.beta = psrf.beta, ess.gamma = ess.gamma, psrf.gamma = psrf.gamma)
     
     
     correlation = computeAssociations(model)[[1]]$mean
