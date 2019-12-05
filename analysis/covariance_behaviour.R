@@ -169,13 +169,13 @@ for(i in 1:length(sites)) {
       })
     
     cov = summary(model1, "R")$statistics[,1]
-    covFill = matrix(0,ncol(train_Y), ncol(train_Y))
+    covFill = matrix(0,ncol(Y), ncol(Y))
     covFill[upper.tri(covFill)] = cov
     correlation = t(covFill)
     
-    species_weights = matrix(NA, ncol(train_X), ncol(train_Y))
-    n = paste0("B$sp",1:ncol(train_Y) )
-    for(v in 1:ncol(train_Y)){
+    species_weights = matrix(NA, ncol(X), ncol(Y))
+    n = paste0("B$sp",1:ncol(Y) )
+    for(v in 1:ncol(Y)){
       smm = BayesComm:::summary.bayescomm(model1, n[v])
       species_weights[,v]= smm$statistics[-1,1]
     }
@@ -196,7 +196,7 @@ for(i in 1:length(sites)) {
       result_env[i,j] = mean(as.vector(species_weights > 0) == as.vector(sim$species_weights > 0))
       result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(sim$species_weights))^2))
       result_time[i,j] = time[3]
-      rm(model)
+      rm(m1,m2)
       gc()
       
       sub_posterior[[j]] = diag
