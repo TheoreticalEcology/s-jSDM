@@ -1,3 +1,10 @@
+########## Default parameter #########
+# iterations = 50000
+# burnin = 2500
+# nchains = 2
+# thin = 50
+
+
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(BayesComm)

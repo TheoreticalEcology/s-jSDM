@@ -1,3 +1,7 @@
+########## Default parameter #########
+# binomial with probit link
+# with increasing number of species, nlatent -> 2 - 6
+
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(gllvm)

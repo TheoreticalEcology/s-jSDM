@@ -1,3 +1,9 @@
+########## Default parameter #########
+# iterations = 50000
+# burnin = 5000
+# nchains = 2
+# thin = 50
+
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(Hmsc)

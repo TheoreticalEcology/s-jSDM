@@ -1,3 +1,9 @@
+########## Default parameter #########
+# epochs = 50L
+# lr = 0.01
+# batch_size = 10% of data
+# nlatent = 50% of n species
+
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 load("data_sets.RData")

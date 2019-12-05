@@ -1,0 +1,487 @@
+---
+title: "Figures"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(root.dir = here::here()) 
+```
+
+## Figure 1 - Run time
+Load results:
+```{r}
+setwd(here::here())
+cpu = readRDS(file = "./results/cpu_dmvp3.RDS")
+gpu = readRDS(file = "./results/gpu_dmvp3.RDS")
+gllvm = readRDS(file = "./results/gllvm.RDS")
+bc = readRDS(file = "./results/BayesCommDiag.RDS")
+hmsc = readRDS(file = "./results/hmsc.RDS")
+large_scale = readRDS("./results/large_scale.RDS")
+setup2 = large_scale$setup
+load("./data_sets.RData")
+```
+
+```{r}
+pdf(file = "./figures/Fig_1.pdf", width = 9, height = 5)
+addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
+mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4) {
+  sites2 = sites[complete.cases(mat)]
+  mat = mat[complete.cases(mat),]
+  m = apply(mat, 1, mean)
+  sd = apply(mat, 1, sd)
+  upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
+  lower = smooth.spline(y = m - sd, x = sites2, spar = spar)$y
+  polygon(c(sites2, rev(sites2)), c(upper, rev(lower)), border = NA, col =addA(col, alpha))
+  lines(smooth.spline(y = m, x = sites2, spar = spar), col = col, lwd = 2.0)
+}
+par(mfrow = c(2,3), mgp = c(2.1,0.6,0), mar = c(3, 2.3, 3,0.7), oma = c(0.3,1.3,0.7,0))
+number = setup$species
+spar = 0.5
+e = 5L
+lwd = 2.2
+
+## A
+for(i in (as.character(unique(number)))[c(1,3,5)]){
+  lineT = rep(1,5) #1:5
+  names(lineT) =  (as.character(unique(number)))
+  if( i == "0.1") {
+    ylab = "time in minutes"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1,nrow(setup)-4), ylim = c(-0.5,8), xaxt = "n", main = "",yaxt = "n",xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "i", font = 2)
+  title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
+  if(i == "0.1") text(-0.06*(nrow(setup)-4), 8*1.2, pos = 2, labels = "A", font = 2, xpd = NA, cex = 1.5)
+  tt = seq(2, log(4000), length.out = 7)
+  tt = exp(tt)
+  axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
+  axis(2, at = round(log(tt),1),labels = c(round(tt/60,1)), las = 2)
+  axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
+  for(k in seq(1, nrow(setup), by = 15)[-1]){
+    abline(v = k, col = "grey")
+  }
+    cat(i, "\n")
+    X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
+    mean_conf(X, log(cpu$result_time[as.character(number) == i & setup$env == e, ]), col = "black")
+    mean_conf(X, log(gpu$result_time[as.character(number) == i & setup$env == e, ]), col = "red")
+    mean_conf(X, log(gllvm$result_time[as.character(number) == i & setup$env == e, ]), col = "blue")
+    mean_conf(X, log(bc$result_time[as.character(number) == i & setup$env == e, ]), col = "green")
+    mean_conf(X, log(hmsc$result_time[as.character(number) == i & setup$env == e, ]/2), col = "violet")
+  legend("topleft", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+}
+
+
+## B
+xx = unique(setup2$sites)
+for(i in unique(setup2$species)) {
+    lineT = rep(1,5) #1:5
+    if(i == 300) {
+      ylab = "time in minutes"
+    } else {
+      ylab = ""
+    }
+    plot(NULL, NULL, xlim = c(min(xx),max(xx)), ylim = c(2.5,max(log(large_scale$result_time[,1]))*1.1), xaxt = "n",xlab = "Number of sites x100",main = "",yaxt = "n",  ylab = ylab, xpd = NA)
+    title(main = paste0(i, " species"), line = 0.6, xpd = NA)
+    if(i == 300) text(x = min(xx) + 0.12*(min(xx)- max(xx)), y = 7.4, pos = 2, labels = "B", xpd = NA, cex = 1.5, font = 2)
+    for(k in seq(1, length(xx), by = 2)) abline(v = xx[k], col = addA("grey", 0.3))
+    tt = seq(2.5, 6.5, length.out = 6)
+    tt = exp(tt)
+    axis(1, at = xx[seq(1, length(xx), by = 2)], labels = xx[seq(1, length(xx), by = 2)]/100)
+    axis(2, at = round(log(tt),2),labels = c(round(tt/60,1)), las = 2)
+    for(k in tt) abline(h = log(k), col = addA("grey", 0.3))
+    lines(smooth.spline(x = xx, log(large_scale$result_time[setup2$species == i]),spar = 0.5), lwd= lwd, lty = 1, col = "red")
+      legend("bottomright", legend = c("gpu_dmvp"), col = c("red"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+}
+dev.off()
+
+```
+
+
+
+## Figure 2 - Inference
+Load results:
+```{r}
+setwd(here::here())
+if(!exists("cpu")) cpu = readRDS(file = "./results/cpu_dmvp3.RDS")
+if(!exists("gpu")) gpu = readRDS(file = "./results/gpu_dmvp3.RDS")
+if(!exists("gllvm")) gllvm = readRDS(file = "./results/gllvm.RDS")
+if(!exists("bc")) bc = readRDS(file = "./results/BayesCommDiag.RDS")
+if(!exists("hmsc")) hmsc = readRDS(file = "./results/hmsc.RDS")
+if(!exists("data_sets")) load("./data_sets.RData")
+```
+
+
+
+```{r}
+pdf(file = "./figures/Fig_2.pdf", width = 9, height = 5)
+addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
+mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.2) {
+  sites2 = sites[complete.cases(mat)]
+  mat = mat[complete.cases(mat),]
+  m = apply(mat, 1, mean)
+  sd = apply(mat, 1, sd)
+  upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
+  lower = smooth.spline(y = m - sd, x = sites2, spar = spar)$y
+  polygon(c(sites2, rev(sites2)), c(upper, rev(lower)), border = NA, col =addA(col, alpha))
+  lines(smooth.spline(y = m, x = sites2, spar = spar), col = col, lwd = 2.0)
+}
+par(mfrow = c(2,3), mgp = c(2.1,0.6,0), mar = c(3.7, 2.3, 3.7,0.7), oma = c(0.3,1.3,0.3,0))
+number = setup$species
+spar = 0.5
+e = 5L
+lwd = 2.2
+
+## A
+for(i in (as.character(unique(number)))[c(1,3,5)]){
+e = 5L
+  lineT = rep(1,5) #1:5
+  names(lineT) =  (as.character(unique(number)))
+  if( i == "0.1") {
+    ylab = "Covariance accuracy"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "i")
+  title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
+  
+  axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
+  axis(2, las = 2)
+  axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
+
+  if(i == "0.1") text(-9, 1*1.12, pos = 2, labels = "A", font = 2, xpd = NA, cex = 1.5)
+  
+  for(k in seq(1, nrow(setup), by = 15)[-1]){
+    abline(v = k, col = "grey")
+  } 
+    cat(i, "\n")
+     X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
+    mean_conf(X, cpu$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "black")
+    mean_conf(X, gpu$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "red")
+    mean_conf(X, gllvm$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "blue")
+    mean_conf(X, bc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "green")
+    mean_conf(X, hmsc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "violet")
+      
+   legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+  }
+
+## B
+e = 5L
+lineT = rep(1,5) #1:5
+names(lineT) =  (as.character(unique(number)))
+for(i in (as.character(unique(number)))[c(1,3,5)]){
+  if( i == "0.1") {
+    ylab = "Env rmse"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.0,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "i")
+  title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
+  if(i == "0.1") text(-9, 1*1.24, pos = 2, labels = "B", font = 2, xpd = NA, cex = 1.5)
+  
+  axis(2, las = 2)
+  axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
+  axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
+
+  for(k in seq(1, nrow(setup), by = 15)[-1]){
+    abline(v = k, col = "grey")
+  }
+  cat(i, "\n")
+  X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
+  mean_conf(X, cpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "black")
+  mean_conf(X, gpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "red")
+  mean_conf(X, gllvm$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "blue")
+  mean_conf(X, bc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "green")
+  mean_conf(X, hmsc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "violet")
+  legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+}
+dev.off()
+
+```
+
+
+
+## Figure 3 - Inference 2
+Load results:
+```{r}
+setwd(here::here())
+gpu_beh_adam = readRDS(file = "./results/gpu_behaviour_sites_adamax.RDS")
+gpu_beh_lbfgs = readRDS(file = "./results/gpu_behaviour_sites_lbfgs.RDS")
+gllvm_beh = readRDS(file = "./results/gllvm_behaviour_sites.RDS")
+bc_beh = readRDS(file = "./results/bc_behaviour_sites.RDS")
+hmsc_beh = readRDS(file = "./results/hmsc_behaviour_sites.RDS")
+```
+
+
+
+```{r}
+#### covariance behaviour ####
+pdf(file = "./figures/Fig_3.pdf", width = 9, height = 4.3)
+
+xx = 1:25
+sites = seq(50,by = 20, length.out = 15)
+addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
+mean_conf = function(mat, col = "red", alpha = 0.1, spar = 0.4) {
+  sites2 = sites[complete.cases(mat)]
+  mat = mat[complete.cases(mat),]
+  
+  m = apply(mat, 1, mean)
+  sd = apply(mat, 1, sd)
+  upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
+  lower = smooth.spline(y = m - sd, x = sites2, spar = spar)$y
+  polygon(c(sites2, rev(sites2)), c(upper, rev(lower)), border = NA, col = addA(col, alpha))
+  lines(smooth.spline(y = m, x = sites2, spar = spar), col = col, lwd = 2.0)
+}
+
+
+par(mfrow = c(1,2), mar = c(2.1, 3, 1.6, 1), mgp = c(2.4, 1, 0), oma = c(1.4,1.3,0.3,0))
+
+plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.5, 1.0), ylab = "accuracy", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
+axis(1, at = sites[seq(1, length(sites), by = 2)], labels = sites[seq(1, length(sites), by = 2)])
+text(x = 27, y = 1.05, pos = 2, labels = "A", xpd = NA, cex = 1.5, font = 2)
+for(i in seq(1, length(sites), by = 2)) abline(v = sites[i], col = addA("grey", 0.3))
+for(i in seq(0.5, 1.0, 0.1)) abline(h = i, col = addA("grey", 0.3))
+title("covariance accuracy",line = 1, xpd = NA)
+axis(2, las = 2)
+
+mean_conf(gpu_beh_adam$result_corr_acc)
+#mean_conf(gpu_beh_lbfgs$result_corr_acc, "black")
+mean_conf(bc_beh$result_corr_acc, "green")
+mean_conf(gllvm_beh$result_corr_acc, "blue")
+mean_conf(hmsc_beh$result_corr_acc, "violet")
+
+  legend("topleft", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+
+
+plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.0, 1.0), ylab = "RMSE", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
+axis(1, at = sites[seq(1, length(sites), by = 2)], labels = sites[seq(1, length(sites), by = 2)])
+text(x = 27, y = 1.1, pos = 2, labels = "B", xpd = NA, cex = 1.5, font = 2)
+for(i in seq(1, length(sites), by = 2)) abline(v = sites[i], col = addA("grey", 0.3))
+for(i in seq(0.5, 1.0, 0.1)) abline(h = i, col = addA("grey", 0.3))
+title("env RMSE",line = 1, xpd = NA)
+axis(2, las = 2)
+mean_conf(gpu_beh_adam$result_rmse_env)
+#mean_conf(gpu_beh_lbfgs$result_env, "black")
+mean_conf(bc_beh$result_rmse_env, "green")
+mean_conf(gllvm_beh$result_rmse_env, "blue")
+mean_conf(hmsc_beh$result_rmse_env, "violet")
+
+  legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+
+dev.off()
+
+```
+
+
+
+## Figure 4 - Predictive Performance
+Load results:
+```{r}
+setwd(here::here())
+if(!exists("cpu")) cpu = readRDS(file = "./results/cpu_dmvp3.RDS")
+if(!exists("gpu")) gpu = readRDS(file = "./results/gpu_dmvp3.RDS")
+if(!exists("gllvm")) gllvm = readRDS(file = "./results/gllvm.RDS")
+if(!exists("bc")) bc = readRDS(file = "./results/BayesCommDiag.RDS")
+if(!exists("hmsc")) hmsc = readRDS(file = "./results/hmsc.RDS")
+if(!exists("data_sets")) load("./data_sets.RData")
+
+auc_gpu = auc_cpu = auc_gllvm = auc_bc = auc_hmsc= vector("list", length(nrow(setup)))
+for(k in 1:nrow(setup)){
+  try({auc_gpu[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(gpu$auc[[k]][[j]]$pred), function(i) Metrics::auc(gpu$auc[[k]][[j]]$true[,i], gpu$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
+  try({auc_cpu[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(cpu$auc[[k]][[j]]$pred), function(i) Metrics::auc(cpu$auc[[k]][[j]]$true[,i], cpu$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
+  try({auc_gllvm[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(gllvm$auc[[k]][[j]]$pred), function(i) Metrics::auc(gllvm$auc[[k]][[j]]$true[,i], gllvm$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
+  try({auc_bc[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(bc$auc[[k]][[j]]$pred), function(i) Metrics::auc(bc$auc[[k]][[j]]$true[,i], bc$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
+  try({auc_hmsc[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(hmsc$auc[[k]][[j]]$pred), function(i) Metrics::auc(hmsc$auc[[k]][[j]]$true[,i], hmsc$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
+}
+```
+
+
+```{r}
+addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
+mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.2) {
+  sites2 = sites[complete.cases(mat)]
+  mat = mat[complete.cases(mat),]
+  m = apply(mat, 1, mean)
+  sd = apply(mat, 1, sd)
+  upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
+  lower = smooth.spline(y = m - sd, x = sites2, spar = spar)$y
+  polygon(c(sites2, rev(sites2)), c(upper, rev(lower)), border = NA, col =addA(col, alpha))
+  lines(smooth.spline(y = m, x = sites2, spar = spar), col = col, lwd = 2.0)
+}
+
+number = setup$species
+cpu_auc = t(unlist(sapply(auc_cpu, function(tmp) (apply(tmp, 1,mean)))))
+gpu_auc = t(unlist(sapply(auc_gpu, function(tmp) (apply(tmp, 1,mean)))))
+gllvm_auc = t(unlist(sapply(auc_gllvm, function(tmp) (apply(tmp, 1,mean)))))
+bc_auc = t(unlist(sapply(auc_bc, function(tmp) {
+  if(!is.null(tmp)) return(apply(tmp, 1,mean))
+  else matrix(NA, 1, 10)
+  }) ))
+hmsc_auc = t(unlist(sapply(auc_hmsc, function(tmp) {
+  if(!is.null(tmp)) return(apply(tmp, 1,mean))
+  else matrix(NA, 1, 10)
+  }) ))
+
+
+pdf(file = "figures/Fig_4.pdf", width = 9, height = 3.2)
+e = 5L
+lineT = rep(1,5) #1:5
+names(lineT) =  (as.character(unique(number)))
+par(mfrow = c(1,3), mgp = c(2.1,0.6,0), mar = c(0.6, 1.5, 0.6,0.7), oma = c(2.5,2.0,2.6,0))
+for(i in (as.character(unique(number)))[c(1,3,5)]){
+  if( i == "0.1") {
+    ylab = "AUC"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, main = "", xaxs = "i", xpd = NA)
+  title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
+  axis(2, las = 2)
+  axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
+  axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
+  
+  for(k in seq(1, nrow(setup), by = 15)[-1]){
+    abline(v = k, col = "grey")
+  }
+  cat(i, "\n")
+  X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
+  mean_conf(X, cpu_auc[as.character(number) == i & setup$env == e, ], col = "black")
+  mean_conf(X, gpu_auc[as.character(number) == i & setup$env == e, ], col = "red")
+  mean_conf(X, rbind(gllvm_auc, matrix(NA, length(number) - nrow(gllvm_auc) ,10L))[as.character(number) == i & setup$env == e, ], col = "blue")
+  mean_conf(X, rbind(bc_auc, matrix(NA, length(number) - nrow(bc_auc) ,10L))[as.character(number) == i & setup$env == e, ], col = "green")
+  mean_conf(X, rbind(hmsc_auc, matrix(NA, length(number) - nrow(hmsc_auc) ,10L))[as.character(number) == i & setup$env == e, ], col = "violet")
+legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+}
+dev.off()
+```
+
+
+## Figure 5 - eDNA 
+```{r}
+result = readRDS("./results/eDNA.RDS")
+hh = heatmap(cov2cor(result[[30]]$sigma), keep.dendro = TRUE)
+hbeta = heatmap(result[[30]]$beta, keep.dendro = TRUE)
+rem = function(m) {
+  m[upper.tri(m)] = NA
+  m = m[nrow(m):1,]
+  return(m)
+}
+
+
+pdf("figures/Fig_5.pdf", width = 7.0, height = 6.0)
+
+layout(matrix(c(1,2,3,4, 5, 6, 7, 8, 9, 9,9,9), 3,4 ,byrow = TRUE), c(1,1,1,1), c(1,1,1))
+par(mar = c(1,1,2,1), oma = c(1,1,0.3,1))
+
+## A
+cols = viridis::viridis(20)
+breaks = seq(-1,1, length.out = 21)
+arrow_label = function() {
+  arrows(x0 = c(0.3, 0.7), x1 = c(0.0, 1.0), y0 = rep(-0.03,2), y1 = rep(-0.03,2), xpd = NA,code = 2, length =0.04)
+  arrows(y0 = c(0.3, 0.7), y1 = c(0.0, 1.0), x0 = rep(-0.03,2), x1 = rep(-0.03,2), xpd = NA,code = 2, length =0.04)
+  text(x = 0.3, pos = 4, y = -0.03, labels = "Species", xpd = NA, cex = 0.9)
+  text(y = 0.4, pos = 3, x = -0.03, labels = "Species", xpd = NA,srt = 90, cex = 0.9)
+}
+leg = function(range = c(-1,1)) {
+  len = length(cols)
+  b = 0.4/len
+  xx = matrix(c(seq(0.5, by = b, length.out = len), seq(0.5, by = b, length.out = len)+b), ncol = 2)
+  for(i in 1:len) rect(xleft = xx[i,1], xright = xx[i,2], ybottom = 0.7, ytop = 0.73, col = cols[i], border = NA)
+  text(x = 0.5, y = 0.7, pos = 1, labels = range[1], cex = 0.9)
+  text(x = 0.9, y = 0.7, pos = 1, labels = range[2], cex = 0.9)
+}
+
+image(rem(cov2cor(result[[1]]$sigma)[hh$rowInd, hh$colInd]),col = cols, axes = FALSE, breaks = breaks)
+arrow_label()
+leg()
+text(x = - 0.09* 1, y = 1.09 * 1, labels = "A", font = 2, xpd = NA)
+text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 9e-4"), font = 2, xpd = NA)
+
+image(rem(cov2cor(result[[15]]$sigma)[(hh$rowInd), hh$colInd]), col = cols, axes = FALSE, breaks = breaks)
+arrow_label()
+leg()
+text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 7e-3"), font = 2, xpd = NA)
+
+image(rem(cov2cor(result[[30]]$sigma)[(hh$rowInd), hh$colInd]), col = cols, axes = FALSE, breaks = breaks)
+arrow_label()
+leg()
+text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 0.059"), font = 2, xpd = NA)
+
+overall_cov = matrix(0, ncol(occ_high), ncol(occ_high))
+for(i in 10:50) {
+  overall_cov = overall_cov +result[[i]]$sigma
+}
+image(rem(overall_cov[(hh$rowInd), hh$colInd]), col = cols, axes = FALSE)
+arrow_label()
+leg(range = c(round(min(overall_cov[(hh$rowInd), hh$colInd]), 1), round(max(overall_cov[(hh$rowInd), hh$colInd]),1)))
+text(x = 0.5, y = 1.0, pos = 3, labels = c("Importance"), font = 2, xpd = NA)
+
+
+## B
+nn = names(env)[hbeta$rowInd]
+cols = viridis::viridis(20)
+
+arrow_label = function() {
+  arrows(y0 = c(0.3, 0.7), y1 = c(0.0, 1.0), x0 = rep(-0.12,2), x1 = rep(-0.12,2), xpd = NA,code = 2, length =0.04)
+  text(y = 0.4, pos = 3, x = -0.12, labels = "Species", xpd = NA,srt = 90, cex = 0.9)
+}
+env_leg = function(){
+  len = length(nn)
+  text(x = seq(0,1+1/len, length.out = 8)[1:7]+0.01, y = 1.01, pos = 3, srt = 45, xpd = NA, labels = paste0("env",hbeta$rowInd), cex = 0.8)
+}
+leg = function(range = c(-1,1)) {
+  len = length(cols)
+  b = 0.4/len
+  xx = matrix(c(seq(0.3, by = b, length.out = len), seq(0.3, by = b, length.out = len)+b), ncol = 2)
+  for(i in 1:len) rect(xleft = xx[i,1], xright = xx[i,2], ybottom = -0.01, ytop = -0.04, col = cols[i], border = NA, xpd = NA)
+  text(x = 0.3, y = -0.04, pos = 1, labels = range[1], cex = 0.9, xpd = NA)
+  text(x = 0.7, y = -0.04, pos = 1, labels = range[2], cex = 0.9, xpd = NA)
+}
+image(result[[1]]$beta[hbeta$rowInd, hbeta$colInd], col = cols, breaks = breaks, axes = FALSE)
+arrow_label()
+env_leg()
+text(x = - 0.18* 1 , y = 1.09 * 1, labels = "B", font = 2, xpd = NA)
+
+leg(range = c(round(min(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
+image(result[[25]]$beta[hbeta$rowInd,hbeta$colInd], col = cols, breaks = breaks, axes = FALSE)
+arrow_label()
+env_leg()
+leg(range = c(round(min(result[[25]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
+image(result[[30]]$beta[hbeta$rowInd, hbeta$colInd], col = cols, breaks = breaks, axes = FALSE)
+arrow_label()
+env_leg()
+leg(range = c(round(min(result[[30]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
+beta = matrix(0, nrow = ncol(env_scaled), ncol = ncol(occ_high))
+for(i in 1:50) {
+  beta = beta + result[[i]]$beta  
+}
+image(beta[hbeta$rowInd, hbeta$colInd], col = cols, axes = FALSE)
+arrow_label()
+env_leg()
+leg(range = c(round(min(beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(beta[hbeta$rowInd, hbeta$colInd]),1)))
+
+## C
+cols = RColorBrewer::brewer.pal(7, "Dark2")
+lwd = 3
+par(mgp = c(3,0.8,0))
+plot(NULL, NULL, xlim = c(1, 186), ylim = c(-8, 15), xaxt = "n", xaxs = "i", yaxt = "n")
+text(x = - 0.01* 186, y = 1.12 * 15, labels = "C", font = 2, xpd = NA)
+
+lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][1,], spar = 0.7), col = cols[1], lwd = lwd)
+lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][2,], spar = 0.7), col = cols[2], lwd = lwd)
+lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][3,], spar = 0.7), col = cols[3], lwd = lwd)
+lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][4,], spar = 0.7), col = cols[4], lwd = lwd)
+lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][5,], spar = 0.7), col = cols[5], lwd = lwd)
+lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][6,], spar = 0.7), col = cols[6], lwd = lwd)
+lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][7,], spar = 0.7), col = cols[7], lwd = lwd)
+legend("top", legend = paste0("env", hbeta$rowInd), col = cols, horiz = TRUE, lty = 1, border = FALSE, cex = 0.9, bty = "n")
+axis(1, labels = FALSE, at = 1:186)
+axis(2, las = 2, cex = 0.9)
+arrows(x0 = c(0.3*186, 0.7*186), x1 = c(0.1*186, 0.9*186), y0 = rep(-11,2), y1 = rep(-11,2), xpd = NA,code = 2, length =0.04)
+text(x = 0.45*186, pos = 4, y = -11, labels = "Species", xpd = NA, cex = 0.9)
+dev.off()
+
+```
+
+
+
