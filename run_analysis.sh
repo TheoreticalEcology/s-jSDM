@@ -9,6 +9,6 @@ Rscript analysis/hmscDiag.R > /dev/null 2>&1 & disown
 
 
 
-Rscript analysis/covariance_behaviour.R > /dev/null 2>&1 & disown
+Rscript analysis/scripts/3_covariance_behaviour.R > behav_log 2>&1 & disown
 Rscript analysis/case_study_1.R > /dev/null 2>&1 & disown
 Rscript analysis/large_scale.R > /dev/null 2>&1 & disown

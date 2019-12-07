@@ -79,7 +79,7 @@ source("./analysis/scripts/4_case_study_1.R")
 ```
 
 
-### 5 Case Study - eDNA
+## 5 Case Study - eDNA
 ```{r}
 source("./analysis/scripts/5_eDNA_analysis.R")
 ```

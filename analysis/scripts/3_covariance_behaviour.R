@@ -230,7 +230,7 @@ for(i in 1:length(sites)) {
     Y = data_set[[i]][[j]]$response
     sim = data_set[[i]][[j]]
     
-   
+    try({
     # HMSC:
     studyDesign = data.frame(sample = as.factor(1:nrow(Y)))
     rL = HmscRandomLevel(units = studyDesign$sample)
@@ -255,7 +255,6 @@ for(i in 1:length(sites)) {
     species_weights = Hmsc::getPostEstimate(model,parName = "Beta")$mean
     
     
-    try({
       result_corr_acc[i,j] =  sim$corr_acc(correlation)
       result_env[i,j] = mean(as.vector(species_weights > 0) == as.vector(sim$species_weights > 0))
       result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(sim$species_weights))^2))
@@ -263,7 +262,7 @@ for(i in 1:length(sites)) {
       rm(model)
       gc()
       sub_posterior[[j]] = diag
-    })
+    }, silent = TRUE)
   }
   posterior[[i]] = sub_posterior
 }
