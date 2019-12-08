@@ -373,12 +373,14 @@ save(h1, h2, hbeta1, hbeta2, file = "./results/meta_fig_5.RData")
 ```{r}
 deg2rad <- function(deg) {(deg * pi) / (180)}
 rad2deg <- function(rad) {(rad * 180) / (pi)}
+ff = function(x){(x-min(x))/(max(x)-min(x))}
 
-add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col = "black") {
- xxs1 = cos(deg2rad(p1[3]))* seq(0, 5, length.out = n)
- xxs2 = cos(deg2rad(p2[3]))* seq(0, 5, length.out = n)
- yys1 = sin(deg2rad(p1[3]))* seq(0, 5, length.out = n)
- yys2 = sin(deg2rad(p2[3]))* seq(0, 5, length.out = n)
+
+add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col = "black", species = TRUE, lineSeq = 5.0) {
+ xxs1 = cos(deg2rad(p1[3]))* seq(0, lineSeq, length.out = n)
+ xxs2 = cos(deg2rad(p2[3]))* seq(0, lineSeq, length.out = n)
+ yys1 = sin(deg2rad(p1[3]))* seq(0, lineSeq, length.out = n)
+ yys2 = sin(deg2rad(p2[3]))* seq(0, lineSeq, length.out = n)
  x = c(rev(xxs1), xxs2[-1])
  y = c(rev(yys1), yys2[-1])
  m = (p1[2] - p2[2])/(p1[1] - p2[1])
@@ -394,28 +396,30 @@ add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col =
  b = tt2 %*% rot2
  lines(b[,1], b[,2], col = col)
  
- x1 = c(cos(deg2rad(p1[3]))*5.1, cos(deg2rad(p1[3]))*5.3)
- x2 = c(cos(deg2rad(p2[3]))*5.1, cos(deg2rad(p2[3]))*5.3)
- y1 = c(sin(deg2rad(p1[3]))* 5.1, sin(deg2rad(p1[3]))* 5.3)
- y2 = c(sin(deg2rad(p2[3]))* 5.1, sin(deg2rad(p2[3]))* 5.3)
+ x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+ x2 = c(cos(deg2rad(p2[3]))*(lineSeq+0.1), cos(deg2rad(p2[3]))*(lineSeq+0.3))
+ y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+ y2 = c(sin(deg2rad(p2[3]))* (lineSeq+0.1), sin(deg2rad(p2[3]))* (lineSeq+0.3))
+ if(species){
  segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = "darkgrey")
  segments(x0 = x2[1], x1 = x2[2], y0 = y2[1], y1 = y2[2],  col = "darkgrey")
+ }
 }
-add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(-1,1)){
+add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(-1,1), lineSeq = 5.0){
  angles = seq(120, 60, length.out = length(cols)+1)
  for(i in 2:length(angles)){
-  xx1 = 5.4*cos( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50) )
-  xx2 = 5.7*cos( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50) )
-  yy1 = 5.4*sin( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50)  )
-  yy2 = 5.7*sin( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50)  )
+  xx1 = (lineSeq+0.4)*cos( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50) )
+  xx2 = (lineSeq+0.7)*cos( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50) )
+  yy1 = (lineSeq+0.4)*sin( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50)  )
+  yy2 = (lineSeq+0.7)*sin( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50)  )
   polygon(c(xx1, rev(xx2)), c(yy1, rev(yy2)),border = NA, col = cols[i-1], xpd = NA)
   if(i == 2 || i == length(angles)) {
     if(i ==2) label = range[1]
     else label = range[2]
     tmp_a = (angles[i-1]+angles[i])/2
     text(srt = tmp_a-90, 
-         x = 5.99*cos(deg2rad(tmp_a)), 
-         y =  5.99*sin(deg2rad(tmp_a)), 
+         x = (lineSeq+0.99)*cos(deg2rad(tmp_a)), 
+         y =  (lineSeq+0.99)*sin(deg2rad(tmp_a)), 
          xpd = NA, labels = label)
   }
  }
@@ -438,22 +442,25 @@ for(j in 1:length(rates)){
   lower = order(sigmas, decreasing = FALSE)[1:number2]
   sets[i,] = c(upper, lower)
   }
-  
   turn_over = NULL
   for(i in 1:29) {
     turn_over[i] = 1 - mean(sets[i,] %in% sets[i+1,])
   }
   turn_over_results[[j]] = turn_over
 }
+turn_over = abind::abind(turn_over_results, along = -1L)
+saveRDS(turn_over, "./results/turn_over.RDS")
 ```
 
 
 ```{r}
-par(mfrow = c(1,4), mar = c(2,0,2,0))
+par(mfrow = c(1,4), mar = c(2,2,2,2))
+matplot(t(turn_over), type = "o", pch = 18, lty = 1, col = 1:6)
+legend("topright", legend = rates, col = 1:6, lty = 1,bty = "n")
 
 number = 30
 
-sigma = re_scale(result[[1]]$sigma)[h1$order, h2$order]
+sigma = re_scale(result[[15]]$sigma)[h1$order, h2$order]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
@@ -488,7 +495,7 @@ add_legend()
 
 
 
-sigma = re_scale(result[[7]]$sigma)[h1$order, h2$order]
+sigma = re_scale(result[[20]]$sigma)[h1$order, h2$order]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
@@ -523,7 +530,7 @@ add_legend()
 
 
 
-sigma = re_scale(result[[14]]$sigma)[h1$order, h2$order]
+sigma = re_scale(result[[25]]$sigma)[h1$order, h2$order]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
@@ -557,26 +564,42 @@ add_legend()
 
 
 
-## Importance:
-if(!exists("overall")){
-  for(i in 10:20){
-    sigma = re_scale(result[[1]]$sigma)[h1$order, h2$order]
-    sigmas = sigma[upper.tri(sigma)]
-    if(i == 5) overall = sigmas
-    else overall = sigmas+overall
-  }
+
+
+
+
+effects = matrix(NA, 30, 8)
+for(i in 1:30){
+  effects[i,] = apply(result[[i]]$beta, 1, function(o) sum(abs(o)))
 }
-sigmas = overall
+turn_over = NULL
+for(i in 1:29) {
+  turn_over[i] = cor(effects[i,], effects[i+1,])
+}
 
+max_effects = matrix(NA, 30, n)
+for(i in 1:30) max_effects[i,]= apply(result[[15]]$beta,2, function(e) which.max(abs(e)))
 
+turn_over = NULL
+for(i in 1:29) {
+  turn_over[i] = mean(max_effects[i,] == max_effects[i+1,])
+}
+
+effect_comb = cbind(max_effects[20,], sapply(1:n, function(i) result[[20]]$beta[max_effects[20,i],i] ) )
+effect_comb_ind = order(effect_comb[,1], effect_comb[,2])
+effect_comb = effect_comb[effect_comb_ind, ]
+#head(effect_comb[effect_comb_ind,])
+
+sigma = re_scale(result[[20]]$sigma)[effect_comb_ind, effect_comb_ind]
+sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
-cuts = cut(sigmas, breaks = seq(min(sigmas),max(sigmas),length.out = 12))
+cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
 to_plot = 1:length(sigmas) %in% upper | 1:length(sigmas) %in% lower
 levels(cuts) = RColorBrewer::brewer.pal(11,"Spectral")
 cuts = as.character(cuts)
 n = ncol(result[[15]]$sigma)
-lineSeq = 5
+lineSeq = 3.5
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
@@ -591,145 +614,46 @@ coords = cbind(xx, yy, angles)
 for(i in 1:n) {
   for(j in i:n){
     if(i!=j) {
-      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5)
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, species = FALSE, lineSeq = 3.5)
       counter = counter + 1
-      #cat(counter, "\n")
     }
   }
 }
-add_legend(range = c(round(min(overall),1),round( max(overall),1)))
-
-
+cols = RColorBrewer::brewer.pal(8,"Dark2")
+for(i in sort(unique(max_effects[1,]))) {
+  sub = coords[max_effects[1,effect_comb_ind] == i,]
+  sub_eff = effect_comb[max_effects[1,effect_comb_ind] == i, ]
+  from = sub[1,3]
+  to = sub[nrow(sub),3]
+  # xx1 = 5.1*cos( seq(deg2rad(from),deg2rad(to) ,length.out=100) )
+  # xx2 = 5.3*cos( seq(deg2rad(from),deg2rad(to) ,length.out=100) )
+  # yy1 = 5.1*sin( seq(deg2rad(from),deg2rad(to) ,length.out=100)  )
+  # yy2 = 5.3*sin( seq(deg2rad(from),deg2rad(to) ,length.out=100)  )
+  # polygon(c(xx1, rev(xx2)), c(yy1, rev(yy2)),border = NA, col = i, xpd = NA)
+  # 
+  #x - angles
+  x = c((3.6+1.5*ff(sub_eff[,2]))*cos(deg2rad(sub[,3]) ), 
+        rev((3.5+1.5/2)*cos(deg2rad(sub[,3]))))
+  
+  y = c((3.6+1.5*ff(sub_eff[,2]))*sin(deg2rad(sub[,3])),
+        rev((3.5+1.5/2)*sin(deg2rad(sub[,3]))))
+  #y
+  polygon(x, y, xpd = NA,col = cols[i])
+  
+  text(srt = 0, 
+         x = (3.6+1.5+0.1)*cos(deg2rad(sub[1,3]+4)), 
+         y =  (3.6+1.5+0.1)*sin(deg2rad(sub[1,3]+4)), 
+         xpd = NA, labels = round(min(sub_eff[,2]), 2), col = cols[i], cex = 0.9)
+  
+   text(srt = 0, 
+         x = (3.6+1.5+0.1)*cos(deg2rad(sub[nrow(sub),3]-4)), 
+         y =  (3.6+1.5+0.1)*sin(deg2rad(sub[nrow(sub),3]-4)), 
+         xpd = NA, labels = round(max(sub_eff[,2]), 2), col = cols[i], cex = 0.9)
+  
+}
+add_legend(lineSeq = 5.4)
 
 ```
-
-
-<!-- ```{r} -->
-<!-- #hh = heatmap(cov2cor(result[[30]]$sigma), keep.dendro = TRUE) -->
-<!-- #hbeta = heatmap(result[[15]]$beta, keep.dendro = TRUE) -->
-<!-- rem = function(m) { -->
-<!--   m[upper.tri(m)] = NA -->
-<!--   m = m[nrow(m):1,] -->
-<!--   return(m) -->
-<!-- } -->
-
-
-<!-- #pdf("./figures/Fig_5.pdf", width = 7.0, height = 6.0) -->
-
-<!-- layout(matrix(c(1,2,3,4, 5, 6, 7, 8, 9, 9,9,9), 3,4 ,byrow = TRUE), c(1,1,1,1), c(1,1,1)) -->
-<!-- par(mar = c(1,1,2,1), oma = c(1,1,0.3,1)) -->
-
-<!-- ## A -->
-<!-- cols = viridis::viridis(20) -->
-<!-- breaks = seq(-1,1, length.out = 21) -->
-<!-- arrow_label = function() { -->
-<!--   arrows(x0 = c(0.3, 0.7), x1 = c(0.0, 1.0), y0 = rep(-0.03,2), y1 = rep(-0.03,2), xpd = NA,code = 2, length =0.04) -->
-<!--   arrows(y0 = c(0.3, 0.7), y1 = c(0.0, 1.0), x0 = rep(-0.03,2), x1 = rep(-0.03,2), xpd = NA,code = 2, length =0.04) -->
-<!--   text(x = 0.3, pos = 4, y = -0.03, labels = "Species", xpd = NA, cex = 0.9) -->
-<!--   text(y = 0.4, pos = 3, x = -0.03, labels = "Species", xpd = NA,srt = 90, cex = 0.9) -->
-<!-- } -->
-<!-- leg = function(range = c(-1,1)) { -->
-<!--   len = length(cols) -->
-<!--   b = 0.4/len -->
-<!--   xx = matrix(c(seq(0.5, by = b, length.out = len), seq(0.5, by = b, length.out = len)+b), ncol = 2) -->
-<!--   for(i in 1:len) rect(xleft = xx[i,1], xright = xx[i,2], ybottom = 0.7, ytop = 0.73, col = cols[i], border = NA) -->
-<!--   text(x = 0.5, y = 0.7, pos = 1, labels = range[1], cex = 0.9) -->
-<!--   text(x = 0.9, y = 0.7, pos = 1, labels = range[2], cex = 0.9) -->
-<!-- } -->
-
-<!-- hh = list(rowInd = h1$order, colInd = h2$order) -->
-<!-- image(rem(cov2cor(result[[1]]$sigma)[hh$rowInd, hh$colInd]),col = cols, axes = FALSE, breaks = breaks) -->
-<!-- arrow_label() -->
-<!-- leg() -->
-<!-- text(x = - 0.09* 1, y = 1.09 * 1, labels = "A", font = 2, xpd = NA) -->
-<!-- text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 9e-4"), font = 2, xpd = NA) -->
-
-<!-- image(rem(cov2cor(result[[7]]$sigma)[(hh$rowInd), hh$colInd]), col = cols, axes = FALSE, breaks = breaks) -->
-<!-- arrow_label() -->
-<!-- leg() -->
-<!-- text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 7e-3"), font = 2, xpd = NA) -->
-
-<!-- image(rem(cov2cor(result[[15]]$sigma)[(hh$rowInd), hh$colInd]), col = cols, axes = FALSE, breaks = breaks) -->
-<!-- arrow_label() -->
-<!-- leg() -->
-<!-- text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 0.059"), font = 2, xpd = NA) -->
-
-<!-- overall_cov = matrix(0, ncol(result[[1]]$sigma), ncol(result[[1]]$sigma)) -->
-<!-- for(i in 5:30) { -->
-<!--   overall_cov = overall_cov +result[[i]]$sigma -->
-<!-- } -->
-<!-- image(rem(overall_cov[(hh$rowInd), hh$colInd]), col = cols, axes = FALSE) -->
-<!-- arrow_label() -->
-<!-- leg(range = c(round(min(overall_cov[(hh$rowInd), hh$colInd]), 1), round(max(overall_cov[(hh$rowInd), hh$colInd]),1))) -->
-<!-- text(x = 0.5, y = 1.0, pos = 3, labels = c("Importance"), font = 2, xpd = NA) -->
-
-
-<!-- ## B -->
-<!-- hbeta = list(rowInd = hbeta1$order, colInd = hbeta2$order) -->
-<!-- nn = names(env)[hbeta$rowInd] -->
-<!-- cols = viridis::viridis(20) -->
-
-<!-- arrow_label = function() { -->
-<!--   arrows(y0 = c(0.3, 0.7), y1 = c(0.0, 1.0), x0 = rep(-0.12,2), x1 = rep(-0.12,2), xpd = NA,code = 2, length =0.04) -->
-<!--   text(y = 0.4, pos = 3, x = -0.12, labels = "Species", xpd = NA,srt = 90, cex = 0.9) -->
-<!-- } -->
-<!-- env_leg = function(){ -->
-<!--   len = length(nn) -->
-<!--   text(x = seq(0,1+1/len, length.out = 8)[1:7]+0.01, y = 1.01, pos = 3, srt = 45, xpd = NA, labels = paste0("env",hbeta$rowInd), cex = 0.8) -->
-<!-- } -->
-<!-- leg = function(range = c(-1,1)) { -->
-<!--   len = length(cols) -->
-<!--   b = 0.4/len -->
-<!--   xx = matrix(c(seq(0.3, by = b, length.out = len), seq(0.3, by = b, length.out = len)+b), ncol = 2) -->
-<!--   for(i in 1:len) rect(xleft = xx[i,1], xright = xx[i,2], ybottom = -0.01, ytop = -0.04, col = cols[i], border = NA, xpd = NA) -->
-<!--   text(x = 0.3, y = -0.04, pos = 1, labels = range[1], cex = 0.9, xpd = NA) -->
-<!--   text(x = 0.7, y = -0.04, pos = 1, labels = range[2], cex = 0.9, xpd = NA) -->
-<!-- } -->
-<!-- image(result[[1]]$beta[hbeta$rowInd, hbeta$colInd], col = cols, breaks = breaks, axes = FALSE) -->
-<!-- arrow_label() -->
-<!-- env_leg() -->
-<!-- text(x = - 0.18* 1 , y = 1.09 * 1, labels = "B", font = 2, xpd = NA) -->
-
-<!-- leg(range = c(round(min(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1))) -->
-<!-- image(result[[25]]$beta[hbeta$rowInd,hbeta$colInd], col = cols, breaks = breaks, axes = FALSE) -->
-<!-- arrow_label() -->
-<!-- env_leg() -->
-<!-- leg(range = c(round(min(result[[25]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1))) -->
-<!-- image(result[[30]]$beta[hbeta$rowInd, hbeta$colInd], col = cols, breaks = breaks, axes = FALSE) -->
-<!-- arrow_label() -->
-<!-- env_leg() -->
-<!-- leg(range = c(round(min(result[[30]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1))) -->
-<!-- beta = matrix(0, nrow = nrow(result[[1]]$beta), ncol = ncol(result[[1]]$beta)) -->
-<!-- for(i in 1:30) { -->
-<!--   beta = beta + result[[i]]$beta   -->
-<!-- } -->
-<!-- image(beta[hbeta$rowInd, hbeta$colInd], col = cols, axes = FALSE) -->
-<!-- arrow_label() -->
-<!-- env_leg() -->
-<!-- leg(range = c(round(min(beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(beta[hbeta$rowInd, hbeta$colInd]),1))) -->
-
-<!-- ## C -->
-<!-- cols = RColorBrewer::brewer.pal(7, "Dark2") -->
-<!-- lwd = 3 -->
-<!-- par(mgp = c(3,0.8,0)) -->
-<!-- plot(NULL, NULL, xlim = c(1, 186), ylim = c(-8, 15), xaxt = "n", xaxs = "i", yaxt = "n") -->
-<!-- text(x = - 0.01* 186, y = 1.12 * 15, labels = "C", font = 2, xpd = NA) -->
-
-<!-- lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][1,], spar = 0.7), col = cols[1], lwd = lwd) -->
-<!-- lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][2,], spar = 0.7), col = cols[2], lwd = lwd) -->
-<!-- lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][3,], spar = 0.7), col = cols[3], lwd = lwd) -->
-<!-- lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][4,], spar = 0.7), col = cols[4], lwd = lwd) -->
-<!-- lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][5,], spar = 0.7), col = cols[5], lwd = lwd) -->
-<!-- lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][6,], spar = 0.7), col = cols[6], lwd = lwd) -->
-<!-- lines(smooth.spline(beta[hbeta$rowInd, hbeta$colInd][7,], spar = 0.7), col = cols[7], lwd = lwd) -->
-<!-- legend("top", legend = paste0("env", hbeta$rowInd), col = cols, horiz = TRUE, lty = 1, border = FALSE, cex = 0.9, bty = "n") -->
-<!-- axis(1, labels = FALSE, at = 1:186) -->
-<!-- axis(2, las = 2, cex = 0.9) -->
-<!-- arrows(x0 = c(0.3*186, 0.7*186), x1 = c(0.1*186, 0.9*186), y0 = rep(-11,2), y1 = rep(-11,2), xpd = NA,code = 2, length =0.04) -->
-<!-- text(x = 0.45*186, pos = 4, y = -11, labels = "Species", xpd = NA, cex = 0.9) -->
-<!-- dev.off() -->
-
-<!-- ``` -->
 
 
 
