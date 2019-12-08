@@ -450,13 +450,24 @@ for(j in 1:length(rates)){
 }
 turn_over = abind::abind(turn_over_results, along = -1L)
 saveRDS(turn_over, "./results/turn_over.RDS")
+turn_over = abind::abind(turn_over_results, along = -1L)
+matplot(t(turn_over), type = "o", pch = 18, lty = 1, col = 1:6)
+legend("topright", legend = rates, col = 1:6, lty = 1,bty = "n")
 ```
 
 
 ```{r}
-par(mfrow = c(1,4), mar = c(2,2,2,2))
-matplot(t(turn_over), type = "o", pch = 18, lty = 1, col = 1:6)
-legend("topright", legend = rates, col = 1:6, lty = 1,bty = "n")
+lrs = seq(-18, -1, length.out = 30)
+f = function(x) 2^x
+lrs = f(lrs)
+pdf(file = "./figures/Fig_5_new.pdf", width = 5.0, height = 6.66)
+
+layout(matrix(c(1,2,3,rep(4,12)), 4,3 ,byrow = TRUE), c(1,1,1), c(1,1,1,1))
+
+
+par( mar = c(1,2,2.1,2))
+# matplot(t(turn_over), type = "o", pch = 18, lty = 1, col = 1:6)
+# legend("topright", legend = rates, col = 1:6, lty = 1,bty = "n")
 
 number = 30
 
@@ -472,6 +483,9 @@ n = ncol(result[[15]]$sigma)
 lineSeq = 5
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 1.1e-3")
+text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "A", font = 2, cex = 1.5)
+
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
 yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
 polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
@@ -507,6 +521,11 @@ n = ncol(result[[15]]$sigma)
 lineSeq = 5
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 8.5e-3")
+
+text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "B", font = 2, cex = 1.5)
+
+
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
 yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
 polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
@@ -542,6 +561,9 @@ n = ncol(result[[15]]$sigma)
 lineSeq = 5
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 6.5e-2")
+text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "C", font = 2, cex = 1.5)
+
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
 yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
 polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
@@ -566,8 +588,6 @@ add_legend()
 
 
 
-
-
 effects = matrix(NA, 30, 8)
 for(i in 1:30){
   effects[i,] = apply(result[[i]]$beta, 1, function(o) sum(abs(o)))
@@ -585,12 +605,12 @@ for(i in 1:29) {
   turn_over[i] = mean(max_effects[i,] == max_effects[i+1,])
 }
 
-effect_comb = cbind(max_effects[20,], sapply(1:n, function(i) result[[20]]$beta[max_effects[20,i],i] ) )
+effect_comb = cbind(max_effects[25,], sapply(1:n, function(i) result[[25]]$beta[max_effects[25,i],i] ) )
 effect_comb_ind = order(effect_comb[,1], effect_comb[,2])
 effect_comb = effect_comb[effect_comb_ind, ]
 #head(effect_comb[effect_comb_ind,])
 
-sigma = re_scale(result[[20]]$sigma)[effect_comb_ind, effect_comb_ind]
+sigma = re_scale(result[[25]]$sigma)[effect_comb_ind, effect_comb_ind]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
@@ -602,6 +622,8 @@ n = ncol(result[[15]]$sigma)
 lineSeq = 3.5
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = -5, y = 5.7, pos = 3, xpd = NA, labels = "D", font = 2, cex = 1.5)
+
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
 yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
 polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
@@ -629,8 +651,8 @@ for(i in sort(unique(max_effects[1,]))) {
   # xx2 = 5.3*cos( seq(deg2rad(from),deg2rad(to) ,length.out=100) )
   # yy1 = 5.1*sin( seq(deg2rad(from),deg2rad(to) ,length.out=100)  )
   # yy2 = 5.3*sin( seq(deg2rad(from),deg2rad(to) ,length.out=100)  )
-  # polygon(c(xx1, rev(xx2)), c(yy1, rev(yy2)),border = NA, col = i, xpd = NA)
-  # 
+  # polygon(c(xx1, rev(xx2)), c(yy1, rev(yy2)),border = NA, col = cols[i], xpd = NA)
+
   #x - angles
   x = c((3.6+1.5*ff(sub_eff[,2]))*cos(deg2rad(sub[,3]) ), 
         rev((3.5+1.5/2)*cos(deg2rad(sub[,3]))))
@@ -651,8 +673,18 @@ for(i in sort(unique(max_effects[1,]))) {
          xpd = NA, labels = round(max(sub_eff[,2]), 2), col = cols[i], cex = 0.9)
   
 }
-add_legend(lineSeq = 5.4)
+#add_legend(lineSeq = 5.4)
 
+legend("bottomleft", legend = rev(names(env2)), pch = 15, col = rev(cols), bty = "n")
+rec_cols = RColorBrewer::brewer.pal(11,"Spectral")
+x = seq(3,5, length.out = 12)
+for(i in 1:length(rec_cols)){
+  rect(xleft = x[i], xright = x[i+1], ybottom = -5, ytop = -5+diff(x)[1], col = rec_cols[i], xpd = NA, border = NA)
+}
+text(x[1],-5.2, labels = -1)
+text(x[11],-5.2, labels = +1)
+
+dev.off()
 ```
 
 
