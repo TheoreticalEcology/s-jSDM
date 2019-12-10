@@ -16,7 +16,7 @@ cpu = readRDS(file = "./results/cpu_dmvp3.RDS")
 gpu = readRDS(file = "./results/gpu_dmvp3.RDS")
 gllvm = readRDS(file = "./results/gllvm.RDS")
 bc = readRDS(file = "./results/BayesCommDiag.RDS")
-hmsc = readRDS(file = "./results/hmsc.RDS")
+hmsc = readRDS(file = "./results/hmscDiag.RDS")
 large_scale = readRDS("./results/large_scale.RDS")
 setup2 = large_scale$setup
 load("./data_sets.RData")
@@ -376,7 +376,7 @@ rad2deg <- function(rad) {(rad * 180) / (pi)}
 ff = function(x){(x-min(x))/(max(x)-min(x))}
 
 
-add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col = "black", species = TRUE, lineSeq = 5.0) {
+add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col = "black", species = TRUE, lineSeq = 5.0, lwd = 1.0) {
  xxs1 = cos(deg2rad(p1[3]))* seq(0, lineSeq, length.out = n)
  xxs2 = cos(deg2rad(p2[3]))* seq(0, lineSeq, length.out = n)
  yys1 = sin(deg2rad(p1[3]))* seq(0, lineSeq, length.out = n)
@@ -391,10 +391,10 @@ add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col =
  rot = matrix(c(cos((alpha)), -sin((alpha)), sin((alpha)), cos((alpha))),2,2)
  rot2 = matrix(c(cos((alpha2)), -sin((alpha2)), sin((alpha2)), cos((alpha2))),2,2)
  tt = cbind(x,y) %*% rot
- sp = smooth.spline(tt[,1], tt[,2],spar = spar,df = 6, w = c(5.0, rep(0.1,nrow(tt)-2), 5.0))
+ sp = smooth.spline(tt[,1], tt[,2],spar = spar,df = 6, w = c(10.0, rep(0.1,nrow(tt)-2), 10.0))
  tt2 = cbind(sp$x, sp$y)
  b = tt2 %*% rot2
- lines(b[,1], b[,2], col = col)
+ lines(b[,1], b[,2], col = col, lwd = lwd)
  
  x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
  x2 = c(cos(deg2rad(p2[3]))*(lineSeq+0.1), cos(deg2rad(p2[3]))*(lineSeq+0.3))
@@ -405,8 +405,8 @@ add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col =
  segments(x0 = x2[1], x1 = x2[2], y0 = y2[1], y1 = y2[2],  col = "darkgrey")
  }
 }
-add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(-1,1), lineSeq = 5.0){
- angles = seq(120, 60, length.out = length(cols)+1)
+add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(-1,1), lineSeq = 5.0, angles = c(110, 70)){
+ angles = seq(angles[1], angles[2], length.out = length(cols)+1)
  for(i in 2:length(angles)){
   xx1 = (lineSeq+0.4)*cos( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50) )
   xx2 = (lineSeq+0.7)*cos( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50) )
@@ -450,37 +450,51 @@ for(j in 1:length(rates)){
 }
 turn_over = abind::abind(turn_over_results, along = -1L)
 saveRDS(turn_over, "./results/turn_over.RDS")
-turn_over = abind::abind(turn_over_results, along = -1L)
-matplot(t(turn_over), type = "o", pch = 18, lty = 1, col = 1:6)
-legend("topright", legend = rates, col = 1:6, lty = 1,bty = "n")
+
+
+
 ```
 
 
+### Figure S4 Turn_over rates
 ```{r}
 lrs = seq(-18, -1, length.out = 30)
 f = function(x) 2^x
 lrs = f(lrs)
-pdf(file = "./figures/Fig_5_new.pdf", width = 5.0, height = 6.66)
+pdf(file = "./figures/Fig_S4_turn_over.pdf", width = 9, height = 4)
+par(mfrow = c(1,1), mar = c(2, 3, 0.2, 2))
+turn_over = abind::abind(turn_over_results, along = -1L)
+matplot(t(turn_over), type = "o", pch = 18, lty = 1, col = 1:6, axes = FALSE, ylim = c(0,1))
+axis(1,at = 1:30, labels = format(lrs, scientific = TRUE, digits = 1), cex.axis = 0.7)
+axis(2, las = 2, cex.axis = 0.7)
+legend("bottomright", legend = rates, col = 1:6, lty = 1,bty = "n", cex = 0.7)
+dev.off()
+```
 
-layout(matrix(c(1,2,3,rep(4,12)), 4,3 ,byrow = TRUE), c(1,1,1), c(1,1,1,1))
+### Figure 5 
+```{r}
+
+pdf(file = "./figures/Fig_5_new.pdf", width = 10.88, height = 8)
+
+layout(matrix(c(1,2,3,rep(4,9)), 3,3 ,byrow = F), c(0.9,1.3,1.3), c(1,1,1))
 
 
-par( mar = c(1,2,2.1,2))
-# matplot(t(turn_over), type = "o", pch = 18, lty = 1, col = 1:6)
-# legend("topright", legend = rates, col = 1:6, lty = 1,bty = "n")
+par( mar = c(1,2,2.1,2)+0.3)
 
 number = 30
 
-sigma = re_scale(result[[15]]$sigma)[h1$order, h2$order]
+
+#A
+sigma = re_scale(result[[15]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
 cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
 to_plot = (1:length(sigmas) %in% upper) | (1:length(sigmas) %in% lower)
-levels(cuts) = RColorBrewer::brewer.pal(11,"Spectral")
+levels(cuts) = viridis::viridis(11)
 cuts = as.character(cuts)
 n = ncol(result[[15]]$sigma)
-lineSeq = 5
+lineSeq = 4.7
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
 text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 1.1e-3")
@@ -498,27 +512,42 @@ coords = cbind(xx, yy, angles)
 for(i in 1:n) {
   for(j in i:n){
     if(i!=j) {
-      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5)
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, lineSeq = lineSeq)
       counter = counter + 1
       #cat(counter, "\n")
     }
   }
 }
-add_legend()
+
+lineSeq = 5.0
+occ_logs = log(sort(apply(occ, 2, sum)))
+cuts = cut(occ_logs, breaks = 10)
+cols = viridis::magma(10) #colfunc(5)
+levels(cuts) = cols
+for(i in 1:length(occ_logs)){
+  p1 = coords[i,]
+ x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+ y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
+}
+add_legend(viridis::viridis(11), angles = c(140,110))
+text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
+add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
 
 
 
-
-sigma = re_scale(result[[20]]$sigma)[h1$order, h2$order]
+#B
+sigma = re_scale(result[[20]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
 cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
 to_plot = 1:length(sigmas) %in% upper | 1:length(sigmas) %in% lower
-levels(cuts) = RColorBrewer::brewer.pal(11,"Spectral")
+levels(cuts) = viridis::viridis(11)
 cuts = as.character(cuts)
 n = ncol(result[[15]]$sigma)
-lineSeq = 5
+lineSeq = 4.7
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
 text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 8.5e-3")
@@ -538,27 +567,43 @@ coords = cbind(xx, yy, angles)
 for(i in 1:n) {
   for(j in i:n){
     if(i!=j) {
-      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5)
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, lineSeq = lineSeq)
       counter = counter + 1
       #cat(counter, "\n")
     }
   }
 }
-add_legend()
+lineSeq = 5.0
+occ_logs = log(sort(apply(occ, 2, sum)))
+cuts = cut(occ_logs, breaks = 10)
+cols = viridis::magma(10) #colfunc(5)
+levels(cuts) = cols
+for(i in 1:length(occ_logs)){
+  p1 = coords[i,]
+ x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+ y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
+}
+add_legend(viridis::viridis(11), angles = c(140,110))
+text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
+add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
 
 
 
 
-sigma = re_scale(result[[25]]$sigma)[h1$order, h2$order]
+
+#C
+sigma = re_scale(result[[25]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
 cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
 to_plot = 1:length(sigmas) %in% upper | 1:length(sigmas) %in% lower
-levels(cuts) = RColorBrewer::brewer.pal(11,"Spectral")
+levels(cuts) = viridis::viridis(11)
 cuts = as.character(cuts)
 n = ncol(result[[15]]$sigma)
-lineSeq = 5
+lineSeq = 4.7
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
 text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 6.5e-2")
@@ -576,19 +621,35 @@ coords = cbind(xx, yy, angles)
 for(i in 1:n) {
   for(j in i:n){
     if(i!=j) {
-      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5)
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, lineSeq = lineSeq)
       counter = counter + 1
       #cat(counter, "\n")
     }
   }
 }
-add_legend()
+occ_logs = log(sort(apply(occ, 2, sum)))
+cuts = cut(occ_logs, breaks = 10)
+cols = viridis::magma(10) #colfunc(5)
+levels(cuts) = cols
+
+lineSeq = 5.0
+for(i in 1:length(occ_logs)){
+  p1 = coords[i,]
+ x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+ y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
+}
+add_legend(viridis::viridis(11), angles = c(140,110))
+text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
+add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
 
 
 
 
-
+# D
 effects = matrix(NA, 30, 8)
+lr_step = 25
 for(i in 1:30){
   effects[i,] = apply(result[[i]]$beta, 1, function(o) sum(abs(o)))
 }
@@ -598,14 +659,14 @@ for(i in 1:29) {
 }
 
 max_effects = matrix(NA, 30, n)
-for(i in 1:30) max_effects[i,]= apply(result[[15]]$beta,2, function(e) which.max(abs(e)))
+for(i in 1:30) max_effects[i,]= apply(result[[lr_step]]$beta,2, function(e) which.max(abs(e)))
 
 turn_over = NULL
 for(i in 1:29) {
   turn_over[i] = mean(max_effects[i,] == max_effects[i+1,])
 }
 
-effect_comb = cbind(max_effects[25,], sapply(1:n, function(i) result[[25]]$beta[max_effects[25,i],i] ) )
+effect_comb = cbind(max_effects[25,], sapply(1:n, function(i) result[[lr_step]]$beta[max_effects[lr_step,i],i] ))
 effect_comb_ind = order(effect_comb[,1], effect_comb[,2])
 effect_comb = effect_comb[effect_comb_ind, ]
 #head(effect_comb[effect_comb_ind,])
@@ -616,13 +677,13 @@ upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
 cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
 to_plot = 1:length(sigmas) %in% upper | 1:length(sigmas) %in% lower
-levels(cuts) = RColorBrewer::brewer.pal(11,"Spectral")
+levels(cuts) = viridis::viridis(11)
 cuts = as.character(cuts)
 n = ncol(result[[15]]$sigma)
 lineSeq = 3.5
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
-text(x = -5, y = 5.7, pos = 3, xpd = NA, labels = "D", font = 2, cex = 1.5)
+text(x = -5, y = 5.3, pos = 3, xpd = NA, labels = "D", font = 2, cex = 1.5)
 
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
 yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
@@ -636,47 +697,44 @@ coords = cbind(xx, yy, angles)
 for(i in 1:n) {
   for(j in i:n){
     if(i!=j) {
-      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, species = FALSE, lineSeq = 3.5)
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, species = TRUE, lineSeq = 3.5, lwd = 1.3)
       counter = counter + 1
     }
   }
 }
 cols = RColorBrewer::brewer.pal(8,"Dark2")
-for(i in sort(unique(max_effects[1,]))) {
-  sub = coords[max_effects[1,effect_comb_ind] == i,]
-  sub_eff = effect_comb[max_effects[1,effect_comb_ind] == i, ]
+
+effect_comb2 = effect_comb
+effect_comb2[,2] = ff(effect_comb[,2])
+effect_comb2 = cbind(effect_comb2, effect_comb[,2])
+for(i in sort(unique(max_effects[lr_step,]))) {
+  sub = coords[max_effects[lr_step,effect_comb_ind] == i,]
+  sub_eff = effect_comb2[max_effects[lr_step,effect_comb_ind] == i, ]
   from = sub[1,3]
   to = sub[nrow(sub),3]
-  # xx1 = 5.1*cos( seq(deg2rad(from),deg2rad(to) ,length.out=100) )
-  # xx2 = 5.3*cos( seq(deg2rad(from),deg2rad(to) ,length.out=100) )
-  # yy1 = 5.1*sin( seq(deg2rad(from),deg2rad(to) ,length.out=100)  )
-  # yy2 = 5.3*sin( seq(deg2rad(from),deg2rad(to) ,length.out=100)  )
-  # polygon(c(xx1, rev(xx2)), c(yy1, rev(yy2)),border = NA, col = cols[i], xpd = NA)
 
-  #x - angles
-  x = c((3.6+1.5*ff(sub_eff[,2]))*cos(deg2rad(sub[,3]) ), 
-        rev((3.5+1.5/2)*cos(deg2rad(sub[,3]))))
   
-  y = c((3.6+1.5*ff(sub_eff[,2]))*sin(deg2rad(sub[,3])),
-        rev((3.5+1.5/2)*sin(deg2rad(sub[,3]))))
+  x = c((3.6+1.5*(sub_eff[,2]))*cos(deg2rad(sub[,3]) ), 
+        rev((3.6+1.5/2)*cos(deg2rad(sub[,3]))))
+  
+  y = c((3.6+1.5*(sub_eff[,2]))*sin(deg2rad(sub[,3])),
+        rev((3.6+1.5/2)*sin(deg2rad(sub[,3]))))
   #y
   polygon(x, y, xpd = NA,col = cols[i])
-  
   text(srt = 0, 
-         x = (3.6+1.5+0.1)*cos(deg2rad(sub[1,3]+4)), 
-         y =  (3.6+1.5+0.1)*sin(deg2rad(sub[1,3]+4)), 
-         xpd = NA, labels = round(min(sub_eff[,2]), 2), col = cols[i], cex = 0.9)
+         x = (3.6+1.5)*cos(deg2rad(sub[1,3]+4)), 
+         y =  (3.6+1.5)*sin(deg2rad(sub[1,3]+4)), 
+         xpd = NA, labels = round(min(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
   
    text(srt = 0, 
-         x = (3.6+1.5+0.1)*cos(deg2rad(sub[nrow(sub),3]-4)), 
-         y =  (3.6+1.5+0.1)*sin(deg2rad(sub[nrow(sub),3]-4)), 
-         xpd = NA, labels = round(max(sub_eff[,2]), 2), col = cols[i], cex = 0.9)
-  
+         x = (3.6+1.5)*cos(deg2rad(sub[nrow(sub),3]-4)), 
+         y =  (3.6+1.5)*sin(deg2rad(sub[nrow(sub),3]-4)), 
+         xpd = NA, labels = round(max(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
 }
-#add_legend(lineSeq = 5.4)
-
 legend("bottomleft", legend = rev(names(env2)), pch = 15, col = rev(cols), bty = "n")
-rec_cols = RColorBrewer::brewer.pal(11,"Spectral")
+#rec_cols = RColorBrewer::brewer.pal(11,"Spectral")
+rec_cols = viridis::viridis(11)
+
 x = seq(3,5, length.out = 12)
 for(i in 1:length(rec_cols)){
   rect(xleft = x[i], xright = x[i+1], ybottom = -5, ytop = -5+diff(x)[1], col = rec_cols[i], xpd = NA, border = NA)
@@ -684,8 +742,85 @@ for(i in 1:length(rec_cols)){
 text(x[1],-5.2, labels = -1)
 text(x[11],-5.2, labels = +1)
 
+# 
+# occ_logs = log(apply(occ, 2, sum))[effect_comb_ind]
+# cuts = cut(occ_logs, breaks = 10)
+# cols = viridis::magma(10) #colfunc(5)
+# levels(cuts) = cols
+# 
+# lineSeq = 3.5
+# for(i in 1:length(occ_logs)){
+#   p1 = coords[i,]
+#  x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+#  y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+#  segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
+# }
+# add_legend(viridis::viridis(11), angles = c(140,110))
+# text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
+# add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+# text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
+
+
+
+
 dev.off()
 ```
 
 
+
+
+
+```{r}
+sigma = re_scale(result[[25]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
+sigmas = sigma[upper.tri(sigma)]
+upper = order(sigmas, decreasing = TRUE)[1:number]
+lower = order(sigmas, decreasing = FALSE)[1:number]
+cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
+to_plot = 1:length(sigmas) %in% upper | 1:length(sigmas) %in% lower
+#levels(cuts) = RColorBrewer::brewer.pal(11,"Spectral")
+levels(cuts) = viridis::viridis(11)
+cuts = as.character(cuts)
+n = ncol(result[[15]]$sigma)
+lineSeq = 4.7
+nseg = 100
+plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 6.5e-2")
+text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "C", font = 2, cex = 1.5)
+
+xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
+yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
+polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
+angles = seq(0,360,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*lineSeq
+yy = sin(deg2rad(angles))*lineSeq
+
+counter = 1
+coords = cbind(xx, yy, angles)
+for(i in 1:n) {
+  for(j in i:n){
+    if(i!=j) {
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5,species = TRUE,lineSeq = 4.7)
+      counter = counter + 1
+      #cat(counter, "\n")
+    }
+  }
+}
+
+occ_logs = log(sort(apply(occ, 2, sum)))
+cuts = cut(occ_logs, breaks = 10)
+cols = viridis::magma(10) #colfunc(5)
+levels(cuts) = cols
+
+lineSeq = 5.0
+for(i in 1:length(occ_logs)){
+  p1 = coords[i,]
+ x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+ y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
+}
+add_legend(viridis::viridis(11), angles = c(140,110))
+text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
+add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
+```
 

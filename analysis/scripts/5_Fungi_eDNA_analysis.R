@@ -25,8 +25,11 @@ for(i in 1:30) {
   model = compileModel(model, nLatent = as.integer(ncol(occ)/2), lr = 0.001, optimizer = "adamax",l1 = lrs[i], l2 = lrs[i])
   
   time = system.time({model = deepJ(model, epochs = 50L, batch_size = 8L, sampling = 100L)})
+  loss = c(model$history[50],sum(sapply(model$losses, function(f) do.call(f, args = list())$cpu()$data$numpy())))
   
-  weights = list(beta = model$raw_weights[[1]][[1]][[1]], sigma = model$sigma())
+  weights = list(beta = model$raw_weights[[1]][[1]][[1]], sigma = model$sigma(), loss = loss)
+  
+  
   rm(model)
   .torch$cuda$empty_cache()
   result[[i]] = weights
