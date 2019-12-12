@@ -358,15 +358,28 @@ dev.off()
 
 ## Figure 5 - eDNA 
 ```{r}
-result = readRDS("./results/fungi_eDNA.RDS")
+result0 = readRDS("./results/fungi_eDNA0.RDS")
+result1 = readRDS("./results/fungi_eDNA1.RDS")
+result2 = readRDS("./results/fungi_eDNA2.RDS")
+result3 = readRDS("./results/fungi_eDNA3.RDS")
 
-h1 = hclust(dist(cov2cor(result[[20]]$sigma)))
-h2 = hclust(dist(t(cov2cor(result[[20]]$sigma))))
+
+#h1 = hclust(dist(cov2cor(result[[20]]$sigma)))
+#h2 = hclust(dist(t(cov2cor(result[[20]]$sigma))))
+load("data/eDNA/SDM_data.RData")
+
+occ = ttab_ds[[7]]
+dim(occ)
+rates = apply(occ, 2, mean)
+occ = occ[,rates > 1/125]
+dim(occ)
+
+env_scaled = as.matrix(mlr::normalizeFeatures(env2))
 
 
-hbeta1 = hclust(dist(result[[20]]$beta))
-hbeta2 = hclust(dist(t(result[[20]]$beta)))
-save(h1, h2, hbeta1, hbeta2, file = "./results/meta_fig_5.RData")
+#hbeta1 = hclust(dist(result[[20]]$beta))
+#hbeta2 = hclust(dist(t(result[[20]]$beta)))
+#save(h1, h2, hbeta1, hbeta2, file = "./results/meta_fig_5.RData")
 
 ```
 
@@ -430,26 +443,29 @@ add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(
 ```{r}
 re_scale = function(x) return(cov2cor(x))
 
-rates = c(30, 60, 100, 300, 1000, 3000)
-turn_over_results = vector("list", length(rates))
-for(j in 1:length(rates)){
-  number2 = rates[j]
-  sets = matrix(NA, 30, number2*2)
-  for(i in 1:30) {
-  sigma = re_scale(result[[i]]$sigma)[h1$order, h2$order]
-  sigmas = sigma[upper.tri(sigma)]
-  upper = order(sigmas, decreasing = TRUE)[1:number2]
-  lower = order(sigmas, decreasing = FALSE)[1:number2]
-  sets[i,] = c(upper, lower)
+res = list(result0, result1, result2, result3)
+turn_over_list = lapply(res, function(result) {
+  rates = c(30,300,3000)
+  turn_over_results = vector("list", length(rates))
+  for(j in 1:length(rates)){
+    number2 = rates[j]
+    sets = matrix(NA, 30, number2*2)
+    for(i in 1:30) {
+    sigma = re_scale(result[[i]]$sigma)
+    sigmas = sigma[upper.tri(sigma)]
+    upper = order(sigmas, decreasing = TRUE)[1:number2]
+    lower = order(sigmas, decreasing = FALSE)[1:number2]
+    sets[i,] = c(upper, lower)
+    }
+    turn_over = NULL
+    for(i in 1:29) {
+      turn_over[i] = 1 - mean(sets[i,] %in% sets[i+1,])
+    }
+    turn_over_results[[j]] = turn_over
   }
-  turn_over = NULL
-  for(i in 1:29) {
-    turn_over[i] = 1 - mean(sets[i,] %in% sets[i+1,])
-  }
-  turn_over_results[[j]] = turn_over
-}
-turn_over = abind::abind(turn_over_results, along = -1L)
-saveRDS(turn_over, "./results/turn_over.RDS")
+  turn_over = abind::abind(turn_over_results, along = -1L)
+  return(turn_over)})
+saveRDS(turn_over_list, "./results/turn_over.RDS")
 
 
 
@@ -461,21 +477,111 @@ saveRDS(turn_over, "./results/turn_over.RDS")
 lrs = seq(-18, -1, length.out = 30)
 f = function(x) 2^x
 lrs = f(lrs)
+
+ rates = c(30,300,3000)
 pdf(file = "./figures/Fig_S4_turn_over.pdf", width = 9, height = 4)
-par(mfrow = c(1,1), mar = c(2, 3, 0.2, 2))
-turn_over = abind::abind(turn_over_results, along = -1L)
-matplot(t(turn_over), type = "o", pch = 18, lty = 1, col = 1:6, axes = FALSE, ylim = c(0,1))
+par(mfrow = c(2,2), mar = c(2, 3, 0.2, 2))
+#turn_over = abind::abind(turn_over_results, along = -1L)
+for(i in 1:length(turn_over_list)){
+matplot(t(turn_over_list[[i]]), type = "o", pch = 18, lty = 1, col = 1:6, axes = FALSE, ylim = c(0,1))
 axis(1,at = 1:30, labels = format(lrs, scientific = TRUE, digits = 1), cex.axis = 0.7)
 axis(2, las = 2, cex.axis = 0.7)
-legend("bottomright", legend = rates, col = 1:6, lty = 1,bty = "n", cex = 0.7)
+legend("bottomright", legend = rates, col = 1:3, lty = 1,bty = "n", cex = 0.7)
+}
 dev.off()
+
+res_losses = lapply(
+  res, function(result) t(sapply(result, function(r) r$loss))
+)
+
+
+pdf(file = "./figures/Fig_S5_losses.pdf", width = 9, height = 4)
+par(mfrow = c(2,2), mar = c(2, 3, 0.2, 2), oma = c(2,2,2,2))
+nom = c("A", "B", "C", "D")
+for(i in 1:length(res_losses)){
+  matplot(cbind(res_losses[[i]], apply(res_losses[[i]], 1, sum)), type = "o", pch = 18, lty = 1, col = 1:6, axes = FALSE, ylim = c(0,5000), xlab = "losses", ylab = "penalty", xpd = NA)
+  text(x = -3, y = 6000, pos = 2, labels = nom[i], font = 2, xpd = NA)
+  axis(1,at = 1:30, labels = format(lrs, scientific = TRUE, digits = 1), cex.axis = 0.7)
+  axis(2, las = 2, cex.axis = 0.7)
+  legend("topleft", legend = c("overall", "w/o Weights", "Weights"), col = 1:3, lty = 1,bty = "n", cex = 0.7)
+}
+dev.off()
+
+
+summary_weights = lapply(res, function(result) {
+        weights = vector("list", 30)
+        diags = vector("list", 30)
+        betas = vector("list", 30)
+        for(i in 1:30) {
+          sigma = (result[[i]]$sigma)
+          weights[[i]] = sigma[upper.tri(sigma,diag = FALSE)]
+          diags[[i]] = diag(sigma)
+          betas[[i]] = as.vector((result[[i]]$beta))
+        }
+        sum_diags = t(sapply(diags, function(d) c(min(d), mean(d), max(d))))
+        sum_weights = t(sapply(weights, function(d) c(min(d), sum(abs(d)),mean(d),max(d))))
+        sum_betas = t(sapply(betas, function(d) c(min(d), sum(abs(d)),mean(d),max(d))))
+        return(list(diags = sum_diags, weights = sum_weights, betas = sum_betas))
+})
+
+
+pdf(file = "./figures/Fig_S6_betas.pdf", width = 7, height = 4)
+par(mfrow = c(2,2), mar = c(2, 3, 2.0, 2), oma = c(2,2,0.2,2))
+#turn_over = abind::abind(turn_over_results, along = -1L)
+for(i in 1:4){
+  matplot(summary_weights[[i]]$betas[,2,drop=FALSE], type = "o", pch = 18, lty = 1, col = 1:6, axes = FALSE, ylim = c(0,3e3), xlab = "penality", ylab = "Sum of absolute beta", xpd = NA)
+  axis(1,at = 1:30, labels = format(lrs, scientific = TRUE, digits = 1), cex.axis = 0.7)
+  axis(2, las = 2, cex.axis = 0.7)
+    text(x = -3, y = 3.7e3, pos = 2, labels = nom[i], font = 2, xpd = NA)
+}
+dev.off()
+
+
+
+pdf(file = "./figures/Fig_S7_diag.pdf", width = 7, height = 4)
+par(mfrow = c(2,2), mar = c(2, 3, 2.0, 2), oma = c(2,2,0.2,2))
+#turn_over = abind::abind(turn_over_results, along = -1L)
+for(i in 1:4){
+  matplot(summary_weights[[i]]$diags, type = "o", pch = 18, lty = 1, col = 1:6, axes = FALSE, ylim = c(0,1.5), xlab = "penality", ylab = "Covariance Diagonals", xpd = NA)
+  axis(1,at = 1:30, labels = format(lrs, scientific = TRUE, digits = 1), cex.axis = 0.7)
+  axis(2, las = 2, cex.axis = 0.7)
+  text(x = -3, y = 1.6, pos = 2, labels = nom[i], font = 2, xpd = NA)
+  legend("topright", legend = c("min", "mean", "max"), col = 1:3, lty = 1,bty = "n", cex = 0.7)
+
+}
+
+dev.off()
+
+
+
+pdf(file = "./figures/Fig_S8_covariances.pdf", width = 7, height = 4)
+par(mfrow = c(2,2), mar = c(2, 3, 2.0, 2), oma = c(2,2,0.2,2))
+#turn_over = abind::abind(turn_over_results, along = -1L)
+for(i in 1:4){
+  matplot(summary_weights[[i]]$weights[,2,drop=FALSE], type = "o", pch = 18, lty = 1, col = 1:6, axes = FALSE, ylim = c(0,1e7), xlab = "penality", ylab = "Sum of absolute covariances", xpd = NA)
+  axis(1,at = 1:30, labels = format(lrs, scientific = TRUE, digits = 1), cex.axis = 0.7)
+  axis(2, las = 2, cex.axis = 0.7)
+  text(x = -3, y = 1.1e7, pos = 2, labels = nom[i], font = 2, xpd = NA)
+ # legend("topright", legend = c("min", "mean", "max"), col = 1:3, lty = 1,bty = "n", cex = 0.7)
+
+}
+
+dev.off()
+
+
+
+
+
 ```
 
 ### Figure 5 
 ```{r}
 
-pdf(file = "./figures/Fig_5_new.pdf", width = 10.88, height = 8)
+#pdf(file = "./figures/Fig_5_new.pdf", width = 10.88, height = 8)
+for(k in 1:4){
+pdf(file = paste0("./figures/Fig_5_",k,".pdf"), width = 10.88, height = 8)
 
+result = res[[k]]
 layout(matrix(c(1,2,3,rep(4,9)), 3,3 ,byrow = F), c(0.9,1.3,1.3), c(1,1,1))
 
 
@@ -485,7 +591,7 @@ number = 30
 
 
 #A
-sigma = re_scale(result[[15]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
+sigma = re_scale(result[[10]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
@@ -538,7 +644,7 @@ text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "S
 
 
 #B
-sigma = re_scale(result[[20]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
+sigma = re_scale(result[[15]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
@@ -594,7 +700,7 @@ text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "S
 
 
 #C
-sigma = re_scale(result[[25]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
+sigma = re_scale(result[[20]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
@@ -649,7 +755,7 @@ text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "S
 
 # D
 effects = matrix(NA, 30, 8)
-lr_step = 25
+lr_step = 20
 for(i in 1:30){
   effects[i,] = apply(result[[i]]$beta, 1, function(o) sum(abs(o)))
 }
@@ -666,12 +772,12 @@ for(i in 1:29) {
   turn_over[i] = mean(max_effects[i,] == max_effects[i+1,])
 }
 
-effect_comb = cbind(max_effects[25,], sapply(1:n, function(i) result[[lr_step]]$beta[max_effects[lr_step,i],i] ))
+effect_comb = cbind(max_effects[lr_step,], sapply(1:n, function(i) result[[lr_step]]$beta[max_effects[lr_step,i],i] ))
 effect_comb_ind = order(effect_comb[,1], effect_comb[,2])
 effect_comb = effect_comb[effect_comb_ind, ]
 #head(effect_comb[effect_comb_ind,])
 
-sigma = re_scale(result[[25]]$sigma)[effect_comb_ind, effect_comb_ind]
+sigma = re_scale(result[[lr_step]]$sigma)[effect_comb_ind, effect_comb_ind]
 sigmas = sigma[upper.tri(sigma)]
 upper = order(sigmas, decreasing = TRUE)[1:number]
 lower = order(sigmas, decreasing = FALSE)[1:number]
@@ -764,6 +870,7 @@ text(x[11],-5.2, labels = +1)
 
 
 dev.off()
+}
 ```
 
 
