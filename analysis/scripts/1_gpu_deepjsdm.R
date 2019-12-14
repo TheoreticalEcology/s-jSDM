@@ -4,19 +4,19 @@
 # batch_size = 10% of data
 # nlatent = 50% of n species
 
-
-
 if(version$minor > 5) RNGkind(sampleee.kind="Rounding")
 library(deepJSDM)
-load("data_sets.RData")
+load("data_sets2.RData")
 
 
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 
 
+
 useGPU(0L)
 .torch$manual_seed(42L)
+.torch$cuda$manual_seed(42L)
 set.seed(42)
 
 

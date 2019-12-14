@@ -5,11 +5,12 @@
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(gllvm)
-load("data_sets.RData")
+load("data_sets2.RData")
 TMB::openmp(n = 6L)
 
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
+
 
 
 

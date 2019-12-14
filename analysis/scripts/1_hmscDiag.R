@@ -5,13 +5,13 @@
 # thin = 50
 
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
-library(deepJSDM)
 library(Hmsc)
-load("data_sets.RData")
+load("data_sets2.RData")
 
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 diagnosis = vector("list", nrow(setup))
+
 
 OpenMPController::omp_set_num_threads(6L)
 RhpcBLASctl::omp_set_num_threads(6L)
@@ -19,9 +19,6 @@ RhpcBLASctl::blas_set_num_threads(6L)
 set.seed(42)
 
 counter = 1
-subset = which(setup$env == 5L & setup$species %in% c(0.1, 0.3, 0.5))
-sub_data = as.vector(apply(cbind(subset*10 - 9, subset*10), 1, function(s) seq(s[1], s[2], by = 1)))
-
 for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
   post = vector("list", 10)
@@ -39,8 +36,6 @@ for(i in 1:nrow(setup)) {
     test_X = data_sets[[counter]]$test_X
     test_Y = data_sets[[counter]]$test_Y
     sim = data_sets[[counter]]$sim
-    
-    if(counter %in% sub_data){
     
     # HMSC:
     hmsc = list()
@@ -79,7 +74,6 @@ for(i in 1:nrow(setup)) {
     post[[j]] = diag
     rm(model)
     gc()
-    }
     counter = counter + 1L
   }
   auc[[i]] = sub_auc
