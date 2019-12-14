@@ -2323,3 +2323,4 @@ Loading required package: coda
 [1] "Chain 1, iteration 40000 of 50050, (sampling)"
 [1] "Chain 1, iteration 45000 of 50050, (sampling)"
 [1] "Chain 1, iteration 50000 of 50050, (sampling)"
+[1] "Computing chain 2"

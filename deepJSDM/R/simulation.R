@@ -25,28 +25,19 @@ simulate_SDM = function(
   weight_range = c(-1,1),
   link = "probit",
   response = "pa",
-  seed = 42
+  sparse = NULL,
+  tolerance = 0.05,
+  iter = 20L,
+  seed = NULL
 ){
-  # Check Inputs:
-  # require(assertthat, quietly = TRUE)
-  # assert_that(is.count(env),
-  #             is.count(sites),
-  #             is.count(species),
-  #             is.flag(correlation),
-  #             length(weight_range) == 2,
-  #             sites > 0,
-  #             env > 0,
-  #             species > 0,
-  #             weight_range[1] < weight_range[2],
-  #             link %in% c("probit", "logit", "idential"),
-  #             response %in% c("pa", "count"),
-  #             !(link == "probit" && response == "count")
-  # )
 
+
+  
   if(!is.null(seed)) set.seed(seed)
 
   out = list()
-
+  
+  if(is.null(sparse)){
   species_covariance =
     if(correlation){
       tmp = matrix(0, species, species)
@@ -60,6 +51,35 @@ simulate_SDM = function(
     } else {
       diag(1, species, species)
     }
+  } else {
+    
+    for(m in 1:iter){
+      sigma = diag(rep(1, species))
+      target = sparse
+      loss = function(param){
+        k = param
+        len = sum(lower.tri(sigma))
+        sigma[lower.tri(sigma)] = sample(c(rep(0,ceiling((1-k)*len)), rnorm(ceiling(k*len))),len)
+        sigma  = sigma %*% t(sigma)
+        abs(target - mean(abs(sigma[lower.tri(sigma)]) > 0.0))
+      }
+      pars = optim(sparse, loss, lower = 0.0, upper = 1.0, method = "L-BFGS-B")
+      k = pars$par
+      for(i in 1:1e3){
+        sigma = diag(rep(1, species))
+        len = sum(lower.tri(sigma))
+        sigma[lower.tri(sigma)] = sample(c(rep(0,ceiling((1-k)*len)), rnorm(ceiling(k*len))),len)
+        sigma  = sigma %*% t(sigma)
+        species_covariance = cov2cor(sigma)
+        
+        acc = abs(mean(abs(sigma[lower.tri(sigma)]) > 0.0) - target)
+        if(is.na(acc)) acc = Inf
+        if(acc < tolerance) break
+        if(i == 1e3) cat("Iter: ",m, " Not able to find a sparse covariance matrix with the specified rate \n")
+      }
+      if(acc < tolerance) break
+    }
+  }
 
   species_env_weights =
     matrix(runif(species * env, weight_range[1], weight_range[2]), nrow = env, ncol = species)
