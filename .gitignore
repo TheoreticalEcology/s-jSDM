@@ -9,4 +9,6 @@
 results/*.csv
 *.csv
 data_sets.RData
+data_sets2.RData
+
 *.pdf
