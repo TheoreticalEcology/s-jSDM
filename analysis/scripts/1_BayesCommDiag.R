@@ -4,11 +4,11 @@
 # nchains = 2
 # thin = 50
 
-
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
-library(deepJSDM)
+#library(deepJSDM)
 library(BayesComm)
-load("data_sets.RData")
+load("data_sets2.RData")
+
 
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = diagnosis =vector("list", nrow(setup))
@@ -19,8 +19,6 @@ RhpcBLASctl::omp_set_num_threads(6L)
 RhpcBLASctl::blas_set_num_threads(6L)
 set.seed(42)
 
-subset = which(setup$env == 5L & setup$species %in% c(0.1, 0.3, 0.5))
-sub_data = as.vector(apply(cbind(subset*10 - 9, subset*10), 1, function(s) seq(s[1], s[2], by = 1)))
 
 counter = 1
 for(i in 1:nrow(setup)) {
@@ -41,12 +39,11 @@ for(i in 1:nrow(setup)) {
     sim = data_sets[[counter]]$sim
     
     
-    if(counter %in% sub_data){
       # BayesComm:
       time =
         system.time({
-          model1 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 2500)
-          model2 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 2500)
+          model1 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 5000)
+          model2 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 5000)
         })
       
       cov = summary(model1, "R")$statistics[,1]
@@ -85,7 +82,6 @@ for(i in 1:nrow(setup)) {
       rm(model1)
       rm(model2)
       gc()
-    }
     counter = counter + 1L
   }
   auc[[i]] = sub_auc
