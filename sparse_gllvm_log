@@ -1,0 +1,15 @@
+Welcome to deepJSDM
+Loading required package: TMB
+Loading required package: mvabund
+
+Attaching package: ‘gllvm’
+
+The following object is masked from ‘package:mvabund’:
+
+    coefplot
+
+The following objects are masked from ‘package:stats’:
+
+    predict, simulate
+
+[1] 6
