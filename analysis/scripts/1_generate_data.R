@@ -1,8 +1,8 @@
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 sites = c(50, 70, 100, 140, 180, 260, 320, 400, 500)
-species = c(0.1, 0.2, 0.3, 0.4,0.5)
-env = c(3,5,7)
+species = c(0.1, 0.3, 0.5)
+env = 5L
 
 setup = expand.grid(sites, species, env)
 colnames(setup) = c("sites", "species", "env")
@@ -31,4 +31,4 @@ for(i in 1:nrow(setup)) {
   }
   
 }
-save(data_sets, setup, file = "data_sets.RData")
+save(data_sets, setup, file = "data_sets2.RData")

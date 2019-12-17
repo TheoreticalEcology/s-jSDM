@@ -72,17 +72,17 @@ image(rem(cov2cor(result[[10]]$sigma)[hh$rowInd, hh$colInd]),col = cols, axes = 
 arrow_label()
 leg()
 text(x = - 0.09* 1, y = 1.09 * 1, labels = "A", font = 2, xpd = NA)
-text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 9e-4"), font = 2, xpd = NA)
+text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 0.003"), font = 2, xpd = NA)
 
 image(rem(cov2cor(result[[25]]$sigma)[(hh$rowInd), hh$colInd]), col = cols, axes = FALSE, breaks = breaks)
 arrow_label()
 leg()
-text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 7e-3"), font = 2, xpd = NA)
+text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 0.03"), font = 2, xpd = NA)
 
 image(rem(cov2cor(result[[40]]$sigma)[(hh$rowInd), hh$colInd]), col = cols, axes = FALSE, breaks = breaks)
 arrow_label()
 leg()
-text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 0.059"), font = 2, xpd = NA)
+text(x = 0.5, y = 1.0, pos = 3, labels = c("Penalty: 0.24"), font = 2, xpd = NA)
 
 overall_cov = matrix(0, ncol(result[[1]]$sigma), ncol(result[[1]]$sigma))
 for(i in 10:40) {
@@ -120,17 +120,17 @@ arrow_label()
 env_leg()
 text(x = - 0.18* 1 , y = 1.09 * 1, labels = "B", font = 2, xpd = NA)
 
-leg(range = c(round(min(result[[10]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
+leg(range = c(round(min(result[[10]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[10]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
 
 
 image(result[[25]]$beta[hbeta$rowInd,hbeta$colInd], col = cols, breaks = breaks, axes = FALSE)
 arrow_label()
 env_leg()
-leg(range = c(round(min(result[[25]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
+leg(range = c(round(min(result[[25]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[25]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
 image(result[[40]]$beta[hbeta$rowInd, hbeta$colInd], col = cols, breaks = breaks, axes = FALSE)
 arrow_label()
 env_leg()
-leg(range = c(round(min(result[[40]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[1]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
+leg(range = c(round(min(result[[40]]$beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(result[[40]]$beta[hbeta$rowInd, hbeta$colInd]),1)))
 beta = matrix(0, nrow = nrow(result[[1]]$beta), ncol = ncol(result[[1]]$beta))
 for(i in 10:40) {
   beta = beta + result[[i]]$beta
@@ -160,6 +160,19 @@ leg(range = c(round(min(beta[hbeta$rowInd, hbeta$colInd]), 1),round(max(beta[hbe
 # arrows(x0 = c(0.3*186, 0.7*186), x1 = c(0.1*186, 0.9*186), y0 = rep(-11,2), y1 = rep(-11,2), xpd = NA,code = 2, length =0.04)
 # text(x = 0.45*186, pos = 4, y = -11, labels = "Species", xpd = NA, cex = 0.9)
 # dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -474,3 +487,8 @@ text(x[11],-5.2, labels = +1)
 
 
 dev.off()
+
+
+
+order = list(covariance_order = hh, env_order = hbeta)
+save(env_scaled, occ_high, result, lrs, order, file = "eDNA.RData")

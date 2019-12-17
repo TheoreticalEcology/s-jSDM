@@ -377,7 +377,7 @@ e = 5L
 lineT = rep(1,5) #1:5
 names(lineT) =  (as.character(unique(number)))
 par(mfrow = c(1,3), mgp = c(2.1,0.6,0), mar = c(0.6, 1.5, 0.6,0.7), oma = c(2.5,2.0,2.6,0))
-for(i in (as.character(unique(number)))[c(1,3,5)]){
+for(i in (as.character(unique(number)))){
   if( i == "0.1") {
     ylab = "AUC"
   } else {
@@ -386,10 +386,10 @@ for(i in (as.character(unique(number)))[c(1,3,5)]){
   plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, main = "", xaxs = "i", xpd = NA)
   title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
   axis(2, las = 2)
-  axis(1, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites))
-  axis(3, at = seq(1, nrow(setup), by = 15)+7, labels = unique(setup$sites)* as.numeric(i))
+  axis(1, at = seq(1, nrow(setup), by = 3)+1, labels = unique(setup$sites))
+  axis(3, at = seq(1, nrow(setup), by = 3)+1, labels = unique(setup$sites)* as.numeric(i))
   
-  for(k in seq(1, nrow(setup), by = 15)[-1]){
+  for(k in seq(1, nrow(setup), by = 3)[-1]){
     abline(v = k, col = "grey")
   }
   cat(i, "\n")

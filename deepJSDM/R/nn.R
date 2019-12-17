@@ -40,8 +40,10 @@ createModel = function(X = NULL, Y = NULL, Traits = NULL){
 #' @param control control options for optimizer "adamax" or "LBFGS"
 #' @param l1 l1 on covariances
 #' @param l2 l2 on covariances
+#' @param reg_on_Cov reg on covariance
+#' @param reg_on_Diag reg on diagonals
 #' @export
-compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", reset = TRUE, control = list(),l1 = 0.0, l2 = 0.0, device = .device, dtype = .dtype) {
+compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", reset = TRUE, control = list(),l1 = 0.0, l2 = 0.0, reg_on_Cov = TRUE, reg_on_Diag = FALSE, device = .device, dtype = .dtype) {
   if(!is.null(model$params$nLatent)) nLatent = model$params$nLatent
   n_latent = nLatent
   model$params$nLatent = nLatent
@@ -88,19 +90,38 @@ compileModel = function(model, nLatent = 5L, lr = 0.001, optimizer = "adamax", r
   }
   
   
-  if(l1 > 0.0) {
-    l1 = .torch$tensor(l1, device = .device, dtype = .dtype)$to(.device)
-    model$losses[[length(model$losses) + 1]] = function() {
-      ss = .torch$matmul(model$rawSigma, model$rawSigma$t())
-      .torch$mul(l1,  .torch$sum(.torch$abs(.torch$triu(ss, 1L))))
+  if(reg_on_Cov){
+    if(reg_on_Diag) diag = 0L
+    else diag = 1L
+      
+      if(l1 > 0.0) {
+        l1 = .torch$tensor(l1, device = .device, dtype = .dtype)$to(.device)
+        model$losses[[length(model$losses) + 1]] = function() {
+          ss = .torch$matmul(model$rawSigma, model$rawSigma$t())
+          .torch$mul(l1,  .torch$sum(.torch$abs(.torch$triu(ss, diag))))
+        }
+      }
+      if(l2 > 0.0) {
+        l2 = .torch$tensor(l2, device = .device, dtype = .dtype)$to(.device)
+        model$losses[[length(model$losses) + 1]] = function() {
+          ss = .torch$matmul(model$rawSigma, model$rawSigma$t())
+          .torch$mul(l2,  .torch$sum(.torch$pow(.torch$triu(ss, diag), 2.0)))
+        }
+      }
+      
+    
+  } else {
+    if(l1 > 0.0) {
+      l1 = .torch$tensor(l1, device = .device, dtype = .dtype)$to(.device)
+      model$losses[[length(model$losses) + 1]] = function() {
+        .torch$mul(l1,  .torch$sum(.torch$abs(model$rawSigma)))
+      }
     }
-  }
-  
-  if(l2 > 0.0) {
-    l2 = .torch$tensor(l2, device = .device, dtype = .dtype)$to(.device)
-    model$losses[[length(model$losses) + 1]] = function() {
-      ss = .torch$matmul(model$rawSigma, model$rawSigma$t())
-      .torch$mul(l2,  .torch$sum(.torch$pow(.torch$triu(ss, 1L), 2.0)))
+    if(l2 > 0.0) {
+      l2 = .torch$tensor(l2, device = .device, dtype = .dtype)$to(.device)
+      model$losses[[length(model$losses) + 1]] = function() {
+        .torch$mul(l2,  .torch$sum(.torch$pow(model$rawSigma, 2.0)))
+      }
     }
   }
     
