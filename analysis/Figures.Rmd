@@ -25,6 +25,7 @@ load("./data_sets2.RData")
 ```{r}
 library(Hmsc)
 library(coda)
+cols = RColorBrewer::brewer.pal(5, "Set2")
 pdf(file = "./figures/Fig_1.pdf", width = 9, height = 5)
 addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
 mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergence = NULL, indices = NULL, hmscObject = TRUE) {
@@ -50,7 +51,7 @@ mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergen
         lambdas = unlist(sapply(convergence$post[[indices[k]]], function(p) 1.2 < gelman.diag(p$post$Lambda[[1]],multivariate = FALSE)$psrf[,1]))
       }
       
-      if(any(betas,lambdas)) points(sp$x[k], sp$y[k], col = col, pch = 4)
+      if(any(betas,lambdas)) points(sp$x[k], sp$y[k], col = col, pch = 4,cex = 1.2)
     }
   }
 }
@@ -69,26 +70,27 @@ for(i in (as.character(unique(number)))){
   } else {
     ylab = ""
   }
-  plot(NULL, NULL, xlim = c(1,nrow(setup)-4), ylim = c(-0.5,8), xaxt = "n", main = "",yaxt = "n",xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "i", font = 2)
+  plot(NULL, NULL, xlim = c(1+1.5,nrow(setup)-0.5), ylim = c(-0.5,8), xaxt = "n", main = "",yaxt = "n",xlab = "Number of Sites", ylab = ylab, xpd = NA, font = 2)
   title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
-  if(i == "0.1") text(-0.06*(nrow(setup)-4), 8*1.2, pos = 2, labels = "A", font = 2, xpd = NA, cex = 1.5)
+  if(i == "0.1") text(-0.03*(nrow(setup)-4), 8*1.2, pos = 2, labels = "A", font = 2, xpd = NA, cex = 1.5)
   tt = seq(2, log(4000), length.out = 7)
   tt = exp(tt)
-  axis(1, at = seq(1, nrow(setup), by = 3)+1, labels = unique(setup$sites))
+  axis(1, at = seq(1, nrow(setup), by = 3)+1.5, labels = unique(setup$sites))
   axis(2, at = round(log(tt),1),labels = c(round(tt/60,1)), las = 2)
-  axis(3, at = seq(1, nrow(setup), by = 3)+1, labels = unique(setup$sites)* as.numeric(i))
+  axis(3, at = seq(1, nrow(setup), by = 3)+1.5, labels = unique(setup$sites)* as.numeric(i))
   for(k in seq(1, nrow(setup), by = 3)[-1]){
     abline(v = k, col = "grey")
   }
     cat(i, "\n")
-    X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
+    X = (1:nrow(setup))[as.character(number) == i & setup$env == e]+1.5
+    X = seq(1, nrow(setup), by = 3)+1.5
     ind = which(as.character(number) == i & setup$env == e, TRUE)
-    mean_conf(X, log(cpu$result_time[as.character(number) == i & setup$env == e, ]), col = "black")
-    mean_conf(X, log(gpu$result_time[as.character(number) == i & setup$env == e, ]), col = "red")
-    mean_conf(X, log(gllvm$result_time[as.character(number) == i & setup$env == e, ]), col = "blue")
-    mean_conf(X, log(bc$result_time[as.character(number) == i & setup$env == e, ]), col = "green",convergence = bc, hmscObject = FALSE, indices = ind)
-    mean_conf(X, log(hmsc$result_time[as.character(number) == i & setup$env == e, ]/2), col = "violet", convergence = hmsc, indices = ind, hmscObject = TRUE)
-  legend("topleft", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+    mean_conf(X, log(cpu$result_time[as.character(number) == i & setup$env == e, ]), col = cols[1])
+    mean_conf(X, log(gpu$result_time[as.character(number) == i & setup$env == e, ]), col = cols[2])
+    mean_conf(X, log(gllvm$result_time[as.character(number) == i & setup$env == e, ]), col = cols[3])
+    mean_conf(X, log(bc$result_time[as.character(number) == i & setup$env == e, ]), col = cols[4],convergence = bc, hmscObject = FALSE, indices = ind)
+    mean_conf(X, log(hmsc$result_time[as.character(number) == i & setup$env == e, ]/2), col = cols[5], convergence = hmsc, indices = ind, hmscObject = TRUE)
+  legend("topleft", legend = c("cpu_dmvp", "gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
 }
 
 
@@ -110,8 +112,8 @@ for(i in unique(setup2$species)) {
     axis(1, at = xx[seq(1, length(xx), by = 2)], labels = xx[seq(1, length(xx), by = 2)]/100)
     axis(2, at = round(log(tt),2),labels = c(round(tt/60,1)), las = 2)
     for(k in tt) abline(h = log(k), col = addA("grey", 0.3))
-    lines(smooth.spline(x = xx, log(large_scale$result_time[setup2$species == i]),spar = 0.5), lwd= lwd, lty = 1, col = "red")
-      legend("bottomright", legend = c("gpu_dmvp"), col = c("red"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+    lines(smooth.spline(x = xx, log(large_scale$result_time[setup2$species == i]),spar = 0.5), lwd= lwd, lty = 1, col = cols[2])
+      legend("bottomright", legend = c("gpu_dmvp"), col = cols[2], bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
 }
 dev.off()
 
@@ -162,12 +164,12 @@ e = 5L
   } else {
     ylab = ""
   }
-  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "i")
+  plot(NULL, NULL, xlim = c(1+1.5,nrow(setup)-0.5), ylim = c(0.5,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA)
   title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
   
-  axis(1, at = seq(1, nrow(setup), by = 3)+1, labels = unique(setup$sites))
+  axis(1, at = seq(1, nrow(setup), by = 3)+1.5, labels = unique(setup$sites))
   axis(2, las = 2)
-  axis(3, at = seq(1, nrow(setup), by = 3)+1, labels = unique(setup$sites)* as.numeric(i))
+  axis(3, at = seq(1, nrow(setup), by = 3)+1.5, labels = unique(setup$sites)* as.numeric(i))
 
   if(i == "0.1") text(-9, 1*1.12, pos = 2, labels = "A", font = 2, xpd = NA, cex = 1.5)
   
@@ -175,14 +177,15 @@ e = 5L
     abline(v = k, col = "grey")
   } 
     cat(i, "\n")
-     X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
-    mean_conf(X, cpu$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "black")
-    mean_conf(X, gpu$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "red")
-    mean_conf(X, gllvm$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "blue")
-    mean_conf(X, bc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "green")
-    mean_conf(X, hmsc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = "violet")
+     X = (1:nrow(setup))[as.character(number) == i & setup$env == e]+1.5
+     X = seq(1, by = 3L,to = nrow(setup))+1.5
+    mean_conf(X, cpu$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[1])
+    mean_conf(X, gpu$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[2])
+    mean_conf(X, gllvm$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[3])
+    mean_conf(X, bc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[4])
+    mean_conf(X, hmsc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[5])
       
-   legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+   legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
   }
 
 ## B
@@ -195,25 +198,26 @@ for(i in (as.character(unique(number)))){
   } else {
     ylab = ""
   }
-  plot(NULL, NULL, xlim = c(1,nrow(setup)), ylim = c(0.0,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "i")
+  plot(NULL, NULL, xlim = c(1+1.5,nrow(setup)-0.5), ylim = c(0.0,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "r")
   title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
   if(i == "0.1") text(-9, 1*1.24, pos = 2, labels = "B", font = 2, xpd = NA, cex = 1.5)
   
   axis(2, las = 2)
-  axis(1, at = seq(1, nrow(setup), by = 3)+1, labels = unique(setup$sites))
-  axis(3, at = seq(1, nrow(setup), by = 3)+1, labels = unique(setup$sites)* as.numeric(i))
+  axis(1, at = seq(1, nrow(setup), by = 3)+1.5, labels = unique(setup$sites))
+  axis(3, at = seq(1, nrow(setup), by = 3)+1.5, labels = unique(setup$sites)* as.numeric(i))
 
   for(k in seq(1, nrow(setup), by = 3)[-1]){
     abline(v = k, col = "grey")
   }
   cat(i, "\n")
-  X = (1:nrow(setup))[as.character(number) == i & setup$env == e]
-  mean_conf(X, cpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "black")
-  mean_conf(X, gpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "red")
-  mean_conf(X, gllvm$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "blue")
-  mean_conf(X, bc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "green")
-  mean_conf(X, hmsc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = "violet")
-  legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+  X = (1:nrow(setup))[as.character(number) == i & setup$env == e]+1.5
+  X = seq(1, nrow(setup), by = 3)
+  mean_conf(X, cpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[1])
+  mean_conf(X, gpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[2])
+  mean_conf(X, gllvm$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[3])
+  mean_conf(X, bc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[4])
+  mean_conf(X, hmsc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[5])
+  legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
 }
 dev.off()
 

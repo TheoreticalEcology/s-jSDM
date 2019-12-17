@@ -13,3 +13,19 @@ The following objects are masked from ‘package:stats’:
     predict, simulate
 
 [1] 6
+Error in solve.default(D.mat) : 
+  system is computationally singular: reciprocal condition number = 0
+Error in abs(cov.mat.mod) : non-numeric argument to mathematical function
+Standard errors for parameters could not be calculated.
+Error in solve.default(D.mat) : 
+  system is computationally singular: reciprocal condition number = 0
+Error in abs(cov.mat.mod) : non-numeric argument to mathematical function
+Standard errors for parameters could not be calculated.
+Error in solve.default(D.mat) : 
+  system is computationally singular: reciprocal condition number = 0
+Error in abs(cov.mat.mod) : non-numeric argument to mathematical function
+Standard errors for parameters could not be calculated.
+Error in solve.default(D.mat) : 
+  system is computationally singular: reciprocal condition number = 0
+Error in abs(cov.mat.mod) : non-numeric argument to mathematical function
+Standard errors for parameters could not be calculated.
