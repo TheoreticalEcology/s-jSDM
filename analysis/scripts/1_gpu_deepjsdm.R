@@ -40,7 +40,7 @@ for(i in 1:nrow(setup)) {
 
     model = createModel(train_X, train_Y)
     model = layer_dense(model,ncol(train_Y),FALSE, FALSE)
-    model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 0.01,optimizer = "adamax",reset = TRUE)
+    model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*1.0),lr = 0.01,optimizer = "adamax",reset = TRUE)
     time = system.time({
       model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
     })
@@ -66,7 +66,7 @@ for(i in 1:nrow(setup)) {
     result_time= result_time,
     auc = auc
   )
-  saveRDS(gpu_dmvp, "results/gpu_dmvp3.RDS")
+  saveRDS(gpu_dmvp, "results/gpu_dmvp4.RDS")
 }
 
 

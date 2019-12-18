@@ -27,6 +27,7 @@ library(Hmsc)
 library(coda)
 cols = RColorBrewer::brewer.pal(5, "Set2")
 pdf(file = "./figures/Fig_1.pdf", width = 9, height = 5)
+
 addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
 mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergence = NULL, indices = NULL, hmscObject = TRUE) {
   sites2 = sites[complete.cases(mat)]
@@ -90,7 +91,9 @@ for(i in (as.character(unique(number)))){
     mean_conf(X, log(gllvm$result_time[as.character(number) == i & setup$env == e, ]), col = cols[3])
     mean_conf(X, log(bc$result_time[as.character(number) == i & setup$env == e, ]), col = cols[4],convergence = bc, hmscObject = FALSE, indices = ind)
     mean_conf(X, log(hmsc$result_time[as.character(number) == i & setup$env == e, ]/2), col = cols[5], convergence = hmsc, indices = ind, hmscObject = TRUE)
-  legend("topleft", legend = c("cpu_dmvp", "gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+  #legend("topleft", legend = c("cpu_dmvp", "gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+  
+  if(i == "0.3") legend(x = -8, y = -2.2,horiz = TRUE, legend = c("cpu_dmvp", "gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2, xpd = NA)
 }
 
 
@@ -115,6 +118,8 @@ for(i in unique(setup2$species)) {
     lines(smooth.spline(x = xx, log(large_scale$result_time[setup2$species == i]),spar = 0.5), lwd= lwd, lty = 1, col = cols[2])
       legend("bottomright", legend = c("gpu_dmvp"), col = cols[2], bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
 }
+
+
 dev.off()
 
 ```

@@ -16,17 +16,13 @@ Welcome to deepJSDM
 [1] "deepJSDM"  "snow"      "methods"   "stats"     "graphics"  "grDevices"
 [7] "utils"     "datasets"  "base"     
 
-[[1]]
-<pointer: 0x0>
+[[5]]
+[1] "deepJSDM"  "snow"      "methods"   "stats"     "graphics"  "grDevices"
+[7] "utils"     "datasets"  "base"     
 
-[[2]]
-<pointer: 0x0>
-
-[[3]]
-<pointer: 0x0>
-
-[[4]]
-<pointer: 0x0>
+[[6]]
+[1] "deepJSDM"  "snow"      "methods"   "stats"     "graphics"  "grDevices"
+[7] "utils"     "datasets"  "base"     
 
 [[1]]
 NULL
@@ -38,5 +34,11 @@ NULL
 NULL
 
 [[4]]
+NULL
+
+[[5]]
+NULL
+
+[[6]]
 NULL
 

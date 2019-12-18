@@ -9,26 +9,42 @@ library(deepJSDM)
 load("data_sets_sparse.RData")
 
 
-result_corr_acc = result_corr_acc_min =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
+result_corr_acc = result_corr_acc_min = result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 
-
+cf_function = function(pred, true, threshold = 0.0){
+  pred = pred[lower.tri(pred)]
+  true = true[lower.tri(true)]
+  pred = cut(pred, breaks = c(-1.0, -threshold- .Machine$double.eps, threshold+.Machine$double.eps, 1),labels = c("neg", "zero", "pos"))
+  true = cut(true, breaks = c(-1.0, -threshold- .Machine$double.eps, threshold+.Machine$double.eps, 1),labels = c("neg", "zero", "pos"))
+  return(list(cm = caret::confusionMatrix(pred, true), true = true, pred = pred))
+}
 
 useGPU(2L)
 .torch$manual_seed(42L)
 .torch$cuda$manual_seed(42L)
 set.seed(42)
 
-lrs = seq(-12, -1, length.out = 12)
+lrs = seq(-12, -0.1, length.out = 18)
 f = function(x) 2^x
 lrs = f(lrs)
 
+########## Parallel setup: ###########
 library(snow)
-cl = makeCluster(4L)
-#snow::clusterExport(cl, list("data_sets"))
+cl = makeCluster(6L)
+snow::clusterExport(cl, list("cf_function"))
 snow::clusterEvalQ(cl,library(deepJSDM) )
-snow::clusterEvalQ(cl,useGPU(2L))
-snow::clusterEvalQ(cl,.torch$cuda$manual_seed(42L))
+
+nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
+snow::clusterExport(cl, list("nodes"))
+
+snow::clusterEvalQ(cl, {
+  if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[1:3]) useGPU(2L)
+  else useGPU(1L)
+  .torch$cuda$manual_seed(42L)
+  })
+
+
 
 counter = 1
 for(i in 1:nrow(setup)) {
@@ -52,9 +68,9 @@ for(i in 1:nrow(setup)) {
   
         model = createModel(train_X, train_Y)
         model = layer_dense(model,ncol(train_Y),FALSE, FALSE, l1 = 0.5*lambda, l2 = 0.5*lambda)
-        model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 0.01,optimizer = "adamax",reset = TRUE, l1 = 0.5*lambda, l2 = 0.5*lambda, reg_on_Cov = FALSE)
+        model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 0.01,optimizer = "adamax",reset = TRUE, l1 = 0.5*lambda, l2 = 0.5*lambda)
         model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
-        res = list(sigma = model$sigma(), raw_weights = model$raw_weights, pred = predict(model, test_X))
+        res = list(sigma = model$sigma(), raw_weights = model$raw_weights, pred = predict(model, test_X), confusion = cf_function(round(model$sigma(), 4), sim$correlation))
         rm(model)
         .torch$cuda$empty_cache()
         return(res)
@@ -63,10 +79,17 @@ for(i in 1:nrow(setup)) {
 
     result_corr_acc[i,j] =  max(sapply(res_tmp, function(rr) sim$corr_acc(round(rr$sigma, 4))))
     result_corr_acc_min[i,j] =  min(sapply(res_tmp, function(rr) sim$corr_acc(round(rr$sigma,4))))
+    result_corr_tss[i,j] = max(sapply(res_tmp, function(rr) {
+      Sens = rr$confusion$cm$byClass[,1]
+      Spec = rr$confusion$cm$byClass[,2]
+      TSS = Sens+ Spec - 1
+      return(sum(table(rr$confusion$true)/sum(table(rr$confusion$true))*TSS))
+    }))
     result_time[i,j] = time[3]
     sub_auc[[j]] = list(pred = res_tmp, true = test_Y)
     gc()
     .torch$cuda$empty_cache()
+    
     #saveRDS(setup, file = "benchmark.RDS")
   }
   auc[[i]] = sub_auc
@@ -76,9 +99,10 @@ for(i in 1:nrow(setup)) {
     result_corr_acc = result_corr_acc,
     result_corr_acc_min = result_corr_acc_min,
     result_time= result_time,
+    result_corr_tss = result_corr_tss,
     auc = auc
   )
-  saveRDS(gpu_dmvp, "results/sparse_gpu_dmvp3.RDS")
+  saveRDS(gpu_dmvp, "results/sparse_gpu_dmvp.RDS")
 }
 
 
