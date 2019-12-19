@@ -68,7 +68,7 @@ for(i in 1:nrow(setup)) {
   
         model = createModel(train_X, train_Y)
         model = layer_dense(model,ncol(train_Y),FALSE, FALSE, l1 = 0.5*lambda, l2 = 0.5*lambda)
-        model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 0.01,optimizer = "adamax",reset = TRUE, l1 = 0.5*lambda, l2 = 0.5*lambda)
+        model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites),lr = 0.01,optimizer = "adamax",reset = TRUE, l1 = 0.5*lambda, l2 = 0.5*lambda,reg_on_Diag = TRUE)
         model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
         res = list(sigma = model$sigma(), raw_weights = model$raw_weights, pred = predict(model, test_X), confusion = cf_function(round(model$sigma(), 4), sim$correlation))
         rm(model)
@@ -102,7 +102,7 @@ for(i in 1:nrow(setup)) {
     result_corr_tss = result_corr_tss,
     auc = auc
   )
-  saveRDS(gpu_dmvp, "results/sparse_gpu_dmvp.RDS")
+  saveRDS(gpu_dmvp, "results/sparse_gpu_dmvp3.RDS")
 }
 
 
