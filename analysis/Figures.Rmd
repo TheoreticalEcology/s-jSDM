@@ -137,13 +137,15 @@ if(!exists("gpu")) gpu = readRDS(file = "./results/gpu_dmvp3.RDS")
 if(!exists("gllvm")) gllvm = readRDS(file = "./results/gllvm.RDS")
 if(!exists("bc")) bc = readRDS(file = "./results/BayesCommDiag.RDS")
 if(!exists("hmsc")) hmsc = readRDS(file = "./results/hmscDiag.RDS")
+if(!exists("gllvmSparse")) gllvmSparse = readRDS(file = "./results/sparse_gllvm.RDS")
+if(!exists("gpuSparse")) gpuSparse = readRDS(file = "./results/sparse_gpu_dmvp3.RDS")
 if(!exists("data_sets")) load("./data_sets2.RData")
 ```
 
 
 
 ```{r}
-pdf(file = "./figures/Fig_2.pdf", width = 8, height = 5.5)
+pdf(file = "./figures/Fig_2.pdf", width = 11, height = 9)
 addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
 
 mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergence = NULL, indices = NULL, hmscObject = TRUE, lambdasOnly = TRUE) {
@@ -174,7 +176,7 @@ mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergen
     }
   }
 }
-par(mfrow = c(2,3), mgp = c(2.1,0.6,0), mar = c(4.5, 2.3, 4.5,0.7), oma = c(0.0,1.3,0.0,0))
+par(mfrow = c(3,3), mgp = c(2.1,0.6,0), mar = c(4, 2.3, 3,0.7), oma = c(0.7,1.3,0.2,0)+0.3)
 number = setup$species
 spar = 0.5
 e = 5L
@@ -212,7 +214,7 @@ e = 5L
     mean_conf(X, hmsc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[5],convergence = hmsc, hmscObject = TRUE, indices = ind, lambdasOnly = TRUE)
       
    #legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
-    if(i == "0.3") legend(x = -5, y = 0.33,horiz = TRUE, legend = c("cpu_dmvp", "gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.2)
+   
   }
 
 ## B
@@ -238,7 +240,7 @@ for(i in (as.character(unique(number)))){
   }
   cat(i, "\n")
   X = (1:nrow(setup))[as.character(number) == i & setup$env == e]+1.5
-  X = seq(1, nrow(setup), by = 3)
+  X = seq(1, nrow(setup), by = 3)+1.5
   ind = which(as.character(number) == i & setup$env == e, TRUE)
   mean_conf(X, cpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[1])
   mean_conf(X, gpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[2])
@@ -247,6 +249,43 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, hmsc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[5],convergence = hmsc, hmscObject = TRUE, indices = ind, lambdasOnly = FALSE)
   #legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
 }
+
+
+
+# C Sparse
+e = 5L
+lineT = rep(1,5) #1:5
+names(lineT) =  (as.character(unique(number)))
+for(i in (as.character(unique(number)))){
+  if( i == "0.1") {
+    ylab = "TSS"
+  } else {
+    ylab = ""
+  }
+  plot(NULL, NULL, xlim = c(1+1.5,nrow(setup)-0.5), ylim = c(0.0,1), xaxt = "n", yaxt = "n", xlab = "Number of Sites", ylab = ylab, xpd = NA, xaxs = "r")
+  title(paste0(as.numeric(i)*100, "% species"), line = 2, xpd = NA)
+  if(i == "0.1") text(-0.03*(nrow(setup)-4), 1*1.24, pos = 2, labels = "C", font = 2, xpd = NA, cex = 1.5)
+  
+  axis(2, las = 2)
+  axis(1, at = seq(1, nrow(setup), by = 3)+1.5, labels = unique(setup$sites))
+  axis(3, at = seq(1, nrow(setup), by = 3)+1.5, labels = unique(setup$sites)* as.numeric(i))
+
+  for(k in seq(1, nrow(setup), by = 3)[-1]){
+    abline(v = k, col = "grey")
+  }
+  cat(i, "\n")
+  X = (1:nrow(setup))[as.character(number) == i & setup$env == e]+1.5
+  X = seq(1, nrow(setup), by = 3)+1.5
+  ind = which(as.character(number) == i & setup$env == e, TRUE)
+#  mean_conf(X, cpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[1])
+  mean_conf(X, gpuSparse$result_corr_tss[as.character(number) == i & setup$env == e, ], col = cols[2])
+  mean_conf(X, gllvmSparse$result_corr_tss[as.character(number) == i & setup$env == e, ], col = cols[3])
+#  mean_conf(X, bc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[4],convergence = bc, hmscObject = FALSE, indices = ind, lambdasOnly = FALSE)
+ # mean_conf(X, hmsc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[5],convergence = hmsc, hmscObject = TRUE, indices = ind, lambdasOnly = FALSE)
+  #legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+   if(i == "0.3") legend(x = -5, y = -0.24,horiz = TRUE, legend = c("cpu_dmvp", "gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.2)
+}
+
 dev.off()
 
 ```
@@ -483,6 +522,34 @@ deg2rad <- function(deg) {(deg * pi) / (180)}
 rad2deg <- function(rad) {(rad * 180) / (pi)}
 ff = function(x){(x-min(x))/(max(x)-min(x))}
 
+curve_text = function(pos = 0, label = "", lineSeq = 5.0, reverse = FALSE,middle = FALSE,extend = 1.1,...){
+  # inspired by plotrix package
+  chars = (strsplit(label,split = "")[[1]])
+  char_lens = strwidth(chars)*extend
+  char_angles = char_lens / lineSeq
+  changrang = range(char_angles)
+  char_angles[char_angles < changrang[2]/2] = changrang[2]/2
+  
+  if(middle & reverse) pos = pos - rad2deg(sum(char_angles)/2)
+  if(middle & !reverse) pos = pos + rad2deg(sum(char_angles)/2)
+  
+  if(reverse) {
+    angles = c(deg2rad(pos), deg2rad(pos)+cumsum(char_angles)[-length(chars)])
+    angles = angles + char_angles/2
+  } else {
+    angles = c(deg2rad(pos), deg2rad(pos)-cumsum(char_angles)[-length(chars)])
+    angles = angles - char_angles/2
+  }
+  
+  for(i in 1:length(chars)) text(label = chars[i], 
+                                 x = cos((angles[i]))*(lineSeq), 
+                                 srt = rad2deg(angles[i]) - 90+ 180*reverse,
+                                 y = sin((angles[i]))*(lineSeq), 
+                                 xpd = NA, adj = c(0.5, 0.5),...)
+  return(max(angles))
+  
+}
+
 
 add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col = "black", species = TRUE, lineSeq = 5.0, lwd = 1.0) {
  xxs1 = cos(deg2rad(p1[3]))* seq(0, lineSeq, length.out = n)
@@ -513,6 +580,8 @@ add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col =
  segments(x0 = x2[1], x1 = x2[2], y0 = y2[1], y1 = y2[2],  col = "darkgrey")
  }
 }
+
+
 add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(-1,1), lineSeq = 5.0, angles = c(110, 70)){
  angles = seq(angles[1], angles[2], length.out = length(cols)+1)
  for(i in 2:length(angles)){
@@ -704,7 +773,7 @@ text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "A", font = 2, cex = 1.5)
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
 yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
 polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
-angles = seq(0,360,length.out = n+1)[1:(n)]
+angles = seq(0,355,length.out = n+1)[1:(n)]
 xx = cos(deg2rad(angles))*lineSeq
 yy = sin(deg2rad(angles))*lineSeq
 
@@ -729,12 +798,35 @@ for(i in 1:length(occ_logs)){
   p1 = coords[i,]
  x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
  y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
- segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1)
 }
 add_legend(viridis::viridis(11), angles = c(140,110))
 text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
 add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
 text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
+### arrows
+segments(x0 = cos(deg2rad(-1))*(lineSeq-0.2), x1 = cos(deg2rad(-1))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(-1))*(lineSeq-0.2), y1 = sin(deg2rad(-1))*(lineSeq+0.9), xpd = NA)
+segments(x0 = cos(deg2rad(356))*(lineSeq-0.2), x1 = cos(deg2rad(356))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(356))*(lineSeq-0.2), y1 = sin(deg2rad(356))*(lineSeq+0.9), xpd = NA)
+# first
+angles = seq(150,195,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+end = curve_text(195+3, "Species",lineSeq = lineSeq+0.6,reverse = TRUE)
+
+# second
+angles = seq(rad2deg(end)+3,rad2deg(end)+45+8,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+arrow_angle = max(angles)-2.8
+polygon(x = c(cos(deg2rad(arrow_angle))*(lineSeq+0.5), cos(deg2rad(arrow_angle))*(lineSeq+0.7), cos(deg2rad(max(angles)))*(lineSeq+0.6), cos(deg2rad(arrow_angle))*(lineSeq+0.5)),
+        y = c(sin(deg2rad(arrow_angle))*(lineSeq+0.5), sin(deg2rad(arrow_angle))*(lineSeq+0.7), sin(deg2rad(max(angles)))*(lineSeq+0.6), sin(deg2rad(arrow_angle))*(lineSeq+0.5)),col = "black", xpd = NA)
+
+
+
 
 
 
@@ -759,7 +851,7 @@ text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "B", font = 2, cex = 1.5)
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
 yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
 polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
-angles = seq(0,360,length.out = n+1)[1:(n)]
+angles = seq(0,355,length.out = n+1)[1:(n)]
 xx = cos(deg2rad(angles))*lineSeq
 yy = sin(deg2rad(angles))*lineSeq
 
@@ -783,12 +875,32 @@ for(i in 1:length(occ_logs)){
   p1 = coords[i,]
  x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
  y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
- segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1)
 }
 add_legend(viridis::viridis(11), angles = c(140,110))
 text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
 add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
 text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
+### arrows
+segments(x0 = cos(deg2rad(-1))*(lineSeq-0.2), x1 = cos(deg2rad(-1))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(-1))*(lineSeq-0.2), y1 = sin(deg2rad(-1))*(lineSeq+0.9), xpd = NA)
+segments(x0 = cos(deg2rad(356))*(lineSeq-0.2), x1 = cos(deg2rad(356))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(356))*(lineSeq-0.2), y1 = sin(deg2rad(356))*(lineSeq+0.9), xpd = NA)
+# first
+angles = seq(150,195,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+end = curve_text(195+3, "Species",lineSeq = lineSeq+0.6,reverse = TRUE)
+
+# second
+angles = seq(rad2deg(end)+3,rad2deg(end)+45+8,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+arrow_angle = max(angles)-2.8
+polygon(x = c(cos(deg2rad(arrow_angle))*(lineSeq+0.5), cos(deg2rad(arrow_angle))*(lineSeq+0.7), cos(deg2rad(max(angles)))*(lineSeq+0.6), cos(deg2rad(arrow_angle))*(lineSeq+0.5)),
+        y = c(sin(deg2rad(arrow_angle))*(lineSeq+0.5), sin(deg2rad(arrow_angle))*(lineSeq+0.7), sin(deg2rad(max(angles)))*(lineSeq+0.6), sin(deg2rad(arrow_angle))*(lineSeq+0.5)),col = "black", xpd = NA)
 
 
 
@@ -813,7 +925,7 @@ text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "C", font = 2, cex = 1.5)
 xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
 yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
 polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
-angles = seq(0,360,length.out = n+1)[1:(n)]
+angles = seq(0,355,length.out = n+1)[1:(n)]
 xx = cos(deg2rad(angles))*lineSeq
 yy = sin(deg2rad(angles))*lineSeq
 
@@ -838,12 +950,32 @@ for(i in 1:length(occ_logs)){
   p1 = coords[i,]
  x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
  y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
- segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1)
 }
 add_legend(viridis::viridis(11), angles = c(140,110))
 text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
 add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
 text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
+### arrows
+segments(x0 = cos(deg2rad(-1))*(lineSeq-0.2), x1 = cos(deg2rad(-1))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(-1))*(lineSeq-0.2), y1 = sin(deg2rad(-1))*(lineSeq+0.9), xpd = NA)
+segments(x0 = cos(deg2rad(356))*(lineSeq-0.2), x1 = cos(deg2rad(356))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(356))*(lineSeq-0.2), y1 = sin(deg2rad(356))*(lineSeq+0.9), xpd = NA)
+# first
+angles = seq(150,195,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+end = curve_text(195+3, "Species",lineSeq = lineSeq+0.6,reverse = TRUE)
+
+# second
+angles = seq(rad2deg(end)+3,rad2deg(end)+45+8,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+arrow_angle = max(angles)-2.8
+polygon(x = c(cos(deg2rad(arrow_angle))*(lineSeq+0.5), cos(deg2rad(arrow_angle))*(lineSeq+0.7), cos(deg2rad(max(angles)))*(lineSeq+0.6), cos(deg2rad(arrow_angle))*(lineSeq+0.5)),
+        y = c(sin(deg2rad(arrow_angle))*(lineSeq+0.5), sin(deg2rad(arrow_angle))*(lineSeq+0.7), sin(deg2rad(max(angles)))*(lineSeq+0.6), sin(deg2rad(arrow_angle))*(lineSeq+0.5)),col = "black", xpd = NA)
 
 
 
@@ -920,6 +1052,12 @@ for(i in sort(unique(max_effects[lr_step,]))) {
   
   y = c((3.6+1.5*(sub_eff[,2]))*sin(deg2rad(sub[,3])),
         rev((3.6+1.5/2)*sin(deg2rad(sub[,3]))))
+  
+  names(env2)
+  angleName = (from+to)/2
+  if(angleName > 180) reverse = TRUE
+  else reverse = FALSE
+  curve_text(angleName, label = names(env2)[i],reverse = reverse,lineSeq = 5.2, middle = TRUE, extend = 1.2, col = cols[i])
   #y
   polygon(x, y, xpd = NA,col = cols[i])
   text(srt = 0, 
@@ -932,7 +1070,7 @@ for(i in sort(unique(max_effects[lr_step,]))) {
          y =  (3.6+1.5)*sin(deg2rad(sub[nrow(sub),3]-4)), 
          xpd = NA, labels = round(max(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
 }
-legend("bottomleft", legend = rev(names(env2)), pch = 15, col = rev(cols), bty = "n")
+#legend("bottomleft", legend = rev(names(env2)), pch = 15, col = rev(cols), bty = "n")
 #rec_cols = RColorBrewer::brewer.pal(11,"Spectral")
 rec_cols = viridis::viridis(11)
 
@@ -943,23 +1081,6 @@ for(i in 1:length(rec_cols)){
 text(x[1],-5.2, labels = -1)
 text(x[11],-5.2, labels = +1)
 
-# 
-# occ_logs = log(apply(occ, 2, sum))[effect_comb_ind]
-# cuts = cut(occ_logs, breaks = 10)
-# cols = viridis::magma(10) #colfunc(5)
-# levels(cuts) = cols
-# 
-# lineSeq = 3.5
-# for(i in 1:length(occ_logs)){
-#   p1 = coords[i,]
-#  x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
-#  y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
-#  segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
-# }
-# add_legend(viridis::viridis(11), angles = c(140,110))
-# text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
-# add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
-# text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
 
 
 
@@ -967,65 +1088,6 @@ text(x[11],-5.2, labels = +1)
 dev.off()
 }
 ```
-
-
-
-
-
-```{r}
-sigma = re_scale(result[[25]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
-sigmas = sigma[upper.tri(sigma)]
-upper = order(sigmas, decreasing = TRUE)[1:number]
-lower = order(sigmas, decreasing = FALSE)[1:number]
-cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
-to_plot = 1:length(sigmas) %in% upper | 1:length(sigmas) %in% lower
-#levels(cuts) = RColorBrewer::brewer.pal(11,"Spectral")
-levels(cuts) = viridis::viridis(11)
-cuts = as.character(cuts)
-n = ncol(result[[15]]$sigma)
-lineSeq = 4.7
-nseg = 100
-plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
-text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 6.5e-2")
-text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "C", font = 2, cex = 1.5)
-
-xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
-yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
-polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
-angles = seq(0,360,length.out = n+1)[1:(n)]
-xx = cos(deg2rad(angles))*lineSeq
-yy = sin(deg2rad(angles))*lineSeq
-
-counter = 1
-coords = cbind(xx, yy, angles)
-for(i in 1:n) {
-  for(j in i:n){
-    if(i!=j) {
-      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5,species = TRUE,lineSeq = 4.7)
-      counter = counter + 1
-      #cat(counter, "\n")
-    }
-  }
-}
-
-occ_logs = log(sort(apply(occ, 2, sum)))
-cuts = cut(occ_logs, breaks = 10)
-cols = viridis::magma(10) #colfunc(5)
-levels(cuts) = cols
-
-lineSeq = 5.0
-for(i in 1:length(occ_logs)){
-  p1 = coords[i,]
- x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
- y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
- segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]))
-}
-add_legend(viridis::viridis(11), angles = c(140,110))
-text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
-add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
-text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
-```
-
 
 
 

@@ -3,7 +3,7 @@ library(deepJSDM)
 library(gllvm)
 library(BayesComm)
 library(Hmsc)
-useGPU(2L)
+useGPU(0L)
 
 n = 2L
 OpenMPController::omp_set_num_threads(n)

@@ -18,8 +18,8 @@ Loading required package: coda
 
 [1] 2
 <torch._C.Generator>
-Timing stopped at: 0.003 0 0.003
-Timing stopped at: 0.075 0 0.075
+Timing stopped at: 0.004 0 0.003
+Timing stopped at: 0.077 0 0.077
 Timing stopped at: 0.003 0 0.002
-Timing stopped at: 0.002 0 0.002
+Timing stopped at: 0.003 0 0.002
 Timing stopped at: 0.002 0 0.002
