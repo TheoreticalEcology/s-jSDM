@@ -241,14 +241,14 @@ for(i in 1:length(sites)) {
         model = sampleMcmc(model, thin = 50, samples = 1000, transient = 50,verbose = 5000,
                            nChains = 2L,nParallel = 2L)
       })
-    posterior = convertToCodaObject(model)
-    ess.beta = effectiveSize(posterior$Beta)
-    psrf.beta = gelman.diag(posterior$Beta, multivariate=FALSE)$psrf
+    posterior_tmp = convertToCodaObject(model)
+    ess.beta = effectiveSize(posterior_tmp$Beta)
+    psrf.beta = gelman.diag(posterior_tmp$Beta, multivariate=FALSE)$psrf
     
-    ess.gamma = effectiveSize(posterior$Gamma)
-    psrf.gamma = gelman.diag(posterior$Gamma, multivariate=FALSE)$psrf
+    ess.gamma = effectiveSize(posterior_tmp$Gamma)
+    psrf.gamma = gelman.diag(posterior_tmp$Gamma, multivariate=FALSE)$psrf
     
-    diag = list(post = posterior, ess.beta = ess.beta, psrf.beta = psrf.beta, ess.gamma = ess.gamma, psrf.gamma = psrf.gamma)
+    diag = list(post = posterior_tmp, ess.beta = ess.beta, psrf.beta = psrf.beta, ess.gamma = ess.gamma, psrf.gamma = psrf.gamma)
     
     
     correlation = computeAssociations(model)[[1]]$mean

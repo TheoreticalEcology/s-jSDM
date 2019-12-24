@@ -9,7 +9,7 @@ library(deepJSDM)
 load("data_sets_sparse.RData")
 
 
-result_corr_acc = result_corr_acc_min = result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
+result_corr_acc = result_corr_acc_min =result_corr_auc= result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 
 cf_function = function(pred, true, threshold = 0.0){
@@ -19,6 +19,31 @@ cf_function = function(pred, true, threshold = 0.0){
   true = cut(true, breaks = c(-1.0, -threshold- .Machine$double.eps, threshold+.Machine$double.eps, 1),labels = c("neg", "zero", "pos"))
   return(list(cm = caret::confusionMatrix(pred, true), true = true, pred = pred))
 }
+
+macro_auc = function(true, pred) {
+  cf =  cf_function(pred, true)
+  zero = pos = neg =cf$true
+  
+  levels(zero) = c("1", "0", "1")
+  levels(pos) = c("0", "0", "1")
+  levels(neg) = c("1", "0", "0")
+  
+  pZ = abs(cov2cor(pred))[lower.tri(pred)]
+  pP = scales::rescale(cov2cor(pred),to = c(0,1))[lower.tri(pred)]
+  
+  zero = as.numeric(as.character(zero))
+  pos = as.numeric(as.character(pos))
+  neg = as.numeric(as.character(neg))
+  
+  Metrics::auc(zero, pZ)
+  Metrics::auc(pos, pP)
+  Metrics::auc(neg, 1-pP)
+  return(
+    sum(table(cf$true)/sum(table(cf$true))*c(Metrics::auc(zero, pZ), Metrics::auc(pos, pP)
+                                             , Metrics::auc(neg, 1-pP)))
+  )
+}
+
 
 useGPU(2L)
 .torch$manual_seed(42L)
@@ -32,7 +57,7 @@ lrs = f(lrs)
 ########## Parallel setup: ###########
 library(snow)
 cl = makeCluster(6L)
-snow::clusterExport(cl, list("cf_function"))
+snow::clusterExport(cl, list("cf_function", "macro_auc"))
 snow::clusterEvalQ(cl,library(deepJSDM) )
 
 nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
@@ -85,6 +110,11 @@ for(i in 1:nrow(setup)) {
       TSS = Sens+ Spec - 1
       return(sum(table(rr$confusion$true)/sum(table(rr$confusion$true))*TSS))
     }))
+    
+    result_corr_auc[i,j] = max(sapply(res_tmp, function(rr) {
+      return(macro_auc(sim$correlation, round(rr$sigma, 4)))
+    }))
+    
     result_time[i,j] = time[3]
     sub_auc[[j]] = list(pred = res_tmp, true = test_Y)
     gc()
@@ -100,6 +130,7 @@ for(i in 1:nrow(setup)) {
     result_corr_acc_min = result_corr_acc_min,
     result_time= result_time,
     result_corr_tss = result_corr_tss,
+    result_corr_auc = result_corr_auc,
     auc = auc
   )
   saveRDS(gpu_dmvp, "results/sparse_gpu_dmvp3.RDS")

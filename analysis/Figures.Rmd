@@ -312,17 +312,6 @@ pdf(file = "./figures/Fig_3.pdf", width = 9, height = 4.3)
 xx = 1:25
 sites = seq(50,by = 20, length.out = 15)
 addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
-# mean_conf = function(mat, col = "red", alpha = 0.1, spar = 0.4) {
-#   sites2 = sites[complete.cases(mat)]
-#   mat = mat[complete.cases(mat),]
-#   
-#   m = apply(mat, 1, mean)
-#   sd = apply(mat, 1, sd)
-#   upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
-#   lower = smooth.spline(y = m - sd, x = sites2, spar = spar)$y
-#   polygon(c(sites2, rev(sites2)), c(upper, rev(lower)), border = NA, col = addA(col, alpha))
-#   lines(smooth.spline(y = m, x = sites2, spar = spar), col = col, lwd = 2.0)
-# }
 
 mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergence = NULL, indices = NULL, hmscObject = TRUE) {
   sites2 = sites[complete.cases(mat)]
@@ -364,14 +353,14 @@ axis(2, las = 2)
 ind = 1:nrow(gpu_beh_adam$result_corr_acc)
 
 
-mean_conf(sites,mat = gpu_beh_adam$result_corr_acc)
+mean_conf(sites,mat = gpu_beh_adam$result_corr_acc, col = cols[2])
 #mean_conf(gpu_beh_lbfgs$result_corr_acc, "black")
-mean_conf(sites,bc_beh$result_corr_acc, "green", convergence = bc_beh,hmscObject = FALSE, indices = ind )
-mean_conf(sites,gllvm_beh$result_corr_acc, "blue")
-mean_conf(sites,hmsc_beh$result_corr_acc, "violet", convergence = hmsc_beh, hmscObject = TRUE, indices = ind)
+mean_conf(sites,gllvm_beh$result_corr_acc, col = cols[3])
 
-  legend("topleft", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+mean_conf(sites,bc_beh$result_corr_acc,  convergence = bc_beh,hmscObject = FALSE, indices = ind , col = cols[4])
+mean_conf(sites,hmsc_beh$result_corr_acc, col = cols[5])#, convergence = hmsc_beh, hmscObject = TRUE, indices = ind,  col = cols[5])
 
+  legend("topleft", legend = c("gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols[2:5], bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
 
 plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.0, 1.0), ylab = "RMSE", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
 axis(1, at = sites[seq(1, length(sites), by = 2)], labels = sites[seq(1, length(sites), by = 2)])
@@ -380,13 +369,12 @@ for(i in seq(1, length(sites), by = 2)) abline(v = sites[i], col = addA("grey", 
 for(i in seq(0.5, 1.0, 0.1)) abline(h = i, col = addA("grey", 0.3))
 title("env RMSE",line = 1, xpd = NA)
 axis(2, las = 2)
-mean_conf(gpu_beh_adam$result_rmse_env)
+mean_conf(sites, gpu_beh_adam$result_rmse_env, col = cols[2])
 #mean_conf(gpu_beh_lbfgs$result_env, "black")
-mean_conf(bc_beh$result_rmse_env, "green")
-mean_conf(gllvm_beh$result_rmse_env, "blue")
-mean_conf(hmsc_beh$result_rmse_env, "violet")
+mean_conf(sites, gllvm_beh$result_rmse_env, col = cols[3])
+mean_conf(sites, bc_beh$result_rmse_env, col = cols[4])
+mean_conf(sites, hmsc_beh$result_rmse_env, col = cols[5])
 
-  legend("topright", legend = c("gpu_dmvp", "cpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = c("red", "black", "blue", "green", "violet"), bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
 
 dev.off()
 

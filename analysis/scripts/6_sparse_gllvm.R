@@ -6,10 +6,10 @@ if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(gllvm)
 load("data_sets_sparse.RData")
-TMB::openmp(n = 6L)
+TMB::openmp(n = 3L)
 
 
-result_corr_acc = result_corr_acc_min = result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
+result_corr_acc =result_corr_auc = result_corr_acc_min = result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 
 cf_function = function(pred, true, threshold = 0.0){
@@ -19,6 +19,31 @@ cf_function = function(pred, true, threshold = 0.0){
   true = cut(true, breaks = c(-1.0, -threshold- .Machine$double.eps, threshold+.Machine$double.eps, 1),labels = c("neg", "zero", "pos"))
   return(list(cm = caret::confusionMatrix(pred, true), true = true, pred = pred))
 }
+
+macro_auc = function(true, pred) {
+  cf =  cf_function(pred, true)
+  zero = pos = neg =cf$true
+  
+  levels(zero) = c("1", "0", "1")
+  levels(pos) = c("0", "0", "1")
+  levels(neg) = c("1", "0", "0")
+  
+  pZ = abs(cov2cor(pred))[lower.tri(pred)]
+  pP = scales::rescale(cov2cor(pred),to = c(0,1))[lower.tri(pred)]
+  
+  zero = as.numeric(as.character(zero))
+  pos = as.numeric(as.character(pos))
+  neg = as.numeric(as.character(neg))
+  
+  Metrics::auc(zero, pZ)
+  Metrics::auc(pos, pP)
+  Metrics::auc(neg, 1-pP)
+  return(
+    sum(table(cf$true)/sum(table(cf$true))*c(Metrics::auc(zero, pZ), Metrics::auc(pos, pP)
+                                             , Metrics::auc(neg, 1-pP)))
+  )
+}
+
 
 set.seed(42)
 
@@ -65,6 +90,8 @@ for(i in 1:nrow(setup)) {
                confusion = cf_function(round(gllvm::getResidualCov(model)$cov, 4), sim$correlation))
       
     result_corr_acc[i,j] =  sim$corr_acc(gllvm::getResidualCov(model)$cov)
+    result_corr_auc[i,j] =  macro_auc(sim$correlation, round(gllvm::getResidualCov(model)$cov, 4))
+    
     result_time[i,j] = time[3]
     
     Sens = res$confusion$cm$byClass[,1]
@@ -85,6 +112,7 @@ for(i in 1:nrow(setup)) {
     result_corr_acc = result_corr_acc,
     result_time= result_time,
     result_corr_tss = result_corr_tss,
+    result_corr_auc = result_corr_auc,
     auc = auc
   )
   saveRDS(gllvm, "results/sparse_gllvm.RDS")
