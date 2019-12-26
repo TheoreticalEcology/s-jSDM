@@ -7,11 +7,11 @@ library(deepJSDM)
 library(Hmsc)
 library(coda)
 load("data_sets_sparse.RData")
-TMB::openmp(n = 3L)
+TMB::openmp(n = 6L)
 
-OpenMPController::omp_set_num_threads(3L)
-RhpcBLASctl::omp_set_num_threads(3L)
-RhpcBLASctl::blas_set_num_threads(3L)
+OpenMPController::omp_set_num_threads(6L)
+RhpcBLASctl::omp_set_num_threads(6L)
+RhpcBLASctl::blas_set_num_threads(6L)
 
 
 
@@ -99,7 +99,7 @@ for(i in 1:nrow(setup)) {
     
     
     res = list(sigma = correlation, raw_weights = species_weights, 
-               pred = BayesComm:::predict.bayescomm(model1, test_X), 
+               pred = Hmsc:::predict.Hmsc(model, XData = data.frame(test_X), type = "response"), 
                confusion = cf_function(round(correlation, 4), sim$correlation),
                posterior = diag)
       
@@ -117,7 +117,7 @@ for(i in 1:nrow(setup)) {
     rm(model)
     gc()
     .torch$cuda$empty_cache()
-    },silent = TRUE)
+    },silent = FALSE)
   }
   auc[[i]] = sub_auc
   
