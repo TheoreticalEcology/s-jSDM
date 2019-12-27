@@ -17,6 +17,8 @@ RhpcBLASctl::blas_set_num_threads(6L)
 
 result_corr_acc =result_corr_auc = result_corr_acc_min = result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
+diagnosis = vector("list", nrow(setup))
+
 
 cf_function = function(pred, true, threshold = 0.0){
   pred = pred[lower.tri(pred)]
@@ -59,6 +61,8 @@ names(dict) = as.character(unique(setup$species))
 counter = 1
 for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
+  post = vector("list", 10)
+  
   for(j in 1:10){
     
     X = data_sets[[counter]]$env_weights
@@ -100,8 +104,7 @@ for(i in 1:nrow(setup)) {
     
     res = list(sigma = correlation, raw_weights = species_weights, 
                pred = Hmsc:::predict.Hmsc(model, XData = data.frame(test_X), type = "response"), 
-               confusion = cf_function(round(correlation, 4), sim$correlation),
-               posterior = diag)
+               confusion = cf_function(round(correlation, 4), sim$correlation))
       
     result_corr_acc[i,j] =  sim$corr_acc(correlation)
     result_corr_auc[i,j] =  macro_auc(sim$correlation, round(correlation, 4))
@@ -114,12 +117,14 @@ for(i in 1:nrow(setup)) {
     result_corr_tss[i,j] = sum(table(res$confusion$true)/sum(table(res$confusion$true))*TSS)
     
     sub_auc[[j]] = list(pred = res, true = test_Y)
+    post[[j]] = diag
     rm(model)
     gc()
     .torch$cuda$empty_cache()
     },silent = FALSE)
   }
   auc[[i]] = sub_auc
+  diagnosis[[i]] = post
   
   hmsc = list(
     setup = setup[i,],
@@ -127,7 +132,8 @@ for(i in 1:nrow(setup)) {
     result_time= result_time,
     result_corr_tss = result_corr_tss,
     result_corr_auc = result_corr_auc,
-    auc = auc
+    auc = auc,
+    post = diagnosis
   )
   saveRDS(hmsc, "results/sparse_hmsc.RDS")
 }

@@ -62,7 +62,6 @@ snow::clusterEvalQ(cl,library(deepJSDM) )
 
 nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
 snow::clusterExport(cl, list("nodes"))
-
 snow::clusterEvalQ(cl, {
   if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[1:3]) useGPU(2L)
   else useGPU(1L)
@@ -92,8 +91,8 @@ for(i in 1:nrow(setup)) {
       res_tmp = parLapply(cl,lrs, function(lambda) {
   
         model = createModel(train_X, train_Y)
-        model = layer_dense(model,ncol(train_Y),FALSE, FALSE, l1 = 0.5*lambda, l2 = 0.5*lambda)
-        model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites),lr = 0.01,optimizer = "adamax",reset = TRUE, l1 = 0.5*lambda, l2 = 0.5*lambda,reg_on_Diag = TRUE)
+        model = layer_dense(model,ncol(train_Y),FALSE, FALSE)
+        model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites),lr = 0.01,optimizer = "adamax",reset = TRUE, l1 = 0.5*lambda, l2 = 0.5*lambda)
         model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
         res = list(sigma = model$sigma(), raw_weights = model$raw_weights, pred = predict(model, test_X), confusion = cf_function(round(model$sigma(), 4), sim$correlation))
         rm(model)
@@ -133,7 +132,7 @@ for(i in 1:nrow(setup)) {
     result_corr_auc = result_corr_auc,
     auc = auc
   )
-  saveRDS(gpu_dmvp, "results/sparse_gpu_dmvp3.RDS")
+  saveRDS(gpu_dmvp, "results/sparse_gpu_dmvp.RDS")
 }
 
 
