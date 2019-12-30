@@ -280,6 +280,8 @@ for(i in (as.character(unique(number)))){
   ind = which(as.character(number) == i & setup$env == e, TRUE)
 #  mean_conf(X, cpu$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[1])
   mean_conf(X, gpuSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[2])
+  #mean_conf(X, baseSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[2])
+
   mean_conf(X, gllvmSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[3])
   mean_conf(X, bcSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[4],convergence = bcSparse, hmscObject = FALSE, indices = ind, lambdasOnly = FALSE)
   mean_conf(X, hmscSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[5], convergence = hmscSparse, hmscObject = TRUE, indices = ind, lambdasOnly = FALSE)
@@ -316,7 +318,7 @@ xx = 1:25
 sites = seq(50,by = 20, length.out = 15)
 addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
 
-mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergence = NULL, indices = NULL, hmscObject = TRUE) {
+mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergence = NULL, indices = NULL, hmscObject = TRUE, lambdasOnly = TRUE, lty = lty) {
   sites2 = sites[complete.cases(mat)]
   mat = mat[complete.cases(mat),]
   m = apply(mat, 1, mean)
@@ -330,16 +332,17 @@ mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.4, convergen
   if(!is.null(convergence)) {
     indices = indices[indices %in% which(complete.cases(convergence$result_corr_acc[,1]), TRUE)]
     for(k in 1:length(indices)){
-      
+      betas = FALSE
+      lambdas = FALSE
       if(!hmscObject) {
-         betas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 <abind::abind(p$psrf.beta,along = 1L)[,1]))
-        lambdas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 < p$psrf.gamma[,1]))
+        if(!lambdasOnly) betas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 <abind::abind(p$psrf.beta,along = 1L)[,1]))
+        if(lambdasOnly) lambdas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 < p$psrf.gamma[,1]))
       }else {
-         betas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 < p$psrf.beta[,1]))
-        lambdas = unlist(sapply(convergence$post[[indices[k]]], function(p) 1.2 < gelman.diag(p$post$Lambda[[1]],multivariate = FALSE)$psrf[,1]))
+        if(!lambdasOnly) betas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 < p$psrf.beta[,1]))
+        if(lambdasOnly) lambdas = unlist(sapply(convergence$post[[indices[k]]], function(p) 1.2 < gelman.diag(p$post$Lambda[[1]],multivariate = FALSE)$psrf[,1]))
       }
       
-      if(any(betas,lambdas)) points(sp$x[k], sp$y[k], col = col, pch = 4)
+      if(any(betas,lambdas)) points(sp$x[k], sp$y[k], col = col, pch = 4,cex = 1.2)
     }
   }
 }
@@ -361,15 +364,15 @@ mean_conf(sites,mat = gpu_beh_adam$result_corr_acc, col = cols[2])
 mean_conf(sites,gllvm_beh$result_corr_acc, col = cols[3])
 
 mean_conf(sites,bc_beh$result_corr_acc,  convergence = bc_beh,hmscObject = FALSE, indices = ind , col = cols[4])
-mean_conf(sites,hmsc_beh$result_corr_acc, col = cols[5])#, convergence = hmsc_beh, hmscObject = TRUE, indices = ind,  col = cols[5])
+mean_conf(sites,hmsc_beh$result_corr_acc, convergence = hmsc_beh, hmscObject = TRUE, indices = ind,  col = cols[5],lambdasOnly = TRUE)
 
-  legend("topleft", legend = c("gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols[2:5], bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
+legend("topleft", legend = c("gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols[2:5], bty="n", lty = 1, cex = 0.9, seg.len = 0.5, lwd = 2)
 
 plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.0, 1.0), ylab = "RMSE", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
 axis(1, at = sites[seq(1, length(sites), by = 2)], labels = sites[seq(1, length(sites), by = 2)])
 text(x = 27, y = 1.1, pos = 2, labels = "B", xpd = NA, cex = 1.5, font = 2)
 for(i in seq(1, length(sites), by = 2)) abline(v = sites[i], col = addA("grey", 0.3))
-for(i in seq(0.5, 1.0, 0.1)) abline(h = i, col = addA("grey", 0.3))
+for(i in seq(0.0, 1.0, 0.2)) abline(h = i, col = addA("grey", 0.3))
 title("env RMSE",line = 1, xpd = NA)
 axis(2, las = 2)
 mean_conf(sites, gpu_beh_adam$result_rmse_env, col = cols[2])

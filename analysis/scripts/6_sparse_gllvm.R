@@ -6,7 +6,7 @@ if(version$minor > 5) RNGkind(sample.kind="Rounding")
 library(deepJSDM)
 library(gllvm)
 load("data_sets_sparse.RData")
-TMB::openmp(n = 3L)
+TMB::openmp(n = 6L)
 
 
 result_corr_acc =result_corr_auc = result_corr_acc_min = result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
