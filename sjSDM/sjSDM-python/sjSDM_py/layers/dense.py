@@ -33,8 +33,8 @@ class Layer_dense:
         self.loss = None
         self.shape = [-1, hidden]
         device, dtype = self._device_and_dtype(device, dtype)
-        self.device = None
-        self.dtype = None
+        self.device = device
+        self.dtype = dtype
         self.__run = None
 
     def __repr__(self):

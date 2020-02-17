@@ -118,8 +118,8 @@ class Model_base:
             df = self.df
         r_dim = self.layers[-1].get_shape()[1]
 
-        low = -np.random.uniform(-np.sqrt(6.0/(r_dim+df)))
-        high = np.random.uniform(-np.sqrt(6.0/(r_dim+df)))
+        low = -np.sqrt(6.0/(r_dim+df))
+        high = np.sqrt(6.0/(r_dim+df))
                                 
         self.sigma = torch.tensor(np.random.uniform(low, high, [r_dim, df]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
         
@@ -245,9 +245,9 @@ class Model_base:
         logLik = 0
         logLikReg = 0
         for step, (x, y) in enumerate(dataLoader):
-            mu = self.layers[0](x)
             x = x.to(self.device, non_blocking=True)
             y = y.to(self.device, non_blocking=True)
+            mu = self.layers[0](x)
             if any_layers:
                 for i in range(1, len(self.layers)):
                     mu = self.layers[i](mu)

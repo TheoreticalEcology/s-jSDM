@@ -1,7 +1,6 @@
-library(deepJSDM)
-useGPU(2L)
-.torch$cuda$manual_seed(42L)
-.torch$manual_seed(42L)
+library(sjSDM)
+torch$cuda$manual_seed(42L)
+torch$manual_seed(42L)
 
 load("data/eDNA/SDM_data.RData")
 
@@ -20,18 +19,17 @@ lrs = f(lrs)
 result = vector("list", 30)
 times = vector("list", 30)
 for(i in 1:30) {
-  model = createModel(env_scaled, occ)
-  model = layer_dense(model, hidden = ncol(occ), FALSE, FALSE)
-  model = compileModel(model, nLatent = as.integer(ncol(occ)/2), lr = 0.001, optimizer = "adamax",l1 = lrs[i], l2 = lrs[i])
+  model = sjSDM(X = env_scaled, Y = occ,
+                formula = ~0 + precipitation_dmi+soil_ph + org_mat + soil_c + soil_p + ellenberg_l + ellenberg_f + ellenberg_n,
+                df = as.integer(ncol(occ)/2), learning_rate = 0.001, iter = 100L, step_size = 8L, l1_cov = lrs[i], l2_cov = lrs[i], device = 1L)
   
-  time = system.time({model = deepJ(model, epochs = 50L, batch_size = 8L, sampling = 100L)})
-  loss = c(model$history[50],sum(sapply(model$losses, function(f) do.call(f, args = list())$cpu()$data$numpy())))
-  
-  weights = list(beta = model$raw_weights[[1]][[1]][[1]], sigma = model$sigma(), loss = loss)
+  loss = unlist(model$model$logLik(env_scaled, occ))
+  time = model$time
+  weights = list(beta = coef(model), sigma = getCov(model), loss = loss)
   
   
   rm(model)
-  .torch$cuda$empty_cache()
+  torch$cuda$empty_cache()
   result[[i]] = weights
   times[[i]] = time
 }
@@ -45,18 +43,19 @@ saveRDS(times, file = "results/fungi_eDNA_times0.RDS")
 result = vector("list", 30)
 times = vector("list", 30)
 for(i in 1:30) {
-  model = createModel(env_scaled, occ)
-  model = layer_dense(model, hidden = ncol(occ), FALSE, FALSE, l1 = 1*lrs[i], l2 = 1*lrs[i])
-  model = compileModel(model, nLatent = as.integer(ncol(occ)/2), lr = 0.001, optimizer = "adamax",l1 = lrs[i], l2 = lrs[i])
+  model = sjSDM(X = env_scaled, Y = occ,
+                formula = ~0 + precipitation_dmi+soil_ph + org_mat + soil_c + soil_p + ellenberg_l + ellenberg_f + ellenberg_n,
+                df = as.integer(ncol(occ)/2), learning_rate = 0.001, iter = 100L, step_size = 8L, 
+                l1_cov = lrs[i], l2_cov = lrs[i], l1_coefs = lrs[i], l2_coefs = lrs[i],
+                device = 1L)
   
-  time = system.time({model = deepJ(model, epochs = 50L, batch_size = 8L, sampling = 100L)})
-  loss = c(model$history[50],sum(sapply(model$losses, function(f) do.call(f, args = list())$cpu()$data$numpy())))
-  
-  weights = list(beta = model$raw_weights[[1]][[1]][[1]], sigma = model$sigma(), loss = loss)
+  loss = unlist(model$model$logLik(env_scaled, occ))
+  time = model$time
+  weights = list(beta = coef(model), sigma = getCov(model), loss = loss)
   
   
   rm(model)
-  .torch$cuda$empty_cache()
+  torch$cuda$empty_cache()
   result[[i]] = weights
   times[[i]] = time
 }
@@ -72,18 +71,19 @@ saveRDS(times, file = "results/fungi_eDNA_times1.RDS")
 result = vector("list", 30)
 times = vector("list", 30)
 for(i in 1:30) {
-  model = createModel(env_scaled, occ)
-  model = layer_dense(model, hidden = ncol(occ), FALSE, FALSE, l1 = 10*lrs[i], l2 = 10*lrs[i])
-  model = compileModel(model, nLatent = as.integer(ncol(occ)/2), lr = 0.001, optimizer = "adamax",l1 = lrs[i], l2 = lrs[i])
+  model = sjSDM(X = env_scaled, Y = occ,
+                formula = ~0 + precipitation_dmi+soil_ph + org_mat + soil_c + soil_p + ellenberg_l + ellenberg_f + ellenberg_n,
+                df = as.integer(ncol(occ)/2), learning_rate = 0.001, iter = 100L, step_size = 8L, 
+                l1_cov = lrs[i], l2_cov = lrs[i], l1_coefs = 10*lrs[i], l2_coefs = 10*lrs[i],
+                device = 1L)
   
-  time = system.time({model = deepJ(model, epochs = 50L, batch_size = 8L, sampling = 100L)})
-  loss = c(model$history[50],sum(sapply(model$losses, function(f) do.call(f, args = list())$cpu()$data$numpy())))
-  
-  weights = list(beta = model$raw_weights[[1]][[1]][[1]], sigma = model$sigma(), loss = loss)
+  loss = unlist(model$model$logLik(env_scaled, occ))
+  time = model$time
+  weights = list(beta = coef(model), sigma = getCov(model), loss = loss)
   
   
   rm(model)
-  .torch$cuda$empty_cache()
+  torch$cuda$empty_cache()
   result[[i]] = weights
   times[[i]] = time
 }
@@ -101,18 +101,19 @@ saveRDS(times, file = "results/fungi_eDNA_times2.RDS")
 result = vector("list", 30)
 times = vector("list", 30)
 for(i in 1:30) {
-  model = createModel(env_scaled, occ)
-  model = layer_dense(model, hidden = ncol(occ), FALSE, FALSE, l1 = 50*lrs[i], l2 = 50*lrs[i])
-  model = compileModel(model, nLatent = as.integer(ncol(occ)/2), lr = 0.001, optimizer = "adamax",l1 = lrs[i], l2 = lrs[i])
+  model = sjSDM(X = env_scaled, Y = occ,
+                formula = ~0 + precipitation_dmi+soil_ph + org_mat + soil_c + soil_p + ellenberg_l + ellenberg_f + ellenberg_n,
+                df = as.integer(ncol(occ)/2), learning_rate = 0.001, iter = 100L, step_size = 8L, 
+                l1_cov = lrs[i], l2_cov = lrs[i], l1_coefs = 50*lrs[i], l2_coefs = 50*lrs[i],
+                device = 1L)
   
-  time = system.time({model = deepJ(model, epochs = 50L, batch_size = 8L, sampling = 100L)})
-  loss = c(model$history[50],sum(sapply(model$losses, function(f) do.call(f, args = list())$cpu()$data$numpy())))
-  
-  weights = list(beta = model$raw_weights[[1]][[1]][[1]], sigma = model$sigma(), loss = loss)
+  loss = unlist(model$model$logLik(env_scaled, occ))
+  time = model$time
+  weights = list(beta = coef(model), sigma = getCov(model), loss = loss)
   
   
   rm(model)
-  .torch$cuda$empty_cache()
+  torch$cuda$empty_cache()
   result[[i]] = weights
   times[[i]] = time
 }

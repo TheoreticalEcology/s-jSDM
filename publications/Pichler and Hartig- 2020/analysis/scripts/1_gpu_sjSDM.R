@@ -4,19 +4,18 @@
 # batch_size = 10% of data
 # nlatent = 50% of n species
 
-if(version$minor > 5) RNGkind(sample.kind="Rounding")
-library(deepJSDM)
+if(version$minor > 5) RNGkind(sampleee.kind="Rounding")
+library(sjSDM)
 load("data_sets2.RData")
+
 
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
 auc = vector("list", nrow(setup))
 
 
 
-useCPU()
-.torch$set_num_threads(6L)
-.torch$manual_seed(42L)
-
+torch$manual_seed(42L)
+torch$cuda$manual_seed(42L)
 set.seed(42)
 
 
@@ -24,11 +23,10 @@ counter = 1
 for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
   for(j in 1:10){
-    
+    torch$cuda$empty_cache()
     X = data_sets[[counter]]$env_weights
     Y = data_sets[[counter]]$response
     tmp = data_sets[[counter]]$setup
-    
     ### split into train and test ###
     train_X = data_sets[[counter]]$train_X
     train_Y = data_sets[[counter]]$train_Y
@@ -37,28 +35,26 @@ for(i in 1:nrow(setup)) {
     sim = data_sets[[counter]]$sim
     counter = counter + 1L
     
-    
-    
-    model = createModel(train_X, train_Y)
-    model = layer_dense(model,ncol(train_Y),FALSE, FALSE)
-    model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites*0.5),lr = 0.01,optimizer = "adamax",reset = TRUE)
-    time = system.time({
-      model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
-    })
-    
-    result_corr_acc[i,j] =  sim$corr_acc(model$sigma())
-    result_env[i,j] = mean(as.vector(model$raw_weights[[1]][[1]][[1]] > 0) == as.vector(sim$species_weights > 0))
-    result_rmse_env[i,j] =  sqrt(mean((as.vector(model$raw_weights[[1]][[1]][[1]]) - as.vector(sim$species_weights))^2))
-    result_time[i,j] = time[3]
-    pred = predict(model, test_X)
+     # model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
+    model = sjSDM(train_X, train_Y, formula = ~0+X1+X2+X3+X4+X5, learning_rate = 0.01, 
+                  df = as.integer(ncol(train_Y)/2),iter = 50L, step_size = as.integer(nrow(train_X)*0.1),
+                  device = 0L)
+      
+    time = model$time
+    result_corr_acc[i,j] =  sim$corr_acc(getCov(model))
+    result_env[i,j] = mean(as.vector(coef(model)[[1]] > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(coef(model)[[1]]) - as.vector(sim$species_weights))^2))
+    result_time[i,j] = time
+    pred = predict(model, newdata = test_X)
     sub_auc[[j]] = list(pred = pred, true = test_Y)
     rm(model)
     gc()
     .torch$cuda$empty_cache()
+    #saveRDS(setup, file = "benchmark.RDS")
   }
   auc[[i]] = sub_auc
-  
-  cpu_dmvp = list(
+
+  gpu_dmvp = list(
     setup = setup[i,],
     result_corr_acc = result_corr_acc,
     result_env = result_env,
@@ -66,6 +62,7 @@ for(i in 1:nrow(setup)) {
     result_time= result_time,
     auc = auc
   )
-  saveRDS(cpu_dmvp, "results/cpu_dmvp3.RDS")
+  saveRDS(gpu_dmvp, "results/gpu_sjSDM.RDS")
 }
+
 

@@ -17,7 +17,7 @@ set.seed(seed)
 
 sites = seq(50,by = 20, length.out = 15)
 species = 50L
-env = 3L
+env = 5L
 
 
 data_set = vector("list", 15L)
@@ -39,17 +39,14 @@ for(i in 1:length(sites)) {
     Y = data_set[[i]][[j]]$response
     sim = data_set[[i]][[j]]
     
-    model = createModel(X, Y)
-    model = layer_dense(model, ncol(Y),FALSE, FALSE)
-    model = compileModel(model, nLatent = 25L,lr = 0.02,optimizer = "adamax",reset = TRUE)
-    time = system.time({
-      model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(X)*0.1),corr = FALSE)
-    })
-    
-    result_corr_acc[i,j] =  sim$corr_acc(model$sigma())
-    result_env[i,j] = mean(as.vector(model$raw_weights[[1]][[1]][[1]] > 0) == as.vector(sim$species_weights > 0))
-    result_rmse_env[i,j] =  sqrt(mean((as.vector(model$raw_weights[[1]][[1]][[1]]) - as.vector(sim$species_weights))^2))
-    result_time[i,j] = time[3]
+    model = sjSDM(X, Y, formula = ~0+X1+X2+X3+X4+X5, learning_rate = 0.01, 
+                  df = as.integer(tmp$species/2),iter = 50L, step_size = 75L,
+                  device = 0L)
+    time = model$time
+    result_corr_acc[i,j] =  sim$corr_acc(getCov(model))
+    result_env[i,j] = mean(as.vector(coef(model)[[1]] > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(coef(model)[[1]]) - as.vector(sim$species_weights))^2))
+    result_time[i,j] = time
     rm(model)
     gc()
     .torch$cuda$empty_cache()
@@ -63,42 +60,8 @@ gpu_behaviour = list(
   result_rmse_env = result_rmse_env,
   result_time= result_time
 )
-saveRDS(gpu_behaviour, "results/gpu_behaviour_sites_adamax.RDS")
+saveRDS(gpu_behaviour, "results/gpu_sjSDM_behaviour_sites.RDS")
 
-
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
-for(i in 1:length(sites)) {
-  for(j in 1:5){
-    .torch$cuda$empty_cache()
-    X = data_set[[i]][[j]]$env_weights
-    Y = data_set[[i]][[j]]$response
-    sim = data_set[[i]][[j]]
-    
-    model = createModel(X, Y)
-    model = layer_dense(model, ncol(Y),FALSE, FALSE)
-    model = compileModel(model, nLatent = 25L,lr = 1.0,optimizer = "LBFGS",reset = TRUE)
-    time = system.time({
-      model = deepJ(model, epochs = 8L,batch_size = nrow(X),corr = FALSE)
-    })
-    
-    result_corr_acc[i,j] =  sim$corr_acc(model$sigma())
-    result_env[i,j] = mean(as.vector(model$raw_weights[[1]][[1]][[1]] > 0) == as.vector(sim$species_weights > 0))
-    result_rmse_env[i,j] =  sqrt(mean((as.vector(model$raw_weights[[1]][[1]][[1]]) - as.vector(sim$species_weights))^2))
-    result_time[i,j] = time[3]
-    rm(model)
-    gc()
-    .torch$cuda$empty_cache()
-  }
-  
-}
-
-gpu_behaviour = list(
-  result_corr_acc = result_corr_acc,
-  result_env = result_env,
-  result_rmse_env = result_rmse_env,
-  result_time= result_time
-)
-saveRDS(gpu_behaviour, "results/gpu_behaviour_sites_lbfgs.RDS")
 
 
 

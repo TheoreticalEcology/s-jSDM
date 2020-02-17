@@ -1,9 +1,9 @@
-library(deepJSDM)
+library(sjSDM)
 library(tidyverse)
 useGPU(0L)
 set.seed(42L)
-.torch$cuda$manual_seed(42L)
-.torch$manual_seed(42L)
+torch$cuda$manual_seed(42L)
+torch$manual_seed(42L)
 
 env_raw = read.csv("data/eDNA/site.info.csv")
 occ = read.csv("data/eDNA/spp.present.noS.csv")

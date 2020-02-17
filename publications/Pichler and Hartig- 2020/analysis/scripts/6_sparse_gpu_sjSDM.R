@@ -5,7 +5,7 @@
 # nlatent = 50% of n species
 
 if(version$minor > 5) RNGkind(sampleee.kind="Rounding")
-library(deepJSDM)
+library(sjSDM)
 load("data_sets_sparse.RData")
 
 
@@ -45,9 +45,8 @@ macro_auc = function(true, pred) {
 }
 
 
-useGPU(2L)
-.torch$manual_seed(42L)
-.torch$cuda$manual_seed(42L)
+torch$manual_seed(42L)
+torch$cuda$manual_seed(42L)
 set.seed(42)
 
 lrs = seq(-12, -0.1, length.out = 18)
@@ -62,12 +61,6 @@ snow::clusterEvalQ(cl,library(deepJSDM) )
 
 nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
 snow::clusterExport(cl, list("nodes"))
-snow::clusterEvalQ(cl, {
-  if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[1:3]) useGPU(2L)
-  else useGPU(1L)
-  .torch$cuda$manual_seed(42L)
-  })
-
 
 
 counter = 1
@@ -89,12 +82,13 @@ for(i in 1:nrow(setup)) {
     snow::clusterExport(cl, list("train_X", "train_Y", "test_X", "test_Y", "sim", "tmp"))
     time = system.time({
       res_tmp = parLapply(cl,lrs, function(lambda) {
-  
-        model = createModel(train_X, train_Y)
-        model = layer_dense(model,ncol(train_Y),FALSE, FALSE)
-        model = compileModel(model, nLatent = as.integer(tmp$species*tmp$sites),lr = 0.01,optimizer = "adamax",reset = TRUE, l1 = 0.5*lambda, l2 = 0.5*lambda)
-        model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
-        res = list(sigma = model$sigma(), raw_weights = model$raw_weights, pred = predict(model, test_X), confusion = cf_function(round(model$sigma(), 4), sim$correlation))
+        if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[1:3]) dev = 1L
+        else dev = 2L
+        torch$cuda$manual_seed(42L)
+         
+        model = sjSDM(train_X, train_Y, formula = ~0+X1+X2+X3+X4+X5, df = as.integer(tmp$species*tmp$sites), learning_rate = 0.01,
+                      l1_cov = 0.5*lambda, l2_cov= 0.5*lambda, iter = 50L, batch_size = as.integer(nrow(train_X)*0.1), device = dev)
+        res = list(sigma = getCov(model), raw_weights = coef(model), pred = predict(model, test_X), confusion = cf_function(round(getCov(model), 4), sim$correlation))
         rm(model)
         .torch$cuda$empty_cache()
         return(res)
@@ -132,7 +126,7 @@ for(i in 1:nrow(setup)) {
     result_corr_auc = result_corr_auc,
     auc = auc
   )
-  saveRDS(gpu_dmvp, "results/sparse_gpu_dmvp.RDS")
+  saveRDS(gpu_dmvp, "results/sparse_gpu_sjSDM.RDS")
 }
 
 

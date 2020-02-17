@@ -1,52 +1,54 @@
-library(deepJSDM)
-useGPU(2L)
-.torch$cuda$manual_seed(42L)
-.torch$manual_seed(42L)
+library(sjSDM)
+torch$cuda$manual_seed(42L)
+torch$manual_seed(42L)
 n = 6L
 
-new_model = function(env, pa, device = .device, dtype = .dtype){
-  model = createModel(as.matrix(env), as.matrix(pa))
-  model = layer_dense(model, hidden = ncol(pa), FALSE, FALSE)
-  return(model)
-}
 
 runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
   
   if(optimizer == "adamax"){
-    lr = 0.01
+    learning_rate = 0.01
     epochs = 50L
   } else {
-    lr = 1.0
+    learning_rate = 1.0
     epochs = 8L
   }
-  
+  pa = as.matrix(pa)
   ## CPU
-  useCPU()
-  .torch$set_num_threads(n)
+  torch$set_num_threads(6L)
+  fa$utils_fa$torch$set_num_threads(6L)
+  
   env_scaled = mlr::normalizeFeatures(env)
-  model_cpu = new_model(env_scaled, pa)
-  model_cpu = compileModel(model_cpu,nLatent = as.integer(ncol(pa)/2), lr = lr, optimizer = optimizer,reset = TRUE)
-  time_cpu = system.time({model_cpu = deepJ(model_cpu, epochs = epochs, batch_size = batch_size)})
+  
+  
+  model = sjSDM(env_scaled, pa, formula = ~., learning_rate = learning_rate, 
+                df = as.integer(ncol(pa)/2),iter = epochs, step_size = batch_size,
+                device = "cpu")
+  time = model$time
   cpu = 
     list(
-      time = time_cpu[3],
-      weights = model_cpu$raw_weights[[1]][[1]][[1]],
-      cov = model_cpu$sigma()
+      time = model$time,
+      weights = coef(model)[[1]],
+      cov = getCov(model)
     )
-  rm(model_cpu)
+  rm(model)
   
   ## GPU
-  useGPU(2L)
-  model_gpu = new_model(env_scaled, pa)
-  model_gpu = compileModel(model_gpu,nLatent = as.integer(ncol(pa)/2), lr = lr, optimizer = optimizer,reset = TRUE)
-  time_gpu= system.time({model_gpu = deepJ(model_gpu, epochs = epochs, batch_size = batch_size)})
+  torch$set_num_threads(3L)
+  env_scaled = mlr::normalizeFeatures(env)
+  
+  
+  model = sjSDM(env_scaled, pa, formula = ~., learning_rate = learning_rate, 
+                df = as.integer(ncol(pa)/2),iter = epochs, step_size = batch_size,
+                device = 0L)
+  time = model$time
   gpu = 
     list(
-      time = time_gpu[3],
-      weights = model_gpu$raw_weights[[1]][[1]][[1]],
-      cov = model_gpu$sigma()
+      time = model$time,
+      weights = coef(model)[[1]],
+      cov = getCov(model)
     )
-  rm(model_gpu)
+  rm(model)
   .torch$cuda$empty_cache()
   return(list(cpu = cpu, gpu = gpu))
 }
@@ -71,7 +73,7 @@ for(i in 1:10) butterflies_result[[i]] = runtime_case(env, pa, 200L)
 pa = read.csv("data/Eucalypts/Eucalypts_PA.csv")
 env = read.csv("data/Eucalypts/Eucalypts_Covar.csv")
 eucalypts_result = vector("list", 10)
-for(i in 1:10) eucalypts_result[[i]] = runtime_case(env, pa, nrow(env), optimizer = "LBFGS")
+for(i in 1:10) eucalypts_result[[i]] = runtime_case(env, pa, nrow(env))
 
 
 # Frogs
@@ -79,7 +81,7 @@ data = read.csv("data/Frogs/Anonymised_dataset.csv")
 pa = data[,4:12]
 env = data[,1:3]
 frogs_result = vector("list", 10)
-for(i in 1:10) frogs_result[[i]] = runtime_case(env, pa, nrow(env), optimizer = "LBFGS")
+for(i in 1:10) frogs_result[[i]] = runtime_case(env, pa, nrow(env))
 
 
 # Fungi
@@ -87,7 +89,7 @@ data = read.csv("data/Fungi/Fungi_Compiled.csv")
 pa = data[,1:11]
 env = data[,12:ncol(data)]
 fungi_result = vector("list", 10)
-for(i in 1:10) fungi_result[[i]] = runtime_case(env, pa, nrow(env), optimizer = "LBFGS")
+for(i in 1:10) fungi_result[[i]] = runtime_case(env, pa, nrow(env))
 
 
 
@@ -95,7 +97,7 @@ for(i in 1:10) fungi_result[[i]] = runtime_case(env, pa, nrow(env), optimizer = 
 pa = read.csv("data/Mosquitos/Mosquito_PA.csv")
 env = read.csv("data/Mosquitos/Mosquito_Covar.csv")
 mosquitos_result = vector("list", 10)
-for(i in 1:10) mosquitos_result[[i]] = runtime_case(env, pa, nrow(env), optimizer = "LBFGS")
+for(i in 1:10) mosquitos_result[[i]] = runtime_case(env, pa, nrow(env))
 
 
 result = list(bird_result = bird_result, 

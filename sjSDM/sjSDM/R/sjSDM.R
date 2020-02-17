@@ -18,7 +18,7 @@
 #' @example /inst/examples/sjSDM-example.R
 #' @export
 
-sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, device = 2, dtype = "float32") {
+sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, parallel = 0L,device = 2, dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
     is.matrix(Y),
@@ -81,7 +81,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
                                         device = device,
                                         dtype = dtype))
   model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01))
-  time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter))})[3]
+  time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel)})[3]
 
   #out$logLik = model$logLik(X, Y)
   out$model = model

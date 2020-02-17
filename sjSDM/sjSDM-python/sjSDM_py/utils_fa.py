@@ -19,7 +19,7 @@ def _device_and_dtype(device, dtype):
 
     """
     if type(device) is int:
-        device = torch.device('cuda'+'device')
+        device = torch.device('cuda:'+str(device))
     
     if type(device) is str:
         device = torch.device(device)
