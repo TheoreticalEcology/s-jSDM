@@ -237,8 +237,10 @@ py_install_method_detect = function (envname, conda = "auto")
     }
     return("conda")
   }
-  if (envname %in% reticulate::virtualenv_list()$name)
-    return("virtualenv")
+  if(length(reticulate::virtualenv_list())> 0){
+    if (envname %in% reticulate::virtualenv_list()$name)
+      return("virtualenv")
+  }
   if (file.exists(conda_python(envname, conda = conda)))
     return("conda")
   python <- virtualenv_default_python()

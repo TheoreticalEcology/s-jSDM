@@ -16,7 +16,7 @@
 install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
                            conda = "auto",
                            version = "default",
-                           envname = "r-fajsm",
+                           envname = "r-sjSDM",
                            extra_packages = NULL,
                            restart_session = TRUE,
                            conda_python_version = "3.7",
