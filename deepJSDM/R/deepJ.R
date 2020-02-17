@@ -107,7 +107,7 @@ deepJ = function(model, epochs = 150, batch_size = NULL, corr = FALSE, parallel 
 
 
   pb = progress::progress_bar$new(
-    format = "Epoch: :ep [:bar] :percent loss: :loss  ETA: :eta s",
+    format = "Epoch: :ep [:bar] :percent loss: :loss  ETA: :eta",
     total = epochs,
     clear = FALSE,
     width = 80

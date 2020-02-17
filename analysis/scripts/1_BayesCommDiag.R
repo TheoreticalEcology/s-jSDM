@@ -1,6 +1,6 @@
 ########## Default parameter #########
 # iterations = 50000
-# burnin = 2500
+# burnin = 5000
 # nchains = 2
 # thin = 50
 
