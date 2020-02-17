@@ -27,8 +27,8 @@ def _device_and_dtype(device, dtype):
     if type(dtype) is not str:
         return device, dtype
     else:
-        if dtype is "float32":
+        if dtype == "float32":
             return device, torch.float32
-        if dtype is "float64":
+        if dtype == "float64":
             return device, torch.float64
     return device, torch.float32

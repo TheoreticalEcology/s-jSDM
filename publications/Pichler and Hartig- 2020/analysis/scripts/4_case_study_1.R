@@ -49,7 +49,7 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
       cov = getCov(model)
     )
   rm(model)
-  .torch$cuda$empty_cache()
+  torch$cuda$empty_cache()
   return(list(cpu = cpu, gpu = gpu))
 }
 

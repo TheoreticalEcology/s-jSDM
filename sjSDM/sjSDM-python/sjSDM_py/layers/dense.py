@@ -81,11 +81,11 @@ class Layer_dense:
         
         if self.activation is None:
             activation = lambda input: input
-        if self.activation is "tanh":
+        if self.activation == "tanh":
             activation = lambda input: torch.tanh(input)
-        if self.activation is "relu":
+        if self.activation == "relu":
             activation = lambda input: torch.nn.functional.relu(input)
-        if self.activation is "sigmoid":
+        if self.activation == "sigmoid":
             activation = lambda input: torch.nn.functional.sigmoid(input)
 
         if self.bias:

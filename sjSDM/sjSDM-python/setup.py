@@ -11,10 +11,13 @@ setuptools.setup(
     description="jSDM package",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/MaximilianPi/fajsm/inst/python/fajsm_py",
+    url="https://github.com/TheoreticalEcology/s-jSDM/sjSDM/sjSDM-python",
     packages=setuptools.find_packages(),
+    install_requires = [
+        "numpy"
+    ],
     classifiers=[
-        "License :: OSI Approved :: GPL-3 License",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
