@@ -18,7 +18,7 @@
 #' @example /inst/examples/sjSDM-example.R
 #' @export
 
-sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1) {
+sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, device = 2, dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
     is.matrix(Y),
@@ -68,20 +68,22 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   if(is.null(step_size)) step_size = as.integer(floor(nrow(X) * 0.1))
   else step_size = as.integer(step_size)
 
-  .onLoad()
+  #.onLoad()
 
   # if(any(sapply(out$names, function(n) stringr::str_detect(stringr::str_to_lower(n), "intercept")))) intercept = FALSE
 
-  model = fa$Model_base(ncol(X))
+  model = fa$Model_base(ncol(X), device = device, dtype = dtype)
   model$add_layer(fa$layers$Layer_dense(hidden = ncol(Y),
                                         bias = FALSE,
                                         l1 = l1_coefs,
                                         l2 = l2_coefs,
-                                        activation = NULL))
+                                        activation = NULL,
+                                        device = device,
+                                        dtype = dtype))
   model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01))
-  time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter))})[2]
+  time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter))})[3]
 
-  out$logLik = model$logLik(X, Y)
+  #out$logLik = model$logLik(X, Y)
   out$model = model
   out$time = time
   out$data = list(X = X, Y = Y)

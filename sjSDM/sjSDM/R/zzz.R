@@ -1,7 +1,7 @@
 .onLoad = function(libname, pkgname){
   if(is_torch_available()) {
     torch <<- reticulate::import("torch")
-    fa <<- reticulate::import("fajsm_py")
+    fa <<- reticulate::import("sjSDM_py")
 
     use_cuda <<- torch$cuda$is_available()
     if(use_cuda) {
@@ -17,7 +17,7 @@
 .onAttach = function(libname, pkgname) {
   if(is_torch_available()) {
     torch <<- reticulate::import("torch")
-    fa <<- reticulate::import("fajsm_py")
+    fa <<- reticulate::import("sjSDM_py")
 
     use_cuda <<- torch$cuda$is_available()
     if(use_cuda) {
