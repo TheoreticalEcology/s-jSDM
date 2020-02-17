@@ -1,11 +1,3 @@
-#' py_install_method_detect
-#'
-#' py_install_method_detect from `reticulate::py_install_method_detect()`
-#'
-#' @param envname env name
-#' @param conda conda path
-#'
-
 # Copyright 2016-2017 RStudio, Inc.  All rights reserved.
 #
 # Apache License
@@ -210,13 +202,33 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 # ------------------------------------------------------------------------
-# NOT MODIFIED
+# Function py_install_method_detect
+#   Modifications:
+#     233 if (virtualenv_exists(envname)) --> if (envname %in% reticulate::virtualenv_list()$name)
+#     236 if (condaenv_exists(envname, conda)) --> if (file.exists(conda_python(envname, conda = conda)))
 #
+# Function virtualenv_default_python
+#   Modifications:
 #
+# Function python_has_module
+#   Modifications:
+#
+# Function python_version
+#   Modifications:
+#
+
+
+#' py_install_method_detect
+#'
+#' py_install_method_detect from `reticulate::py_install_method_detect()`
+#'
+#' @param envname env name
+#' @param conda conda path
+#'
 py_install_method_detect = function (envname, conda = "auto")
 {
   if (is_windows()) {
-    conda <- tryCatch(conda_binary(conda = conda), error = identity)
+    conda <- tryCatch(reticulate::conda_binary(conda = conda), error = identity)
     if (inherits(conda, "error")) {
       msg <- paste("Conda installation not found (failed to locate conda binary)",
                    "Please install Anaconda for Windows (https://www.anaconda.com/download/#windows) before proceeding.",
@@ -225,18 +237,81 @@ py_install_method_detect = function (envname, conda = "auto")
     }
     return("conda")
   }
-  if (virtualenv_exists(envname))
+  if (envname %in% reticulate::virtualenv_list()$name)
     return("virtualenv")
-  if (condaenv_exists(envname, conda = conda))
+  if (file.exists(conda_python(envname, conda = conda)))
     return("conda")
   python <- virtualenv_default_python()
   if (python_has_module(python, "virtualenv") || python_has_module(python,
                                                                    "venv"))
     return("virtualenv")
-  conda <- tryCatch(conda_binary(conda = conda), error = identity)
+  conda <- tryCatch(creticulate::onda_binary(conda = conda), error = identity)
   if (!inherits(conda, "error"))
     return("conda")
   "virtualenv"
 }
 
+
+
+#' virtualenv_default_python from reticulate
+virtualenv_default_python <- function(python = NULL) {
+  
+  # if the user has supplied a verison of python already, use it
+  if (!is.null(python))
+    return(python)
+  
+  # check for some pre-defined Python sources (prefer Python 3)
+  pythons <- c(
+    Sys.getenv("RETICULATE_PYTHON"),
+    .globals$required_python_version,
+    Sys.which("python3"),
+    Sys.which("python")
+  )
+  
+  for (python in pythons) {
+    
+    # skip non-existent Python
+    if (!file.exists(python))
+      next
+    
+    # get list of required modules
+    suppressWarnings({version <- tryCatch(python_version(python), error = identity)})
+    if (inherits(version, "error"))
+      next
+    
+    py2_modules <- c("pip", "virtualenv")
+    py3_modules <- c("pip", "venv")
+    modules <- ifelse(version < 3, py2_modules, py3_modules)
+    
+    # ensure these modules are available
+    if (!python_has_modules(python, modules))
+      next
+    
+    return(normalizePath(python, winslash = "/"))
+    
+  }
+  
+  # otherwise, try to explicitly detect Python
+  config <- reticulate::py_discover_config()
+  normalizePath(config$python, winslash = "/")
+  
+}
+
+#' python_has_module from reticulate
+python_has_module <- function(python, module) {
+  code <- paste("import", module)
+  args <- c("-E", "-c", shQuote(code))
+  status <- system2(python, args, stdout = FALSE, stderr = FALSE)
+  status == 0L
+}
+
+
+#' python_version from reticulate
+python_version <- function(python) {
+  code <- "import platform; print(platform.python_version())"
+  args <- c("-E", "-c", shQuote(code))
+  output <- system2(python, args, stdout = TRUE, stderr = FALSE)
+  sanitized <- gsub("[^0-9.-]", "", output)
+  numeric_version(sanitized)
+}
 
