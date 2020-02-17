@@ -3,4 +3,4 @@ __pycache__/
 *.pyc
 build/
 dist/
-fajsm_py.egg-info/
+sjSDM_py.egg-info/
