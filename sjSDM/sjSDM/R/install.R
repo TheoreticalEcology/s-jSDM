@@ -1,4 +1,4 @@
-#' Install Fajsm and its dependencies
+#' Install sjSDM and its dependencies
 #'
 #' @param method installation method, auto = automatically best (conda or virtualenv), or force conda with method = "conda" or virtualenv with method = "virtualenv"
 #' @param conda path to conda
@@ -13,7 +13,7 @@
 #'
 #'
 #' @export
-install_fajsm = function(method = c("auto", "virtualenv", "conda"),
+install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
                            conda = "auto",
                            version = "default",
                            envname = "r-fajsm",
@@ -95,15 +95,18 @@ install_fajsm = function(method = c("auto", "virtualenv", "conda"),
   # conda install pytorch torchvision -c pytorch
 
   extra_packages = unique(extra_packages)
-  packages = c(package, list(extra = extra_packages), "fajsm")
+  packages = c(package, list(extra = extra_packages))
 
 
   method = py_install_method_detect(envname = envname, conda = conda)
 
   if((method == "virtualenv") && stringr::str_detect(stringr::str_to_lower(OS), "windows")) stop("Using virtualenv with windows is not supported", call. = FALSE)
   switch(method,
-         virtualenv = reticulate::virtualenv_install(envname = envname, packages = c(unlist(packages$extra), strsplit(unlist(packages$pip), " ", fixed = TRUE)[[1]])),
-         conda = reticulate::conda_install(envname, packages = c(unlist(packages$extra), strsplit(unlist(packages$conda), " ", fixed = TRUE)[[1]]), conda = conda, python_version = python_version), stop("method is not supported"))
+         virtualenv = reticulate::virtualenv_install(envname = envname, packages = c("sjSDM_py", unlist(packages$extra), strsplit(unlist(packages$pip), " ", fixed = TRUE)[[1]])),
+         conda = {
+           reticulate::conda_install(envname, packages = c(unlist(packages$extra), strsplit(unlist(packages$conda), " ", fixed = TRUE)[[1]]), conda = conda, python_version = python_version)
+           reticulate::conda_install(envname, packages = "sjSDM_py", pip = TRUE)
+           }, stop("method is not supported"))
 
   if (restart_session && rstudioapi::hasFun("restartSession")) rstudioapi::restartSession()
 
