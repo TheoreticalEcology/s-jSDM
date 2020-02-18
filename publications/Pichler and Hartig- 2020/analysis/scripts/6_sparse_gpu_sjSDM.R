@@ -57,10 +57,13 @@ lrs = f(lrs)
 library(snow)
 cl = makeCluster(6L)
 snow::clusterExport(cl, list("cf_function", "macro_auc"))
-snow::clusterEvalQ(cl,library(deepJSDM) )
+snow::clusterEvalQ(cl,library(sjSDM) )
 
 nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
 snow::clusterExport(cl, list("nodes"))
+snow::clusterEvalQ(cl, {
+  torch$cuda$manual_seed(42L)
+  })
 
 
 counter = 1
@@ -82,15 +85,16 @@ for(i in 1:nrow(setup)) {
     snow::clusterExport(cl, list("train_X", "train_Y", "test_X", "test_Y", "sim", "tmp"))
     time = system.time({
       res_tmp = parLapply(cl,lrs, function(lambda) {
-        if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[1:3]) dev = 1L
+        if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[1:2]) dev = 0L
+        else if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[3:4]) dev = 1L 
         else dev = 2L
-        torch$cuda$manual_seed(42L)
+        
          
         model = sjSDM(train_X, train_Y, formula = ~0+X1+X2+X3+X4+X5, df = as.integer(tmp$species*tmp$sites), learning_rate = 0.01,
-                      l1_cov = 0.5*lambda, l2_cov= 0.5*lambda, iter = 50L, batch_size = as.integer(nrow(train_X)*0.1), device = dev)
+                      l1_cov = 0.5*lambda, l2_cov= 0.5*lambda, iter = 50L, step_size = as.integer(nrow(train_X)*0.1), device = dev)
         res = list(sigma = getCov(model), raw_weights = coef(model), pred = predict(model, test_X), confusion = cf_function(round(getCov(model), 4), sim$correlation))
         rm(model)
-        .torch$cuda$empty_cache()
+        torch$cuda$empty_cache()
         return(res)
       })
     })

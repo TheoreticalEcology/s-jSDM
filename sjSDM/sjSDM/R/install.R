@@ -34,6 +34,13 @@ install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
              default = "pytorch torchvision cpuonly -c pytorch",
              gpu = "pytorch torchvision cudatoolkit=10.1 -c pytorch")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch -c defaults -c numba/label/dev"
+    
+    package$pip = 
+      switch(version,
+             default = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
+             gpu = "torch===1.4.0 torchvision===0.5.0 -f https://download.pytorch.org/whl/torch_stable.html")
+    if(cuda == 9.2 && version == "gpu") package$conda = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
+    
   }
 
   if(stringr::str_detect(stringr::str_to_lower(OS), "linux")) {
@@ -96,17 +103,19 @@ install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
 
   extra_packages = unique(extra_packages)
   packages = c(package, list(extra = extra_packages))
+  
+  reticulate::py_install(c(packages$pip, "sjSDM_py"), envname = envname, methhod = method, conda = conda, pip = TRUE)
 
 
-  method = py_install_method_detect(envname = envname, conda = conda)
-
-  if((method == "virtualenv") && stringr::str_detect(stringr::str_to_lower(OS), "windows")) stop("Using virtualenv with windows is not supported", call. = FALSE)
-  switch(method,
-         virtualenv = reticulate::virtualenv_install(envname = envname, packages = c("sjSDM_py", unlist(packages$extra), strsplit(unlist(packages$pip), " ", fixed = TRUE)[[1]])),
-         conda = {
-           reticulate::conda_install(envname, packages = c(unlist(packages$extra), strsplit(unlist(packages$conda), " ", fixed = TRUE)[[1]]), conda = conda, python_version = python_version)
-           reticulate::conda_install(envname, packages = "sjSDM_py", pip = TRUE)
-           }, stop("method is not supported"))
+  # method = py_install_method_detect(envname = envname, conda = conda)
+  # 
+  # if((method == "virtualenv") && stringr::str_detect(stringr::str_to_lower(OS), "windows")) stop("Using virtualenv with windows is not supported", call. = FALSE)
+  # switch(method,
+  #        virtualenv = reticulate::virtualenv_install(envname = envname, packages = c("sjSDM_py", unlist(packages$extra), strsplit(unlist(packages$pip), " ", fixed = TRUE)[[1]])),
+  #        conda = {
+  #          reticulate::conda_install(envname, packages = c(unlist(packages$extra), strsplit(unlist(packages$conda), " ", fixed = TRUE)[[1]]), conda = conda, python_version = python_version)
+  #          reticulate::conda_install(envname, packages = "sjSDM_py", pip = TRUE)
+  #          }, stop("method is not supported"))
 
   if (restart_session && rstudioapi::hasFun("restartSession")) rstudioapi::restartSession()
 
@@ -123,7 +132,19 @@ is_windows = function() {
 }
 
 
-
-
+# python_has_modules
+python_has_modules <- function(python, modules) {
+  
+  # write code to tempfile
+  file <- tempfile("reticulate-python-", fileext = ".py")
+  code <- paste("import", modules)
+  writeLines(code, con = file)
+  on.exit(unlink(file), add = TRUE)
+  
+  # invoke Python
+  status <- system2(python, shQuote(file), stdout = FALSE, stderr = FALSE)
+  status == 0L
+  
+}
 
 

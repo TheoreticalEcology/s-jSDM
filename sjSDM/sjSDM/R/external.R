@@ -239,13 +239,14 @@ py_install_method_detect = function (envname, conda = "auto")
   }
   if (envname %in% reticulate::virtualenv_list())
       return("virtualenv")
+  try({
   if (file.exists(conda_python(envname, conda = conda)))
-    return("conda")
+    return("conda")},silent = TRUE)
   python <- virtualenv_default_python()
   if (python_has_module(python, "virtualenv") || python_has_module(python,
                                                                    "venv"))
     return("virtualenv")
-  conda <- tryCatch(creticulate::onda_binary(conda = conda), error = identity)
+  conda <- tryCatch(creticulate::conda_binary(conda = conda), error = identity)
   if (!inherits(conda, "error"))
     return("conda")
   "virtualenv"
