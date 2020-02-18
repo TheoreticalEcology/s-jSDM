@@ -712,19 +712,6 @@ for(i in indices){
 
 
 
-## Figure S1/S2 Convergence
-
-```{r}
-par(mfrow = c(6,4))
-indices = which(complete.cases(hmsc$result_corr_acc[,1]), TRUE)
-
-for(i in indices){
-  hist(t(apply(sapply(hmsc$post[[i]], function(p) p$psrf.beta[,2]), 1, function(p) c(mean(p), sd(p))))[,1], xlim = c(0.8, 1.2))
-}
-```
-
-
-
 
 
 ## Figure 5 - eDNA 
@@ -902,7 +889,7 @@ pdf(file = "./figures/Fig_S5_losses.pdf", width = 7, height = 4)
 par(mfrow = c(2,2), mar = c(2, 3, 2.0, 2), oma = c(2,1,0.2,2),mgp = c(2.3, 1, 0))
 nom = c("A", "B", "C", "D")
 for(i in 1:length(res_losses)){
-  matplot(cbind(res_losses[[i]], apply(res_losses[[i]], 1, sum)), type = "o", pch = 18, lty = 1, col = 1:3, axes = FALSE, ylim = c(0,5000), xlab = "penalty", ylab = "losses", xpd = NA)
+  matplot(cbind(log(res_losses[[i]]), apply(log(res_losses[[i]]), 1, prod)), type = "o", pch = 18, lty = 1, col = 1:3, axes = FALSE, ylim = c(0,110), xlab = "penalty", ylab = "losses", xpd = NA)
   text(x = -3, y = 6000, pos = 2, labels = nom[i], font = 2, xpd = NA)
   axis(1,at = 1:30, labels = format(lrs, scientific = TRUE, digits = 1), cex.axis = 0.7)
   axis(2, las = 2, cex.axis = 0.7)
@@ -923,7 +910,7 @@ summary_weights = lapply(res, function(result) {
         }
         sum_diags = t(sapply(diags, function(d) c(min(d), mean(d), max(d))))
         sum_weights = t(sapply(weights, function(d) c(min(d), sum(abs(d)),mean(d),max(d))))
-        sum_betas = t(sapply(betas, function(d) c(min(d), sum(abs(d)),mean(d),max(d))))
+        sum_betas = t(sapply(betas, function(d) c(min(d[[1]]), sum(abs(d[[1]])),mean(d[[1]]),max(d[[1]]))))
         return(list(diags = sum_diags, weights = sum_weights, betas = sum_betas))
 })
 
@@ -1223,7 +1210,7 @@ polygon(x = c(cos(deg2rad(arrow_angle))*(lineSeq+0.5), cos(deg2rad(arrow_angle))
 effects = matrix(NA, 30, 8)
 lr_step = 20
 for(i in 1:30){
-  effects[i,] = apply(result[[i]]$beta, 1, function(o) sum(abs(o)))
+  effects[i,] = apply(result[[i]]$beta[[1]], 1, function(o) sum(abs(o)))
 }
 turn_over = NULL
 for(i in 1:29) {
@@ -1231,14 +1218,14 @@ for(i in 1:29) {
 }
 
 max_effects = matrix(NA, 30, n)
-for(i in 1:30) max_effects[i,]= apply(result[[lr_step]]$beta,2, function(e) which.max(abs(e)))
+for(i in 1:30) max_effects[i,]= apply(result[[lr_step]]$beta[[1]],2, function(e) which.max(abs(e)))
 
 turn_over = NULL
 for(i in 1:29) {
   turn_over[i] = mean(max_effects[i,] == max_effects[i+1,])
 }
 
-effect_comb = cbind(max_effects[lr_step,], sapply(1:n, function(i) result[[lr_step]]$beta[max_effects[lr_step,i],i] ))
+effect_comb = cbind(max_effects[lr_step,], sapply(1:n, function(i) result[[lr_step]]$beta[[1]][max_effects[lr_step,i],i] ))
 effect_comb_ind = order(effect_comb[,1], effect_comb[,2])
 effect_comb = effect_comb[effect_comb_ind, ]
 #head(effect_comb[effect_comb_ind,])
