@@ -1,11 +1,10 @@
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
-library(deepJSDM)
+library(sjSDM)
 library(gllvm)
 library(BayesComm)
 library(Hmsc)
-useGPU(0L)
 
-n = 2L
+n = 6L
 OpenMPController::omp_set_num_threads(n)
 RhpcBLASctl::omp_set_num_threads(n)
 RhpcBLASctl::blas_set_num_threads(n)
@@ -13,14 +12,15 @@ TMB::openmp(n = n)
 seed = 42L
 
 set.seed(seed)
-.torch$manual_seed(seed)
+torch$manual_seed(seed)
+torch$cuda$manual_seed(seed)
 
-sites = seq(50,by = 20, length.out = 15)
+sites = seq(50,to = 350, length.out = 7)
 species = 50L
 env = 5L
 
 
-data_set = vector("list", 15L)
+data_set = vector("list", 7L)
 for(i in 1:length(sites)) {
   tmp = vector("list", 5L)
   for(j in 1:5){
@@ -34,13 +34,13 @@ for(i in 1:length(sites)) {
 result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
 for(i in 1:length(sites)) {
   for(j in 1:5){
-    .torch$cuda$empty_cache()
+    torch$cuda$empty_cache()
     X = data_set[[i]][[j]]$env_weights
     Y = data_set[[i]][[j]]$response
     sim = data_set[[i]][[j]]
     
     model = sjSDM(X, Y, formula = ~0+X1+X2+X3+X4+X5, learning_rate = 0.01, 
-                  df = as.integer(tmp$species/2),iter = 50L, step_size = 75L,
+                  df = as.integer(ncol(Y)/2),iter = 50L, step_size = as.integer(nrow(X)*0.1),
                   device = 0L)
     time = model$time
     result_corr_acc[i,j] =  sim$corr_acc(getCov(model))
@@ -49,7 +49,7 @@ for(i in 1:length(sites)) {
     result_time[i,j] = time
     rm(model)
     gc()
-    .torch$cuda$empty_cache()
+    torch$cuda$empty_cache()
   }
 
 }
