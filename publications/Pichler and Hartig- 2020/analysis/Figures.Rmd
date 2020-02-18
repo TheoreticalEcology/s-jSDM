@@ -231,25 +231,7 @@ dev.off()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Figure 2 - Inference
+## Figure 3 - Inference
 Load results:
 ```{r}
 setwd(here::here())
@@ -258,6 +240,7 @@ if(!exists("gpu")) gpu = readRDS(file = "./results/gpu_sjSDM.RDS")
 if(!exists("gllvm")) gllvm = readRDS(file = "./results/gllvm.RDS")
 if(!exists("bc")) bc = readRDS(file = "./results/BayesCommDiag.RDS")
 if(!exists("hmsc")) hmsc = readRDS(file = "./results/hmscDiag.RDS")
+hmsc$post = NULL
 if(!exists("gllvmSparse")) gllvmSparse = readRDS(file = "./results/sparse_gllvm.RDS")
 if(!exists("gpuSparse")) gpuSparse = readRDS(file = "./results/sparse_gpu_sjSDM.RDS")
 if(!exists("bcSparse")) bcSparse = readRDS(file = "./results/sparse_bc.RDS")
@@ -271,7 +254,7 @@ if(!exists("data_sets")) load("./data_sets2.RData")
 ```{r}
 cols = RColorBrewer::brewer.pal(5, "Set2")
 
-pdf(file = "./figures/Fig_2_a.pdf", width = 11, height = 8.5)
+pdf(file = "./figures/Fig_3_a.pdf", width = 11, height = 8.5)
 
 
 par(mfrow = c(3,3), mgp = c(2.1,0.6,0), mar = c(0.6, 1.3, 0.3,0.7), oma = c(2.6,3.0,2.2,0)+0.3)
@@ -309,7 +292,7 @@ e = 5L
     mean_conf(X, gllvm$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[3], pch = 19)
     mean_conf(X, bc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)#,convergence = bc, hmscObject = FALSE, indices = ind, lambdasOnly = TRUE)
     mean_conf(X, hmsc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)#,convergence = hmsc, hmscObject = TRUE, indices = ind, lambdasOnly = TRUE)
-       legend("topleft", legend = c("cpu_dmvp", "gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+  legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
   }
 
 ## B
@@ -337,7 +320,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, gllvm$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[3], pch = 19)
   mean_conf(X, bc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)#,convergence = bc, hmscObject = FALSE, indices = ind, lambdasOnly = FALSE)
   mean_conf(X, hmsc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)#,convergence = hmsc, hmscObject = TRUE, indices = ind, lambdasOnly = FALSE)
-     legend("topleft", legend = c("cpu_dmvp", "gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+  legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
 }
 
 
@@ -377,8 +360,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, bcSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 19)#,convergence = bcSparse, hmscObject = FALSE, indices = ind, lambdasOnly = FALSE)
   mean_conf(X, hmscSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 15)#, convergence = hmscSparse, hmscObject = TRUE, indices = ind, lambdasOnly = FALSE)
   
-   legend("topleft", legend = c("gpu_dmvp", "gllvm", "bayesComm", "Hmsc"), col = cols[2:5], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(17, 19, 15, 4))
-  
+  legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
 
 }
 
@@ -702,19 +684,63 @@ dev.off()
 ## Figure S1/S2 Convergence
 
 ```{r}
-par(mfrow = c(6,4))
-indices = which(complete.cases(hmsc$result_corr_acc[,1]), TRUE)
-
-for(i in indices){
-  hist(t(apply(sapply(hmsc$post[[i]], function(p) p$psrf.beta[,2]), 1, function(p) c(mean(p), sd(p))))[,1], xlim = c(0.8, 1.2))
+check_convergence = function(convergence, hmscObject = FALSE){
+    result = vector("list", 27)
+    indices = 1:27
+    indices = indices[indices %in% which(complete.cases(convergence$result_corr_acc[,1]), TRUE)]
+    for(k in 1:length(indices)){
+      
+      if(!hmscObject) {
+         betas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 <abind::abind(p$psrf.beta,along = 1L)[,1]))
+        lambdas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 < p$psrf.gamma[,1]))
+      }else {
+         betas = as.vector(sapply(convergence$post[[indices[k]]], function(p) 1.2 < p$psrf.beta[,1]))
+        lambdas = unlist(sapply(convergence$post[[indices[k]]], function(p) 1.2 < gelman.diag(p$post$Lambda[[1]],multivariate = FALSE)$psrf[,1]))
+      }
+      result[[k]] = c(lambdas, betas)
+    }
+    return(result)
 }
+library(coda)
+library(Hmsc)
+library(BayesComm)
+```
+
+```{r}
+
+if(!exists("bc")) bc = readRDS(file = "./results/BayesCommDiag.RDS")
+bc$auc = NULL
+if(!exists("hmsc")) hmsc = readRDS(file = "./results/hmscDiag.RDS")
+hmsc$auc = NULL
+
+
+bc_conv = check_convergence(bc)
+hmsc_conv = check_convergence(hmsc, TRUE)
+saveRDS(list(bc=bc_conv,hmsc=hmsc_conv),"./results/convergence_non_sparse.RDS")
+
+
 ```
 
 
 
+```{r}
+
+if(!exists("bcSparse")) bcSparse = readRDS(file = "./results/sparse_bc.RDS")
+bcSparse$auc = NULL
+if(!exists("hmscSparse")) hmscSparse = readRDS(file = "./results/sparse_hmsc.RDS")
+hhmscSparse$auc = NULL
 
 
-## Figure 5 - eDNA 
+bc_conv_sp = check_convergence(bcSparse)
+hmsc_conv_sp = check_convergence(hmscSparse, TRUE)
+saveRDS(list(bc_sparse=bc_conv_sp,hmsc_sparse=hmsc_conv_sp),"./results/convergence_sparse.RDS")
+
+
+```
+
+
+
+## eDNA 
 ```{r}
 result0 = readRDS("./results/fungi_eDNA0.RDS")
 result1 = readRDS("./results/fungi_eDNA1.RDS")
@@ -860,7 +886,7 @@ saveRDS(turn_over_list, "./results/turn_over.RDS")
 ```
 
 
-### Figure S4 Turn_over rates
+## Figure S4 Turn_over rates
 ```{r}
 lrs = seq(-18, -1, length.out = 30)
 f = function(x) 2^x
@@ -886,17 +912,17 @@ res_losses = lapply(
 
 
 pdf(file = "./figures/Fig_S5_losses.pdf", width = 7, height = 4)
-par(mfrow = c(2,2), mar = c(2, 3, 2.0, 2), oma = c(2,1,0.2,2),mgp = c(2.3, 1, 0))
+par(mfrow = c(2,2), mar = c(2, 3, 2.0, 2), oma = c(2,1,0.2,2),mgp = c(2.8, 1, 0))
 nom = c("A", "B", "C", "D")
 for(i in 1:length(res_losses)){
-  matplot(cbind(log(res_losses[[i]]), apply(log(res_losses[[i]]), 1, prod)), type = "o", pch = 18, lty = 1, col = 1:3, axes = FALSE, ylim = c(0,110), xlab = "penalty", ylab = "losses", xpd = NA)
-  text(x = -3, y = 6000, pos = 2, labels = nom[i], font = 2, xpd = NA)
-  axis(1,at = 1:30, labels = format(lrs, scientific = TRUE, digits = 1), cex.axis = 0.7)
+  matplot(cbind(res_losses[[i]][,1],res_losses[[i]][,2]*100), type = "o", pch = 18, lty = 1, col = 1:3, axes = FALSE, ylim = c(0,500000), xlab = "penalty", ylab = "losses", xpd = NA)
+  text(x = -3, y = 570000, pos = 2, labels = nom[i], font = 2, xpd = NA)
+  axis(1,at = seq(1, 30, length.out = 6), labels = format(lrs, scientific = TRUE, digits = 1)[seq(1, 30, length.out = 6)], cex.axis = 0.7)
   axis(2, las = 2, cex.axis = 0.7)
-  legend("topleft", legend = rev(c("overall", "w/o Weights", "Weights")), col = 1:3, lty = 1,bty = "n", cex = 0.7)
+  legend("bottomright", legend = rev(c("100 * w/o Weights", "Weights")), col = 1:2, lty = 1,bty = "n", cex = 0.7)
 }
 dev.off()
-
+par(mgp=c(2.3, 1, 0))
 
 summary_weights = lapply(res, function(result) {
         weights = vector("list", 30)
@@ -964,7 +990,7 @@ dev.off()
 
 ```
 
-### Figure 5 
+## Figure 5 
 ```{r}
 
 #pdf(file = "./figures/Fig_5_new.pdf", width = 10.88, height = 8)
