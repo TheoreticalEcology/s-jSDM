@@ -1,0 +1,14 @@
+README.md
+setup.py
+sjSDM_py/__init__.py
+sjSDM_py/model.py
+sjSDM_py/optimizer.py
+sjSDM_py/utils_fa.py
+sjSDM_py.egg-info/PKG-INFO
+sjSDM_py.egg-info/SOURCES.txt
+sjSDM_py.egg-info/dependency_links.txt
+sjSDM_py.egg-info/requires.txt
+sjSDM_py.egg-info/top_level.txt
+sjSDM_py/layers/__init__.py
+sjSDM_py/layers/dense.py
+sjSDM_py/layers/variational.py

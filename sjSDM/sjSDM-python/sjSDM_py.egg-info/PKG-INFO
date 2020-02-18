@@ -1,0 +1,43 @@
+Metadata-Version: 2.1
+Name: sjSDM-py
+Version: 0.0.1
+Summary: jSDM package
+Home-page: https://github.com/TheoreticalEcology/s-jSDM/sjSDM/sjSDM-python
+Author: Maximilian Pichler
+Author-email: Maximilian.Pichler@ur.de
+License: UNKNOWN
+Description: # fajsm - Fast and Accurate Joint Species distribution Modeling 
+        
+        ## Install instructions
+        ```{python}
+        pip install sjSDM_py
+        ```
+        
+        ## Example
+        At the moment, we do not provide specifically a API for jSDM Models. However, it's just a deep multivariate probit model with one layer. Here's an example:
+        
+        ```{python}
+        import sjSDM_py as sa
+        import numpy as np
+        Env = np.random.randn(100, 5)
+        Occ = np.random.binomial(1, 0.5, [100, 10])
+        
+        model = sa.Model_base(5) # input_shape == number of environmental predictors
+        model.add_layer(sa.layers.Layer_dense(hidden=10)) # number of hidden units in the layer == number of species
+        model.build(df=5, optimizer=sa.optimizer_adamax(lr=0.1, weight_decay = 0.01)) # df = degree of freedom 
+        model.fit(X = Env, Y = Occ)
+        print(model.weights_numpy)
+        print(model.get_cov())
+        ```
+        
+        * For species intercept, use 'bias=True' in 'Layer_dense(...)'. 
+        * We recommend to set df = number of species / 2. 
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Description-Content-Type: text/markdown
