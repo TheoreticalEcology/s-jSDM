@@ -99,8 +99,8 @@ install_sjSDM = function(method = "conda",
   extra_packages = unique(extra_packages)
   packages = c(package$pip, list(extra = extra_packages))
   
-  reticulate::py_install(c(unlist(packages), "sjSDM_py"), envname = envname, methhod = method, conda = conda, pip = TRUE)
-
+  reticulate::py_install(packages = c(stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,], "sjSDM_py"), envname = envname, method = method, conda = conda, pip = TRUE, python_version = python_version)
+  
 
   # method = py_install_method_detect(envname = envname, conda = conda)
   # 
@@ -111,7 +111,8 @@ install_sjSDM = function(method = "conda",
   #          reticulate::conda_install(envname, packages = c(unlist(packages$extra), strsplit(unlist(packages$conda), " ", fixed = TRUE)[[1]]), conda = conda, python_version = python_version)
   #          reticulate::conda_install(envname, packages = "sjSDM_py", pip = TRUE)
   #          }, stop("method is not supported"))
-
+  
+  reticulate::use_condaenv(envname)
   if (restart_session && rstudioapi::hasFun("restartSession")) rstudioapi::restartSession()
 
   cat("\n Installation was successful")
