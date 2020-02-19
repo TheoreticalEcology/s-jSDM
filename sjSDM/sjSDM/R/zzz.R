@@ -8,7 +8,7 @@ missing_installation = function(miss_torch, miss_sjSDM) {
   if(miss_sjSDM) miss_two = "x sjSDM_py not found\n"
   else miss_two = ""
   
-  out = pasteo(miss_one, miss_two, "Use install_sjSDM() to install PyTorch and sjSDM_py")
+  out = paste0(miss_one, miss_two, "Use install_sjSDM() to install PyTorch and sjSDM_py")
   cat(out)
 }
 
