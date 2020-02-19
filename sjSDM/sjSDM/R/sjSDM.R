@@ -83,7 +83,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01))
   time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel)})[3]
 
-  #out$logLik = model$logLik(X, Y)
+  out$logLik = model$logLik(X, Y)
   out$model = model
   out$time = time
   out$data = list(X = X, Y = Y)

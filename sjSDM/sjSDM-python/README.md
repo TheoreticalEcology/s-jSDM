@@ -1,4 +1,4 @@
-# fajsm - Fast and Accurate Joint Species distribution Modeling 
+# sjSDM - Fast and Accurate Joint Species distribution Modeling 
 
 ## Install instructions
 ```{python}

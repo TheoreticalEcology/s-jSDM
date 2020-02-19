@@ -51,8 +51,8 @@ mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.10, converge
 ```
 
 
-
-## Figure 1 - Run time
+## Runtime
+### Figure 1 - Run time
 Load results:
 ```{r}
 setwd(here::here())
@@ -60,7 +60,9 @@ cpu = readRDS(file = "./results/cpu_sjSDM.RDS")
 gpu = readRDS(file = "./results/gpu_sjSDM.RDS")
 gllvm = readRDS(file = "./results/gllvm.RDS")
 bc = readRDS(file = "./results/BayesCommDiag.RDS")
+bc$post = NULL # save memory
 hmsc = readRDS(file = "./results/hmscDiag.RDS")
+hmsc$post = NULL # save memory
 large_scale = readRDS("./results/large_scale.RDS")
 setup2 = large_scale$setup
 load("./data_sets2.RData")
@@ -174,7 +176,7 @@ dev.off()
 
 
 
-## Figure S1 - Log Runtime
+### Figure S1 - Log Runtime
 ```{r}
 pdf(file = "./figures/Fig_S1_a.pdf", width = 9, height = 2.7)
 
@@ -230,8 +232,8 @@ dev.off()
 ```
 
 
-
-## Figure 3 - Inference
+## Inference
+### Figure 3 - Inference
 Load results:
 ```{r}
 setwd(here::here())
@@ -239,6 +241,7 @@ if(!exists("cpu")) cpu = readRDS(file = "./results/cpu_sjSDM.RDS")
 if(!exists("gpu")) gpu = readRDS(file = "./results/gpu_sjSDM.RDS")
 if(!exists("gllvm")) gllvm = readRDS(file = "./results/gllvm.RDS")
 if(!exists("bc")) bc = readRDS(file = "./results/BayesCommDiag.RDS")
+bc$post = NULL
 if(!exists("hmsc")) hmsc = readRDS(file = "./results/hmscDiag.RDS")
 hmsc$post = NULL
 if(!exists("gllvmSparse")) gllvmSparse = readRDS(file = "./results/sparse_gllvm.RDS")
@@ -370,7 +373,7 @@ dev.off()
 
 
 
-## Figure S2 - Env Acc
+### Figure S2 - Env Acc
 
 ```{r}
 load("./data_sets_sparse.RData")
@@ -389,7 +392,7 @@ for(i in (as.character(unique(number)))){
   lineT = rep(1,5) #1:5
   names(lineT) =  (as.character(unique(number)))
   if( i == "0.1") {
-    ylab = "runtime in minutes"
+    ylab = "Env accuracy"
   } else {
     ylab = ""
   }
@@ -482,7 +485,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, bc_result_env[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)
   mean_conf(X, hmsc_result_env[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)
   
-    legend("bottomright", legend = c( "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
+    legend("bottomright", legend = c( "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
 }
 
 
@@ -525,7 +528,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, bc_result_rmse[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)
   mean_conf(X, hmsc_result_rmse[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)
   
-    legend("topright", legend = c("G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
+    legend("topright", legend = c("G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
   
 }
 
@@ -535,7 +538,7 @@ dev.off()
 
 
 
-## Figure S3 - Covariance behaviour
+### Figure S3 - Covariance behaviour
 Load results:
 ```{r}
 setwd(here::here())
@@ -549,12 +552,10 @@ hmsc_beh = readRDS(file = "./results/hmsc_behaviour_sites.RDS")
 
 ```{r}
 #### covariance behaviour ####
-pdf(file = "./figures/Fig_S3.pdf", width = 9, height = 4.3)
-
+pdf(file = "./figures/Fig_S3_a.pdf", width = 9, height = 4.3)
+cols = RColorBrewer::brewer.pal(5, "Set2")
 xx = 1:25
 sites = seq(50,to = 350, length.out = 7)
-
-
 par(mfrow = c(1,2), mar = c(2.1, 3, 1.6, 1), mgp = c(2.4, 1, 0), oma = c(1.4,1.3,0.3,0))
 
 plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.5, 1.0), ylab = "accuracy", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
@@ -566,10 +567,10 @@ ind = 1:nrow(gpu_beh$result_corr_acc)
 
 mean_conf(sites,mat = gpu_beh$result_corr_acc, col = cols[2], pch = 17)
 mean_conf(sites,gllvm_beh$result_corr_acc, col = cols[3], pch = 19)
-mean_conf(sites,bc_beh$result_corr_acc, pch = 15)
-mean_conf(sites,hmsc_beh$result_corr_acc,pch = 4)
+mean_conf(sites,bc_beh$result_corr_acc,col=cols[4], pch = 15)
+mean_conf(sites,hmsc_beh$result_corr_acc,col=cols[5],pch = 4)
 
-legend("topleft", legend = c("G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
+legend("topleft", legend = c("G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
 
 
 plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.0, 1.0), ylab = "RMSE", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
@@ -581,15 +582,15 @@ mean_conf(sites, gpu_beh$result_rmse_env, col = cols[2], pch = 17)
 mean_conf(sites, gllvm_beh$result_rmse_env, col = cols[3], pch = 19)
 mean_conf(sites, bc_beh$result_rmse_env, col = cols[4], pch = 15)
 mean_conf(sites, hmsc_beh$result_rmse_env, col = cols[5], pch = 4)
-legend("topleft", legend = c("G-sjSDM",  "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(17, 19, 15, 4))
+legend("topleft", legend = c("G-sjSDM",  "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(17, 19, 15, 4))
 
 dev.off()
 
 ```
 
 
-
-## Figure 4 - Predictive Performance
+## Predictive performance
+### Figure 4 - Predictive Performance
 Load results:
 ```{r}
 setwd(here::here())
@@ -680,8 +681,8 @@ for(i in (as.character(unique(number)))){
 dev.off()
 ```
 
+## Convergence checks
 
-## Figure S1/S2 Convergence
 
 ```{r}
 check_convergence = function(convergence, hmscObject = FALSE){
@@ -735,6 +736,26 @@ bc_conv_sp = check_convergence(bcSparse)
 hmsc_conv_sp = check_convergence(hmscSparse, TRUE)
 saveRDS(list(bc_sparse=bc_conv_sp,hmsc_sparse=hmsc_conv_sp),"./results/convergence_sparse.RDS")
 
+
+```
+
+```{r}
+non_sparse = readRDS("./results/convergence_non_sparse.RDS")
+sparse = readRDS("./results/convergence_sparse.RDS")
+load("./data_sets2.RData")
+
+
+sapply(sparse$bc_sparse, sum)
+results_conv = 
+cbind(sapply(non_sparse$bc, mean), sapply(sparse$bc, mean), 
+      sapply(non_sparse$hmsc, mean),sapply(sparse$hmsc_sparse, mean))
+results_conv = data.frame(results_conv, setup)
+results_conv = results_conv[order(results_conv$species),]
+colnames(results_conv)[1:4] = c("bc", "bc_sparse", "hmsc", "hmsc_sparse")
+results_conv = round(results_conv, 3)
+results_conv$species = results_conv$sites*results_conv$species
+write.csv(round(results_conv, 3),file = "./results/convergence_check.csv" )
+write.csv(round(results_conv, 3)[,-c(1,2)],file = "./results/convergence_check_hmsc.csv" )
 
 ```
 
@@ -886,7 +907,7 @@ saveRDS(turn_over_list, "./results/turn_over.RDS")
 ```
 
 
-## Figure S4 Turn_over rates
+### Figure S4 Turn_over rates
 ```{r}
 lrs = seq(-18, -1, length.out = 30)
 f = function(x) 2^x
@@ -990,7 +1011,7 @@ dev.off()
 
 ```
 
-## Figure 5 
+### Figure 5 
 ```{r}
 
 #pdf(file = "./figures/Fig_5_new.pdf", width = 10.88, height = 8)
