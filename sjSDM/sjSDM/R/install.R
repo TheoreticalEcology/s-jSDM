@@ -41,9 +41,7 @@ install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
              gpu = "torch===1.4.0 torchvision===0.5.0 -f https://download.pytorch.org/whl/torch_stable.html")
     if(cuda == 9.2 && version == "gpu") package$conda = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
     
-  }
-
-  if(stringr::str_detect(stringr::str_to_lower(OS), "linux")) {
+  } else if(stringr::str_detect(stringr::str_to_lower(OS), "linux")) {
     package = list()
     package$conda =
       switch(version,
@@ -56,10 +54,7 @@ install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
              default = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
              gpu = "torch torchvision")
     if(cuda == 9.2 && version == "gpu") package$pip = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
-  }
-
-
-  if(stringr::str_detect(stringr::str_to_lower(OS), "mac")) {
+  } else {
     package = list()
     package$conda =
       switch(version,
@@ -102,9 +97,9 @@ install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
   # conda install pytorch torchvision -c pytorch
 
   extra_packages = unique(extra_packages)
-  packages = c(package, list(extra = extra_packages))
+  packages = c(package$pip, list(extra = extra_packages))
   
-  reticulate::py_install(c(packages$pip, "sjSDM_py"), envname = envname, methhod = method, conda = conda, pip = TRUE)
+  reticulate::py_install(c(packages, "sjSDM_py"), envname = envname, methhod = method, conda = conda, pip = TRUE)
 
 
   # method = py_install_method_detect(envname = envname, conda = conda)

@@ -5,13 +5,8 @@
 \title{add_species_arrows
 add species arrows to circle}
 \usage{
-add_species_arrows(
-  radius = NULL,
-  label = "Species",
-  reverse = TRUE,
-  start = 150,
-  end = 270
-)
+add_species_arrows(radius = NULL, label = "Species", reverse = TRUE,
+  start = 150, end = 270)
 }
 \arguments{
 \item{radius}{radius}

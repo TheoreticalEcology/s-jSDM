@@ -5,15 +5,8 @@
 \title{curve_text
 plot curved text}
 \usage{
-curve_text(
-  pos = 0,
-  label = "",
-  radius = 5,
-  reverse = FALSE,
-  middle = FALSE,
-  extend = 1.1,
-  ...
-)
+curve_text(pos = 0, label = "", radius = 5, reverse = FALSE,
+  middle = FALSE, extend = 1.1, ...)
 }
 \arguments{
 \item{pos}{position in degree}
