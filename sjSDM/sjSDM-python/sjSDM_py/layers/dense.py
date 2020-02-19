@@ -118,7 +118,8 @@ class Layer_dense:
 
         """
         self.w.data = torch.tensor(w[0], dtype=self.dtype, device=self.device).to(self.device).data
-        self.b.data = torch.tensor(w[1], dtype=self.dtype, device=self.device).to(self.device).data
+        if self.bias:
+            self.b.data = torch.tensor(w[1], dtype=self.dtype, device=self.device).to(self.device).data
     
     def get_weights_numpy(self):
         """get weights

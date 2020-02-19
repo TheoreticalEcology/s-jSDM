@@ -18,7 +18,7 @@
 #' @example /inst/examples/sjSDM-example.R
 #' @export
 
-sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, parallel = 0L,device = 2, dtype = "float32") {
+sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, parallel = 0L,device = "cpu", dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
     is.matrix(Y),
@@ -30,8 +30,12 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
     iter >= 0,
     learning_rate >= 0
   )
-
+  
   out = list()
+  
+  if(is.numeric(device)) device = as.integer(device)
+  
+  if(device == "gpu") device = 0L
 
   if(is.data.frame(X)) {
 
@@ -61,7 +65,9 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
 
   out$formula = formula
   out$names = colnames(X)
-
+  out$cl = match.call()
+  
+  
 
   ### settings ##
   if(is.null(df)) df = as.integer(floor(ncol(Y) / 2))
@@ -71,25 +77,37 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   #.onLoad()
 
   # if(any(sapply(out$names, function(n) stringr::str_detect(stringr::str_to_lower(n), "intercept")))) intercept = FALSE
-
-  model = fa$Model_base(ncol(X), device = device, dtype = dtype)
-  model$add_layer(fa$layers$Layer_dense(hidden = ncol(Y),
-                                        bias = FALSE,
-                                        l1 = l1_coefs,
-                                        l2 = l2_coefs,
-                                        activation = NULL,
-                                        device = device,
-                                        dtype = dtype))
-  model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01))
+  output = ncol(Y)
+  input = ncol(X)
+  
+  out$get_model = function(){
+    model = fa$Model_base(input, device = device, dtype = dtype)
+    model$add_layer(fa$layers$Layer_dense(hidden = output,
+                                          bias = FALSE,
+                                          l1 = l1_coefs,
+                                          l2 = l2_coefs,
+                                          activation = NULL,
+                                          device = device,
+                                          dtype = dtype))
+    model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01))
+    return(model)
+  }
+  model = out$get_model()
+  
   time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel)})[3]
 
   out$logLik = model$logLik(X, Y)
   out$model = model
+  out$settings = list( df = df, l1_coefs = l1_coefs, l2_coefs = l2_coefs, 
+                       l1_cov = l1_cov, l2_cov = l2_cov, iter = iter, 
+                       step_size = step_size,learning_rate = learning_rate, 
+                       parallel = parallel,device = device, dtype = dtype)
   out$time = time
   out$data = list(X = X, Y = Y)
   out$sessionInfo = utils::sessionInfo()
   out$weights = model$weights_numpy
   out$sigma = model$get_sigma_numpy()
+  out$history = model$history
   torch$cuda$empty_cache()
   class(out) = "sjSDM"
   return(out)
@@ -98,14 +116,16 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
 
 #'@export
 print.sjSDM = function(x, ...) {
-  cat("sjSDM model, see summary(model) or plot(model) for details \n")
+  cat("sjSDM model, see summary(model) for details \n")
 }
 
 
 #'@export
 predict.sjSDM = function(object, newdata = NULL, ...) {
-  if(is.null(newdata)) newdata = object$data$X
-  else {
+  object = checkModel(object)
+  if(is.null(newdata)) {
+    return(object$model$predict(newdata = object$data$X))
+  } else {
     if(is.data.frame(newdata)) {
       newdata = stats::model.matrix(object$formula, newdata)
     } else {
@@ -118,7 +138,7 @@ predict.sjSDM = function(object, newdata = NULL, ...) {
 
 #'@export
 coef.sjSDM = function(object, ...) {
-  return(object$model$weights_numpy[[1]])
+  return(object$weights[[1]])
 }
 
 #'@export
@@ -145,7 +165,7 @@ summary.sjSDM = function(object, ...) {
   cat("Deviance: ", 2*object$logLik[[1]], "\n\n")
   cat("Regularization loss: ", object$logLik[[2]], "\n\n")
 
-  cov_m = object$model$get_cov()
+  cov_m = object$sigma %*% t(object$sigma)
   cor_m = stats::cov2cor(cov_m)
 
   p_cor = round(cor_m, 3)
@@ -163,7 +183,7 @@ summary.sjSDM = function(object, ...) {
 
   out$coefs = env
   out$logLik = object$logLik
-  out$sigma = object$model$get_sigma_numpy()
+  out$sigma = object$sigma
   out$cov = cov_m
   return(invisible(out))
 }
@@ -181,6 +201,7 @@ summary.sjSDM = function(object, ...) {
 #' @importFrom stats simulate
 #' @export
 simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
+  object = checkModel(object)
   if(!is.null(seed)) {
     set.seed(seed)
     torch$cuda$manual_seed(seed)
@@ -199,5 +220,7 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
 #' @export
 getCov = function(object){
   if(!inherits(object, "sjSDM")) stop("Please provide sjSDM object")
-  return(cov_m = object$model$get_cov())
+  return(object$sigma %*% t(object$sigma))
 }
+
+

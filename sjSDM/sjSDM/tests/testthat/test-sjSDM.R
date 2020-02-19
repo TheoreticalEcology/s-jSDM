@@ -38,7 +38,7 @@ testthat::test_that("sjSDM functionality", {
   X = sim$env_weights
   Y = sim$response
 
-  testthat::expect_error(sjSDM(X = data.frame(X), Y)<NA)
+  testthat::expect_error(sjSDM(X = data.frame(X), Y),NA)
   testthat::expect_error(sjSDM(X = data.frame(X), data.frame(Y)))
 
   testthat::expect_error(sjSDM(X, Y, iter = 5), NA)

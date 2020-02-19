@@ -68,6 +68,12 @@ class Model_base:
 
         """
         return self.sigma
+    
+    def set_sigma(self, sigma):
+        """set sigma
+
+        """
+        self.sigma.data = torch.tensor(sigma, dtype=self.dtype, device=self.device).to(self.device).data
 
     def set_weights(self, weights):
         """set weights in model
