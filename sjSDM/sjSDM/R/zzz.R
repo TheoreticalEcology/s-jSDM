@@ -38,29 +38,3 @@ missing_installation = function(miss_torch, miss_sjSDM) {
   if(miss_torch || miss_sjSDM) missing_installation(miss_torch, miss_sjSDM)
 }
 
-.onAttach = function(libname, pkgname){
-  if(is_torch_available()) {
-    torch <<- reticulate::import("torch")
-    
-    use_cuda <<- torch$cuda$is_available()
-    if(use_cuda) {
-      dtype <<- torch$float32
-      device <<- torch$device("cuda:0")
-    } else {
-      dtype <<- torch$float64
-      device <<- torch$device("cpu")
-    }
-    miss_torch = FALSE
-  } else {
-    miss_torch = TRUE
-  }
-  
-  if(is_sjSDM_py_available()) {
-    fa <<- reticulate::import("sjSDM_py")
-    miss_sjSDM = FALSE
-  } else {
-    miss_sjSDM = TRUE
-  }
-  if(miss_torch || miss_sjSDM) missing_installation(miss_torch, miss_sjSDM)
-}
-

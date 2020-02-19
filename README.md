@@ -1,6 +1,6 @@
 # s-jSDM - Fast and accurate Joint Species Distribution Modeling
 
-For both, the R and the python package, python >= 3.5 is required (python 2 is no longer supported by PyTorch) 
+For both, the R and the python package, python >= 3.6 is required (python 2 is no longer supported by PyTorch) 
 
 ## R-package
 ```{r}
@@ -44,7 +44,7 @@ model.fit(X = Env, Y = Occ)
 print(model.weights_numpy)
 print(model.get_cov())
 ```
-For details, see [sjSDM_py](https://github.com/TheoreticalEcology/s-jSDM/sjSDM/sjSDM-python)
+For details, see [sjSDM_py](https://github.com/TheoreticalEcology/s-jSDM/tree/master/sjSDM/sjSDM-python)
 
 
 #### MacOS
