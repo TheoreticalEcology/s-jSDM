@@ -6,7 +6,7 @@ Home-page: https://github.com/TheoreticalEcology/s-jSDM/sjSDM/sjSDM-python
 Author: Maximilian Pichler
 Author-email: Maximilian.Pichler@ur.de
 License: UNKNOWN
-Description: # fajsm - Fast and Accurate Joint Species distribution Modeling 
+Description: # sjSDM - Fast and Accurate Joint Species distribution Modeling 
         
         ## Install instructions
         ```{python}
@@ -36,7 +36,6 @@ Platform: UNKNOWN
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Operating System :: OS Independent
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.5
 Classifier: Programming Language :: Python :: 3.6
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8

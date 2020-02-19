@@ -22,11 +22,12 @@ class Model_base:
 
     # Arguments
     :param input_shape: integer > 0, number of environmental covariates
+    :param alpha: float > 0
     :param device: str, which device "cpu" or "gpu"
     :param dtype: str, which dtype, float32 or float64
 
     """
-    def __init__(self, input_shape=None, device="cpu", dtype="float32"):
+    def __init__(self, input_shape=None, alpha = 1.70169, device="cpu", dtype="float32"):
         self.input_shape = int(input_shape)
         self.layers = []
         self.weights = []
@@ -42,6 +43,7 @@ class Model_base:
         device, dtype = self._device_and_dtype(device, dtype)
         self.device = device
         self.dtype = dtype
+        self.alpha = alpha
 
     def __repr__(self):
         return "Model_base: \n  {} \n".format(self.input_shape)
@@ -315,7 +317,7 @@ class Model_base:
         eps = torch.tensor(0.00001, dtype=self.dtype).to(self.device)
         zero = torch.tensor(0.0, dtype=self.dtype).to(self.device)
         one = torch.tensor(1.0, dtype=self.dtype).to(self.device)
-        alpha = torch.tensor(1.70169, dtype=self.dtype).to(self.device)
+        alpha = torch.tensor(self.alpha, dtype=self.dtype).to(self.device)
         half = torch.tensor(0.5, dtype=self.dtype).to(self.device)
         
         if train:
