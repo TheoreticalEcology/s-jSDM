@@ -9,7 +9,7 @@ missing_installation = function(miss_torch, miss_sjSDM) {
   else miss_two = ""
   
   out = paste0(miss_one, miss_two, "Use install_sjSDM() to install PyTorch and sjSDM_py")
-  cat(out)
+  packageStartupMessage(out)
 }
 
 .onLoad = function(libname, pkgname){

@@ -13,7 +13,7 @@
 #'
 #'
 #' @export
-install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
+install_sjSDM = function(method = "conda",
                            conda = "auto",
                            version = "default",
                            envname = "r-sjSDM",
@@ -99,7 +99,7 @@ install_sjSDM = function(method = c("auto", "virtualenv", "conda"),
   extra_packages = unique(extra_packages)
   packages = c(package$pip, list(extra = extra_packages))
   
-  reticulate::py_install(c(packages, "sjSDM_py"), envname = envname, methhod = method, conda = conda, pip = TRUE)
+  reticulate::py_install(c(unlist(packages), "sjSDM_py"), envname = envname, methhod = method, conda = conda, pip = TRUE)
 
 
   # method = py_install_method_detect(envname = envname, conda = conda)
