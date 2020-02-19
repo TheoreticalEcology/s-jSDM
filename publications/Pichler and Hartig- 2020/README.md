@@ -1,5 +1,7 @@
 # Pichler and Hartig, A new method for faster and more accurate inference of species associations from novel community data 
 
+This subfolder contains the code to reproduce the results in Pichler and Hartig, A new method for faster and more accurate inference of species associations from novel community data 
+
 ## Runtime benchmark
 ### All models, different simulation scenarios
 Generate data:
