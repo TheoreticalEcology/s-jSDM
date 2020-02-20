@@ -1,2 +1,6 @@
-sjSDM.Rcheck/
-*.tar.gz
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+^.*\.pyc$
+^.*__pycache__$

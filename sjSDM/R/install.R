@@ -9,6 +9,7 @@
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
 #' @param conda_python_version python version to be installed in the env, default = 3.6
+#' @param pip use pip installer
 #' @param cuda which cuda version, 9.2 and 10.1 are supported
 #'
 #'
@@ -20,7 +21,8 @@ install_sjSDM = function(method = "conda",
                            extra_packages = NULL,
                            restart_session = TRUE,
                            conda_python_version = "3.6",
-                           cuda = c("10.1", "9,2")) {
+                           pip = FALSE,
+                           cuda = c("10.1", "9,2"), ...) {
 
   version = match.arg(version)
   cuda = match.arg(cuda)
@@ -94,18 +96,80 @@ install_sjSDM = function(method = "conda",
   #pip install torch torchvision
   # conda
   # conda install pytorch torchvision -c pytorch
-
-  extra_packages = unique(extra_packages)
-  packages = c(package$pip, list(extra = extra_packages))
   
-  reticulate::py_install(packages = c("--user", stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,], "sjSDM_py"), envname = envname, method = method, conda = conda, pip = TRUE, python_version = conda_python_version)
+  packages = strsplit(unlist(package), " ", fixed = TRUE)
+  package = lapply(packages, function(d) d[1])
+  extra_packages = lapply(packages, function(d) d[-1])
   
-  reticulate::use_condaenv(envname)
-  if (restart_session && rstudioapi::hasFun("restartSession")) rstudioapi::restartSession()
-
-  cat("\n Installation was successful")
-
-  return(invisible(NULL))
+  
+  
+  # Main OS verification.
+  if (is_osx() || is_linux()) {
+    
+    if(pip) package$conda = package$pip
+    
+    if (method == "conda") {
+      reticulate::conda_install(
+        package = package$conda,
+        extra_packages = extra_packages$conda,
+        envname = envname,
+        conda = conda,
+        conda_python_version = conda_python_version,
+        #channel = channel,
+        pip = pip,
+        ...
+      )
+    } else if (method == "virtualenv" || method == "auto") {
+      reticulate::virtualenv_install(
+        package = package$pip,
+        extra_packages = extra_packages$pip,
+        envname = envname,
+        ...
+      )
+    }
+    
+  } else if (is_windows()) {
+    
+    if (method == "virtualenv") {
+      stop("Installing PyTorch into a virtualenv is not supported on Windows",
+           call. = FALSE)
+    } else if (method == "conda" || method == "auto") {
+      if(pip) package$conda = package$pip
+      
+      reticulate::conda_install(
+        package = package$conda,
+        extra_packages = extra_packages$conda,
+        envname = envname,
+        conda = conda,
+        conda_python_version = conda_python_version,
+        #channel = channel,
+        pip = pip,
+        ...
+      )
+      
+    }
+    
+  } else {
+    stop("Unable to install PyTorch on this platform. ",
+         "Binary installation is available for Windows, OS X, and Linux")
+  }
+  
+  message("\nInstallation complete.\n\n")
+  
+  if (restart_session && rstudioapi::hasFun("restartSession"))
+    rstudioapi::restartSession()
+  
+  invisible(NULL)
+  
+  # 
+  # reticulate::py_install(packages = c("--user", stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,]), envname = envname, method = method, conda = conda, pip = TRUE, python_version = conda_python_version)
+  # 
+  # reticulate::use_condaenv(envname)
+  # if (restart_session && rstudioapi::hasFun("restartSession")) rstudioapi::restartSession()
+  # 
+  # cat("\n Installation was successful")
+  # 
+  # return(invisible(NULL))
 }
 
 #' is_windows
@@ -114,21 +178,3 @@ is_windows = function() {
   OS = Sys.info()['sysname']
   return(stringr::str_detect(stringr::str_to_lower(OS), "windows"))
 }
-
-
-# python_has_modules
-python_has_modules <- function(python, modules) {
-  
-  # write code to tempfile
-  file <- tempfile("reticulate-python-", fileext = ".py")
-  code <- paste("import", modules)
-  writeLines(code, con = file)
-  on.exit(unlink(file), add = TRUE)
-  
-  # invoke Python
-  status <- system2(python, shQuote(file), stdout = FALSE, stderr = FALSE)
-  status == 0L
-  
-}
-
-

@@ -4,7 +4,7 @@ For both, the R and the python package, python >= 3.6 is required (python 2 is n
 
 ## R-package
 ```{r}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM/sjSDM")
+devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
 ```
 
 If you have conda installed, the dependencies can be automatically installed from within R:
@@ -33,8 +33,6 @@ $ conda activate sjSDM_env
 $ conda install pip
 $ conda install pytorch torchvision cpuonly -c pytorch # cpu
 $ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu
-$ pip install sjSDM_py
-
 ```
 
 
@@ -60,7 +58,6 @@ $ python3 -m venv ~/sjSDM_env
 $ source ~/sjSDM_env/bin/activate
 $ pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu
 $ pip install torch torchvision #gpu
-$ pip install sjSDM_py
 ```
 
 start RStudio from within the virtualenv and try the [example](#example)
@@ -75,8 +72,6 @@ $ conda activate sjSDM_env
 $ conda install pip
 $ conda install pytorch torchvision cpuonly -c pytorch # cpu
 $ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu
-$ pip install sjSDM_py
-
 ```
 start RStudio from  within the conda env and try the [example](#example)
 
@@ -90,8 +85,6 @@ $ conda create --name sjSDM_env python=3.7
 $ conda activate sjSDM_env
 $ conda install pip
 $ conda install pytorch torchvision cpuonly -c pytorch # cpu
-$ pip install sjSDM_py
-
 ```
 start RStudio from  within the conda env and try the [example](#example)
 
@@ -129,8 +122,4 @@ model.fit(X = Env, Y = Occ)
 print(model.weights_numpy)
 print(model.get_cov())
 ```
-For details, see [sjSDM_py](https://github.com/TheoreticalEcology/s-jSDM/tree/master/sjSDM/sjSDM-python)
-
-
-#### MacOS
-The PyTorch pip package does not provide CUDA support for MacOS. Refer to [PyTorch](https://pytorch.org/) for install instructions.
+For details, see [sjSDM_py](https://github.com/TheoreticalEcology/s-jSDM/tree/master/sjSDM/python/)
