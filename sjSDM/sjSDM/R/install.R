@@ -8,7 +8,7 @@
 #'   PyTorch
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
-#' @param conda_python_version python version to be installed in the env, default = 3.7
+#' @param python_version python version to be installed in the env, default = 3.7
 #' @param cuda which cuda version, 9.2 and 10.1 are supported
 #'
 #'
@@ -19,7 +19,7 @@ install_sjSDM = function(method = "conda",
                            envname = "r-sjSDM",
                            extra_packages = NULL,
                            restart_session = TRUE,
-                           conda_python_version = "3.7",
+                           python_version = "3.6",
                            cuda = "10.1") {
 
   stopifnot(
