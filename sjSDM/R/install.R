@@ -104,30 +104,25 @@ install_sjSDM = function(method = "conda",
   # conda install pytorch torchvision -c pytorch
   
   packages = strsplit(unlist(package), " ", fixed = TRUE)
-  package = lapply(packages, function(d) d[1])
-  extra_packages = lapply(packages, function(d) d[-1])
   
   
   error = tryCatch({
     if (is_osx() || is_linux() || is_unix()) {
       
-      if(pip) package$conda = package$pip
+      if(pip) packages$conda = packages$pip
       
       if (method == "conda") {
         reticulate::conda_install(
-          package = package$conda,
-          extra_packages = extra_packages$conda,
+          packages = packages$conda,
           envname = envname,
           conda = conda,
-          conda_python_version = conda_python_version,
-          channel = channel,
+          python_version = conda_python_version,
           pip = pip,
           ...
         )
       } else if (method == "virtualenv" || method == "auto") {
         reticulate::virtualenv_install(
-          package = package$pip,
-          extra_packages = extra_packages$pip,
+          packages = packages$pip,
           envname = envname,
           ...
         )
@@ -139,14 +134,13 @@ install_sjSDM = function(method = "conda",
         stop("Installing PyTorch into a virtualenv is not supported on Windows",
              call. = FALSE)
       } else if (method == "conda" || method == "auto") {
-        if(pip) package$conda = package$pip
+        if(pip) packages$conda = packages$pip
         
         reticulate::conda_install(
-          package = package$conda,
-          extra_packages = extra_packages$conda,
+          packages = packages$conda,
           envname = envname,
           conda = conda,
-          conda_python_version = conda_python_version,
+          python_version = conda_python_version,
           pip = pip,
           ...
         )
