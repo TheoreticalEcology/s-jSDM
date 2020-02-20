@@ -9,7 +9,7 @@ devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir 
 
 ### Install instructions
 ```{r}
-sjSDM::install_sjSDM(verion = "gpu") # or
+sjSDM::install_sjSDM(version = "gpu") # or
 sjSDM::install_sjSDM(version = "cpu")
 ```
   

@@ -2,7 +2,7 @@ Package: sjSDM
 Type: Package
 Title: Fast and accurate Joint Species Distribution Modeling
 Version: 0.1.0
-Author@R: c(person("Maximilian", 
+Authors@R: c(person("Maximilian", 
                     "Pichler",
                     email = "maximilian.pichler@biologie.uni-regensburg.de",
                     role = c("aut", "cre")))

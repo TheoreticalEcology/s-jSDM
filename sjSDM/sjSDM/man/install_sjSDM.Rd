@@ -4,9 +4,8 @@
 \alias{install_sjSDM}
 \title{Install sjSDM and its dependencies}
 \usage{
-install_sjSDM(method = c("auto", "virtualenv", "conda"),
-  conda = "auto", version = "default", envname = "r-sjSDM",
-  extra_packages = NULL, restart_session = TRUE,
+install_sjSDM(method = "conda", conda = "auto", version = "default",
+  envname = "r-sjSDM", extra_packages = NULL, restart_session = TRUE,
   conda_python_version = "3.7", cuda = "10.1")
 }
 \arguments{

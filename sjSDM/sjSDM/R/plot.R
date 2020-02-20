@@ -152,7 +152,7 @@ add_species_arrows = function(radius = NULL, label = "Species", reverse = TRUE, 
 #' plotAssociations
 #' plot species-species associations
 #'
-#' @param model model of `class(model) == 'fajsm'`, see \code{\link{fajsm}}
+#' @param model model of `class(model) == 'sjSDM'`, see \code{\link{sjSDM}}
 #' @param radius circle's radius
 #' @param main title
 #' @param circleBreak circle break or not

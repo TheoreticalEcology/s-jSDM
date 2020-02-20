@@ -5,7 +5,7 @@ from .utils_fa import _device_and_dtype
 
 
 class Model_base:
-    """Base Model in fajsm
+    """Base Model in sjSDM_py
 
     Base model class for joint species distribution models
     based on the multivariate probit model.

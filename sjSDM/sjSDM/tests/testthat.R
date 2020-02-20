@@ -1,4 +1,4 @@
 library(testthat)
-library(fajsm)
+library(sjSDM)
 
-test_check("fajsm")
+test_check("sjSDM")

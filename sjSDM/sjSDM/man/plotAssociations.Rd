@@ -8,7 +8,7 @@ plot species-species associations}
 plotAssociations(model, radius = 5, main = NULL, circleBreak = FALSE)
 }
 \arguments{
-\item{model}{model of `class(model) == 'fajsm'`, see \code{\link{fajsm}}}
+\item{model}{model of `class(model) == 'sjSDM'`, see \code{\link{sjSDM}}}
 
 \item{radius}{circle's radius}
 
