@@ -1,0 +1,110 @@
+---
+title: "sjSDM: a scalable joint Species Distribution Model"
+author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Vignette for the sjSDM package}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+abstract: "sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood. \n \n \n"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, echo = F, message = F}
+set.seed(123)
+```
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = F)
+```
+
+
+# Getting started 
+
+Load the package via 
+
+```{r}
+library(sjSDM)
+```
+
+
+## Installing dependencies
+
+sjSDM depends on the anaconda distribution of python and pytorch. You will get a warning if you don't have python or pytorch installed.
+
+* anaconda needs to be installed by hand, outside R https://www.anaconda.com/distribution/
+* once anaconda is installed, sjSDM can attempt to install pytorch automatically via 
+
+```{r, eval = F}
+install_sjSDM()
+```
+
+## Citing sjSDM
+
+To cite sjSDM in a publication, use 
+
+```{r}
+citation("sjSDM")
+```
+
+
+# Working with sjSDM
+
+sjSDM has a function to create test data. Here, we create a dataset with 3 environmental predictors, 5 species and 100 sites.
+
+```{r}
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+```
+
+# Fitting a model
+
+The model is then fit with the function sjSDM(). You have to provide predcitors and response as matrix. 
+
+```{r}
+model = sjSDM(X = com$env_weights, Y = com$response, iter = 10L)
+```
+
+
+## Interpreting model output
+
+Things you can do with the model output
+
+```{r}
+coef(model)
+summary(model)
+getCov(model)
+```
+
+## Adding quadratic predictors and interactions
+
+
+If you want to add quadratic effects or interactions, you have to add them manually in the environental predictors. For example
+
+```{r}
+com$env_weights2 = cbind(com$env_weights, com$env_weights^2)
+```
+
+would create a new environmental matrix with lineare and quadratic effects for all three predictors. 
+
+```{r}
+com$env_weights3 = cbind(com$env_weights, com$env_weights[,1] * com$env_weights[,1])
+```
+
+would add an interaction between predictor 1 and 2. 
+
+
+
+
+
+
+
+
+
+
+
+
