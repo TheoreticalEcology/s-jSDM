@@ -30,13 +30,13 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             default = "pytorch torchvision cpuonly -c pytorch",
+             cpu = "pytorch torchvision cpuonly -c pytorch",
              gpu = "pytorch torchvision cudatoolkit=10.1 -c pytorch")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch -c defaults -c numba/label/dev"
     
     package$pip = 
       switch(version,
-             default = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
+             cpu = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
              gpu = "torch===1.4.0 torchvision===0.5.0 -f https://download.pytorch.org/whl/torch_stable.html")
     if(cuda == 9.2 && version == "gpu") package$conda = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
     
@@ -98,7 +98,7 @@ install_sjSDM = function(method = "conda",
   extra_packages = unique(extra_packages)
   packages = c(package$pip, list(extra = extra_packages))
   
-  reticulate::py_install(packages = c(stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,], "sjSDM_py"), envname = envname, method = method, conda = conda, pip = TRUE, python_version = conda_python_version)
+  reticulate::py_install(packages = c("--user", stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,], "sjSDM_py"), envname = envname, method = method, conda = conda, pip = TRUE, python_version = conda_python_version)
   
   reticulate::use_condaenv(envname)
   if (restart_session && rstudioapi::hasFun("restartSession")) rstudioapi::restartSession()
@@ -132,3 +132,4 @@ python_has_modules <- function(python, modules) {
 }
 
 
+sjSDM::install_sjSDM()
