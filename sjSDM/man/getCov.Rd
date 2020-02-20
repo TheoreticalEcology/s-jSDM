@@ -7,7 +7,7 @@
 getCov(object)
 }
 \arguments{
-\item{object}{object of class sjSDM}
+\item{object}{a model fitted by \code{\link{sjSDM}}}
 }
 \description{
 get species-species assocation (covariance) matrix

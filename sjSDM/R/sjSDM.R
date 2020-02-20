@@ -1,9 +1,7 @@
-
 #' @title sjSDM
 #'
-#' @description
-#' fast and accurate joint species model
-#'
+#' @description fast and accurate joint species model
+#' 
 #' @param X matrix of environmental predictors
 #' @param Y matrix of species occurences/responses
 #' @param formula formula object for predictors
@@ -15,10 +13,15 @@
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if `NULL` then step_size is set to: `step_size = 0.1*nrow(X)`
 #' @param learning_rate learning rate for [optimizer_adamax]
+#' 
+#' @details The function fits a multivariate probit model via Monte-Carlo integration of the joint likelihood for all species. 
+#' 
+#' @note sjSDM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. See \code{\link{install_sjSDM}} for details.  
+#' 
 #' @example /inst/examples/sjSDM-example.R
+#' @seealso \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}
 #' @export
-
-sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, parallel = 0L,device = "cpu", dtype = "float32") {
+sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, parallel = 0L, device = "cpu", dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
     is.matrix(Y),
@@ -114,13 +117,21 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
 }
 
 
-#'@export
+#' Print a fitted sjSDM model
+#' 
+#' @param x a moel fitted by \code{\link{sjSDM}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
 print.sjSDM = function(x, ...) {
   cat("sjSDM model, see summary(model) for details \n")
 }
 
 
-#'@export
+#' Predict from a fitted sjSDM model
+#' 
+#' @param x a model fitted by \code{\link{sjSDM}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
 predict.sjSDM = function(object, newdata = NULL, ...) {
   object = checkModel(object)
   if(is.null(newdata)) {
@@ -136,13 +147,20 @@ predict.sjSDM = function(object, newdata = NULL, ...) {
   return(pred)
 }
 
-#'@export
+#' Return coefficients from a fitted sjSDM model
+#' 
+#' @param x a model fitted by \code{\link{sjSDM}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
 coef.sjSDM = function(object, ...) {
   return(object$weights[[1]])
 }
 
-#'@export
-# TO DO
+#' Return summary of a fitted sjSDM model
+#' 
+#' @param x a model fitted by \code{\link{sjSDM}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
 summary.sjSDM = function(object, ...) {
 
   out = list()
@@ -193,7 +211,7 @@ summary.sjSDM = function(object, ...) {
 #'
 #' Simulate nsim responses from the fitted model
 #'
-#' @param object object of class sjSDM
+#' @param object a model fitted by \code{\link{sjSDM}}
 #' @param nsim number of simulations
 #' @param seed seed for random numer generator
 #' @param ... additional parameters
@@ -213,10 +231,11 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
 }
 
 
+
 #' getCov
 #'
 #' get species-species assocation (covariance) matrix
-#' @param object object of class sjSDM
+#' @param object a model fitted by \code{\link{sjSDM}}
 #' @export
 getCov = function(object){
   if(!inherits(object, "sjSDM")) stop("Please provide sjSDM object")

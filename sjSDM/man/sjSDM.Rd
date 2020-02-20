@@ -34,6 +34,12 @@ sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
 \description{
 fast and accurate joint species model
 }
+\details{
+The function fits a multivariate probit model via Monte-Carlo integration of the joint likelihood for all species.
+}
+\note{
+sjSDM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. See \code{\link{install_sjSDM}} for details.
+}
 \examples{
 \donttest{
 # simulate community:
@@ -56,4 +62,7 @@ summary(model)
 # predict with model:
 preds = predict(model, newdata = com$env_weights)
 }
+}
+\seealso{
+\code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}
 }

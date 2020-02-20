@@ -6,7 +6,8 @@
 \usage{
 install_sjSDM(method = "conda", conda = "auto", version = c("cpu", "gpu"),
   envname = "r-sjSDM", extra_packages = NULL, restart_session = TRUE,
-  conda_python_version = "3.6", pip = FALSE, cuda = c("10.1", "9,2"), ...)
+  conda_python_version = "3.6", channel = "pytorch", pip = FALSE,
+  cuda = c("10.1", "9,2"), ...)
 }
 \arguments{
 \item{method}{installation method, auto = automatically best (conda or virtualenv), or force conda with method = "conda" or virtualenv with method = "virtualenv"}
@@ -24,6 +25,8 @@ PyTorch}
 only occur within RStudio).}
 
 \item{conda_python_version}{python version to be installed in the env, default = 3.6}
+
+\item{pip}{use pip installer}
 
 \item{cuda}{which cuda version, 9.2 and 10.1 are supported}
 }

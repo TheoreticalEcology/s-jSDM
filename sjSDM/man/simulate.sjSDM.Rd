@@ -7,7 +7,7 @@
 \method{simulate}{sjSDM}(object, nsim = 1, seed = NULL, ...)
 }
 \arguments{
-\item{object}{object of class sjSDM}
+\item{object}{a model fitted by \code{\link{sjSDM}}}
 
 \item{nsim}{number of simulations}
 
