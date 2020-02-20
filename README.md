@@ -15,10 +15,10 @@ sjSDM::install_sjSDM(version = "cpu")
 Try to run the [example](#example). If it fails, check out the section below.
 
 
-## Manual install
-[Windows](#windows)
-[Linux](#linux)
-[MacOS](#macos)
+## Installation
+* [Windows](#windows)
+* [Linux](#linux)
+* [MacOS](#macos)
 
 
 ### Windows
@@ -53,29 +53,13 @@ Install pip
 $ sudo apt install python3-pip # for ubuntu/deb
 ```
 
-Install virtualenv:
+Create a virtualenv and install dependencies:
 ```
 $ python3 -m pip install --user virtualenv
-```
-
-and create a virtualenv:
-```
 $ python3 -m venv ~/sjSDM_env
-```
-
-activate environment:
-```
 $ source ~/sjSDM_env/bin/activate
-```
-
-install pytorch:
-```
 $ pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu
 $ pip install torch torchvision #gpu
-```
-
-install sjSDM_py:
-```
 $ pip install sjSDM_py
 ```
 
@@ -114,7 +98,7 @@ start RStudio from  within the conda env and try the [example](#example)
 For GPU support on MacOS, you have to install the cuda binaries yourself, see [PyTorch for help](https://pytorch.org/)
 
   
-### Example
+## Example
 ```{r}
 library(sjSDM)
 community <- simulate_SDM(sites = 100, species = 10, env = 5)
@@ -131,7 +115,7 @@ summary(model)
 pip install sjSDM_py
 ```
 
-### Example
+## Python example
 ```{python}
 import sjSDM_py as fa
 import numpy as np
