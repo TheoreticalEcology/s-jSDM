@@ -21,14 +21,14 @@ install_sjSDM = function(method = "conda",
                            extra_packages = NULL,
                            restart_session = TRUE,
                            conda_python_version = "3.6",
+                           channel = "pytorch",
                            pip = FALSE,
                            cuda = c("10.1", "9,2"), ...) {
 
   version = match.arg(version)
   cuda = match.arg(cuda)
 
-  OS = Sys.info()['sysname']
-  if(stringr::str_detect(stringr::str_to_lower(OS), "windows")) {
+  if(is_windows()) {
     package = list()
     package$conda =
       switch(version,
@@ -41,29 +41,35 @@ install_sjSDM = function(method = "conda",
              cpu = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
              gpu = "torch===1.4.0 torchvision===0.5.0 -f https://download.pytorch.org/whl/torch_stable.html")
     if(cuda == 9.2 && version == "gpu") package$conda = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
-    
-  } else if(stringr::str_detect(stringr::str_to_lower(OS), "linux")) {
+  }
+  
+ if(is_linux() || is_unix()) {
     package = list()
     package$conda =
       switch(version,
-             default = "pytorch torchvision cpuonly -c pytorch",
+             cpu = "pytorch torchvision cpuonly -c pytorch",
              gpu = "pytorch torchvision cudatoolkit=10.1 -c pytorch")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch"
 
     package$pip =
       switch(version,
-             default = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
+             cpu = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
              gpu = "torch torchvision")
     if(cuda == 9.2 && version == "gpu") package$pip = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
-  } else {
+  } 
+  if(is_osx()) {
     package = list()
     package$conda =
       switch(version,
-             default = "torch torchvision")
-
+             cpu = "torch torchvision",
+             gpu = "torch torchvision")
+    
     package$pip =
       switch(version,
-             default = "pytorch torchvision -c pytorch")
+             cpu = "pytorch torchvision -c pytorch",
+             gpu = "pytorch torchvision -c pytorch")
+    
+    if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
   }
   ### pytorch  Windows ###
   # pip cpu:
@@ -102,64 +108,69 @@ install_sjSDM = function(method = "conda",
   extra_packages = lapply(packages, function(d) d[-1])
   
   
-  
-  # Main OS verification.
-  if (is_osx() || is_linux()) {
-    
-    if(pip) package$conda = package$pip
-    
-    if (method == "conda") {
-      reticulate::conda_install(
-        package = package$conda,
-        extra_packages = extra_packages$conda,
-        envname = envname,
-        conda = conda,
-        conda_python_version = conda_python_version,
-        #channel = channel,
-        pip = pip,
-        ...
-      )
-    } else if (method == "virtualenv" || method == "auto") {
-      reticulate::virtualenv_install(
-        package = package$pip,
-        extra_packages = extra_packages$pip,
-        envname = envname,
-        ...
-      )
-    }
-    
-  } else if (is_windows()) {
-    
-    if (method == "virtualenv") {
-      stop("Installing PyTorch into a virtualenv is not supported on Windows",
-           call. = FALSE)
-    } else if (method == "conda" || method == "auto") {
+  error = tryCatch({
+    if (is_osx() || is_linux() || is_unix()) {
+      
       if(pip) package$conda = package$pip
       
-      reticulate::conda_install(
-        package = package$conda,
-        extra_packages = extra_packages$conda,
-        envname = envname,
-        conda = conda,
-        conda_python_version = conda_python_version,
-        #channel = channel,
-        pip = pip,
-        ...
-      )
+      if (method == "conda") {
+        reticulate::conda_install(
+          package = package$conda,
+          extra_packages = extra_packages$conda,
+          envname = envname,
+          conda = conda,
+          conda_python_version = conda_python_version,
+          channel = channel,
+          pip = pip,
+          ...
+        )
+      } else if (method == "virtualenv" || method == "auto") {
+        reticulate::virtualenv_install(
+          package = package$pip,
+          extra_packages = extra_packages$pip,
+          envname = envname,
+          ...
+        )
+      }
       
+    } else if (is_windows()) {
+      
+      if (method == "virtualenv") {
+        stop("Installing PyTorch into a virtualenv is not supported on Windows",
+             call. = FALSE)
+      } else if (method == "conda" || method == "auto") {
+        if(pip) package$conda = package$pip
+        
+        reticulate::conda_install(
+          package = package$conda,
+          extra_packages = extra_packages$conda,
+          envname = envname,
+          conda = conda,
+          conda_python_version = conda_python_version,
+          pip = pip,
+          ...
+        )
+        
+      }
+      
+    } else {
+      stop("Unable to install PyTorch on this platform. ",
+           "Binary installation is available for Windows, OS X, and Linux")
     }
+  }, error = function(e) e)
+  
+  if(!inherits(error, "error")) {
+    message("\nInstallation complete.\n\n")
     
+    if (restart_session && rstudioapi::hasFun("restartSession"))
+      rstudioapi::restartSession()
+    
+    invisible(NULL)
   } else {
-    stop("Unable to install PyTorch on this platform. ",
-         "Binary installation is available for Windows, OS X, and Linux")
+    cat("\nInstallation failed... Try to install manually PyTorch (install instructions: https://github.com/TheoreticalEcology/s-jSDM\n")
+    cat("If the installation still fails, please report the following error on https://github.com/TheoreticalEcology/s-jSDM/issues\n")
+    cat(error$message)
   }
-  
-  message("\nInstallation complete.\n\n")
-  
-  if (restart_session && rstudioapi::hasFun("restartSession"))
-    rstudioapi::restartSession()
-  
-  invisible(NULL)
   
   # 
   # reticulate::py_install(packages = c("--user", stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,]), envname = envname, method = method, conda = conda, pip = TRUE, python_version = conda_python_version)
@@ -170,11 +181,4 @@ install_sjSDM = function(method = "conda",
   # cat("\n Installation was successful")
   # 
   # return(invisible(NULL))
-}
-
-#' is_windows
-#' check if os == windows
-is_windows = function() {
-  OS = Sys.info()['sysname']
-  return(stringr::str_detect(stringr::str_to_lower(OS), "windows"))
 }
