@@ -2,19 +2,28 @@
 #'
 #' @param method installation method, auto = automatically best (conda or virtualenv), or force conda with method = "conda" or virtualenv with method = "virtualenv"
 #' @param conda path to conda
+<<<<<<< HEAD
 #' @param version version = "cpu" for CPU version, or "gpu" for gpu version. (note MacOS users have to install cuda binaries by themselves)
+=======
+#' @param version version = "default" for CPU version, or "gpu" for gpu version. (note MacOS users have to install cuda binaries by themselves)
+>>>>>>> b8b66db67871e669a623e4e70b5efe31ba30a571
 #' @param envname Name of python env, "r-pytorch" is default
 #' @param extra_packages Additional Python packages to install along with
 #'   PyTorch
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
+<<<<<<< HEAD
 #' @param conda_python_version python version to be installed in the env, default = 3.6
+=======
+#' @param python_version python version to be installed in the env, default = 3.7
+>>>>>>> b8b66db67871e669a623e4e70b5efe31ba30a571
 #' @param cuda which cuda version, 9.2 and 10.1 are supported
 #'
 #'
 #' @export
 install_sjSDM = function(method = "conda",
                            conda = "auto",
+<<<<<<< HEAD
                            version = c("cpu", "gpu"),
                            envname = "r-sjSDM",
                            extra_packages = NULL,
@@ -24,6 +33,18 @@ install_sjSDM = function(method = "conda",
 
   version = match.arg(version)
   cuda = match.arg(cuda)
+=======
+                           version = "default",
+                           envname = "r-sjSDM",
+                           extra_packages = NULL,
+                           restart_session = TRUE,
+                           python_version = "3.6",
+                           cuda = "10.1") {
+
+  stopifnot(
+    version %in% c("default", "gpu")
+  )
+>>>>>>> b8b66db67871e669a623e4e70b5efe31ba30a571
 
   OS = Sys.info()['sysname']
   if(stringr::str_detect(stringr::str_to_lower(OS), "windows")) {
@@ -98,7 +119,7 @@ install_sjSDM = function(method = "conda",
   extra_packages = unique(extra_packages)
   packages = c(package$pip, list(extra = extra_packages))
   
-  reticulate::py_install(packages = c(stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,], "sjSDM_py"), envname = envname, method = method, conda = conda, pip = TRUE, python_version = conda_python_version)
+  reticulate::py_install(packages = c(stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,], "sjSDM_py"), envname = envname, method = method, conda = conda, pip = TRUE, python_version = python_version)
   
   reticulate::use_condaenv(envname)
   if (restart_session && rstudioapi::hasFun("restartSession")) rstudioapi::restartSession()
