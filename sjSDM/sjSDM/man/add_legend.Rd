@@ -5,8 +5,8 @@
 \title{add_legend
 add legend to circular plot}
 \usage{
-add_legend(cols = RColorBrewer::brewer.pal(11, "Spectral"),
-  range = c(-1, 1), radius = 5, angles = c(110, 70))
+add_legend(cols = RColorBrewer::brewer.pal(11, "Spectral"), range = c(-1,
+  1), radius = 5, angles = c(110, 70))
 }
 \arguments{
 \item{cols}{colors for gradients}

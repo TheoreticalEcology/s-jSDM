@@ -24,3 +24,4 @@ Suggests:
 RoxygenNote: 7.0.2.9000
 URL: https://github.com/TheoreticalEcology/s-jSDM
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
+Roxygen: list(old_usage = TRUE)
