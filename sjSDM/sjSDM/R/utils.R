@@ -12,7 +12,6 @@ is_torch_available = function() {
 
 #' is_sjSDM_py_available
 #' check whetcher torch is available
-#' @export
 is_sjSDM_py_available = function() {
   #implementation_module <- resolve_implementation_module()
   if (reticulate::py_module_available("sjSDM_py")) {
