@@ -132,4 +132,3 @@ python_has_modules <- function(python, modules) {
 }
 
 
-sjSDM::install_sjSDM()
