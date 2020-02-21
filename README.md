@@ -11,7 +11,7 @@ Install the package via
 devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
 ```
 
-Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"). Very briefly, If you have conda installed, the dependencies can be automatically installed from within R:
+Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly, If you have conda installed, the dependencies can be automatically installed from within R:
 
 ```{r}
 sjSDM::install_sjSDM(version = "gpu") # or
