@@ -165,7 +165,7 @@ coef.sjSDM = function(object, ...) {
 #' Return summary of a fitted sjSDM model
 #' 
 #' @param object a model fitted by \code{\link{sjSDM}}
-#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
 #' @export
 summary.sjSDM = function(object, ...) {
 
@@ -220,7 +220,7 @@ summary.sjSDM = function(object, ...) {
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param nsim number of simulations
 #' @param seed seed for random numer generator
-#' @param ... additional parameters
+#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
 #'
 #' @importFrom stats simulate
 #' @export
@@ -247,5 +247,21 @@ getCov = function(object){
   if(!inherits(object, "sjSDM")) stop("Please provide sjSDM object")
   return(object$sigma %*% t(object$sigma))
 }
+
+#' Extract Log-Likelihood from a fitted sjSDM model
+#'
+#' @param object a model fitted by \code{\link{sjSDM}}
+#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
+#'
+#' @importFrom stats simulate
+#' @export
+logLik.sjSDM <- function(object, ...){
+  return(object$logLik[[1]])
+}
+
+
+
+
+
 
 
