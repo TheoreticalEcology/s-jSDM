@@ -3,7 +3,7 @@ Type: Package
 Title: Fast and accurate Joint Species Distribution Modeling
 Version: 0.0.0.9000
 Date: 20.2.20
-Authors@R: c(person("Maximilian", 
+Authors@R: c(person("Maximilian",
                     "Pichler",
                     email = "maximilian.pichler@biologie.uni-regensburg.de",
                     role = c("aut", "cre")))
@@ -11,7 +11,7 @@ Description: sjSDM is a novel method for estimating jSDMs that is based on Monte
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
     reticulate,
     stats,
     mvtnorm,
@@ -21,7 +21,7 @@ Imports:
     RColorBrewer,
     viridis,
     abind
-Suggests: 
+Suggests:
     testthat,
     knitr,
     rmarkdown
