@@ -1,12 +1,13 @@
 Package: sjSDM
 Type: Package
 Title: Fast and accurate Joint Species Distribution Modeling
-Version: 0.1.0
+Version: 0.0.0.9000
+Date: 20.2.20
 Authors@R: c(person("Maximilian", 
                     "Pichler",
                     email = "maximilian.pichler@biologie.uni-regensburg.de",
                     role = c("aut", "cre")))
-Description: sjSDM 
+Description: sjSDM is a novel method for estimating jSDMs that is based on Monte-Carlo integreation and with the option to run the computation on the GPU.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
@@ -18,10 +19,14 @@ Imports:
     rstudioapi,
     stringr,
     RColorBrewer,
-    viridis
+    viridis,
+    abind
 Suggests: 
-    testthat
+    testthat,
+    knitr,
+    rmarkdown
 RoxygenNote: 7.0.2.9000
 URL: https://github.com/TheoreticalEcology/s-jSDM
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
 Roxygen: list(old_usage = TRUE)
+VignetteBuilder: knitr

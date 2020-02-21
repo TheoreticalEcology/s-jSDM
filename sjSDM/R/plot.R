@@ -61,7 +61,7 @@ curve_text = function(pos = 0, label = "", radius = 5.0, reverse = FALSE,middle 
 #' @param species draw species line
 #' @param radius radius
 #' @param lwd curve lwd
-add_curve = function(p1 = coords[1,], p2 = coords[3,], n = 10, spar = 0.7, col = "black", species = TRUE, radius = 5.0, lwd = 1.0) {
+add_curve = function(p1 = NULL, p2 = NULL, n = 10, spar = 0.7, col = "black", species = TRUE, radius = 5.0, lwd = 1.0) {
   xxs1 = cos(deg2rad(p1[3]))* seq(0, radius, length.out = n)
   xxs2 = cos(deg2rad(p2[3]))* seq(0, radius, length.out = n)
   yys1 = sin(deg2rad(p1[3]))* seq(0, radius, length.out = n)
@@ -129,8 +129,7 @@ add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(
 #' @param end end point for arrow in degree
 #' @export
 
-add_species_arrows = function(radius = NULL, label = "Species", reverse = TRUE, start = 150, end = 270) {
-  if(is.null(radius)) radius = .controlCircular$radius
+add_species_arrows = function(radius = 5.0, label = "Species", reverse = TRUE, start = 150, end = 270) {
 
   # first
   angles = seq(150,195,length.out = 100)
@@ -152,12 +151,15 @@ add_species_arrows = function(radius = NULL, label = "Species", reverse = TRUE, 
 #' plotAssociations
 #' plot species-species associations
 #'
-#' @param model model of `class(model) == 'sjSDM'`, see \code{\link{sjSDM}}
+#' @param sigma species-species covariance matrix
 #' @param radius circle's radius
 #' @param main title
 #' @param circleBreak circle break or not
+#' @param top top negative and positive associations
+#' @param occ species occurence data
 #' @export
-plotAssociations = function(model, radius = 5.0, main = NULL, circleBreak = FALSE){
+plotAssociations = function(sigma, radius = 5.0, main = NULL, 
+                            circleBreak = FALSE, top = 30L, occ = NULL){
 
   ##### circle #####
   lineSeq = 0.94*radius
@@ -170,16 +172,15 @@ plotAssociations = function(model, radius = 5.0, main = NULL, circleBreak = FALS
   graphics::polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
 
   #### curves ####
-  sigma = model$model$sigma_r
   n = ncol(sigma)
 
   #sigma = re_scale(result[[10]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
   sigma = stats::cov2cor(sigma)
   sigmas = sigma[upper.tri(sigma)]
-  # upper = order(sigmas, decreasing = TRUE)[1:number]
-  #lower = order(sigmas, decreasing = FALSE)[1:number]
+  upper = order(sigmas, decreasing = TRUE)[1:top]
+  lower = order(sigmas, decreasing = FALSE)[1:top]
   cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
-  #to_plot = (1:length(sigmas) %in% upper) | (1:length(sigmas) %in% lower)
+  to_plot = (1:length(sigmas) %in% upper) | (1:length(sigmas) %in% lower)
   levels(cuts) = viridis::viridis(11)
   cuts = as.character(cuts)
 
@@ -192,42 +193,41 @@ plotAssociations = function(model, radius = 5.0, main = NULL, circleBreak = FALS
     for(j in i:n){
       if(i!=j) {
         #if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, lineSeq = lineSeq)
-        add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, radius = lineSeq)
+        if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, radius = lineSeq)
         counter = counter + 1
         #cat(counter, "\n")
       }
     }
   }
-
-
-
-
-
-  lineSeq = radius
-  occ_logs = log(sort(apply(occ, 2, sum)))
-  cuts = cut(occ_logs, breaks = 10)
-  cols = viridis::magma(10) #colfunc(5)
-  levels(cuts) = cols
-  for(i in 1:length(occ_logs)){
-    p1 = coords[i,]
-    x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
-    y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
-    segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1)
+  
+  if(!is.null(occ)) {
+    lineSeq = radius
+    occ_logs = log(sort(apply(occ, 2, sum)))
+    cuts = cut(occ_logs, breaks = 10)
+    cols = viridis::magma(10) #colfunc(5)
+    levels(cuts) = cols
+    for(i in 1:length(occ_logs)){
+      p1 = coords[i,]
+      x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+      y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+      graphics::segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1)
+    }
+    add_legend(viridis::viridis(11), angles = c(140,110))
+    graphics::text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq*1.14), labels = "covariance", pos = 2, xpd = NA)
+    add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+    graphics::text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq*1.14), labels = "Sp. abundance", pos = 4, xpd = NA)
   }
-  add_legend(viridis::viridis(11), angles = c(140,110))
-  text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq*1.14), labels = "covariance", pos = 2, xpd = NA)
-  add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
-  text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq*1.14), labels = "Sp. abundance", pos = 4, xpd = NA)
+  
   ### arrows
 
-  if(isTRUE(circle_break)) {
-    segments(x0 = cos(deg2rad(-1))*(lineSeq*0.96), x1 = cos(deg2rad(-1))*(lineSeq*1.18),
+  if(isTRUE(circleBreak)) {
+    graphics::segments(x0 = cos(deg2rad(-1))*(lineSeq*0.96), x1 = cos(deg2rad(-1))*(lineSeq*1.18),
              y0 = sin(deg2rad(-1))*(lineSeq*0.96), y1 = sin(deg2rad(-1))*(lineSeq*1.18), xpd = NA)
-    segments(x0 = cos(deg2rad(356))*(lineSeq*0.96), x1 = cos(deg2rad(356))*(lineSeq*1.18),
+    graphics::segments(x0 = cos(deg2rad(356))*(lineSeq*0.96), x1 = cos(deg2rad(356))*(lineSeq*1.18),
              y0 = sin(deg2rad(356))*(lineSeq*0.96), y1 = sin(deg2rad(356))*(lineSeq*1.18), xpd = NA)
   }
-  .controlCircular = list()
-  .controlCircular$radius = radius
-  .controlCircular$n = n
-  return(invisible(.controlCircular))
+  controlCircular = list()
+  controlCircular$radius = radius
+  controlCircular$n = n
+  return(invisible(controlCircular))
 }

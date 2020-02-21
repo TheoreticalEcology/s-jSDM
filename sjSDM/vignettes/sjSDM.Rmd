@@ -82,25 +82,20 @@ getCov(model)
 
 ## Adding quadratic predictors and interactions
 
+sjSDM supports formula description for the predictors.
 
-If you want to add quadratic effects or interactions, you have to add them manually in the environental predictors. For example
-
+E.g. interaction with intercept:
 ```{r}
-com$env_weights2 = cbind(com$env_weights, com$env_weights^2)
+model = sjSDM(X = com$env_weights, formula = ~ X1*X2,Y = com$response, iter = 10L)
+summary(model)
+
 ```
 
-would create a new environmental matrix with lineare and quadratic effects for all three predictors. 
-
+E.g. quadratic effect without intercept:
 ```{r}
-com$env_weights3 = cbind(com$env_weights, com$env_weights[,1] * com$env_weights[,1])
+model = sjSDM(X = com$env_weights, formula = ~0+ I(X1^2),Y = com$response, iter = 10L)
+summary(model)
 ```
-
-would add an interaction between predictor 1 and 2. 
-
-
-
-
-
 
 
 

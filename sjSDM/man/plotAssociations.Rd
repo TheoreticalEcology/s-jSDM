@@ -5,16 +5,21 @@
 \title{plotAssociations
 plot species-species associations}
 \usage{
-plotAssociations(model, radius = 5, main = NULL, circleBreak = FALSE)
+plotAssociations(sigma, radius = 5, main = NULL, circleBreak = FALSE,
+  top = 30L, occ = NULL)
 }
 \arguments{
-\item{model}{model of `class(model) == 'sjSDM'`, see \code{\link{sjSDM}}}
+\item{sigma}{species-species covariance matrix}
 
 \item{radius}{circle's radius}
 
 \item{main}{title}
 
 \item{circleBreak}{circle break or not}
+
+\item{top}{top negative and positive associations}
+
+\item{occ}{species occurence data}
 }
 \description{
 plotAssociations

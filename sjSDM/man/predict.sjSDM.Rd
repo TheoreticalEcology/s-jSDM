@@ -7,9 +7,11 @@
 \method{predict}{sjSDM}(object, newdata = NULL, ...)
 }
 \arguments{
-\item{...}{optional arguments for compatibility with the generic function, no function implemented}
+\item{object}{a model fitted by \code{\link{sjSDM}}}
 
-\item{x}{a model fitted by \code{\link{sjSDM}}}
+\item{newdata}{newdata for predictions}
+
+\item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
 \description{
 Predict from a fitted sjSDM model

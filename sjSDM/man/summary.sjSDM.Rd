@@ -7,9 +7,9 @@
 \method{summary}{sjSDM}(object, ...)
 }
 \arguments{
-\item{...}{optional arguments for compatibility with the generic function, no function implemented}
+\item{object}{a model fitted by \code{\link{sjSDM}}}
 
-\item{x}{a model fitted by \code{\link{sjSDM}}}
+\item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
 \description{
 Return summary of a fitted sjSDM model

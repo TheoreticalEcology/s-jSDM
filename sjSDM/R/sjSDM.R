@@ -12,7 +12,10 @@
 #' @param l2_cov strength of ridge regularization on covariances in species-species association matrix
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if `NULL` then step_size is set to: `step_size = 0.1*nrow(X)`
-#' @param learning_rate learning rate for [optimizer_adamax]
+#' @param learning_rate learning rate for Adamax optimizer
+#' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
+#' @param device which device to be used, "cpu" or "gpu"
+#' @param dtype which data type, most GPU support only 32 bit floats.
 #' 
 #' @details The function fits a multivariate probit model via Monte-Carlo integration of the joint likelihood for all species. 
 #' 
@@ -21,7 +24,9 @@
 #' @example /inst/examples/sjSDM-example.R
 #' @seealso \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}
 #' @export
-sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, parallel = 0L, device = "cpu", dtype = "float32") {
+sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, 
+                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, 
+                 parallel = 0L, device = "cpu", dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
     is.matrix(Y),
@@ -129,7 +134,8 @@ print.sjSDM = function(x, ...) {
 
 #' Predict from a fitted sjSDM model
 #' 
-#' @param x a model fitted by \code{\link{sjSDM}}
+#' @param object a model fitted by \code{\link{sjSDM}}
+#' @param newdata newdata for predictions
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
 predict.sjSDM = function(object, newdata = NULL, ...) {
@@ -149,7 +155,7 @@ predict.sjSDM = function(object, newdata = NULL, ...) {
 
 #' Return coefficients from a fitted sjSDM model
 #' 
-#' @param x a model fitted by \code{\link{sjSDM}}
+#' @param object a model fitted by \code{\link{sjSDM}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
 coef.sjSDM = function(object, ...) {
@@ -158,7 +164,7 @@ coef.sjSDM = function(object, ...) {
 
 #' Return summary of a fitted sjSDM model
 #' 
-#' @param x a model fitted by \code{\link{sjSDM}}
+#' @param object a model fitted by \code{\link{sjSDM}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
 summary.sjSDM = function(object, ...) {
@@ -225,8 +231,8 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
     torch$cuda$manual_seed(seed)
     torch$manual_seed(seed)
   }
-  preds = abind::abind(lapply(1:nsim, function(i) predict(object)), along = 0L)
-  simulation = apply(preds, 2:3, function(p) rbinom(nsim, 1L,p))
+  preds = abind::abind(lapply(1:nsim, function(i) predict.sjSDM(object)), along = 0L)
+  simulation = apply(preds, 2:3, function(p) stats::rbinom(nsim, 1L,p))
   return(simulation)
 }
 

@@ -29,7 +29,13 @@ sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
 
 \item{step_size}{batch size for stochastic gradient descent, if `NULL` then step_size is set to: `step_size = 0.1*nrow(X)`}
 
-\item{learning_rate}{learning rate for [optimizer_adamax]}
+\item{learning_rate}{learning rate for Adamax optimizer}
+
+\item{parallel}{number of cpu cores for the data loader, only necessary for large datasets}
+
+\item{device}{which device to be used, "cpu" or "gpu"}
+
+\item{dtype}{which data type, most GPU support only 32 bit floats.}
 }
 \description{
 fast and accurate joint species model

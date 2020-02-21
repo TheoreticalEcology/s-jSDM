@@ -11,7 +11,7 @@
 #' @param conda_python_version python version to be installed in the env, default = 3.6
 #' @param pip use pip installer
 #' @param cuda which cuda version, 9.2 and 10.1 are supported
-#'
+#' @param ... arguments passed to \code{\link{reticulate::conda_install()}}
 #'
 #' @export
 install_sjSDM = function(method = "conda",
@@ -21,7 +21,6 @@ install_sjSDM = function(method = "conda",
                            extra_packages = NULL,
                            restart_session = TRUE,
                            conda_python_version = "3.6",
-                           channel = "pytorch",
                            pip = FALSE,
                            cuda = c("10.1", "9,2"), ...) {
 
@@ -165,14 +164,4 @@ install_sjSDM = function(method = "conda",
     cat("If the installation still fails, please report the following error on https://github.com/TheoreticalEcology/s-jSDM/issues\n")
     cat(error$message)
   }
-  
-  # 
-  # reticulate::py_install(packages = c("--user", stringr::str_split_fixed(unlist(packages), " ", n = Inf)[1,]), envname = envname, method = method, conda = conda, pip = TRUE, python_version = conda_python_version)
-  # 
-  # reticulate::use_condaenv(envname)
-  # if (restart_session && rstudioapi::hasFun("restartSession")) rstudioapi::restartSession()
-  # 
-  # cat("\n Installation was successful")
-  # 
-  # return(invisible(NULL))
 }

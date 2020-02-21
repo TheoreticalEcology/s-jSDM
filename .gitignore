@@ -12,5 +12,5 @@ data_sets.RData
 data_sets2.RData
 data_sets_sparse.RData
 *.tar.gz
-
 *.pdf
+sjSDM.Rcheck/
