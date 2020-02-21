@@ -1,13 +1,21 @@
 # sjSDM - Fast and Accurate Joint Species distribution Modeling 
 
+At the moment, we do not provide specifically a API for joint species distribution models. However, it's just a deep multivariate probit model with one layer (example below).
+
+We provide a R package with an API focused on jSDM is available [here](https://github.com/TheoreticalEcology/s-jSDM).
+
 ## Install instructions
+
+Dependencies:
+* PyTorch >= 1.4, see [PyTorch](https://pytorch.org/get-started/locally/) for install instructions.
+
 ```{python}
 pip install sjSDM_py
 ```
 
 ## Example
-At the moment, we do not provide specifically a API for jSDM Models. However, it's just a deep multivariate probit model with one layer. Here's an example:
 
+linear jSDM:
 ```{python}
 import sjSDM_py as sa
 import numpy as np
@@ -23,4 +31,5 @@ print(model.get_cov())
 ```
 
 * For species intercept, use 'bias=True' in 'Layer_dense(...)'. 
-* We recommend to set df = number of species / 2. 
+* We recommend to set 'df = number of species / 2.'
+

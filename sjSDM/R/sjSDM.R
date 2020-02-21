@@ -13,6 +13,7 @@
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if `NULL` then step_size is set to: `step_size = 0.1*nrow(X)`
 #' @param learning_rate learning rate for Adamax optimizer
+#' @param se calculate standard errors for environmental coefficients
 #' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
 #' @param device which device to be used, "cpu" or "gpu"
 #' @param dtype which data type, most GPU support only 32 bit floats.
@@ -25,7 +26,7 @@
 #' @seealso \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}
 #' @export
 sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, 
-                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, 
+                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, se = FALSE, 
                  parallel = 0L, device = "cpu", dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
@@ -116,6 +117,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   out$weights = model$weights_numpy
   out$sigma = model$get_sigma_numpy()
   out$history = model$history
+  if(se) try({ out$se = t(abind::abind(model$get_z_scores(X, Y, batch_size = nrow(X)),along=0L)) })
   torch$cuda$empty_cache()
   class(out) = "sjSDM"
   return(out)
@@ -200,7 +202,14 @@ summary.sjSDM = function(object, ...) {
   cat("Species-species correlation matrix: \n\n")
   print(p_cor)
   cat("\n\n\n")
-
+  
+  
+  # TO DO: p-value parsing:
+  if(!is.null(object$se)) {
+    z_scores = object$weights[[1]][[1]] / object$se
+    P = 2*pnorm(abs(z_scores),lower.tail = FALSE)
+  }
+  
   cat("Coefficients (beta): \n\n")
   if(dim(env)[2] > 50) utils::head(env)
   else print(env)

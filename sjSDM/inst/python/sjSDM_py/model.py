@@ -270,6 +270,60 @@ class Model_base:
             torch.cuda.empty_cache()
         return logLik, logLikReg
 
+    def get_z_scores(self, X, Y, batch_size=25, parallel=0, sampling=100, each_species=True):
+        dataLoader = self._get_DataLoader(X, Y, batch_size=batch_size, shuffle=False)
+        loss_func = self.__build_loss_function(train=True)
+        se = []
+        y_dim = np.size(self.weights_numpy[0][0], 1)
+        weights = self.weights[0][0]
+        if each_species:
+            for i in range(y_dim):
+                weights = torch.tensor(self.weights_numpy[0][0][:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
+                if i == 0:
+                    constants = torch.tensor(self.weights_numpy[0][0][:,(i+1):])
+                    w = torch.cat([weights, constants], dim=1)
+                elif i < y_dim:
+                    w = torch.cat([torch.tensor(self.weights_numpy[0][0][:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
+                                   weights, 
+                                   torch.tensor(self.weights_numpy[0][0][:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
+                else:
+                    constants = torch.tensor(self.weights_numpy[0][0][:,0:i])
+                    w = torch.cat([constants, weights], dim=1)
+                for step, (x, y) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    y = y.to(self.device, non_blocking=True)
+                    if self.layers[0].bias:
+                        mu = torch.nn.functional.linear(x, w.t())
+                    else:
+                        mu = torch.nn.functional.linear(x, w.t())
+                    loss = loss_func(mu, y, x.shape[0], sampling)
+                    loss = torch.sum(loss)
+                    first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True,allow_unused=True)
+                    second = []
+                    for j in range(self.input_shape):
+                        second.append(torch.autograd.grad(first_gradients[0][j,0],inputs = weights,retain_graph = True,create_graph = False,allow_unused = False)[0])
+                        hessian = torch.cat(second,dim=1)
+                if step != 0:
+                    hessian+=hessian
+                se.append(torch.sqrt(torch.diag(torch.inverse(hessian))).data.cpu().numpy())
+            return se
+        else: 
+            for step, (x, y) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    y = y.to(self.device, non_blocking=True)
+                    mu = self.layers[0](x)
+                    loss = torch.sum(loss_func(mu, y, x.shape[0], sampling))
+                    first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True,allow_unused=True)[0].reshape([-1])
+                    hessian = []
+                    for j in range(first_gradients.shape[0]):
+                        hessian.append(torch.autograd.grad(first_gradients[j],inputs = weights,retain_graph = True,create_graph = False,allow_unused = False)[0].reshape([-1]).reshape([y_dim*self.input_shape, 1]))
+                    hessian = torch.cat(hessian,dim=1)
+                    if step != 0:
+                        hessian_result+=hessian_result
+                    else:
+                        hessian_result = hessian
+            return hessian_result.data.cpu().numpy(), loss
+
     def _get_DataLoader(self, X, Y=None, batch_size=25, shuffle=True, parallel=0, drop_last=True):
         if self.device.type == 'cuda':
             torch.cuda.set_device(self.device)

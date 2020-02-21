@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="sjSDM_py", 
-    version="0.0.1",
+    version="0.0.2",
     author="Maximilian Pichler",
     author_email="Maximilian.Pichler@ur.de",
     description="jSDM package",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/TheoreticalEcology/s-jSDM/sjSDM/sjSDM-python",
+    url="https://github.com/TheoreticalEcology/s-jSDM",
     packages=setuptools.find_packages(),
     install_requires = [
         "numpy"
