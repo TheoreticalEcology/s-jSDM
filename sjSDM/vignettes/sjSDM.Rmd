@@ -44,6 +44,12 @@ sjSDM depends on the anaconda distribution of python and pytorch. You will get a
 install_sjSDM()
 ```
 
+More details on and trouble-shooting for installing the neccessary dependencies is explained in the vignette dependencies, call 
+
+```{r,eval = F}
+vignette("Dependencies", package = "sjSDM")
+```
+
 ## Citing sjSDM
 
 To cite sjSDM in a publication, use 

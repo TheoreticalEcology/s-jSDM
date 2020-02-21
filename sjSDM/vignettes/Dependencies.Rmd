@@ -1,0 +1,97 @@
+---
+title: "sjSDM: help on installing dependencies"
+author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Dependencies}
+  \usepackage[utf8]{inputenc}
+  %\VignetteEngine{knitr::rmarkdown}
+abstract: "This document explains how to install dependencies for the sjSDM package. \n \n \n"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, echo = F, message = F}
+set.seed(123)
+```
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = F)
+```
+
+
+
+
+
+# Windows
+
+Conda is the easiest way to install python and python packages on windows:
+- Install the latest [conda version](https://www.anaconda.com/distribution/)
+- Open the command window (cmd.exe - hit windows key + r and write cmd)
+
+Run:
+```
+$ conda create --name sjSDM_env python=3.7
+$ conda activate sjSDM_env
+$ conda install pip
+$ conda install pytorch torchvision cpuonly -c pytorch # cpu
+$ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu
+```
+
+
+
+# Linux
+
+## Pip
+python3 is pre-installed on most linux distributions, but you have to check that the minimal requirement of python >= 3.6 is met: 
+
+```
+$ python3 --version 
+$ python --version
+```
+
+Install pip
+```
+$ sudo apt install python3-pip # for ubuntu/deb
+```
+
+Create a virtualenv and install dependencies:
+```
+$ python3 -m pip install --user virtualenv
+$ python3 -m venv ~/sjSDM_env
+$ source ~/sjSDM_env/bin/activate
+$ pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu
+$ pip install torch torchvision #gpu
+```
+
+start RStudio from within the virtualenv and try the [example](#example)
+
+## Conda
+
+Install the latest [conda version](https://www.anaconda.com/distribution/) and run:
+```
+$ conda create --name sjSDM_env python=3.7
+$ conda activate sjSDM_env
+$ conda install pip
+$ conda install pytorch torchvision cpuonly -c pytorch # cpu
+$ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu
+```
+start RStudio from  within the conda env and try the [example](#example)
+
+# MacOS
+
+## Conda
+Install the latest [conda version](https://www.anaconda.com/distribution/) and run:
+```
+$ conda create --name sjSDM_env python=3.7
+$ conda activate sjSDM_env
+$ conda install pip
+$ conda install pytorch torchvision cpuonly -c pytorch # cpu
+```
+start RStudio from  within the conda env and try the [example](#example)
+
+For GPU support on MacOS, you have to install the cuda binaries yourself, see [PyTorch for help](https://pytorch.org/)

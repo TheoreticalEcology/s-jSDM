@@ -14,3 +14,7 @@ data_sets_sparse.RData
 *.tar.gz
 *.pdf
 sjSDM.Rcheck/
+sjSDM/vignettes/Dependencies.html
+sjSDM/vignettes/Dependencies.R
+sjSDM/vignettes/sjSDM.R
+sjSDM/vignettes/sjSDM.html
