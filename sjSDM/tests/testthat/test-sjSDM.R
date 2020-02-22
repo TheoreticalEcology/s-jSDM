@@ -79,5 +79,22 @@ testthat::test_that("sjSDM methods", {
   testthat::expect_error(print(model), NA)
   testthat::expect_error(coef(model), NA)
   testthat::expect_error(summary(model), NA)
+  
+  testthat::expect_error({model = sjSDM(X, Y, iter = 5, step_size = 50L,se=TRUE)}, NA)
+  testthat::expect_error(summary(model), NA)
+  testthat::expect_error(getSe(model), NA)
+  
+  testthat::expect_error({model = sjSDM(X, Y, iter = 5, step_size = 50L,se=FALSE)}, NA)
+  testthat::expect_error({model=getSe(model)}, NA)
+  testthat::expect_error({summary(model)}, NA)
+  
+  colnames(Y) = 1:11
+  testthat::expect_error({model = sjSDM(X, Y, iter = 5, step_size = 50L,se=FALSE)}, NA)
+  testthat::expect_error({model=getSe(model, step_size = 30)}, NA)
+  testthat::expect_error({ sum = summary(model)}, NA)
+  
+  testthat::expect_error({logLik(model)}, NA)
+  testthat::expect_error({simulate(model)}, NA)
+  testthat::expect_error({simulate(model, nsim = 10)}, NA)
 
 })

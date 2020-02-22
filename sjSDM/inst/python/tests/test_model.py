@@ -43,6 +43,14 @@ def test_ll(data, model_dense):
     model.fit(X, Y, epochs=1, batch_size=50)
     model.logLik(X, Y,batch_size=33)
 
+def test_se(data, model_dense):
+    X, Y = data()
+    model = model_dense()
+    model.fit(X, Y, epochs=1, batch_size=50)
+    model.se(X, Y,batch_size=33)
+    model.se(X, Y,batch_size=53)
+    model.se(X, Y,batch_size=33, sampling=150)
+
 
 def test_base_2(data, model_dense):
     X, Y = data(10,7)

@@ -40,6 +40,8 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
     learning_rate >= 0
   )
   
+  if(reticulate::py_is_null_xptr(fa)) .onLoad()
+  
   out = list()
   
   if(is.numeric(device)) device = as.integer(device)
@@ -74,6 +76,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
 
   out$formula = formula
   out$names = colnames(X)
+  out$species = colnames(Y)
   out$cl = match.call()
   
   
@@ -105,7 +108,9 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   
   time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel)})[3]
 
-  out$logLik = model$logLik(X, Y)
+  out$logLik = model$logLik(X, Y,batch_size = step_size,parallel = parallel)
+  if(se) try({ out$se = t(abind::abind(model$se(X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
+  
   out$model = model
   out$settings = list( df = df, l1_coefs = l1_coefs, l2_coefs = l2_coefs, 
                        l1_cov = l1_cov, l2_cov = l2_cov, iter = iter, 
@@ -117,7 +122,6 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   out$weights = model$weights_numpy
   out$sigma = model$get_sigma_numpy()
   out$history = model$history
-  if(se) try({ out$se = t(abind::abind(model$get_z_scores(X, Y, batch_size = nrow(X)),along=0L)) })
   torch$cuda$empty_cache()
   class(out) = "sjSDM"
   return(out)
@@ -164,6 +168,20 @@ coef.sjSDM = function(object, ...) {
   return(object$weights[[1]])
 }
 
+
+#' Post hoc calculation of standard errors
+#' @param object a model fitted by \code{\link{sjSDM}}
+#' @param step_size batch size for stochastic gradient descent
+#' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
+#' @export
+getSe = function(object, step_size = NULL, parallel = 0L){
+  if(!inherits(object, "sjSDM")) stop("object must be of class sjSDM")
+  if(is.null(step_size)) step_size = object$settings$step_size
+  else step_size = as.integer(step_size)
+  try({ object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel),along=0L)) })
+  return(object)
+}
+
 #' Return summary of a fitted sjSDM model
 #' 
 #' @param object a model fitted by \code{\link{sjSDM}}
@@ -179,13 +197,9 @@ summary.sjSDM = function(object, ...) {
     env = rbind(t(coefs[[2]]), env)
   }
   env = data.frame(env)
-  colnames(env) = paste0("sp", 1:ncol(env))
+  if(is.null(object$species)) colnames(env) = paste0("sp", 1:ncol(env))
+  else colnames(env) = object$species
   rownames(env) = object$names
-  # if(length(coefs) > 1) {
-  #   rownames(env) = c("intercept", paste0("env", 1:(nrow(env)-1)))
-  # } else {
-  #   rownames(env) =paste0("env", 1:nrow(env))
-  # }
 
   cat("LogLik: ", -object$logLik[[1]], "\n")
   cat("Deviance: ", 2*object$logLik[[1]], "\n\n")
@@ -206,13 +220,26 @@ summary.sjSDM = function(object, ...) {
   
   # TO DO: p-value parsing:
   if(!is.null(object$se)) {
-    z_scores = object$weights[[1]][[1]] / object$se
-    P = 2*pnorm(abs(z_scores),lower.tail = FALSE)
-  }
+    out$z = object$weights[[1]][[1]] / object$se
+    out$P = 2*stats::pnorm(abs(out$z),lower.tail = FALSE)
+    out$se = object$se
+    
+    coefmat = cbind(
+      as.vector(as.matrix(env)),
+      as.vector(as.matrix(out$se)),
+      as.vector(as.matrix(out$z)),
+      as.vector(as.matrix(out$P))
+      )
+    colnames(coefmat) = c("Estimate", "Std.Err", "Z value", "Pr(>|z|)")
+    rownames(coefmat) = apply(expand.grid( rownames(env), colnames(env)), 1, function(n) paste0(n[2]," ", n[1]))
+    stats::printCoefmat(coefmat, signif.stars = getOption("show.signif.stars"), digits = 3)
+    out$coefmat = coefmat
+  } else {
   
   cat("Coefficients (beta): \n\n")
   if(dim(env)[2] > 50) utils::head(env)
   else print(env)
+  }
 
   out$coefs = env
   out$logLik = object$logLik

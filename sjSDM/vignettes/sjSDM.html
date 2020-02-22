@@ -12,7 +12,7 @@
 
 <meta name="author" content="Maximilian Pichler &amp; Florian Hartig, Theoretical Ecology, University of Regensburg" />
 
-<meta name="date" content="2020-02-21" />
+<meta name="date" content="2020-02-22" />
 
 <title>sjSDM: a scalable joint Species Distribution Model</title>
 
@@ -313,7 +313,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 <h1 class="title toc-ignore">sjSDM: a scalable joint Species Distribution Model</h1>
 <h4 class="author">Maximilian Pichler &amp; Florian Hartig, Theoretical Ecology, University of Regensburg</h4>
-<h4 class="date">2020-02-21</h4>
+<h4 class="date">2020-02-22</h4>
 <div class="abstract">
 <p class="abstract">Abstract</p>
 <p>sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood.</p>
@@ -346,16 +346,18 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <li>once anaconda is installed, sjSDM can attempt to install pytorch automatically via</li>
 </ul>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">install_sjSDM</span>()</a></code></pre></div>
+<p>More details on and trouble-shooting for installing the neccessary dependencies is explained in the vignette dependencies, call</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">vignette</span>(<span class="st">&quot;Dependencies&quot;</span>, <span class="dt">package =</span> <span class="st">&quot;sjSDM&quot;</span>)</a></code></pre></div>
 </div>
 <div id="citing-sjsdm" class="section level2">
 <h2>Citing sjSDM</h2>
 <p>To cite sjSDM in a publication, use</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">citation</span>(<span class="st">&quot;sjSDM&quot;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">citation</span>(<span class="st">&quot;sjSDM&quot;</span>)</a></code></pre></div>
 <pre><code>## 
 ## To cite package &#39;sjSDM&#39; in publications use:
 ## 
 ##   Maximilian Pichler (NA). sjSDM: Fast and accurate Joint Species
-##   Distribution Modeling. R package version 0.1.0.
+##   Distribution Modeling. R package version 0.0.0.9000.
 ##   https://github.com/TheoreticalEcology/s-jSDM
 ## 
 ## A BibTeX entry for LaTeX users is
@@ -363,7 +365,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ##   @Manual{,
 ##     title = {sjSDM: Fast and accurate Joint Species Distribution Modeling},
 ##     author = {Maximilian Pichler},
-##     note = {R package version 0.1.0},
+##     note = {R package version 0.0.0.9000},
 ##     url = {https://github.com/TheoreticalEcology/s-jSDM},
 ##   }</code></pre>
 </div>
@@ -371,62 +373,62 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <div id="working-with-sjsdm" class="section level1">
 <h1>Working with sjSDM</h1>
 <p>sjSDM has a function to create test data. Here, we create a dataset with 3 environmental predictors, 5 species and 100 sites.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">com =<span class="st"> </span><span class="kw">simulate_SDM</span>(<span class="dt">env =</span> 3L, <span class="dt">species =</span> 5L, <span class="dt">sites =</span> 100L)</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">com =<span class="st"> </span><span class="kw">simulate_SDM</span>(<span class="dt">env =</span> 3L, <span class="dt">species =</span> 5L, <span class="dt">sites =</span> 100L)</a></code></pre></div>
 </div>
 <div id="fitting-a-model" class="section level1">
 <h1>Fitting a model</h1>
 <p>The model is then fit with the function sjSDM(). You have to provide predcitors and response as matrix.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">model =<span class="st"> </span><span class="kw">sjSDM</span>(<span class="dt">X =</span> com<span class="op">$</span>env_weights, <span class="dt">Y =</span> com<span class="op">$</span>response, <span class="dt">iter =</span> 10L)</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">model =<span class="st"> </span><span class="kw">sjSDM</span>(<span class="dt">X =</span> com<span class="op">$</span>env_weights, <span class="dt">Y =</span> com<span class="op">$</span>response, <span class="dt">iter =</span> 10L)</a></code></pre></div>
 <div id="interpreting-model-output" class="section level2">
 <h2>Interpreting model output</h2>
 <p>Things you can do with the model output</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">coef</span>(model)</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">coef</span>(model)</a></code></pre></div>
 <pre><code>## [[1]]
 ##             [,1]       [,2]       [,3]      [,4]      [,5]
-## [1,]  0.09008762 -0.5011693 -0.2899338 0.1936992 0.2808518
-## [2,]  1.14166796  0.2233658 -0.6386412 0.9379108 0.3427865
-## [3,] -0.37086126 -1.2904609 -1.1557701 0.8593980 1.2471073
-## [4,]  0.50159574  1.1963695 -0.4412442 0.8478305 0.6371127</code></pre>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">summary</span>(model)</a></code></pre></div>
-<pre><code>## LogLik:  -263.694 
-## Deviance:  527.388 
+## [1,]  0.09514473 -0.4768792 -0.2935254 0.1585537 0.2268330
+## [2,]  1.04381776  0.2086492 -0.6652674 0.9014418 0.2781827
+## [3,] -0.34606519 -1.1785636 -1.0950609 0.7859805 1.3315442
+## [4,]  0.40234157  1.1536741 -0.5031468 0.8796135 0.6585473</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">summary</span>(model)</a></code></pre></div>
+<pre><code>## LogLik:  -262.9178 
+## Deviance:  525.8357 
 ## 
 ## Regularization loss:  0 
 ## 
 ## Species-species correlation matrix: 
 ## 
-##        sp1    sp2    sp3  sp4 sp5
-## sp1  1.000  0.000  0.000 0.00   0
-## sp2 -0.630  1.000  0.000 0.00   0
-## sp3  0.366  0.492  1.000 0.00   0
-## sp4  0.800 -0.970 -0.266 1.00   0
-## sp5  0.906 -0.241  0.726 0.47   1
+##        sp1    sp2    sp3   sp4 sp5
+## sp1  1.000  0.000  0.000 0.000   0
+## sp2 -0.694  1.000  0.000 0.000   0
+## sp3  0.357  0.424  1.000 0.000   0
+## sp4  0.856 -0.966 -0.177 1.000   0
+## sp5  0.898 -0.307  0.731 0.542   1
 ## 
 ## 
 ## 
 ## Coefficients (beta): 
 ## 
 ##                     sp1        sp2        sp3       sp4       sp5
-## (Intercept)  0.09008762 -0.5011693 -0.2899338 0.1936992 0.2808518
-## X1           1.14166796  0.2233658 -0.6386412 0.9379108 0.3427865
-## X2          -0.37086126 -1.2904609 -1.1557701 0.8593980 1.2471073
-## X3           0.50159574  1.1963695 -0.4412442 0.8478305 0.6371127</code></pre>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1"><span class="kw">getCov</span>(model)</a></code></pre></div>
+## (Intercept)  0.09514473 -0.4768792 -0.2935254 0.1585537 0.2268330
+## X1           1.04381776  0.2086492 -0.6652674 0.9014418 0.2781827
+## X2          -0.34606519 -1.1785636 -1.0950609 0.7859805 1.3315442
+## X3           0.40234157  1.1536741 -0.5031468 0.8796135 0.6585473</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">getCov</span>(model)</a></code></pre></div>
 <pre><code>##            [,1]       [,2]       [,3]       [,4]       [,5]
-## [1,]  1.9854596 -0.9113490  0.4465417  0.7754621  1.2289539
-## [2,] -0.9113490  1.0549140  0.4373734 -0.6855997 -0.2383282
-## [3,]  0.4465417  0.4373734  0.7485700 -0.1582235  0.6051160
-## [4,]  0.7754621 -0.6855997 -0.1582235  0.4735803  0.3112936
-## [5,]  1.2289539 -0.2383282  0.6051160  0.3112936  0.9274095</code></pre>
+## [1,]  1.8109377 -1.0110832  0.4632535  0.7705279  1.2383662
+## [2,] -1.0110832  1.1704831  0.4427127 -0.6992889 -0.3407617
+## [3,]  0.4632535  0.4427127  0.9302557 -0.1143349  0.7226200
+## [4,]  0.7705279 -0.6992889 -0.1143349  0.4473388  0.3712012
+## [5,]  1.2383662 -0.3407617  0.7226200  0.3712012  1.0497243</code></pre>
 </div>
 <div id="adding-quadratic-predictors-and-interactions" class="section level2">
 <h2>Adding quadratic predictors and interactions</h2>
 <p>sjSDM supports formula description for the predictors.</p>
 <p>E.g. interaction with intercept:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1">model =<span class="st"> </span><span class="kw">sjSDM</span>(<span class="dt">X =</span> com<span class="op">$</span>env_weights, <span class="dt">formula =</span> <span class="op">~</span><span class="st"> </span>X1<span class="op">*</span>X2,<span class="dt">Y =</span> com<span class="op">$</span>response, <span class="dt">iter =</span> 10L)</a>
-<a class="sourceLine" id="cb13-2" title="2"><span class="kw">summary</span>(model)</a></code></pre></div>
-<pre><code>## LogLik:  -282.675 
-## Deviance:  565.35 
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1">model =<span class="st"> </span><span class="kw">sjSDM</span>(<span class="dt">X =</span> com<span class="op">$</span>env_weights, <span class="dt">formula =</span> <span class="op">~</span><span class="st"> </span>X1<span class="op">*</span>X2,<span class="dt">Y =</span> com<span class="op">$</span>response, <span class="dt">iter =</span> 10L)</a>
+<a class="sourceLine" id="cb14-2" title="2"><span class="kw">summary</span>(model)</a></code></pre></div>
+<pre><code>## LogLik:  -284.2055 
+## Deviance:  568.4111 
 ## 
 ## Regularization loss:  0 
 ## 
@@ -434,25 +436,25 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 
 ##        sp1    sp2    sp3   sp4 sp5
 ## sp1  1.000  0.000  0.000 0.000   0
-## sp2 -0.521  1.000  0.000 0.000   0
-## sp3  0.264  0.686  1.000 0.000   0
-## sp4  0.903 -0.837 -0.176 1.000   0
-## sp5  0.896 -0.088  0.664 0.619   1
+## sp2 -0.475  1.000  0.000 0.000   0
+## sp3  0.295  0.701  1.000 0.000   0
+## sp4  0.863 -0.854 -0.227 1.000   0
+## sp5  0.954 -0.190  0.567 0.673   1
 ## 
 ## 
 ## 
 ## Coefficients (beta): 
 ## 
-##                    sp1         sp2         sp3       sp4       sp5
-## (Intercept)  0.0708704 -0.41047576 -0.22039101 0.1778761 0.2728688
-## X1           0.9868808 -0.06307936 -0.54214185 0.7032958 0.1103408
-## X2          -0.3545881 -1.16362798 -1.03163695 0.8158121 1.3216600
-## X1:X2       -0.1115622  0.33918396  0.03034486 0.7412218 0.5852999</code></pre>
+##                     sp1         sp2        sp3       sp4       sp5
+## (Intercept)  0.03598933 -0.37865108 -0.2593829 0.1850618 0.2543566
+## X1           0.96173042 -0.01563162 -0.5534338 0.6607295 0.1448793
+## X2          -0.32363036 -1.03437352 -0.9932875 0.8726931 1.1886050
+## X1:X2       -0.04895927  0.30516019  0.0632800 0.7198678 0.4692665</code></pre>
 <p>E.g. quadratic effect without intercept:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" title="1">model =<span class="st"> </span><span class="kw">sjSDM</span>(<span class="dt">X =</span> com<span class="op">$</span>env_weights, <span class="dt">formula =</span> <span class="op">~</span><span class="dv">0</span><span class="op">+</span><span class="st"> </span><span class="kw">I</span>(X1<span class="op">^</span><span class="dv">2</span>),<span class="dt">Y =</span> com<span class="op">$</span>response, <span class="dt">iter =</span> 10L)</a>
-<a class="sourceLine" id="cb15-2" title="2"><span class="kw">summary</span>(model)</a></code></pre></div>
-<pre><code>## LogLik:  -315.572 
-## Deviance:  631.144 
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" title="1">model =<span class="st"> </span><span class="kw">sjSDM</span>(<span class="dt">X =</span> com<span class="op">$</span>env_weights, <span class="dt">formula =</span> <span class="op">~</span><span class="dv">0</span><span class="op">+</span><span class="st"> </span><span class="kw">I</span>(X1<span class="op">^</span><span class="dv">2</span>),<span class="dt">Y =</span> com<span class="op">$</span>response, <span class="dt">iter =</span> 10L)</a>
+<a class="sourceLine" id="cb16-2" title="2"><span class="kw">summary</span>(model)</a></code></pre></div>
+<pre><code>## LogLik:  -316.5835 
+## Deviance:  633.1671 
 ## 
 ## Regularization loss:  0 
 ## 
@@ -460,17 +462,17 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 
 ##        sp1    sp2    sp3   sp4 sp5
 ## sp1  1.000  0.000  0.000 0.000   0
-## sp2 -0.579  1.000  0.000 0.000   0
-## sp3  0.015  0.807  1.000 0.000   0
-## sp4  0.775 -0.964 -0.621 1.000   0
-## sp5  1.000 -0.587  0.005 0.781   1
+## sp2 -0.578  1.000  0.000 0.000   0
+## sp3  0.157  0.715  1.000 0.000   0
+## sp4  0.737 -0.977 -0.552 1.000   0
+## sp5  0.989 -0.690  0.012 0.828   1
 ## 
 ## 
 ## 
 ## Coefficients (beta): 
 ## 
-##                 sp1       sp2        sp3       sp4      sp5
-## I(X1^2) -0.09415498 -1.039682 -0.5475981 0.2298492 0.678246</code></pre>
+##                sp1        sp2        sp3       sp4       sp5
+## I(X1^2) -0.1715205 -0.9915982 -0.5198888 0.1383958 0.6359119</code></pre>
 </div>
 </div>
 

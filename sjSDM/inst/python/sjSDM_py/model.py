@@ -270,14 +270,17 @@ class Model_base:
             torch.cuda.empty_cache()
         return logLik, logLikReg
 
-    def get_z_scores(self, X, Y, batch_size=25, parallel=0, sampling=100, each_species=True):
+    def se(self, X, Y, batch_size=25, parallel=0, sampling=100, each_species=True):
         dataLoader = self._get_DataLoader(X, Y, batch_size=batch_size, shuffle=False)
         loss_func = self.__build_loss_function(train=True)
         se = []
         y_dim = np.size(self.weights_numpy[0][0], 1)
         weights = self.weights[0][0]
+        _ = sys.stdout.write("\nCalculating standard errors...\n")
         if each_species:
             for i in range(y_dim):
+                _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
+                sys.stdout.flush()
                 weights = torch.tensor(self.weights_numpy[0][0][:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
                 if i == 0:
                     constants = torch.tensor(self.weights_numpy[0][0][:,(i+1):])
@@ -292,10 +295,7 @@ class Model_base:
                 for step, (x, y) in enumerate(dataLoader):
                     x = x.to(self.device, non_blocking=True)
                     y = y.to(self.device, non_blocking=True)
-                    if self.layers[0].bias:
-                        mu = torch.nn.functional.linear(x, w.t())
-                    else:
-                        mu = torch.nn.functional.linear(x, w.t())
+                    mu = torch.nn.functional.linear(x, w.t())
                     loss = loss_func(mu, y, x.shape[0], sampling)
                     loss = torch.sum(loss)
                     first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True,allow_unused=True)
@@ -303,9 +303,11 @@ class Model_base:
                     for j in range(self.input_shape):
                         second.append(torch.autograd.grad(first_gradients[0][j,0],inputs = weights,retain_graph = True,create_graph = False,allow_unused = False)[0])
                         hessian = torch.cat(second,dim=1)
-                if step != 0:
-                    hessian+=hessian
-                se.append(torch.sqrt(torch.diag(torch.inverse(hessian))).data.cpu().numpy())
+                    if step < 1:
+                        hessian_out = hessian
+                    else:
+                        hessian_out += hessian
+                se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
             return se
         else: 
             for step, (x, y) in enumerate(dataLoader):

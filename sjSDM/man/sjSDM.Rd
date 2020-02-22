@@ -6,7 +6,8 @@
 \usage{
 sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
   l2_coefs = 0, l1_cov = 0, l2_cov = 0, iter = 50L, step_size = NULL,
-  learning_rate = 0.1, parallel = 0L, device = "cpu", dtype = "float32")
+  learning_rate = 0.1, se = FALSE, parallel = 0L, device = "cpu",
+  dtype = "float32")
 }
 \arguments{
 \item{X}{matrix of environmental predictors}
@@ -30,6 +31,8 @@ sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
 \item{step_size}{batch size for stochastic gradient descent, if `NULL` then step_size is set to: `step_size = 0.1*nrow(X)`}
 
 \item{learning_rate}{learning rate for Adamax optimizer}
+
+\item{se}{calculate standard errors for environmental coefficients}
 
 \item{parallel}{number of cpu cores for the data loader, only necessary for large datasets}
 

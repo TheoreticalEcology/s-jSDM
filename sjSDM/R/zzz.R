@@ -27,7 +27,7 @@ missing_installation = function(miss_torch, miss_sjSDM) {
     path = system.file("python", package = "sjSDM")
     try({
       compile = reticulate::import("compileall")
-      tmp = compile$compile_dir(paste0(path, "/sjSDM_py"),quiet = 2L)
+      tmp = compile$compile_dir(paste0(path, "/sjSDM_py"),quiet = 2L,force=TRUE)
     }, silent = TRUE)
     fa <<- reticulate::import_from_path("sjSDM_py", path)
     miss_torch = FALSE
