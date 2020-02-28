@@ -11,7 +11,7 @@
 #' @param conda_python_version python version to be installed in the env, default = 3.6
 #' @param pip use pip installer
 #' @param cuda which cuda version, 9.2 and 10.1 are supported
-#' @param ... arguments passed to \code{\link{reticulate::conda_install()}}
+#' @param ... arguments passed to reticulate::conda_install()
 #'
 #' @export
 install_sjSDM = function(method = "conda",

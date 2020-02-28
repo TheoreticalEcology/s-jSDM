@@ -2,3 +2,5 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^.travis\.yml$
+inst/python/.pytest_cache
+inst/python/.vscode

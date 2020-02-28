@@ -283,14 +283,14 @@ class Model_base:
                 sys.stdout.flush()
                 weights = torch.tensor(self.weights_numpy[0][0][:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
                 if i == 0:
-                    constants = torch.tensor(self.weights_numpy[0][0][:,(i+1):])
+                    constants = torch.tensor(self.weights_numpy[0][0][:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)
                     w = torch.cat([weights, constants], dim=1)
                 elif i < y_dim:
                     w = torch.cat([torch.tensor(self.weights_numpy[0][0][:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
                                    weights, 
                                    torch.tensor(self.weights_numpy[0][0][:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
                 else:
-                    constants = torch.tensor(self.weights_numpy[0][0][:,0:i])
+                    constants = torch.tensor(self.weights_numpy[0][0][:,0:i], device=self.device, dtype=self.dtype).to(self.device)
                     w = torch.cat([constants, weights], dim=1)
                 for step, (x, y) in enumerate(dataLoader):
                     x = x.to(self.device, non_blocking=True)
@@ -320,11 +320,11 @@ class Model_base:
                     for j in range(first_gradients.shape[0]):
                         hessian.append(torch.autograd.grad(first_gradients[j],inputs = weights,retain_graph = True,create_graph = False,allow_unused = False)[0].reshape([-1]).reshape([y_dim*self.input_shape, 1]))
                     hessian = torch.cat(hessian,dim=1)
-                    if step != 0:
-                        hessian_result+=hessian_result
+                    if step < 1:
+                        hessian_out = hessian
                     else:
-                        hessian_result = hessian
-            return hessian_result.data.cpu().numpy(), loss
+                        hessian_out += hessian
+            return hessian_out.data.cpu().numpy()
 
     def _get_DataLoader(self, X, Y=None, batch_size=25, shuffle=True, parallel=0, drop_last=True):
         if self.device.type == 'cuda':
