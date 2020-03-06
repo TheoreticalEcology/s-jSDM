@@ -14,6 +14,7 @@
 #' @param step_size batch size for stochastic gradient descent, if `NULL` then step_size is set to: `step_size = 0.1*nrow(X)`
 #' @param learning_rate learning rate for Adamax optimizer
 #' @param se calculate standard errors for environmental coefficients
+#' @param sampling number of sampling steps for Monte Carlo integreation
 #' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
 #' @param device which device to be used, "cpu" or "gpu"
 #' @param dtype which data type, most GPU support only 32 bit floats.
@@ -26,7 +27,7 @@
 #' @seealso \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}
 #' @export
 sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, 
-                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.1, se = FALSE, 
+                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.01, se = FALSE, sampling = 100L,
                  parallel = 0L, device = "cpu", dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),

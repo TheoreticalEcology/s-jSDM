@@ -29,7 +29,7 @@ only occur within RStudio).}
 
 \item{cuda}{which cuda version, 9.2 and 10.1 are supported}
 
-\item{...}{arguments passed to \code{\link{reticulate::conda_install()}}}
+\item{...}{arguments passed to reticulate::conda_install()}
 }
 \description{
 Install sjSDM and its dependencies
