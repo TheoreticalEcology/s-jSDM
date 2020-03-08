@@ -22,10 +22,15 @@ result_mean/3600
 ```{r}
 addA = function(col, alpha = 0.25) apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha=alpha)) 
 mean_conf = function(sites, mat, col = "red", alpha = 0.1, spar = 0.10, convergence = NULL, indices = NULL, hmscObject = TRUE, pch = 15) {
-  sites2 = sites[complete.cases(mat)]
-  mat = mat[complete.cases(mat),]
-  m = apply(mat, 1, mean)
-  sd = apply(mat, 1, sd)
+  #sites2 = sites[complete.cases(mat)]
+  #mat = mat[complete.cases(mat),]
+  m = apply(mat, 1, function(x) mean(x, na.rm = TRUE))
+  sd = apply(mat, 1, function(x) sd(x, na.rm = TRUE))
+  sites2 = sites[complete.cases(m)]
+  sd = sd[complete.cases(m)]
+
+  m = m[complete.cases(m)]
+
   upper = smooth.spline(y = m + sd, x = sites2, spar = spar)$y
   lower = smooth.spline(y = m - sd, x = sites2, spar = spar)$y
   polygon(c(sites2, rev(sites2)), c(upper, rev(lower)), border = NA, col =addA(col, alpha))
@@ -117,7 +122,7 @@ for(i in (as.character(unique(number)))){
     mean_conf(X, (bc$result_time[as.character(number) == i & setup$env == e, ]), col = cols[4], pch = 15)
     mean_conf(X, (hmsc$result_time[as.character(number) == i & setup$env == e, ]/2), col = cols[5], pch = 4)
 
-     legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+     legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
 }
 
 dev.off()
@@ -224,7 +229,7 @@ for(i in (as.character(unique(number)))){
     mean_conf(X, log(bc$result_time[as.character(number) == i & setup$env == e, ]), col = cols[4], pch = 15)
     mean_conf(X, log(hmsc$result_time[as.character(number) == i & setup$env == e, ]/2), col = cols[5], pch = 4)
 
-     legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+     legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
 }
 
 dev.off()
@@ -295,7 +300,7 @@ e = 5L
     mean_conf(X, gllvm$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[3], pch = 19)
     mean_conf(X, bc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)
     mean_conf(X, hmsc$result_corr_acc[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)
-  legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+  legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
   }
 
 
@@ -334,7 +339,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, bcSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 19)
   mean_conf(X, hmscSparse$result_corr_auc[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 15)
   
-  legend("topleft", legend = c("G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+  legend("topleft", legend = c("G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
 
 }
 
@@ -388,7 +393,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, (bc$result_env[as.character(number) == i & setup$env == e, ]), col = cols[4], pch = 15)
   mean_conf(X, (hmsc$result_env[as.character(number) == i & setup$env == e, ]), col = cols[5], pch = 4)
 
-  legend("bottomright", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+  legend("bottomright", legend = c("C-sjSDM", "G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
 }
 
 ## B
@@ -416,7 +421,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, gllvm$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[3], pch = 19)
   mean_conf(X, bc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)
   mean_conf(X, hmsc$result_rmse_env[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)
-  legend("topright", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+  legend("topright", legend = c("C-sjSDM", "G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
 }
 
 
@@ -465,7 +470,7 @@ lineT = rep(1,5) #1:5
 names(lineT) =  (as.character(unique(number)))
 for(i in (as.character(unique(number)))){
   if( i == "0.1") {
-    ylab = "Env acc"
+    ylab = "Env accuracy"
   } else {
     ylab = ""
   }
@@ -485,7 +490,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, bc_result_env[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)
   mean_conf(X, hmsc_result_env[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)
   
-    legend("bottomright", legend = c( "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
+    legend("bottomright", legend = c( "G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
 }
 
 
@@ -528,7 +533,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, bc_result_rmse[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)
   mean_conf(X, hmsc_result_rmse[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)
   
-    legend("topright", legend = c("G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
+    legend("topright", legend = c("G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
   
 }
 
@@ -570,7 +575,7 @@ mean_conf(sites,gllvm_beh$result_corr_acc, col = cols[3], pch = 19)
 mean_conf(sites,bc_beh$result_corr_acc,col=cols[4], pch = 15)
 mean_conf(sites,hmsc_beh$result_corr_acc,col=cols[5],pch = 4)
 
-legend("topleft", legend = c("G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
+legend("topleft", legend = c("G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 15, 4))
 
 
 plot(NULL, NULL, xlim = c(min(sites), max(sites)), ylim = c(0.0, 1.0), ylab = "RMSE", xlab = "Sites", yaxt = "n", xpd = NA, main = "", xaxt = "n")
@@ -582,7 +587,7 @@ mean_conf(sites, gpu_beh$result_rmse_env, col = cols[2], pch = 17)
 mean_conf(sites, gllvm_beh$result_rmse_env, col = cols[3], pch = 19)
 mean_conf(sites, bc_beh$result_rmse_env, col = cols[4], pch = 15)
 mean_conf(sites, hmsc_beh$result_rmse_env, col = cols[5], pch = 4)
-legend("topleft", legend = c("G-sjSDM",  "GLLVM", "BayesComm", "HMSC"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(17, 19, 15, 4))
+legend("topleft", legend = c("G-sjSDM",  "gllvm", "BayesComm", "Hmsc"), col = cols[-1], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(17, 19, 15, 4))
 
 dev.off()
 
@@ -605,10 +610,18 @@ auc_gpu = auc_cpu = auc_gllvm = auc_bc = auc_hmsc= vector("list", length(nrow(se
 for(k in 1:nrow(setup)){
   try({auc_gpu[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(gpu$auc[[k]][[j]]$pred), function(i) Metrics::auc(gpu$auc[[k]][[j]]$true[,i], gpu$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
   try({auc_cpu[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(cpu$auc[[k]][[j]]$pred), function(i) Metrics::auc(cpu$auc[[k]][[j]]$true[,i], cpu$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
-  try({auc_gllvm[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(gllvm$auc[[k]][[j]]$pred), function(i) Metrics::auc(gllvm$auc[[k]][[j]]$true[,i], gllvm$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
+  try({auc_gllvm[[k]] = t(sapply(1:10, 
+                                 function(j) {if(!is.null(gllvm$auc[[k]][[j]]$pred)) return(sapply(1:ncol(gllvm$auc[[k]][[j]]$pred), 
+                                                    function(i)  Metrics::auc(gllvm$auc[[k]][[j]]$true[,i], gllvm$auc[[k]][[j]]$pred[,i])))
+                                              else return(rep(NA, setup[k,]$species * setup[k,]$sites))
+                                   }))
+  
+  
+  }, silent = FALSE)
   try({auc_bc[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(bc$auc[[k]][[j]]$pred), function(i) Metrics::auc(bc$auc[[k]][[j]]$true[,i], bc$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
   try({auc_hmsc[[k]] = t(sapply(1:10, function(j) sapply(1:ncol(hmsc$auc[[k]][[j]]$pred), function(i) Metrics::auc(hmsc$auc[[k]][[j]]$true[,i], hmsc$auc[[k]][[j]]$pred[,i]))))}, silent = TRUE)
 }
+
 ```
 
 
@@ -620,7 +633,7 @@ cols = RColorBrewer::brewer.pal(5, "Set2")
 number = setup$species
 cpu_auc = t(unlist(sapply(auc_cpu, function(tmp) (apply(tmp, 1,mean)))))
 gpu_auc = t(unlist(sapply(auc_gpu, function(tmp) (apply(tmp, 1,mean)))))
-gllvm_auc = t(unlist(sapply(auc_gllvm, function(tmp) (apply(tmp, 1,mean)))))
+gllvm_auc = t(unlist(sapply(auc_gllvm, function(tmp) (apply(tmp, 1,mean, na.rm=TRUE)))))
 bc_auc = t(unlist(sapply(auc_bc, function(tmp) {
   if(!is.null(tmp)) return(apply(tmp, 1,mean))
   else matrix(NA, 1, 10)
@@ -660,7 +673,7 @@ for(i in (as.character(unique(number)))){
   axis(2, las = 2)
 
   text(x = seq(1, nrow(setup), by = 3)+1.5, y = 0.467,pos = 1, xpd = NA, labels = unique(setup$sites)* as.numeric(i))
-  text(x = seq(1, nrow(setup), by = 3)+1.5, y = 0.422,pos = 1, xpd = NA, labels =unique(setup$sites))
+  text(x = seq(1, nrow(setup), by = 3)+1.5, y = 0.422,pos = 1, xpd = NA, labels = unique(setup$sites))
   
   if(i == "0.1"){
   text(x = 2, y = 0.463-strheight(unique(setup$sites)* as.numeric(i))[1], labels = "Species:", pos = 2, xpd = NA)
@@ -675,7 +688,7 @@ for(i in (as.character(unique(number)))){
   mean_conf(X, rbind(gllvm_auc, matrix(NA, length(number) - nrow(gllvm_auc) ,10L))[as.character(number) == i & setup$env == e, ], col = cols[3], pch = 19)
   mean_conf(X, rbind(bc_auc, matrix(NA, length(number) - nrow(bc_auc) ,10L))[as.character(number) == i & setup$env == e, ], col = cols[4], pch = 15)
   mean_conf(X, rbind(hmsc_auc, matrix(NA, length(number) - nrow(hmsc_auc) ,10L))[as.character(number) == i & setup$env == e, ], col = cols[5], pch = 4)
- legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "GLLVM", "BayesComm", "HMSC"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
+ legend("topleft", legend = c("C-sjSDM", "G-sjSDM", "gllvm", "BayesComm", "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c(2, 17, 19, 15, 4))
 
 }
 dev.off()
