@@ -4,3 +4,5 @@
 .Ruserdata
 ^.*\.pyc$
 ^.*__pycache__$
+doc
+Meta

@@ -4,3 +4,5 @@
 ^.travis\.yml$
 inst/python/.pytest_cache
 inst/python/.vscode
+^doc$
+^Meta$

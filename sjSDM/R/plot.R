@@ -19,7 +19,7 @@ rad2deg = function(rad) {(rad * 180) / (pi)}
 #' @param reverse in reverse order
 #' @param middle text in the middle
 #' @param extend extend char lengths, default 1.1
-#' @param ... passed to [text()]
+#' @param ... passed to \code{\link{graphics::text}}
 #' @export
 
 curve_text = function(pos = 0, label = "", radius = 5.0, reverse = FALSE,middle = FALSE,extend = 1.1, ...){
@@ -56,7 +56,7 @@ curve_text = function(pos = 0, label = "", radius = 5.0, reverse = FALSE,middle 
 #' @param p1 first point
 #' @param p2 second points
 #' @param n number of points for spline
-#' @param spar smoothing value, see [?stats::smooth.spline()]
+#' @param spar smoothing value, see \code{\link{stats::smooth.spline}}
 #' @param col curve's color
 #' @param species draw species line
 #' @param radius radius
@@ -100,7 +100,7 @@ add_curve = function(p1 = NULL, p2 = NULL, n = 10, spar = 0.7, col = "black", sp
 #' @param radius radius
 #' @param angles angles, start and end values in degree
 #' @export
-add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(-1,1), radius = 5.0, angles = c(110, 70)){
+add_legend = function(cols = 1:11, range = c(-1,1), radius = 5.0, angles = c(110, 70)){
   angles = seq(angles[1], angles[2], length.out = length(cols)+1)
   for(i in 2:length(angles)){
     xx1 = (radius+0.4)*cos( seq(deg2rad(angles[i-1]),deg2rad(angles[i]) ,length.out=50) )
@@ -181,7 +181,8 @@ plotAssociations = function(sigma, radius = 5.0, main = NULL,
   lower = order(sigmas, decreasing = FALSE)[1:top]
   cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
   to_plot = (1:length(sigmas) %in% upper) | (1:length(sigmas) %in% lower)
-  levels(cuts) = viridis::viridis(11)
+  cols = 1:11
+  levels(cuts) = cols
   cuts = as.character(cuts)
 
   angles = seq(0,355,length.out = n+1)[1:(n)]

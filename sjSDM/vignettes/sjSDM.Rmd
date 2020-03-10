@@ -69,7 +69,7 @@ com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 
 # Fitting a model
 
-The model is then fit with the function sjSDM(). You have to provide predcitors and response as matrix. 
+The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrix. 
 
 ```{r}
 model = sjSDM(X = com$env_weights, Y = com$response, iter = 10L)
