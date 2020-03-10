@@ -37,20 +37,20 @@ for(i in 1:nrow(setup)) {
     
     error = tryCatch({
     time = system.time({
-    model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]])
+    model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], seed = 42)
     })},error = function(e) e)
     if("error"  %in% class(error)) {
       rm(error)
       error = tryCatch({
         time = system.time({
-          model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], starting.val = "zero")
+          model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], starting.val = "zero", seed = 42)
         })},error = function(e) e)
     }
     if("error"  %in% class(error)) {
       rm(error)
       error = tryCatch({
         time = system.time({
-          model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], starting.val = "random")
+          model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], starting.val = "random", seed = 42)
         })},error = function(e) e)
     }
     try({
