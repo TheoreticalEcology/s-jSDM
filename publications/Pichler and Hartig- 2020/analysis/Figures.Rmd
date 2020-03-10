@@ -742,7 +742,7 @@ saveRDS(list(bc=bc_conv,hmsc=hmsc_conv),"./results/convergence_non_sparse.RDS")
 if(!exists("bcSparse")) bcSparse = readRDS(file = "./results/sparse_bc.RDS")
 bcSparse$auc = NULL
 if(!exists("hmscSparse")) hmscSparse = readRDS(file = "./results/sparse_hmsc.RDS")
-hhmscSparse$auc = NULL
+hmscSparse$auc = NULL
 
 
 bc_conv_sp = check_convergence(bcSparse)
@@ -782,8 +782,6 @@ result2 = readRDS("./results/fungi_eDNA2.RDS")
 result3 = readRDS("./results/fungi_eDNA3.RDS")
 
 
-#h1 = hclust(dist(cov2cor(result[[20]]$sigma)))
-#h2 = hclust(dist(t(cov2cor(result[[20]]$sigma))))
 load("data/eDNA/SDM_data.RData")
 
 occ = ttab_ds[[7]]
@@ -793,11 +791,6 @@ occ = occ[,rates > 1/125]
 dim(occ)
 
 env_scaled = as.matrix(mlr::normalizeFeatures(env2))
-
-
-#hbeta1 = hclust(dist(result[[20]]$beta))
-#hbeta2 = hclust(dist(t(result[[20]]$beta)))
-#save(h1, h2, hbeta1, hbeta2, file = "./results/meta_fig_5.RData")
 
 ```
 
@@ -914,9 +907,6 @@ turn_over_list = lapply(res, function(result) {
   turn_over = abind::abind(turn_over_results, along = -1L)
   return(turn_over)})
 saveRDS(turn_over_list, "./results/turn_over.RDS")
-
-
-
 ```
 
 
