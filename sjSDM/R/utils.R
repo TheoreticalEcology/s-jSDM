@@ -77,3 +77,9 @@ is_osx = function() {
 is_linux = function() {
   identical(tolower(Sys.info()[["sysname"]]), "linux")
 }
+
+
+
+#' @importFrom magrittr %>%
+#' @export
+magrittr::`%>%`

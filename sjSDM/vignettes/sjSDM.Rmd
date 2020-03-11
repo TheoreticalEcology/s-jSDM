@@ -105,6 +105,24 @@ summary(model)
 
 
 
+# Fitting a non-linear (deep neural network) model
+```{r,eval=FALSE}
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+X = com$env_weights
+Y = com$response
+
+model = sjSDM_model(input_shape = 3L)
+model %>% 
+  layer_dense(units = 10L, activation = "tanh") %>% 
+  layer_dense(units = 10L, activation = "relu") %>% 
+  layer_dense(units = 5L)
+
+model %>% 
+  compile(df = 50L, optimizer = optimizer_adamax(learning_rate = 0.01), l1_cov = 0.0001, l2_cov = 0.0001)
+
+model %>% 
+  fit(X = X, Y = Y, epochs = 10L, batch_size = 10L)
+```
 
 
 

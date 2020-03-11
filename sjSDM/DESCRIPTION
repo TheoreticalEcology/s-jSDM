@@ -19,7 +19,8 @@ Imports:
     rstudioapi,
     stringr,
     abind,
-    magrittr
+    magrittr,
+    graphics
 Suggests:
     testthat,
     knitr,

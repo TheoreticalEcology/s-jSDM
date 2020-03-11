@@ -16,6 +16,3 @@ sjSDM_model(input_shape, device = NULL, dtype = "float32")
 \description{
 Create a new sjSDM_model
 }
-\seealso{
-
-}

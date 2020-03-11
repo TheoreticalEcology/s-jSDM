@@ -21,7 +21,7 @@ curve_text(pos = 0, label = "", radius = 5, reverse = FALSE,
 
 \item{extend}{extend char lengths, default 1.1}
 
-\item{...}{passed to \code{\link{graphics::text}}}
+\item{...}{graphics::text}
 }
 \description{
 curve_text
