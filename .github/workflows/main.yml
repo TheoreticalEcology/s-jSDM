@@ -38,19 +38,24 @@ jobs:
         env:
           RHUB_PLATFORM: linux-x86_64-ubuntu-gcc
         run: |
+          cd sjSDM
           Rscript -e "install.packages('remotes')" -e "remotes::install_github('r-hub/sysreqs')"
           sysreqs=$(Rscript -e "cat(sysreqs::sysreq_commands('DESCRIPTION'))")
           sudo -s eval "$sysreqs"
       - name: Install dependencies
-        run: Rscript -e "install.packages('remotes')" -e "remotes::install_deps(dependencies = TRUE)" -e "remotes::install_cran('rcmdcheck')"
+        run: |
+          cd sjSDM
+          Rscript -e "install.packages('remotes')" -e "remotes::install_deps(dependencies = TRUE)" -e "remotes::install_cran('rcmdcheck')"
       - name: Install Python
         run: |
+          cd sjSDM
           Rscript -e "remotes::install_github('rstudio/reticulate')"
           Rscript -e "reticulate::install_miniconda()"
           Rscript -e "reticulate::conda_create('r-reticulate', packages = c('python==3.7'))"
       - name: Install PyTorch
         run: |
-          Rscript -e "remotes::install_local("sjSDM/")"
+          cd sjSDM
+          Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(envname = "r-reticulate", extra_packages = c('IPython', 'requests', 'certifi', 'urllib3'))"
       - name: Check
         continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
