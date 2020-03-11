@@ -28,7 +28,7 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 
 Load the package via 
 
-```{r}
+```{r,eval=FALSE}
 library(sjSDM)
 ```
 
@@ -54,7 +54,7 @@ vignette("Dependencies", package = "sjSDM")
 
 To cite sjSDM in a publication, use 
 
-```{r}
+```{r,eval=FALSE}
 citation("sjSDM")
 ```
 
@@ -63,7 +63,7 @@ citation("sjSDM")
 
 sjSDM has a function to create test data. Here, we create a dataset with 3 environmental predictors, 5 species and 100 sites.
 
-```{r}
+```{r,eval=FALSE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 ```
 
@@ -71,7 +71,7 @@ com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 
 The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrix. 
 
-```{r}
+```{r,eval=FALSE}
 model = sjSDM(X = com$env_weights, Y = com$response, iter = 10L)
 ```
 
@@ -80,7 +80,7 @@ model = sjSDM(X = com$env_weights, Y = com$response, iter = 10L)
 
 Things you can do with the model output
 
-```{r}
+```{r,eval=FALSE}
 coef(model)
 summary(model)
 getCov(model)
@@ -91,14 +91,14 @@ getCov(model)
 sjSDM supports formula description for the predictors.
 
 E.g. interaction with intercept:
-```{r}
+```{r,eval=FALSE}
 model = sjSDM(X = com$env_weights, formula = ~ X1*X2,Y = com$response, iter = 10L)
 summary(model)
 
 ```
 
 E.g. quadratic effect without intercept:
-```{r}
+```{r,eval=FALSE}
 model = sjSDM(X = com$env_weights, formula = ~0+ I(X1^2),Y = com$response, iter = 10L)
 summary(model)
 ```

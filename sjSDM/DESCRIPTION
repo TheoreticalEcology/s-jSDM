@@ -18,7 +18,8 @@ Imports:
     utils,
     rstudioapi,
     stringr,
-    abind
+    abind,
+    magrittr
 Suggests:
     testthat,
     knitr,

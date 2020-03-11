@@ -15,7 +15,7 @@ add_curve(p1 = NULL, p2 = NULL, n = 10, spar = 0.7, col = "black",
 
 \item{n}{number of points for spline}
 
-\item{spar}{smoothing value, see [?stats::smooth.spline()]}
+\item{spar}{smoothing value, see \code{\link{stats::smooth.spline}}}
 
 \item{col}{curve's color}
 
