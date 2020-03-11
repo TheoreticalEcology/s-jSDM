@@ -56,7 +56,9 @@ jobs:
         run: |
           cd sjSDM
           Rscript -e "remotes::install_local()"
-          Rscript -e "sjSDM::install_sjSDM(extra_packages = c('IPython', 'requests', 'certifi', 'urllib3'))"
+          Rscript -e "sjSDM::install_sjSDM()"
       - name: Check
         continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
-        run: Rscript -e "rcmdcheck::rcmdcheck(path = 'sjSDM/', args = '--no-manual', error_on = 'warning', check_dir = 'check')"
+        run: |
+          conda activate r-sjSDM
+          Rscript -e "rcmdcheck::rcmdcheck(path = 'sjSDM/', args = '--no-manual', error_on = 'warning', check_dir = 'check')"
