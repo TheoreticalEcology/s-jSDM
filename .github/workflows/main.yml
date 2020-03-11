@@ -50,20 +50,12 @@ jobs:
         run: |
           cd sjSDM
           Rscript -e "remotes::install_github('rstudio/reticulate')"
-          wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-          bash miniconda.sh -b -p $HOME/miniconda
-          export PATH="$HOME/miniconda/bin:$PATH"
-          hash -r
-          rm miniconda.sh
-          conda config --set always_yes yes --set changeps1 no
-          conda update -q conda
-          conda info -a
-          # Rscript -e "reticulate::install_miniconda()"
-          # Rscript -e "reticulate::conda_remove('r-reticulate')"
+          Rscript -e "reticulate::install_miniconda()"
       - name: Install PyTorch
         run: |
           cd sjSDM
           Rscript -e "remotes::install_local()"
+          Rscript -e "reticulate::conda_create('r-reticulate', packages = c('python==3.6.9'))"
           Rscript -e "sjSDM::install_sjSDM()"
       - name: Check
         continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
