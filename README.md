@@ -61,4 +61,4 @@ model.fit(X = Env, Y = Occ)
 print(model.weights_numpy)
 print(model.get_cov())
 ```
-For details, see [sjSDM_py](https://github.com/TheoreticalEcology/s-jSDM/tree/master/sjSDM/python/)
+
