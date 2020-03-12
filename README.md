@@ -5,10 +5,15 @@
 
 # s-jSDM - Fast and accurate Joint Species Distribution Modeling
 
+## About the method
 
-Note: for both the R and the python package, python >= 3.6 and pytorch must be installed (more details below).
+The method is described in the preprint Pichler & Hartig (2020) A new method for faster and more accurate inference of species associations from novel community data, https://arxiv.org/abs/2003.05331. The code for producing the results in this paper is available under the subfolder publications in this repo.
 
-## R-package
+The method itself is wrapped into an R package, available under subfolder sjSDM. You can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python >= 3.6 and pytorch must be installed (more details below).
+
+## Installing the R / Python package
+
+### R-package
 
 Install the package via
 
@@ -37,7 +42,7 @@ summary(model)
 If it fails, check out the help of ?install_sjSDM and vignette("Dependencies", package = "sjSDM")
 
 
-## Python Package
+### Python Package
 ```{python}
 pip install sjSDM_py
 ```
