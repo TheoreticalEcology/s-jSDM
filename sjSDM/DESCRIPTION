@@ -17,7 +17,6 @@ Imports:
     mvtnorm,
     utils,
     rstudioapi,
-    stringr,
     abind,
     magrittr,
     graphics

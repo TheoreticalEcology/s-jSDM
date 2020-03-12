@@ -7,9 +7,11 @@
 \method{plot}{sjSDM_model}(x, y, ...)
 }
 \arguments{
+\item{x}{a model fitted by \code{\link{sjSDM_model}}}
+
 \item{y}{unused argument}
 
-\item{...}{Additional arguments to pass to \code{\link{plot()}}}
+\item{...}{Additional arguments to pass to \code{plot()}}
 }
 \description{
 Plot training history

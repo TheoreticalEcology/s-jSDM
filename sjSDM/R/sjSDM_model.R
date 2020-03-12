@@ -65,9 +65,9 @@ predict.sjSDM_model = function(object, newdata = NULL, ...) {
 
 #' Plot training history
 #' 
-#' @param x
+#' @param x a model fitted by \code{\link{sjSDM_model}}
 #' @param y unused argument
-#' @param ... Additional arguments to pass to \code{\link{plot()}}
+#' @param ... Additional arguments to pass to \code{plot()}
 #' @export
 plot.sjSDM_model = function(x, y, ...) {
   hist = x$history
