@@ -84,8 +84,8 @@ class Model_base:
             weights: list, list of list of numpy arrays
 
         """
-        for i, w in enumerate(weights):
-            self.layers[i].set_weights(w)
+        for i in range(len(self.layers)):
+            self.layers[i].set_weights(weights[i])
 
     def get_sigma_numpy(self):
         return self.sigma.data.cpu().numpy()

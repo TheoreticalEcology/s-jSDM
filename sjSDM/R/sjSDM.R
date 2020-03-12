@@ -274,17 +274,6 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
 }
 
 
-
-#' getCov
-#'
-#' get species-species assocation (covariance) matrix
-#' @param object a model fitted by \code{\link{sjSDM}}
-#' @export
-getCov = function(object){
-  if(!inherits(object, "sjSDM")) stop("Please provide sjSDM object")
-  return(object$sigma %*% t(object$sigma))
-}
-
 #' Extract Log-Likelihood from a fitted sjSDM model
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}

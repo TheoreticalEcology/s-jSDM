@@ -4,5 +4,6 @@
 ^.travis\.yml$
 inst/python/.pytest_cache
 inst/python/.vscode
+inst/python/.eggs
 ^doc$
 ^Meta$

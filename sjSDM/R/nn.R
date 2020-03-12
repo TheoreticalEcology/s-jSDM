@@ -1,26 +1,3 @@
-#' sjSDM_model
-#' 
-#' Create a new sjSDM_model
-#' @param input_shape number of predictors
-#' @param device which device to be used, "cpu" or "gpu"
-#' @param dtype which data type, most GPU support only 32 bit floats.
-#' @export
-sjSDM_model = function(input_shape,  device = NULL, dtype = "float32") {
-  
-  if(reticulate::py_is_null_xptr(fa)) .onLoad()
-  if(is.null(device)) {
-    if(torch$cuda$is_available()) device = 0L
-    else device = "cpu"
-  }
-  if(is.numeric(device)) device = as.integer(device)
-  if(device == "gpu") device = 0L
-  
-  object = fa$Model_base(as.integer(input_shape), device = device, dtype = dtype)
-  class(object) = c("sjSDM_model",class(object))
-  return(object)
-}
-
-
 #' Configure an object
 #' 
 #' Finalizes or completes an object.
