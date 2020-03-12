@@ -6,7 +6,8 @@ Date: 2020-02-20
 Authors@R: c(person("Maximilian",
                     "Pichler",
                     email = "maximilian.pichler@biologie.uni-regensburg.de",
-                    role = c("aut", "cre")))
+                    role = c("aut", "cre")),
+                    c(person("Florian", "Hartig", email = "florian.hartig@biologie.uni-regensburg.de", role = c("aut"), comment=c(ORCID="0000-0002-6255-9059"))))
 Description: sjSDM is a novel method for estimating jSDMs that is based on Monte-Carlo integreation and with the option to run the computation on the GPU.
 License: GPL-3
 Encoding: UTF-8
