@@ -105,7 +105,43 @@ summary(model)
 
 
 
-# Fitting a non-linear (deep neural network) model
+# Fitting a non-linear (deep neural network) model 
+```{r,eval=FALSE}
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+X = com$env_weights
+Y = com$response
+
+# three fully connected layers with relu as activation function
+model = sjSDM_DNN(X, Y, formula = ~1+X1:X2 + X2 + X3, hidden = c(5L, 5L, 5L), activation = "relu")
+
+```
+
+Let's have a look at the architecture
+```{r,eval=FALSE}
+summary(model)
+```
+
+The methods for sjSDM() work also for sjSDM_DNN:
+```{r,eval=FALSE}
+getCov(model) # species association matrix
+pred = predict(model) # predict on fitted data
+pred = predict(model, newdata = X) # predict on new data
+```
+
+Extract and set weights of model:
+```{r,eval=FALSE}
+weights = getWeights(model) # get layer weights and sigma
+setWeights(model, weights)
+```
+
+Plot the training history:
+```{r,eval=FALSE}
+plot(model)
+```
+
+
+
+# Fitting a non-linear (deep neural network) model with full control of layers
 ```{r,eval=FALSE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 X = com$env_weights
@@ -122,7 +158,20 @@ model %>%
 
 model %>% 
   fit(X = X, Y = Y, epochs = 10L, batch_size = 10L)
+
+summary(model)
+
+getCov(model)
+
+weights = getWeights(model)
+
+setWeights(model)
+
+pred = predict(model)
+
+plot(model)
 ```
+
 
 
 

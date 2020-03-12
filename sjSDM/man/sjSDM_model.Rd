@@ -16,6 +16,9 @@ sjSDM_model(input_shape, device = NULL, dtype = "float32")
 \description{
 Create a new sjSDM_model
 }
+\note{
+sjSDM_model depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. See \code{\link{install_sjSDM}} for details.
+}
 \examples{
 \donttest{
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
@@ -53,5 +56,5 @@ weights = getWeights(model)
 }
 }
 \seealso{
-\code{\link{layer_dense}},  \code{\link{compile}},  \code{\link{fit}},  \code{\link{predict.sjSDM_model}},  \code{\link{summary.sjSDM_model}}, \code{\link{getWeights}}, \code{\link{setWeights}}, , \code{\link{plot.sjSDM_model}}
+\code{\link{layer_dense}},  \code{\link{compile}},  \code{\link{fit}},  \code{\link{predict.sjSDM_model}},  \code{\link{summary.sjSDM_model}}, \code{\link{getWeights.sjSDM_model}}, \code{\link{setWeights.sjSDM_model}}, , \code{\link{plot.sjSDM_model}}
 }

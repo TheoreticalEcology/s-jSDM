@@ -16,11 +16,11 @@ sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
 
 \item{formula}{formula object for predictors}
 
-\item{df}{degree of freedom for covariance parametrization, if `NULL` df is set to `ncol(Y)/2`}
+\item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}}
 
-\item{l1_coefs}{strength of lasso regularization on environmental coefficients: `l1_coefs * sum(abs(coefs))`}
+\item{l1_coefs}{strength of lasso regularization on environmental coefficients: \code{l1_coefs * sum(abs(coefs))}}
 
-\item{l2_coefs}{strength of ridge regularization on environmental coefficients: `l2_coefs * sum(coefs^2)`}
+\item{l2_coefs}{strength of ridge regularization on environmental coefficients: \code{l2_coefs * sum(coefs^2)}`}
 
 \item{l1_cov}{strength of lasso regulIarization on covariances in species-species association matrix}
 
@@ -28,7 +28,7 @@ sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
 
 \item{iter}{number of fitting iterations}
 
-\item{step_size}{batch size for stochastic gradient descent, if `NULL` then step_size is set to: `step_size = 0.1*nrow(X)`}
+\item{step_size}{batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}}
 
 \item{learning_rate}{learning rate for Adamax optimizer}
 
@@ -40,7 +40,7 @@ sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
 
 \item{device}{which device to be used, "cpu" or "gpu"}
 
-\item{dtype}{which data type, most GPU support only 32 bit floats.}
+\item{dtype}{which data type, most GPUs support only 32 bit floats.}
 }
 \description{
 fast and accurate joint species model
@@ -76,4 +76,7 @@ preds = predict(model, newdata = com$env_weights)
 }
 \seealso{
 \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}
+}
+\author{
+Maximilian Pichler
 }

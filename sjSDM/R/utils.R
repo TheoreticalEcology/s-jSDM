@@ -50,7 +50,7 @@ gpuInfo = function(){
 #' check model and rebuild if necessary
 #' @param object of class sjSDM
 checkModel = function(object) {
-  if(!inherits(object, "sjSDM")) stop("model not of class sjSDM")
+  if(!inherits(object, c("sjSDM", "sjSDM_DNN"))) stop("model not of class sjSDM")
   
   if(!reticulate::py_is_null_xptr(object$model)) return(object)
   

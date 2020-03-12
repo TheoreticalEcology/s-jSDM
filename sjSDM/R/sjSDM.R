@@ -5,19 +5,19 @@
 #' @param X matrix of environmental predictors
 #' @param Y matrix of species occurences/responses
 #' @param formula formula object for predictors
-#' @param df degree of freedom for covariance parametrization, if `NULL` df is set to `ncol(Y)/2`
-#' @param l1_coefs strength of lasso regularization on environmental coefficients: `l1_coefs * sum(abs(coefs))`
-#' @param l2_coefs strength of ridge regularization on environmental coefficients: `l2_coefs * sum(coefs^2)`
+#' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}
+#' @param l1_coefs strength of lasso regularization on environmental coefficients: \code{l1_coefs * sum(abs(coefs))}
+#' @param l2_coefs strength of ridge regularization on environmental coefficients: \code{l2_coefs * sum(coefs^2)}`
 #' @param l1_cov strength of lasso regulIarization on covariances in species-species association matrix
 #' @param l2_cov strength of ridge regularization on covariances in species-species association matrix
 #' @param iter number of fitting iterations
-#' @param step_size batch size for stochastic gradient descent, if `NULL` then step_size is set to: `step_size = 0.1*nrow(X)`
+#' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
 #' @param se calculate standard errors for environmental coefficients
 #' @param sampling number of sampling steps for Monte Carlo integreation
 #' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
 #' @param device which device to be used, "cpu" or "gpu"
-#' @param dtype which data type, most GPU support only 32 bit floats.
+#' @param dtype which data type, most GPUs support only 32 bit floats.
 #' 
 #' @details The function fits a multivariate probit model via Monte-Carlo integration of the joint likelihood for all species. 
 #' 
@@ -25,6 +25,7 @@
 #' 
 #' @example /inst/examples/sjSDM-example.R
 #' @seealso \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}
+#' @author Maximilian Pichler
 #' @export
 sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, 
                  l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.01, se = FALSE, sampling = 100L,
