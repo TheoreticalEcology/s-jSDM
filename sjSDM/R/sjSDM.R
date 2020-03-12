@@ -107,7 +107,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   }
   model = out$get_model()
   
-  time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel)})[3]
+  time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
 
   out$logLik = model$logLik(X, Y,batch_size = step_size,parallel = parallel)
   if(se) try({ out$se = t(abind::abind(model$se(X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
