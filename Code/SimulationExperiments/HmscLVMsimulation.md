@@ -54,7 +54,8 @@ create = function(env = 5L, n = 100L, sp = 50L, l = 5L) {
 data = lapply(1:5, function(l) create(env = 3L, n = 500L, sp = 5L, l = l))
 results_1 = matrix(NA, 5, 5) # for acc/rmse/acc/rmse/n_latent
 for(i in 1:5) {
-  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
+  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, 
+                iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
   sp_sjSDM = getCov(sjSDM)
   results_1[i,1] = data[[i]]$corr_acc(sp_sjSDM)
   results_1[i,2] = sqrt(mean(as.vector(coef(sjSDM)[[1]] - data[[i]]$SPW)^2))
@@ -63,32 +64,13 @@ for(i in 1:5) {
 
 cl = snow::makeCluster(5L)
 snow::clusterExport(cl, list("data"))
-snow::clusterEvalQ(cl, {
+ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
   OpenMPController::omp_set_num_threads(6L)
   RhpcBLASctl::omp_set_num_threads(6L)
   RhpcBLASctl::blas_set_num_threads(6L)
   })
-```
 
-```
-## [[1]]
-## NULL
-## 
-## [[2]]
-## NULL
-## 
-## [[3]]
-## NULL
-## 
-## [[4]]
-## NULL
-## 
-## [[5]]
-## NULL
-```
-
-```r
 hmsc_res = 
   snow::parLapply(cl, 1:5, function(i) {
   
@@ -101,7 +83,9 @@ hmsc_res =
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
-    return(c(data[[i]]$corr_acc(correlation),sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
+    return(c(data[[i]]$corr_acc(correlation),
+             sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,
+             dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
 
 })
 
@@ -117,7 +101,8 @@ results_1[,3:5] = abind::abind(hmsc_res, along = 0L)
 data = lapply(1:5, function(l) create(env = 3L, n = 500L, sp = 10L, l = l))
 results_2 = matrix(NA, 5, 5) # for acc/rmse/acc/rmse/n_latent
 for(i in 1:5) {
-  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
+  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, 
+                iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
   sp_sjSDM = getCov(sjSDM)
   results_2[i,1] = data[[i]]$corr_acc(sp_sjSDM)
   results_2[i,2] = sqrt(mean(as.vector(coef(sjSDM)[[1]] - data[[i]]$SPW)^2))
@@ -125,32 +110,12 @@ for(i in 1:5) {
 
 cl = snow::makeCluster(5L)
 snow::clusterExport(cl, list("data"))
-snow::clusterEvalQ(cl, {
+ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
   OpenMPController::omp_set_num_threads(6L)
   RhpcBLASctl::omp_set_num_threads(6L)
   RhpcBLASctl::blas_set_num_threads(6L)
   })
-```
-
-```
-## [[1]]
-## NULL
-## 
-## [[2]]
-## NULL
-## 
-## [[3]]
-## NULL
-## 
-## [[4]]
-## NULL
-## 
-## [[5]]
-## NULL
-```
-
-```r
 hmsc_res = 
   snow::parLapply(cl, 1:5, function(i) {
   
@@ -163,7 +128,9 @@ hmsc_res =
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
-    return(c(data[[i]]$corr_acc(correlation),sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
+    return(c(data[[i]]$corr_acc(correlation),
+             sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)),
+             dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
 
 })
 snow::stopCluster(cl)
@@ -177,7 +144,8 @@ results_2[,3:5] = abind::abind(hmsc_res, along = 0L)
 data = lapply(1:5, function(l) create(env = 3L, n = 500L, sp = 25L, l = l))
 results_3 = matrix(NA, 5, 5) # for acc/rmse/acc/rmse/n_latent
 for(i in 1:5) {
-  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
+  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, 
+                iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
   sp_sjSDM = getCov(sjSDM)
   results_3[i,1] = data[[i]]$corr_acc(sp_sjSDM)
   results_3[i,2] = sqrt(mean(as.vector(coef(sjSDM)[[1]] - data[[i]]$SPW)^2))
@@ -186,32 +154,13 @@ for(i in 1:5) {
 
 cl = snow::makeCluster(5L)
 snow::clusterExport(cl, list("data"))
-snow::clusterEvalQ(cl, {
+ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
   OpenMPController::omp_set_num_threads(6L)
   RhpcBLASctl::omp_set_num_threads(6L)
   RhpcBLASctl::blas_set_num_threads(6L)
   })
-```
 
-```
-## [[1]]
-## NULL
-## 
-## [[2]]
-## NULL
-## 
-## [[3]]
-## NULL
-## 
-## [[4]]
-## NULL
-## 
-## [[5]]
-## NULL
-```
-
-```r
 hmsc_res = 
   snow::parLapply(cl, 1:5, function(i) {
   
@@ -224,7 +173,9 @@ hmsc_res =
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
-    return(c(data[[i]]$corr_acc(correlation),sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
+    return(c(data[[i]]$corr_acc(correlation),
+             sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,
+             dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
 
 })
 snow::stopCluster(cl)
@@ -238,7 +189,8 @@ results_3[,3:5] = abind::abind(hmsc_res, along = 0L)
 data = lapply(1:5, function(l) create(env = 3L, n = 500L, sp = 50L, l = l))
 results_4 = matrix(NA, 5, 5) # for acc/rmse/acc/rmse/n_latent
 for(i in 1:5) {
-  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
+  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, 
+                iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
   sp_sjSDM = getCov(sjSDM)
   results_4[i,1] = data[[i]]$corr_acc(sp_sjSDM)
   results_4[i,2] = sqrt(mean(as.vector(coef(sjSDM)[[1]] - data[[i]]$SPW)^2))
@@ -247,32 +199,13 @@ for(i in 1:5) {
 
 cl = snow::makeCluster(5L)
 snow::clusterExport(cl, list("data"))
-snow::clusterEvalQ(cl, {
+ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
   OpenMPController::omp_set_num_threads(6L)
   RhpcBLASctl::omp_set_num_threads(6L)
   RhpcBLASctl::blas_set_num_threads(6L)
   })
-```
 
-```
-## [[1]]
-## NULL
-## 
-## [[2]]
-## NULL
-## 
-## [[3]]
-## NULL
-## 
-## [[4]]
-## NULL
-## 
-## [[5]]
-## NULL
-```
-
-```r
 hmsc_res = 
   snow::parLapply(cl, 1:5, function(i) {
   
@@ -285,7 +218,9 @@ hmsc_res =
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
-    return(c(data[[i]]$corr_acc(correlation),sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
+    return(c(data[[i]]$corr_acc(correlation),
+             sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,
+             dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
 
 })
 snow::stopCluster(cl)
@@ -300,7 +235,8 @@ results_4[,3:5] = abind::abind(hmsc_res, along = 0L)
 data = lapply(1:5, function(l) create(env = 3L, n = 500L, sp = 100L, l = l))
 results_5 = matrix(NA, 5, 5) # for acc/rmse/acc/rmse/n_latent
 for(i in 1:5) {
-  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
+  sjSDM = sjSDM(data[[i]]$X, data[[i]]$Y, formula = ~0+., step_size = 20L, 
+                iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
   sp_sjSDM = getCov(sjSDM)
   results_5[i,1] = data[[i]]$corr_acc(sp_sjSDM)
   results_5[i,2] = sqrt(mean(as.vector(coef(sjSDM)[[1]] - data[[i]]$SPW)^2))
@@ -309,32 +245,13 @@ for(i in 1:5) {
 
 cl = snow::makeCluster(5L)
 snow::clusterExport(cl, list("data"))
-snow::clusterEvalQ(cl, {
+ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
   OpenMPController::omp_set_num_threads(6L)
   RhpcBLASctl::omp_set_num_threads(6L)
   RhpcBLASctl::blas_set_num_threads(6L)
   })
-```
 
-```
-## [[1]]
-## NULL
-## 
-## [[2]]
-## NULL
-## 
-## [[3]]
-## NULL
-## 
-## [[4]]
-## NULL
-## 
-## [[5]]
-## NULL
-```
-
-```r
 hmsc_res = 
   snow::parLapply(cl, 1:5, function(i) {
   
@@ -347,7 +264,9 @@ hmsc_res =
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
-    return(c(data[[i]]$corr_acc(correlation),sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
+    return(c(data[[i]]$corr_acc(correlation),
+             sqrt(mean(as.vector(beta - data[[i]]$SPW)^2)) ,
+             dim(Hmsc::getPostEstimate(model, "Lambda")$mean)[1]))
 
 })
 snow::stopCluster(cl)
@@ -383,10 +302,5 @@ matpoints(1:5, results_5[,c(2, 4)], type = "o", lty = 5, pch = c(16, 17), col = 
 ```
 
 ![](HmscLVMsimulation_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
-
-```r
-#legend("bottomright", legend = c("sjSDM", "Hmsc"), col = cols, pch = c(16,17), bty = "n")
-#legend("bottomleft", legend = paste0(c(5, 10, 25, 50, 100), " Species"), lty = 1:5, bty = "n")
-```
 
 
