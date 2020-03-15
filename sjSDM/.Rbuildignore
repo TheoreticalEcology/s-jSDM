@@ -7,3 +7,4 @@ inst/python/.vscode
 inst/python/.eggs
 ^doc$
 ^Meta$
+CRAN.md

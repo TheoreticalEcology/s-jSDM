@@ -8,12 +8,20 @@ coef(model)
 summary(model)
 getCov(model)
 
+# calculate post-hoc p-values:
+p = getSe(model)
+summary(p)
+
+# or turn the option in the sjSDM function on:
+model = sjSDM(X = com$env_weights, Y = com$response, se = TRUE)
+summary(model)
+
 # fit model with interactions:
-model = sjSDM(X = com$env_weights, Y = com$response, formula = ~X1:X2 + X3, iter = 10L)
+model = sjSDM(X = com$env_weights, Y = com$response, formula = ~X1:X2 + X3, se = TRUE)
 summary(model)
 
 # without intercept:
-model = sjSDM(X = com$env_weights, Y = com$response, formula = ~ 0 + X1:X2 + X3, iter = 10L)
+model = sjSDM(X = com$env_weights, Y = com$response, formula = ~ 0 + X1:X2 + X3, se = TRUE)
 summary(model)
 
 # predict with model:
