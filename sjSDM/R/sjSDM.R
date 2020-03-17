@@ -1,294 +1,168 @@
 #' @title sjSDM
+#' @name sjSDM
+#' @docType package
+#' @description A scalable method to estimates joint Species Distribution Models (jSDMs).
+#' @details A scalable method to estimates joint Species Distribution Models (jSDMs) based on the multivariate probit model through Monte-Carlo approximation of the joint likelihood. The numerical approximation is based on PyTorch and reticulate, and can be calculated on CPUs and GPUs alike. 
+#' 
+#' @section PyTorch Installation - Before you start:
+#' 
+#' A few notes before you start with the installation:
+#'\itemize{
+#'  \item existing conda installations (skip this point if you do not know conda): make sure you have the latest conda3/miniconda3 installation and remove unneccessary conda installations.
+#'  \item existing conda/virtualenv (skip this point if you do not know conda): the R package reticulate has problems to find the right environment and it is better to remove unneccessary environments (see the troubleshooting section)
+#' }
+#' 
+#' 
+#' @section Windows - automatic installation:
+#' 
+#' Conda is the easiest way to install python and python packages on windows:
+#' Install the latest \href{https://www.anaconda.com/distribution/}{conda version}
+#' 
+#' Afterwards run:\cr
+#' \code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
+#' 
+#' Reload the package and run the example , if this doesn't work:
+#' \itemize{
+#' \item Restart RStudio
+#' \item Install manually pytorch, see the following section
+#' }
+#' 
+#'  
+#' @section Windows - manual installation:
+#' 
+#' Conda is the easiest way to install python and python packages on windows:
+#' \itemize{
+#' \item Install the latest \href{https://www.anaconda.com/distribution/}{conda version}
+#' \item Open the command window (cmd.exe - hit windows key + r and write cmd)
+#' }
+#' Run in cmd.exe:\cr
+#' \preformatted{
+#' $ conda create --name sjSDM_env python=3.7\cr
+#' $ conda activate sjSDM_env\cr
+#' $ conda install pytorch torchvision cpuonly -c pytorch # cpu\cr
+#' $ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu\cr
+#' }
+#' 
+#' Restart R try to run the example, if this doesn't work:
+#' \itemize{
+#' \item Restart RStudio
+#' \item See the troubleshooting section
+#' }
+#' 
+#'    
+#' @section Linux - automatic installation:
+#' 
+#' Run in R:\cr
+#' \code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
+#' Restart R try to run the example, if this doesn't work:
+#' \itemize{
+#' \item Restart RStudio
+#' \item Install manually pytorch, see the following section
+#' }
+#'  
+#'  
+#' @section Linux - manual installation:
+#' 
+#' Via pip\cr
+#' python3 is pre-installed on most linux distributions, but you have to check that the minimal requirement of python >= 3.6 is met: 
+#'   
+#' Run in your shell:\cr
+#' \preformatted{
+#' $ python3 --version\cr
+#' $ python --version\cr
+#' }
+#' 
+#' Check if pip is installed:
+#' \preformatted{
+#' $ pip3 --version\cr
+#' $ pip --version\cr
+#' }
+#' 
+#' If not then install pip:\cr
+#' \preformatted{
+#' $ sudo apt install python3-pip # for ubuntu/deb   # e.g. for ubuntu
+#' }
+#' 
+#' It depends on your ENVIRONMENTAL variables whether pip or pip3 corresponds to python3. You can check the python version of pip via:\cr
+#' \preformatted{
+#' $ pip --version
+#' }
+#' 
+#' In my case, I have to use "pip3":\cr
+#' \preformatted{
+#' $ pip3 install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu
+#' $ pip3 install torch torchvision #gpu
+#' }
+#' 
+#' Restart R try to run the example, if this doesn't work:
+#' \itemize{
+#' \item Restart RStudio
+#' \item See the troubleshooting section
+#' }
+#' 
+#' Via virtualenv\cr
+#' Create a virtualenv and install dependencies (shell):\cr
+#' \preformatted{
+#' $ python3 -m pip install --user virtualenv\cr
+#' $ python3 -m venv ~/sjSDM_env\cr
+#' $ source ~/sjSDM_env/bin/activate\cr
+#' $ pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu\cr
+#' $ pip install torch torchvision #gpu\cr
+#' }
+#' 
+#' Restart R try to run the example, if this doesn't work:
+#' \itemize{
+#' \item Restart RStudio
+#' \item See the troubleshooting section
+#' }
+#' 
+#' Via conda\cr
+#' Install the latest \href{https://www.anaconda.com/distribution/}{conda version} and run (shell):\cr
+#' \preformatted{
+#' $ conda create --name sjSDM_env python=3.7\cr
+#' $ conda activate sjSDM_env\cr
+#' $ conda install pytorch torchvision cpuonly -c pytorch # cpu\cr
+#' $ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu\cr
+#' }
+#' Restart R try to run the example from, if this doesn't work:\cr
+#' \itemize{
+#' \item Restart RStudio
+#' \item See the troubleshooting section
+#' }
+#' 
+#' @section  MacOS:
+#' 
+#' Via conda\cr
+#' Install the latest \href{https://www.anaconda.com/distribution/}{conda version} and run in your OS shell:\cr
+#' \preformatted{
+#' $ conda create --name sjSDM_env python=3.7\cr
+#' $ conda activate sjSDM_env\cr
+#' $ conda install pytorch torchvision cpuonly -c pytorch # cpu\Cr
+#' }
+#' Restart R try to run the example from, if this doesn't work:
+#' \itemize{
+#' \item Restart RStudio
+#' \item See the troubleshooting section
+#' }
+#'     
+#' For GPU support on MacOS, you have to install the cuda binaries yourself, see \href{https://pytorch.org/}{PyTorch for help}
 #'
-#' @description fast and accurate joint species model
+#'      
+#' @section Troubleshooting:
 #' 
-#' @param X matrix of environmental predictors
-#' @param Y matrix of species occurences/responses
-#' @param formula formula object for predictors
-#' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}
-#' @param l1_coefs strength of lasso regularization on environmental coefficients: \code{l1_coefs * sum(abs(coefs))}
-#' @param l2_coefs strength of ridge regularization on environmental coefficients: \code{l2_coefs * sum(coefs^2)}`
-#' @param l1_cov strength of lasso regulIarization on covariances in species-species association matrix
-#' @param l2_cov strength of ridge regularization on covariances in species-species association matrix
-#' @param iter number of fitting iterations
-#' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
-#' @param learning_rate learning rate for Adamax optimizer
-#' @param se calculate standard errors for environmental coefficients
-#' @param sampling number of sampling steps for Monte Carlo integreation
-#' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
-#' @param device which device to be used, "cpu" or "gpu"
-#' @param dtype which data type, most GPUs support only 32 bit floats.
-#' 
-#' @details The function fits a multivariate probit model via Monte-Carlo integration of the joint likelihood for all species. 
-#' 
-#' @note sjSDM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. See \code{\link{install_sjSDM}} for details.  
-#' 
-#' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}
-#' @author Maximilian Pichler
-#' @export
-sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, 
-                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.01, se = FALSE, sampling = 100L,
-                 parallel = 0L, device = "cpu", dtype = "float32") {
-  stopifnot(
-    is.matrix(X) || is.data.frame(X),
-    is.matrix(Y),
-    df > 0,
-    l1_coefs >= 0,
-    l2_coefs >= 0,
-    l1_cov >= 0,
-    l2_cov >= 0,
-    iter >= 0,
-    learning_rate >= 0
-  )
-  
-  if(reticulate::py_is_null_xptr(fa)) .onLoad()
-  
-  out = list()
-  
-  if(is.numeric(device)) device = as.integer(device)
-  
-  if(device == "gpu") device = 0L
-
-  if(is.data.frame(X)) {
-
-    if(!is.null(formula)){
-      mf = match.call()
-      m = match("formula", names(mf))
-      formula = stats::as.formula(mf[m]$formula)
-      X = stats::model.matrix(formula, X)
-    } else {
-      formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula, X)
-    }
-
-  } else {
-
-    if(!is.null(formula)) {
-      mf = match.call()
-      m = match("formula", names(mf))
-      formula = stats::as.formula(mf[m]$formula)
-      X = data.frame(X)
-      X = stats::model.matrix(formula, X)
-    } else {
-      formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula,data.frame(X))
-    }
-  }
-
-  out$formula = formula
-  out$names = colnames(X)
-  out$species = colnames(Y)
-  out$cl = match.call()
-  
-  
-
-  ### settings ##
-  if(is.null(df)) df = as.integer(floor(ncol(Y) / 2))
-  if(is.null(step_size)) step_size = as.integer(floor(nrow(X) * 0.1))
-  else step_size = as.integer(step_size)
-
-  #.onLoad()
-
-  # if(any(sapply(out$names, function(n) stringr::str_detect(stringr::str_to_lower(n), "intercept")))) intercept = FALSE
-  output = ncol(Y)
-  input = ncol(X)
-  
-  out$get_model = function(){
-    model = fa$Model_base(input, device = device, dtype = dtype)
-    model$add_layer(fa$layers$Layer_dense(hidden = output,
-                                          bias = FALSE,
-                                          l1 = l1_coefs,
-                                          l2 = l2_coefs,
-                                          activation = NULL,
-                                          device = device,
-                                          dtype = dtype))
-    model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01))
-    return(model)
-  }
-  model = out$get_model()
-  
-  time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
-
-  out$logLik = model$logLik(X, Y,batch_size = step_size,parallel = parallel)
-  if(se) try({ out$se = t(abind::abind(model$se(X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
-  
-  out$model = model
-  out$settings = list( df = df, l1_coefs = l1_coefs, l2_coefs = l2_coefs, 
-                       l1_cov = l1_cov, l2_cov = l2_cov, iter = iter, 
-                       step_size = step_size,learning_rate = learning_rate, 
-                       parallel = parallel,device = device, dtype = dtype)
-  out$time = time
-  out$data = list(X = X, Y = Y)
-  out$sessionInfo = utils::sessionInfo()
-  out$weights = model$weights_numpy
-  out$sigma = model$get_sigma_numpy()
-  out$history = model$history
-  torch$cuda$empty_cache()
-  class(out) = "sjSDM"
-  return(out)
-}
-
-
-#' Print a fitted sjSDM model
-#' 
-#' @param x a moel fitted by \code{\link{sjSDM}}
-#' @param ... optional arguments for compatibility with the generic function, no function implemented
-#' @export
-print.sjSDM = function(x, ...) {
-  cat("sjSDM model, see summary(model) for details \n")
-}
-
-
-#' Predict from a fitted sjSDM model
-#' 
-#' @param object a model fitted by \code{\link{sjSDM}}
-#' @param newdata newdata for predictions
-#' @param ... optional arguments for compatibility with the generic function, no function implemented
-#' @export
-predict.sjSDM = function(object, newdata = NULL, ...) {
-  object = checkModel(object)
-  if(is.null(newdata)) {
-    return(object$model$predict(newdata = object$data$X))
-  } else {
-    if(is.data.frame(newdata)) {
-      newdata = stats::model.matrix(object$formula, newdata)
-    } else {
-      newdata = stats::model.matrix(object$formula, data.frame(newdata))
-    }
-  }
-  pred = object$model$predict(newdata = newdata, ...)
-  return(pred)
-}
-
-#' Return coefficients from a fitted sjSDM model
-#' 
-#' @param object a model fitted by \code{\link{sjSDM}}
-#' @param ... optional arguments for compatibility with the generic function, no function implemented
-#' @export
-coef.sjSDM = function(object, ...) {
-  return(object$weights[[1]])
-}
-
-
-#' Post hoc calculation of standard errors
-#' @param object a model fitted by \code{\link{sjSDM}}
-#' @param step_size batch size for stochastic gradient descent
-#' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
-#' @export
-getSe = function(object, step_size = NULL, parallel = 0L){
-  if(!inherits(object, "sjSDM")) stop("object must be of class sjSDM")
-  if(is.null(step_size)) step_size = object$settings$step_size
-  else step_size = as.integer(step_size)
-  try({ object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel),along=0L)) })
-  return(object)
-}
-
-#' Return summary of a fitted sjSDM model
-#' 
-#' @param object a model fitted by \code{\link{sjSDM}}
-#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
-#' @export
-summary.sjSDM = function(object, ...) {
-
-  out = list()
-
-  coefs = coef.sjSDM(object)
-  env = coefs[[1]]
-  if(length(coefs) > 1) {
-    env = rbind(t(coefs[[2]]), env)
-  }
-  env = data.frame(env)
-  if(is.null(object$species)) colnames(env) = paste0("sp", 1:ncol(env))
-  else colnames(env) = object$species
-  rownames(env) = object$names
-
-  cat("LogLik: ", -object$logLik[[1]], "\n")
-  cat("Deviance: ", 2*object$logLik[[1]], "\n\n")
-  cat("Regularization loss: ", object$logLik[[2]], "\n\n")
-
-  cov_m = object$sigma %*% t(object$sigma)
-  cor_m = stats::cov2cor(cov_m)
-
-  p_cor = round(cor_m, 3)
-  p_cor[upper.tri(p_cor)] = 0.000
-  colnames(p_cor) = paste0("sp", 1:ncol(p_cor))
-  rownames(p_cor) = colnames(p_cor)
-
-  cat("Species-species correlation matrix: \n\n")
-  print(p_cor)
-  cat("\n\n\n")
-  
-  
-  # TO DO: p-value parsing:
-  if(!is.null(object$se)) {
-    out$z = object$weights[[1]][[1]] / object$se
-    out$P = 2*stats::pnorm(abs(out$z),lower.tail = FALSE)
-    out$se = object$se
-    
-    coefmat = cbind(
-      as.vector(as.matrix(env)),
-      as.vector(as.matrix(out$se)),
-      as.vector(as.matrix(out$z)),
-      as.vector(as.matrix(out$P))
-      )
-    colnames(coefmat) = c("Estimate", "Std.Err", "Z value", "Pr(>|z|)")
-    rownames(coefmat) = apply(expand.grid( rownames(env), colnames(env)), 1, function(n) paste0(n[2]," ", n[1]))
-    stats::printCoefmat(coefmat, signif.stars = getOption("show.signif.stars"), digits = 3)
-    out$coefmat = coefmat
-  } else {
-  
-  cat("Coefficients (beta): \n\n")
-  if(dim(env)[2] > 50) utils::head(env)
-  else print(env)
-  }
-
-  out$coefs = env
-  out$logLik = object$logLik
-  out$sigma = object$sigma
-  out$cov = cov_m
-  return(invisible(out))
-}
-
-
-#' Generates simulations from sjSDM model
+#' After several installation attempts you might have corrupt and unneccessary conda environments which you have to remove:
+#' Open the shell (Windows users: run cmd.exe):\cr
+#' \preformatted{
+#' $ conda env list\cr
+#' }
+#' will list the paths of all your environments, except for the "base" env, delete them via:\cr
+#' \preformatted{
+#' $ rm - r <path-to-env1>\cr
+#' $ rm - r <path-to-env2>\cr
+#' }
+#' Then continue with the manual install instructions in above sections.
 #'
-#' Simulate nsim responses from the fitted model
-#'
-#' @param object a model fitted by \code{\link{sjSDM}}
-#' @param nsim number of simulations
-#' @param seed seed for random numer generator
-#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
-#'
-#' @importFrom stats simulate
-#' @export
-simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
-  object = checkModel(object)
-  if(!is.null(seed)) {
-    set.seed(seed)
-    torch$cuda$manual_seed(seed)
-    torch$manual_seed(seed)
-  }
-  preds = abind::abind(lapply(1:nsim, function(i) predict.sjSDM(object)), along = 0L)
-  simulation = apply(preds, 2:3, function(p) stats::rbinom(nsim, 1L,p))
-  return(simulation)
-}
-
-
-#' Extract Log-Likelihood from a fitted sjSDM model
-#'
-#' @param object a model fitted by \code{\link{sjSDM}}
-#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
-#'
-#' @importFrom stats simulate
-#' @export
-logLik.sjSDM <- function(object, ...){
-  return(object$logLik[[1]])
-}
-
-
-
-
-
-
-
+#' @section Help and bugs:
+#' 
+#' To report bugs or ask for help, post a \href{http://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example}{reproducible example} via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} on GitHub. 
+NULL
