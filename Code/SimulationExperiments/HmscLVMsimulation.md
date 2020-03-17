@@ -62,13 +62,10 @@ for(i in 1:5) {
 }
 
 
-cl = snow::makeCluster(5L)
+cl = snow::makeCluster(2L)
 snow::clusterExport(cl, list("data"))
 ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
-  OpenMPController::omp_set_num_threads(6L)
-  RhpcBLASctl::omp_set_num_threads(6L)
-  RhpcBLASctl::blas_set_num_threads(6L)
   })
 
 hmsc_res = 
@@ -79,7 +76,7 @@ hmsc_res =
     rL = HmscRandomLevel(units = studyDesign$sample)
     model = Hmsc(Y = data[[i]]$Y, XData = data.frame(data[[i]]$X), XFormula = ~0 + .,
                  studyDesign = studyDesign, ranLevels = list(sample = rL), distr = "probit")
-    model = sampleMcmc(model, thin = 50, samples = 500, transient = 100,verbose = 5000,
+    model = sampleMcmc(model, thin = 50, samples = 500, transient = 5000,verbose = 5000,
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
@@ -108,13 +105,10 @@ for(i in 1:5) {
   results_2[i,2] = sqrt(mean(as.vector(coef(sjSDM)[[1]] - data[[i]]$SPW)^2))
 }
 
-cl = snow::makeCluster(5L)
+cl = snow::makeCluster(2L)
 snow::clusterExport(cl, list("data"))
 ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
-  OpenMPController::omp_set_num_threads(6L)
-  RhpcBLASctl::omp_set_num_threads(6L)
-  RhpcBLASctl::blas_set_num_threads(6L)
   })
 hmsc_res = 
   snow::parLapply(cl, 1:5, function(i) {
@@ -124,7 +118,7 @@ hmsc_res =
     rL = HmscRandomLevel(units = studyDesign$sample)
     model = Hmsc(Y = data[[i]]$Y, XData = data.frame(data[[i]]$X), XFormula = ~0 + .,
                  studyDesign = studyDesign, ranLevels = list(sample = rL), distr = "probit")
-    model = sampleMcmc(model, thin = 50, samples = 500, transient = 100,verbose = 5000,
+    model = sampleMcmc(model, thin = 50, samples = 500, transient = 5000,verbose = 5000,
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
@@ -152,13 +146,10 @@ for(i in 1:5) {
 }
 
 
-cl = snow::makeCluster(5L)
+cl = snow::makeCluster(2L)
 snow::clusterExport(cl, list("data"))
 ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
-  OpenMPController::omp_set_num_threads(6L)
-  RhpcBLASctl::omp_set_num_threads(6L)
-  RhpcBLASctl::blas_set_num_threads(6L)
   })
 
 hmsc_res = 
@@ -169,7 +160,7 @@ hmsc_res =
     rL = HmscRandomLevel(units = studyDesign$sample)
     model = Hmsc(Y = data[[i]]$Y, XData = data.frame(data[[i]]$X), XFormula = ~0 + .,
                  studyDesign = studyDesign, ranLevels = list(sample = rL), distr = "probit")
-    model = sampleMcmc(model, thin = 50, samples = 500, transient = 100,verbose = 5000,
+    model = sampleMcmc(model, thin = 50, samples = 500, transient = 5000,verbose = 5000,
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
@@ -197,13 +188,10 @@ for(i in 1:5) {
 }
 
 
-cl = snow::makeCluster(5L)
+cl = snow::makeCluster(2L)
 snow::clusterExport(cl, list("data"))
 ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
-  OpenMPController::omp_set_num_threads(6L)
-  RhpcBLASctl::omp_set_num_threads(6L)
-  RhpcBLASctl::blas_set_num_threads(6L)
   })
 
 hmsc_res = 
@@ -214,7 +202,7 @@ hmsc_res =
     rL = HmscRandomLevel(units = studyDesign$sample)
     model = Hmsc(Y = data[[i]]$Y, XData = data.frame(data[[i]]$X), XFormula = ~0 + .,
                  studyDesign = studyDesign, ranLevels = list(sample = rL), distr = "probit")
-    model = sampleMcmc(model, thin = 50, samples = 500, transient = 100,verbose = 5000,
+    model = sampleMcmc(model, thin = 50, samples = 500, transient = 5000,verbose = 5000,
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
@@ -243,13 +231,10 @@ for(i in 1:5) {
 }
 
 
-cl = snow::makeCluster(5L)
+cl = snow::makeCluster(2L)
 snow::clusterExport(cl, list("data"))
 ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
-  OpenMPController::omp_set_num_threads(6L)
-  RhpcBLASctl::omp_set_num_threads(6L)
-  RhpcBLASctl::blas_set_num_threads(6L)
   })
 
 hmsc_res = 
@@ -260,7 +245,7 @@ hmsc_res =
     rL = HmscRandomLevel(units = studyDesign$sample)
     model = Hmsc(Y = data[[i]]$Y, XData = data.frame(data[[i]]$X), XFormula = ~0 + .,
                  studyDesign = studyDesign, ranLevels = list(sample = rL), distr = "probit")
-    model = sampleMcmc(model, thin = 50, samples = 500, transient = 100,verbose = 5000,
+    model = sampleMcmc(model, thin = 50, samples = 500, transient = 5000,verbose = 5000,
                        nChains = 1L) # 50,000 iterations
     correlation = computeAssociations(model)[[1]]$mean
     beta = Hmsc::getPostEstimate(model, "Beta")$mean
