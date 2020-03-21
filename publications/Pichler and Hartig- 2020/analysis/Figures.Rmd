@@ -774,6 +774,55 @@ write.csv(round(results_conv, 3)[,-c(1,2)],file = "./results/convergence_check_h
 
 
 
+
+
+
+
+
+## LVM simulations
+```{r}
+load(file = "results/LVMsimulation.RData")
+```
+
+
+```{r}
+pdf(file = "./figures/Fig_LVM.pdf", width = 9, height = 4.0)
+par(mfrow = c(2,5), mgp = c(2.1,0.6,0), mar = c(0.6, 1.6, 0.3,0.7), oma = c(2.6,3.0,2.2,0)+0.3, xpd=FALSE)
+
+sp = c(5, 10, 25, 50, 100)
+ylab = "covariance accuracy"
+for(i in 1:5) {
+  cols = RColorBrewer::brewer.pal(5, "Set2")[c(2, 5, 3)]
+  plot(NULL, NULL, ylim = c(0.5, 1.0), xlim = c(1,5), ylab = ylab, xlab = "", xaxt = "n", las = 1, xpd = NA)
+  text(labels  = paste0(sp[i], " Species"), x = 3.0, y = 1.03, xpd = NA, sub = "", pos = 3, font = 2)
+  if(i == 1) text(x = 0, pos = 2, y = 1.03, labels = "A", xpd = NA, font = 2)
+  mean_conf(1:5, sjSDM_res[[i]]$cov, spar = 0.1,  col= cols[1], pch = 17)
+  mean_conf(1:5, Hmsc_res[[i]]$cov, spar = 0.1, col= cols[2], pch = 19)
+  mean_conf(1:5, gllvm_res[[i]]$cov, spar = 0.1, col= cols[3], pch = 4)
+   legend("bottomright", legend = c( "G-sjSDM", "gllvm",  "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 4))
+   ylab = ""
+}
+
+ylab = "Env coefficients RMSE"
+for(i in 1:5) {
+  cols = RColorBrewer::brewer.pal(5, "Set2")[c(2, 5, 3)]
+  xlab = ""
+  if(i == 3) xlab = "Number of latent variables"
+  plot(NULL, NULL, ylim = c(0.0, 10.0), xlim = c(1,5), ylab = ylab, xlab = xlab, las = 1, xpd = NA)
+    if(i == 1) text(x = 0, pos = 2, y = 10.3, labels = "B", xpd = NA, font = 2)
+  mean_conf(1:5, sjSDM_res[[i]]$rmse, spar = 0.1,  col= cols[1], pch = 17)
+  mean_conf(1:5, Hmsc_res[[i]]$rmse, spar = 0.1, col= cols[2], pch = 19)
+  mean_conf(1:5, gllvm_res[[i]]$rmse, spar = 0.1, col= cols[3], pch = 4)
+  legend("topright", legend = c( "G-sjSDM", "gllvm",  "Hmsc"), col = cols, bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.0, pch = c( 17, 19, 4))
+  ylab = ""
+}
+dev.off()
+```
+
+
+
+
+
 ## eDNA 
 ```{r}
 result0 = readRDS("./results/fungi_eDNA0.RDS")
@@ -1342,7 +1391,7 @@ for(i in sort(unique(max_effects[lr_step,]))) {
          xpd = NA, labels = round(min(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
   
    text(srt = 0, 
-         x = (3.6+1.5)*cos(deg2rad(sub[nrow(sub),3]-4)), 
+         x = (3.6+1.5)*cos(deg2rad(sub[nrow(sub),3]-4)), s
          y =  (3.6+1.5)*sin(deg2rad(sub[nrow(sub),3]-4)), 
          xpd = NA, labels = round(max(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
 }
