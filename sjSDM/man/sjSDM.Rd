@@ -7,8 +7,8 @@
 \usage{
 sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
   l2_coefs = 0, l1_cov = 0, l2_cov = 0, iter = 50L, step_size = NULL,
-  learning_rate = 0.01, se = FALSE, sampling = 100L, parallel = 0L,
-  device = "cpu", dtype = "float32")
+  learning_rate = 0.01, se = FALSE, link = c("probit", "logit"),
+  sampling = 100L, parallel = 0L, device = "cpu", dtype = "float32")
 }
 \arguments{
 \item{X}{matrix of environmental predictors}
@@ -34,6 +34,8 @@ sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
 \item{learning_rate}{learning rate for Adamax optimizer}
 
 \item{se}{calculate standard errors for environmental coefficients}
+
+\item{link}{probit or logit}
 
 \item{sampling}{number of sampling steps for Monte Carlo integreation}
 
