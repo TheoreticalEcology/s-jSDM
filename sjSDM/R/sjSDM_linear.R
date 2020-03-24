@@ -14,6 +14,7 @@
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
 #' @param se calculate standard errors for environmental coefficients
+#' @param link probit or logit
 #' @param sampling number of sampling steps for Monte Carlo integreation
 #' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
 #' @param device which device to be used, "cpu" or "gpu"
@@ -35,7 +36,7 @@
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, 
-                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.01, se = FALSE, sampling = 100L,
+                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.01, se = FALSE, link = c("probit", "logit"),sampling = 100L,
                  parallel = 0L, device = "cpu", dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
@@ -87,6 +88,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   out$names = colnames(X)
   out$species = colnames(Y)
   out$cl = match.call()
+  link = match.arg(link)
   
   
 
@@ -110,7 +112,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
                                           activation = NULL,
                                           device = device,
                                           dtype = dtype))
-    model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01))
+    model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), link = link)
     return(model)
   }
   model = out$get_model()

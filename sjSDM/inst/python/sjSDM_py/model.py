@@ -106,7 +106,7 @@ class Model_base:
         self.layers.append(layer)
 
     def build(self, df=None, optimizer=None, l1=0.0, l2=0.0,
-              reg_on_Cov=True, reg_on_Diag=True, inverse=False):
+              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit"):
         """Build model
 
         Initialize and build the model.
@@ -118,6 +118,8 @@ class Model_base:
         :param l2: float > 0.0, ride penality on covariances
         :param reg_on_Cov: logical, regularization on covariance matrix or directly on sigma
         :param reg_on_Diag: logical, regularization on diagonals
+        :param inverse: logical, inverse covariance matrix
+        :param link: chr, probit or logit
 
         """
         if self.df == None:
@@ -125,6 +127,8 @@ class Model_base:
         else:
             df = self.df
         r_dim = self.layers[-1].get_shape()[1]
+
+        self.link = link
 
         low = -np.sqrt(6.0/(r_dim+df))
         high = np.sqrt(6.0/(r_dim+df))
@@ -381,12 +385,16 @@ class Model_base:
         one = torch.tensor(1.0, dtype=self.dtype).to(self.device)
         alpha = torch.tensor(self.alpha, dtype=self.dtype).to(self.device)
         half = torch.tensor(0.5, dtype=self.dtype).to(self.device)
+        if self.link == "probit": 
+            link_func = lambda value: torch.distributions.Normal(zero, one).cdf(value)
+        else:
+            link_func = lambda value: torch.sigmoid(value)
         
         if train:
             def tmp(mu, Ys, batch_size, sampling):
                 noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
                 samples = torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu)
-                E = torch.add(torch.mul(torch.sigmoid(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
+                E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
                 indll = torch.neg(torch.add(torch.mul(torch.log(E), Ys), torch.mul(torch.log(torch.sub(one,E)),torch.sub(one,Ys))))
                 logprob = torch.neg(torch.sum(indll, dim = 2))
                 maxlogprob = torch.max(logprob, dim = 0).values
@@ -397,7 +405,8 @@ class Model_base:
             def tmp(mu, batch_size, sampling):
                 noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
                 samples = torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu)
-                E = torch.add(torch.mul(torch.sigmoid(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
+                #E = torch.add(torch.mul(torch.sigmoid(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
+                E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
                 return torch.mean(E, dim = 0)
 
         return tmp
