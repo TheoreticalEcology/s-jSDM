@@ -7,7 +7,7 @@
 \method{print}{sjSDM}(x, ...)
 }
 \arguments{
-\item{x}{a moel fitted by \code{\link{sjSDM}}}
+\item{x}{a model fitted by \code{\link{sjSDM}}}
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }

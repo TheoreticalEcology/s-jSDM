@@ -23,7 +23,12 @@ Imports:
     rstudioapi,
     abind,
     magrittr,
-    graphics
+    graphics,
+    grDevices,
+    Metrics,
+    snow,
+    scales,
+    mgcv
 Suggests:
     testthat,
     knitr,

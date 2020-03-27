@@ -10,6 +10,7 @@
 #' @param l2_coefs strength of ridge regularization on environmental coefficients: \code{l2_coefs * sum(coefs^2)}`
 #' @param l1_cov strength of lasso regulIarization on covariances in species-species association matrix
 #' @param l2_cov strength of ridge regularization on covariances in species-species association matrix
+#' @param on_diag regularization on diagonals in association matrix or not, default TRUE
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
@@ -36,7 +37,7 @@
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, 
-                 l1_cov = 0.0, l2_cov = 0.0, iter = 50L, step_size = NULL,learning_rate = 0.01, se = FALSE, link = c("probit", "logit"),sampling = 100L,
+                 l1_cov = 0.0, l2_cov = 0.0,on_diag = TRUE, iter = 50L, step_size = NULL,learning_rate = 0.01, se = FALSE, link = c("probit", "logit", "linear"),sampling = 100L,
                  parallel = 0L, device = "cpu", dtype = "float32") {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
@@ -112,7 +113,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
                                           activation = NULL,
                                           device = device,
                                           dtype = dtype))
-    model$build(df = df, l1 = l1_cov, l2 = l2_cov, optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), link = link)
+    model$build(df = df, l1 = l1_cov, l2 = l2_cov, reg_on_Diag = on_diag,optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), link = link)
     return(model)
   }
   model = out$get_model()
@@ -141,7 +142,7 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
 
 #' Print a fitted sjSDM model
 #' 
-#' @param x a moel fitted by \code{\link{sjSDM}}
+#' @param x a model fitted by \code{\link{sjSDM}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
 print.sjSDM = function(x, ...) {

@@ -6,9 +6,10 @@
 \title{sjSDM}
 \usage{
 sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
-  l2_coefs = 0, l1_cov = 0, l2_cov = 0, iter = 50L, step_size = NULL,
-  learning_rate = 0.01, se = FALSE, link = c("probit", "logit"),
-  sampling = 100L, parallel = 0L, device = "cpu", dtype = "float32")
+  l2_coefs = 0, l1_cov = 0, l2_cov = 0, on_diag = TRUE, iter = 50L,
+  step_size = NULL, learning_rate = 0.01, se = FALSE, link = c("probit",
+  "logit", "linear"), sampling = 100L, parallel = 0L, device = "cpu",
+  dtype = "float32")
 }
 \arguments{
 \item{X}{matrix of environmental predictors}
@@ -26,6 +27,8 @@ sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
 \item{l1_cov}{strength of lasso regulIarization on covariances in species-species association matrix}
 
 \item{l2_cov}{strength of ridge regularization on covariances in species-species association matrix}
+
+\item{on_diag}{regularization on diagonals in association matrix or not, default TRUE}
 
 \item{iter}{number of fitting iterations}
 

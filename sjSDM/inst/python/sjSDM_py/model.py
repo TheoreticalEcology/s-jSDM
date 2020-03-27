@@ -263,7 +263,7 @@ class Model_base:
             if any_layers:
                 for i in range(1, len(self.layers)):
                     mu = self.layers[i](mu)
-            loss = loss_function(mu, y, batch_size, sampling)
+            loss = loss_function(mu, y, x.shape[0], sampling)
             loss = torch.sum(loss)
             loss_reg = torch.tensor(0.0, dtype=self.dtype, device=self.device).to(self.device)
             if any_losses:
@@ -387,8 +387,11 @@ class Model_base:
         half = torch.tensor(0.5, dtype=self.dtype).to(self.device)
         if self.link == "probit": 
             link_func = lambda value: torch.distributions.Normal(zero, one).cdf(value)
-        else:
+        elif self.link == "logit":
             link_func = lambda value: torch.sigmoid(value)
+        elif self.link == "linear":
+            link_func = lambda value: torch.clamp(value, zero, one)
+
         
         if train:
             def tmp(mu, Ys, batch_size, sampling):
