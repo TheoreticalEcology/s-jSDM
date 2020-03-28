@@ -51,7 +51,7 @@ tune_results = sjSDM_cv(X = com$env_weights,
                         lambda_cov = seq(0, 0.1, 0.001), 
                         lambda_coef = seq(0, 0.1, 0.001),
                         n_cores = 4L, # small models can be also run in parallel on the GPU
-                        iter = 50L # we can pass arguments to sjSDM via ...
+                        iter = 2L # we can pass arguments to sjSDM via ...
                         )
 
 # print overall results:

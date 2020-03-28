@@ -142,9 +142,13 @@ sjSDM_cv = function(X, Y, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
       res[t,3] = mean(summary_results[summary_results$iter == t, 10])
       res[t,4] = sum(summary_results[summary_results$iter == t, 8])
   }
+  short_summary = cbind(tune_samples, res[,-1])
+  short_summary$l1_cov = (1-short_summary$alpha_cov)*short_summary$lambda_cov
+  short_summary$l2_cov = short_summary$alpha_cov*short_summary$lambda_cov
+  short_summary$l1_coef = (1-short_summary$alpha_coef)*short_summary$lambda_coef
+  short_summary$l2_coef = short_summary$alpha_coef*short_summary$lambda_coef
   
-  
-  out = list(tune_results = result, short_summary = cbind(tune_samples, res[,-1]), summary = summary_results, settings = list(tune_samples = tune_samples, CV = CV, tune = tune))
+  out = list(tune_results = result, short_summary = short_summary, summary = summary_results, settings = list(tune_samples = tune_samples, CV = CV, tune = tune))
   class(out) = c("sjSDM_cv")
   return(out)
 }
@@ -176,15 +180,18 @@ summary.sjSDM_cv = function(object, ...) {
 #' @param y unused argument
 #' @param perf performance measurement to plot
 #' @param resolution resolution of grid
+#' @param k number of knots for the gm
 #' @param ... Additional arguments to pass to \code{plot()}
 #' @export
-plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolution = 15,...) {
+plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolution = 15,k = 3, ...) {
+  oldpar = par()
+  on.exit(do.call(par, oldpar))
   x = x$short_summary
   perf = match.arg(perf)
   if(perf == "AUC") perf = "AUC_test"
   if(perf == "AUC_macro") perf = "AUC_test_macro"
   
-  form = paste0(perf, "~ te(alpha_cov, lambda_cov, k = 3) + te(alpha_coef, lambda_coef, k = 3)")
+  form = paste0(perf, " ~ te(alpha_cov, lambda_cov, k = ",k,") + te(alpha_coef, lambda_coef, k = ", k, ")")
   g = mgcv::gam(stats::as.formula(form), data = x)
   
   xn1 = seq(min(x$alpha_cov), max(x$alpha_cov), length.out = resolution)
@@ -230,33 +237,48 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
 
   perf_ind = which(perf == colnames(x), arr.ind = TRUE)
   
-  graphics::par(mfrow = c(1,2), mar = c(4,4,3,4))
+  graphics::par(mfrow = c(1,2), mar = c(4,4,3,4), oma = c(2,2,2,2))
   new_image(res_cov[,c(1,2,3)], range = range, cols = cols)
-  graphics::text(x = 0.5, y = -0.13, pos = 1, labels = "alpha", xpd = NA)
-  graphics::text(x = -0.24, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
-  graphics::points(x = x_scaled[maxP,1], y = x_scaled[maxP,3], pch = 4, cex = 2.5, col = "darkgreen")
+  graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
+  graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
+  graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
+  graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
+  graphics::points(x = x_scaled[maxP,1], y = x_scaled[maxP,3], pch = 8, cex = 1.5, col = "darkgreen")
   graphics::text(x = x_scaled[maxP,1], y = x_scaled[maxP,3]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), col = "darkgreen", xpd = NA)
-  graphics::points(x = x_scaled[minP,1], y = x_scaled[minP,3], pch = 4, cex = 2.5, col = "red")
+  graphics::points(x = x_scaled[minP,1], y = x_scaled[minP,3], pch = 8, cex = 1.5, col = "red")
   graphics::text(x = x_scaled[minP,1], y = x_scaled[minP,3]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), col = "red", xpd = NA)
   graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Covariance: alpha * lambda", xpd = NA)
-  yy = rev(seq(0.35, 0.66, length.out = length(cols)+1))
-  for(i in 1:length(cols)) graphics::rect(xleft = 1.22, xright = 1.26, ybottom = yy[i], ytop = yy[i+1], border = NA, xpd = NA, col = cols[i])
-  graphics::text(x =1.24, y = min(yy), pos = 1, label = round(range[1], 2), xpd = NA)
-  graphics::text(x =1.24, y = max(yy), pos = 3, label = round(range[2], 2), xpd = NA)
+  graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),3], col = "#0F222E")
   
   new_image(res_coef[,c(1,4,5)], range = range, cols = cols)
-  graphics::text(x = 0.5, y = -0.13, pos = 1, labels = "alpha", xpd = NA)
-  graphics::text(x = -0.24, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
-  graphics::points(x = x_scaled[maxP,2], y = x_scaled[maxP,4], pch = 4, cex = 2.5, col = "darkgreen")
+  graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
+  graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
+  graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
+  graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
+  graphics::points(x = x_scaled[maxP,2], y = x_scaled[maxP,4], pch = 8, cex = 1.5, col = "darkgreen")
   graphics::text(x = x_scaled[maxP,2], y = x_scaled[maxP,4]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), xpd = NA, col = "darkgreen")
-  graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,4], pch = 4, cex = 2.5, col = "red")
+  graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,4], pch = 8, cex = 1.5, col = "red")
   graphics::text(x = x_scaled[minP,2], y = x_scaled[minP,4]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
   graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Coefficients: alpha * lambda", xpd = NA)
+  graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),3], col = "#0F222E")
+  yy = rev(seq(0.35, 0.66, length.out = length(cols)+1))+0.3
+  for(i in 1:length(cols)) graphics::rect(xleft = 1.22+0.0, xright = 1.26+0.0, ybottom = yy[i], ytop = yy[i+1], border = NA, xpd = NA, col = rev(cols)[i])
+  graphics::text(x =1.24+0.0, y = min(yy), pos = 1, label = round(range[1], 2), xpd = NA)
+  graphics::text(x =1.24+0.0, y = max(yy), pos = 3, label = round(range[2], 2), xpd = NA)
+  if(perf != "logLik") label = "AUC"
+  else label = "logLik"
+  graphics::text(y = 1.05*mean(yy), x = 1.24+0.03, labels = label, srt = -90, pos = 4, xpd = NA)
+  graphics::points(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, pch = 8, col = c("darkgreen", "red"))
+  if(perf == "logLik") {
+    text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("lowest", "highest"), pos = 4)
+  } else {
+    text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("highest", "lowest"), pos = 4)
+  }
     
-  return(invisible(  c(l1_cov = (1-x[maxP,]$alpha_cov)*x[maxP,]$lambda_cov, 
-                       l2_cov = (x[maxP,]$alpha_cov)*x[maxP,]$lambda_cov,
-                       l1_coef = (1-x[maxP,]$alpha_coef)*x[maxP,]$lambda_coef,
-                       l2_coef = x[maxP,]$alpha_coef*x[maxP,]$lambda_coef)))
+  return(invisible(c(l1_cov = (1-x[maxP,]$alpha_cov)*x[maxP,]$lambda_cov, 
+                    l2_cov = (x[maxP,]$alpha_cov)*x[maxP,]$lambda_cov,
+                    l1_coef = (1-x[maxP,]$alpha_coef)*x[maxP,]$lambda_coef,
+                    l2_coef = x[maxP,]$alpha_coef*x[maxP,]$lambda_coef)))
 }
 
 #' new_image function
@@ -277,7 +299,5 @@ new_image = function(z, cols= (grDevices::colorRampPalette(c("white", "#24526E")
   graphics::axis(1, at = seq(0.0,1.0, length.out = 5), labels = round(unique(z[,2]),2)[seq(1, length(unique(x)), length.out = 5)], lwd = 0.0, lwd.ticks = 1.0)
   graphics::axis(2, at = seq(0.0,1.0, length.out = 5), labels = round(unique(z[,3]),2)[seq(1, length(unique(y)), length.out = 5)], las = 2, lwd = 0.0, lwd.ticks = 1.0)
 }
-
-
 
 
