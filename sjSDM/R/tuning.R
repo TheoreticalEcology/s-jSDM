@@ -184,8 +184,8 @@ summary.sjSDM_cv = function(object, ...) {
 #' @param ... Additional arguments to pass to \code{plot()}
 #' @export
 plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolution = 15,k = 3, ...) {
-  oldpar = par()
-  on.exit(do.call(par, oldpar))
+  oldpar = graphics::par()
+  on.exit(do.call(graphics::par, oldpar))
   x = x$short_summary
   perf = match.arg(perf)
   if(perf == "AUC") perf = "AUC_test"
@@ -270,9 +270,9 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
   graphics::text(y = 1.05*mean(yy), x = 1.24+0.03, labels = label, srt = -90, pos = 4, xpd = NA)
   graphics::points(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, pch = 8, col = c("darkgreen", "red"))
   if(perf == "logLik") {
-    text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("lowest", "highest"), pos = 4)
+    graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("lowest", "highest"), pos = 4)
   } else {
-    text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("highest", "lowest"), pos = 4)
+    graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("highest", "lowest"), pos = 4)
   }
     
   return(invisible(c(l1_cov = (1-x[maxP,]$alpha_cov)*x[maxP,]$lambda_cov, 
