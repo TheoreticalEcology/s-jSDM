@@ -148,6 +148,12 @@ class Model_base:
         if optimizer != None:
             self.optimizer = optimizer(params = params)
     
+
+        
+   # def fill_lower_tril(self, sigma):
+   #     xc = torch.cat([sigma[self.r_dim:], sigma.flip(dims=[0])])
+   #     y = xc.view(self.r_dim, self.r_dim)
+   #     return torch.tril(y)
     def fit(self, X=None, Y=None, batch_size=25, epochs=100, sampling=100, parallel=0):
         """fit model
 

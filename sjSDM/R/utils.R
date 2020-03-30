@@ -78,7 +78,11 @@ is_linux = function() {
   identical(tolower(Sys.info()[["sysname"]]), "linux")
 }
 
-
+#' check modul
+#' check if modul is loaded
+check_modul = function(){
+  if(reticulate::py_is_null_xptr(fa)) .onLoad()
+}
 
 #' @importFrom magrittr %>%
 #' @export

@@ -5,30 +5,19 @@
 \alias{sjSDM}
 \title{sjSDM}
 \usage{
-sjSDM(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0,
-  l2_coefs = 0, l1_cov = 0, l2_cov = 0, on_diag = TRUE, iter = 50L,
-  step_size = NULL, learning_rate = 0.01, se = FALSE, link = c("probit",
-  "logit", "linear"), sampling = 100L, parallel = 0L, device = "cpu",
-  dtype = "float32")
+sjSDM(Y = NULL, env = NULL, biotic = biotic_struct(), spatial = NULL,
+  iter = 50L, step_size = NULL, learning_rate = 0.01, se = FALSE,
+  link = c("probit", "logit", "linear"), sampling = 100L, parallel = 0L,
+  device = "cpu", dtype = "float32")
 }
 \arguments{
-\item{X}{matrix of environmental predictors}
-
 \item{Y}{matrix of species occurences/responses}
 
-\item{formula}{formula object for predictors}
+\item{env}{matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}}
 
-\item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}}
+\item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{biotic_struct}}}
 
-\item{l1_coefs}{strength of lasso regularization on environmental coefficients: \code{l1_coefs * sum(abs(coefs))}}
-
-\item{l2_coefs}{strength of ridge regularization on environmental coefficients: \code{l2_coefs * sum(coefs^2)}`}
-
-\item{l1_cov}{strength of lasso regulIarization on covariances in species-species association matrix}
-
-\item{l2_cov}{strength of ridge regularization on covariances in species-species association matrix}
-
-\item{on_diag}{regularization on diagonals in association matrix or not, default TRUE}
+\item{spatial}{defines spatial structure, object of type \code{\link{spatialXY}}}
 
 \item{iter}{number of fitting iterations}
 

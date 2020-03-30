@@ -2,15 +2,10 @@
 #'
 #' @description fast and accurate joint species model
 #' 
-#' @param X matrix of environmental predictors
 #' @param Y matrix of species occurences/responses
-#' @param formula formula object for predictors
-#' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}
-#' @param l1_coefs strength of lasso regularization on environmental coefficients: \code{l1_coefs * sum(abs(coefs))}
-#' @param l2_coefs strength of ridge regularization on environmental coefficients: \code{l2_coefs * sum(coefs^2)}`
-#' @param l1_cov strength of lasso regulIarization on covariances in species-species association matrix
-#' @param l2_cov strength of ridge regularization on covariances in species-species association matrix
-#' @param on_diag regularization on diagonals in association matrix or not, default TRUE
+#' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
+#' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{biotic_struct}}
+#' @param spatial defines spatial structure, object of type \code{\link{spatialXY}}
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
@@ -36,22 +31,26 @@
 #' @seealso \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
 #' @author Maximilian Pichler
 #' @export
-sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, l2_coefs = 0.0, 
-                 l1_cov = 0.0, l2_cov = 0.0,on_diag = TRUE, iter = 50L, step_size = NULL,learning_rate = 0.01, se = FALSE, link = c("probit", "logit", "linear"),sampling = 100L,
-                 parallel = 0L, device = "cpu", dtype = "float32") {
+sjSDM = function(Y = NULL, 
+                 env = NULL,
+                 biotic = biotic_struct(),
+                 spatial = NULL,
+                 iter = 50L, 
+                 step_size = NULL,
+                 learning_rate = 0.01, 
+                 se = FALSE, 
+                 link = c("probit", "logit", "linear"),
+                 sampling = 100L,
+                 parallel = 0L, 
+                 device = "cpu", 
+                 dtype = "float32") {
   stopifnot(
-    is.matrix(X) || is.data.frame(X),
-    is.matrix(Y),
-    df > 0,
-    l1_coefs >= 0,
-    l2_coefs >= 0,
-    l1_cov >= 0,
-    l2_cov >= 0,
+    !is.null(Y),
     iter >= 0,
     learning_rate >= 0
   )
   
-  if(reticulate::py_is_null_xptr(fa)) .onLoad()
+  check_modul()
   
   out = list()
   
@@ -59,83 +58,75 @@ sjSDM = function(X = NULL, Y = NULL, formula = NULL, df = NULL, l1_coefs = 0.0, 
   
   if(device == "gpu") device = 0L
 
-  if(is.data.frame(X)) {
+  if(is.matrix(env)) env = linear(data = env)
+  
+  link = match.arg(link)
+  
 
-    if(!is.null(formula)){
-      mf = match.call()
-      m = match("formula", names(mf))
-      formula = stats::as.formula(mf[m]$formula)
-      X = stats::model.matrix(formula, X)
-    } else {
-      formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula, X)
-    }
-
-  } else {
-
-    if(!is.null(formula)) {
-      mf = match.call()
-      m = match("formula", names(mf))
-      formula = stats::as.formula(mf[m]$formula)
-      X = data.frame(X)
-      X = stats::model.matrix(formula, X)
-    } else {
-      formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula,data.frame(X))
-    }
-  }
-
-  out$formula = formula
-  out$names = colnames(X)
+  out$formula = env$formula
+  out$names = colnames(env$X)
   out$species = colnames(Y)
   out$cl = match.call()
   link = match.arg(link)
-  
-  
 
   ### settings ##
-  if(is.null(df)) df = as.integer(floor(ncol(Y) / 2))
+  if(is.null(biotic$df)) biotic$df = as.integer(floor(ncol(Y) / 2))
   if(is.null(step_size)) step_size = as.integer(floor(nrow(X) * 0.1))
   else step_size = as.integer(step_size)
 
-  #.onLoad()
-
-  # if(any(sapply(out$names, function(n) stringr::str_detect(stringr::str_to_lower(n), "intercept")))) intercept = FALSE
   output = ncol(Y)
-  input = ncol(X)
+  input = ncol(env$X)
   
   out$get_model = function(){
     model = fa$Model_base(input, device = device, dtype = dtype)
+
+    if(inherits(env, "envDNN")) {
+      for(i in 1:length(env$hidden))
+        model$add_layer(fa$layers$Layer_dense(hidden = env$hidden[i],
+                                              bias = FALSE,
+                                              l1 = env$l1_coef,
+                                              l2 = env$l2_coef,
+                                              activation = env$activation[i],
+                                              device = device,
+                                              dtype = dtype))
+    } 
     model$add_layer(fa$layers$Layer_dense(hidden = output,
                                           bias = FALSE,
-                                          l1 = l1_coefs,
-                                          l2 = l2_coefs,
+                                          l1 = env$l1_coef,
+                                          l2 = env$l2_coef,
                                           activation = NULL,
                                           device = device,
                                           dtype = dtype))
-    model$build(df = df, l1 = l1_cov, l2 = l2_cov, reg_on_Diag = on_diag,optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), link = link)
+    
+    
+    model$build(df = biotic$df, 
+                l1 = biotic$l1_cov, 
+                l2 = biotic$l2_cov, 
+                reg_on_Diag = biotic$on_diag,
+                optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), 
+                link = link)
     return(model)
   }
   model = out$get_model()
   
-  time = system.time({model$fit(X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
+  time = system.time({model$fit(env$X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
 
-  out$logLik = model$logLik(X, Y,batch_size = step_size,parallel = parallel)
-  if(se) try({ out$se = t(abind::abind(model$se(X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
+  out$logLik = model$logLik(env$X, Y,batch_size = step_size,parallel = parallel)
+  if(se && !inherits(env, "envDNN")) try({ out$se = t(abind::abind(model$se(X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
   
   out$model = model
-  out$settings = list( df = df, l1_coefs = l1_coefs, l2_coefs = l2_coefs, 
-                       l1_cov = l1_cov, l2_cov = l2_cov, iter = iter, 
-                       step_size = step_size,learning_rate = learning_rate, 
-                       parallel = parallel,device = device, dtype = dtype)
+  out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
+                      step_size = step_size,learning_rate = learning_rate, 
+                      parallel = parallel,device = device, dtype = dtype)
   out$time = time
-  out$data = list(X = X, Y = Y)
+  out$data = list(X = env$X, Y = Y)
   out$sessionInfo = utils::sessionInfo()
   out$weights = model$weights_numpy
   out$sigma = model$get_sigma_numpy()
   out$history = model$history
   torch$cuda$empty_cache()
-  class(out) = "sjSDM"
+  if(inherits(env, "envLinear")) class(out) = "sjSDM"
+  else class(out) = "sjSDM_DNN"
   return(out)
 }
 
