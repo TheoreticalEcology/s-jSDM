@@ -16,11 +16,11 @@ getCov(object)
 \method{getCov}{sjSDM_DNN}(object)
 }
 \arguments{
-\item{object}{a model fitted by \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, or \code{\link{sjSDM_DNN}}}
+\item{object}{a model fitted by \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, or \code{\link{sjSDM}} with \code{\link{envDNN}} object}
 }
 \description{
 get species-species assocation (covariance) matrix
 }
 \seealso{
-\code{\link{sjSDM}}, \code{\link{sjSDM_model}}, \code{\link{sjSDM_DNN}}
+\code{\link{sjSDM}}, \code{\link{sjSDM_model}}, \code{\link{envDNN}}
 }

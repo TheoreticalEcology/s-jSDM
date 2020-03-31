@@ -5,7 +5,7 @@
 \alias{sjSDM}
 \title{sjSDM}
 \usage{
-sjSDM(Y = NULL, env = NULL, biotic = biotic_struct(), spatial = NULL,
+sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
   iter = 50L, step_size = NULL, learning_rate = 0.01, se = FALSE,
   link = c("probit", "logit", "linear"), sampling = 100L, parallel = 0L,
   device = "cpu", dtype = "float32")
@@ -13,9 +13,9 @@ sjSDM(Y = NULL, env = NULL, biotic = biotic_struct(), spatial = NULL,
 \arguments{
 \item{Y}{matrix of species occurences/responses}
 
-\item{env}{matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}}
+\item{env}{matrix of environmental predictors, object of type \code{\link{envLinear}} or \code{\link{envDNN}}}
 
-\item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{biotic_struct}}}
+\item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}}
 
 \item{spatial}{defines spatial structure, object of type \code{\link{spatialXY}}}
 
@@ -225,33 +225,82 @@ To report bugs or ask for help, post a \href{http://stackoverflow.com/questions/
 
 \examples{
 \donttest{
-# simulate community:
+  
+# Basic workflow:
+## simulate community:
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 
-# fit model:
-model = sjSDM(X = com$env_weights, Y = com$response, iter = 10L)
+## fit model:
+model = sjSDM(Y = com$response,env = com$env_weights, iter = 10L)
 coef(model)
 summary(model)
 getCov(model)
 
-# calculate post-hoc p-values:
+## calculate post-hoc p-values:
 p = getSe(model)
 summary(p)
 
-# or turn the option in the sjSDM function on:
-model = sjSDM(X = com$env_weights, Y = com$response, se = TRUE)
+## or turn on the option in the sjSDM function:
+model = sjSDM(Y = com$response, env = com$env_weights, se = TRUE)
 summary(model)
 
-# fit model with interactions:
-model = sjSDM(X = com$env_weights, Y = com$response, formula = ~X1:X2 + X3, se = TRUE)
+## fit model with interactions:
+model = sjSDM(Y = com$response,
+              env = envLinear(data = com$env_weights, formula = ~X1:X2 + X3), se = TRUE)
 summary(model)
 
-# without intercept:
-model = sjSDM(X = com$env_weights, Y = com$response, formula = ~ 0 + X1:X2 + X3, se = TRUE)
+## without intercept:
+model = sjSDM(Y = com$response,
+              env = envLinear(data = com$env_weights, formula = ~0+X1:X2 + X3), se = TRUE)
 summary(model)
 
-# predict with model:
+## predict with model:
 preds = predict(model, newdata = com$env_weights)
+
+
+
+# Regularization
+## lambda is the regularization strength
+## alpha weights the lasso or ridge penalty:
+## - alpha = 0 --> pure lasso
+## - alpha = 1.0 --> pure ridge
+model = sjSDM(Y = com$response, 
+              # mix of lasso and ridge
+              env = envLinear(com$env_weights, lambda = 0.01, alpha = 0.5), 
+              # we can do the same for the species-species associations
+              biotic = bioticStruct(lambda = 0.01, alpha = 0.5)
+              )
+summary(model)
+coef(model)
+getCov(model)
+
+
+
+# Deep neural network
+## we can fit also a deep neural network instead of a linear model:
+model = sjSDM(Y = com$response,
+              env = envDNN(com$env_weights, hidden = c(10L, 10L, 10L)))
+summary(model)
+getCov(model)
+plot(model)
+pred = predict(model, newdata = com$env_weights)
+
+## extract weights
+weights = getWeights(model)
+
+## we can also assign weights:
+setWeights(model, weights)
+
+## with regularization:
+model = sjSDM(Y = com$response, 
+              # mix of lasso and ridge
+              env = envDNN(com$env_weights, lambda = 0.01, alpha = 0.5), 
+              # we can do the same for the species-species associations
+              biotic = bioticStruct(lambda = 0.01, alpha = 0.5)
+              )
+getCov(model)
+getWeights(model)
+
 }
 }
 \references{

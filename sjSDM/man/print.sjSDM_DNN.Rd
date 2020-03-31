@@ -7,7 +7,7 @@
 \method{print}{sjSDM_DNN}(x, ...)
 }
 \arguments{
-\item{x}{a moel fitted by \code{\link{sjSDM_DNN}}}
+\item{x}{a moel fitted by \code{\link{sjSDM}} with \code{\link{envDNN}} object}
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }

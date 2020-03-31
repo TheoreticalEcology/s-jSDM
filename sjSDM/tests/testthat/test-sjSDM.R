@@ -8,61 +8,50 @@ testthat::test_that("sjSDM functionality", {
   library(sjSDM)
 
   sim = simulate_SDM(sites = 50L, species = 11L)
-  X = sim$env_weights
-  Y = sim$response
+  X1 = sim$env_weights
+  Y1 = sim$response
+  
 
-  testthat::expect_error(sjSDM(X = data.frame(X), Y), NA)
-  testthat::expect_error(sjSDM(X = data.frame(X), data.frame(Y)))
-
-  testthat::expect_error(sjSDM(X, Y, iter = 5), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 2L), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L), NA)
-
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, df = 7L), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, df = 50L), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, df = 100L), NA)
-
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l1_coefs = 0.1), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l2_coefs = 0.1), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l1_cov  = 0.1), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l2_cov = 0.1), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l2_cov = 0.1, l1_cov = 0.1, l1_coefs = 0.1, l2_coefs = 0.1), NA)
-
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, learning_rate = 1.0), NA)
-
-  testthat::expect_error({model = sjSDM(X, Y, iter = 1, step_size = 50L, formula = ~X1:X2 + X3)}, NA)
-  # testthat::expect_equal(length(model$model$weights_r[[1]]), 2L)
-  testthat::expect_error({model = sjSDM(X, Y, iter = 1, step_size = 50L, formula = ~ 0 + X1:X2 + X3)}, NA)
-
+  testthat::expect_error(sjSDM(env = data.frame(sim$env_weights), Y = Y1), NA)
+  testthat::expect_error(sjSDM(env = data.frame(sim$env_weights), Y = data.frame(Y1)))
+  testthat::expect_error(sjSDM(Y1, X1, iter = 5), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 2L), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 50L, biotic = bioticStruct(df = 7L)), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 50L, biotic = bioticStruct(df = 50L)), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 50L, biotic = bioticStruct(df = 100L)), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1, alpha = 0.0), iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1, alpha = 1.0), iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), biotic = bioticStruct(20L, lambda = 0.1, alpha = 0.0),iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), biotic = bioticStruct(20L, lambda = 0.1, alpha = 0.5),iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), biotic = bioticStruct(20L, lambda = 0.1, alpha = 1.0),iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), biotic = bioticStruct(20L, lambda = 0.1, alpha = 0.5, on_diag = TRUE),iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, formula = ~X1:X2 + X3, lambda = 0.1), iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, formula = ~0 + X1:X2), iter = 1, step_size = 50L), NA)
 
 
   sim = simulate_SDM(sites = 50L, species = 7L)
-  X = sim$env_weights
-  Y = sim$response
+  X1 = sim$env_weights
+  Y1 = sim$response
 
-  testthat::expect_error(sjSDM(X = data.frame(X), Y),NA)
-  testthat::expect_error(sjSDM(X = data.frame(X), data.frame(Y)))
-
-  testthat::expect_error(sjSDM(X, Y, iter = 5), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 2L), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L), NA)
-
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, df = 7L), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, df = 50L), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, df = 100L), NA)
-
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l1_coefs = 0.1), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l2_coefs = 0.1), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l1_cov  = 0.1), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l2_cov = 0.1), NA)
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, l2_cov = 0.1, l1_cov = 0.1, l1_coefs = 0.1, l2_coefs = 0.1), NA)
-
-  testthat::expect_error(sjSDM(X, Y, iter = 1, step_size = 50L, learning_rate = 1.0), NA)
-
-  testthat::expect_error({model = sjSDM(X, Y, iter = 1, step_size = 50L, formula = ~X1:X2 + X3)}, NA)
-  # testthat::expect_equal(length(model$model$weights_r[[1]]), 2L)
-  testthat::expect_error({model = sjSDM(X, Y, iter = 1, step_size = 50L, formula = ~ 0 + X1:X2 + X3)}, NA)
-  # testthat::expect_equal(length(model$model$weights_r[[1]]), 1L)
+  testthat::expect_error(sjSDM(env = (X1), Y = Y1), NA)
+  testthat::expect_error(sjSDM(env = (X1), Y = data.frame(Y1)))
+  testthat::expect_error(sjSDM(Y1, X1, iter = 5), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 2L), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 50L, biotic = bioticStruct(df = 7L)), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 50L, biotic = bioticStruct(df = 50L)), NA)
+  testthat::expect_error(sjSDM(Y1, X1, iter = 1, step_size = 50L, biotic = bioticStruct(df = 100L)), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1, alpha = 0.0), iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1, alpha = 1.0), iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), biotic = bioticStruct(20L, lambda = 0.1, alpha = 0.0),iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), biotic = bioticStruct(20L, lambda = 0.1, alpha = 0.5),iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), biotic = bioticStruct(20L, lambda = 0.1, alpha = 1.0),iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, lambda = 0.1), biotic = bioticStruct(20L, lambda = 0.1, alpha = 0.5, on_diag = TRUE),iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, formula = ~X1:X2 + X3, lambda = 0.1), iter = 1, step_size = 50L), NA)
+  testthat::expect_error(sjSDM(Y1, env = envLinear(X1, formula = ~0 + X1:X2), iter = 1, step_size = 50L), NA)
 
 })
 
@@ -72,24 +61,24 @@ testthat::test_that("sjSDM methods", {
   skip_if_no_torch()
 
   sim = simulate_SDM(sites = 50L, species = 11L)
-  X = sim$env_weights
-  Y = sim$response
+  X1 = sim$env_weights
+  Y1 = sim$response
 
-  testthat::expect_error({model = sjSDM(X, Y, iter = 5, step_size = 50L)}, NA)
+  testthat::expect_error({model = sjSDM(Y1, X1, iter = 5, step_size = 50L)}, NA)
   testthat::expect_error(print(model), NA)
   testthat::expect_error(coef(model), NA)
   testthat::expect_error(summary(model), NA)
   
-  testthat::expect_error({model = sjSDM(X, Y, iter = 5, step_size = 50L,se=TRUE)}, NA)
+  testthat::expect_error({model = sjSDM(Y1, X1, iter = 5, step_size = 50L,se=TRUE)}, NA)
   testthat::expect_error(summary(model), NA)
   testthat::expect_error(getSe(model), NA)
   
-  testthat::expect_error({model = sjSDM(X, Y, iter = 5, step_size = 50L,se=FALSE)}, NA)
+  testthat::expect_error({model = sjSDM(Y1, X1, iter = 5, step_size = 50L,se=FALSE)}, NA)
   testthat::expect_error({model=getSe(model)}, NA)
   testthat::expect_error({summary(model)}, NA)
   
-  colnames(Y) = 1:11
-  testthat::expect_error({model = sjSDM(X, Y, iter = 5, step_size = 50L,se=FALSE)}, NA)
+  colnames(Y1) = 1:11
+  testthat::expect_error({model = sjSDM(Y1, X1, iter = 5, step_size = 50L,se=FALSE)}, NA)
   testthat::expect_error({model=getSe(model, step_size = 30)}, NA)
   testthat::expect_error({ sum = summary(model)}, NA)
   

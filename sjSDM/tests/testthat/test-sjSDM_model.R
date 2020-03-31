@@ -8,8 +8,8 @@ testthat::test_that("sjSDM functionality", {
   com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
   
   testthat::expect_error({
-    X = com$env_weights
-    Y = com$response
+    X1 = com$env_weights
+    Y1 = com$response
     model = sjSDM_model(input_shape = 3L)
     model %>% 
       layer_dense(units = 10L, activation = "tanh") %>% 
@@ -23,19 +23,19 @@ testthat::test_that("sjSDM functionality", {
     model %>% 
       summary
     model %>% 
-      fit(X = X, Y = Y, epochs = 1L, batch_size = 10L)
+      fit(X = X1, Y = Y1, epochs = 1L, batch_size = 10L)
     plot(model)
     w = getWeights(model)
     setWeights(model, w)
     getCov(model)
-    p = predict(model, X)
+    p = predict(model, X1)
   }, NA)
   
   
   
   testthat::expect_error({
-    X = com$env_weights
-    Y = com$response
+    X1 = com$env_weights
+    Y1 = com$response
     model = sjSDM_model(input_shape = 3L)
     model %>% 
       layer_dense(units = 3L) %>% 
@@ -49,19 +49,19 @@ testthat::test_that("sjSDM functionality", {
     model %>% 
       summary
     model %>% 
-      fit(X = X, Y = Y, epochs = 1L, batch_size = 10L)
+      fit(X = X1, Y = Y1, epochs = 1L, batch_size = 10L)
     plot(model)
     w = getWeights(model)
     setWeights(model, w)
     getCov(model)
-    p = predict(model, X)
+    p = predict(model, X1)
   }, NA)
   
   com = simulate_SDM(env = 7L, species = 25L, sites = 100L)
   
   testthat::expect_error({
-    X = com$env_weights
-    Y = com$response
+    X1 = com$env_weights
+    Y1 = com$response
     model = sjSDM_model(input_shape = 7L)
     model %>% 
       layer_dense(units = 3L) %>% 
@@ -75,19 +75,19 @@ testthat::test_that("sjSDM functionality", {
     model %>% 
       summary
     model %>% 
-      fit(X = X, Y = Y, epochs = 1L, batch_size = 10L)
+      fit(X = X1, Y = Y1, epochs = 1L, batch_size = 10L)
     plot(model)
     w = getWeights(model)
     setWeights(model, w)
     getCov(model)
-    p = predict(model, X)
+    p = predict(model, X1)
   }, NA)
   
   com = simulate_SDM(env = 7L, species = 25L, sites = 100L)
   
   testthat::expect_error({
-    X = com$env_weights
-    Y = com$response
+    X1 = com$env_weights
+    Y1 = com$response
     model = sjSDM_model(input_shape = 7L)
     model %>% 
       layer_dense(units = 11L) %>% 
@@ -101,12 +101,12 @@ testthat::test_that("sjSDM functionality", {
     model %>% 
       summary
     model %>% 
-      fit(X = X, Y = Y, epochs = 3L, batch_size = 20L)
+      fit(X = X1, Y = Y1, epochs = 3L, batch_size = 20L)
     plot(model)
     w = getWeights(model)
     setWeights(model, w)
     getCov(model)
-    p = predict(model, X, batch_size = 10L)
+    p = predict(model, X1, batch_size = 10L)
   }, NA)
   
   testthat::expect_error({

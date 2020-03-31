@@ -7,7 +7,7 @@
 \method{predict}{sjSDM_DNN}(object, newdata = NULL, ...)
 }
 \arguments{
-\item{object}{a model fitted by \code{\link{sjSDM_DNN}}}
+\item{object}{a model fitted by \code{\link{sjSDM}} with \code{\link{envDNN}} object}
 
 \item{newdata}{newdata for predictions}
 

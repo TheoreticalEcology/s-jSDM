@@ -13,10 +13,10 @@ setWeights(object, weights)
 \method{setWeights}{sjSDM_DNN}(object, weights = NULL)
 }
 \arguments{
-\item{object}{object of class \code{\link{sjSDM_model}} or \code{\link{sjSDM_DNN}} objects}
+\item{object}{object of class \code{\link{sjSDM_model}} or \code{\link{sjSDM}} with \code{\link{envDNN}} object}
 
 \item{weights}{list of layer weights and sigma, see \code{\link{getWeights}}}
 }
 \description{
-set layer weights and sigma in \code{\link{sjSDM_model}} or \code{\link{sjSDM_DNN}} objects
+set layer weights and sigma in \code{\link{sjSDM_model}} or \code{\link{sjSDM}} with \code{\link{envDNN}} object
 }

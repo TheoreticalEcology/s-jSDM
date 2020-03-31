@@ -7,7 +7,7 @@
 \method{plot}{sjSDM_DNN}(x, y, ...)
 }
 \arguments{
-\item{x}{a model fitted by \code{\link{sjSDM_DNN}}}
+\item{x}{a model fitted by \code{\link{sjSDM}} with \code{\link{envDNN}} object}
 
 \item{y}{unused argument}
 

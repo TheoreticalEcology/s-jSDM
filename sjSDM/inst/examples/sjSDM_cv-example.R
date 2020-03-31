@@ -3,8 +3,8 @@
 com = simulate_SDM(env = 5L, species = 25L, sites = 100L, sparse = 0.5)
 
 # tune regularization:
-tune_results = sjSDM_cv(X = com$env_weights, 
-                        Y = com$response,
+tune_results = sjSDM_cv(Y = com$response,
+                        env = com$env_weights, 
                         tune = "random", # random steps in tune-paramter space
                         CV = 3L, # 3-fold cross validation
                         tune_steps = 25L,
@@ -12,7 +12,7 @@ tune_results = sjSDM_cv(X = com$env_weights,
                         alpha_coef = seq(0, 1, 0.1),
                         lambda_cov = seq(0, 0.1, 0.001), 
                         lambda_coef = seq(0, 0.1, 0.001),
-                        n_cores = 4L, # small models can be also run in parallel on the GPU
+                        n_cores = 2L, # small models can be also run in parallel on the GPU
                         iter = 2L # we can pass arguments to sjSDM via ...
                         )
 
@@ -23,15 +23,16 @@ tune_results
 summary(tune_results)
 
 # visualize tuning and best points:
-best = plot(tune_results, perf = "AUC")
+best = plot(tune_results, perf = "logLik")
 
 # fit model with new regularization paramter:
-model = sjSDM(X = com$env_weights,
-              Y = com$response,
-              l1_coefs = best[["l1_coef"]],
-              l2_coefs = best[["l2_coef"]],
-              l1_cov = best[["l1_cov"]],
-              l2_cov = best[["l2_cov"]])
+model = sjSDM(Y = com$response,
+              env = envLinear(com$env_weights, 
+                              lambda = best[["lambda_coef"]],
+                              alpha = best[["alpha_coef"]]),
+              biotic = bioticStruct(lambda = best[["lambda_cov"]],
+                                    alpha = best[["alpha_cov"]])
+              )
 
 summary(model)
 }

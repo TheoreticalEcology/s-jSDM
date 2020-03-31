@@ -1,7 +1,8 @@
 #' Cross validation of elastic net tuning
 #' 
-#' @param X env matrix or data.frame
 #' @param Y species occurrence matrix
+#' @param env matrix of environmental predictors or object of type \code{\link{envLinear}}, or \code{\link{envDNN}}
+#' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}. Alpha and lambda have no influence
 #' @param tune tuning strategy, random or grid search
 #' @param tune_steps number of tuning steps
 #' @param CV n-fold cross validation
@@ -16,7 +17,7 @@
 #' @seealso \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}
 #' @export
 
-sjSDM_cv = function(X, Y, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
+sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
                     alpha_cov = seq(0.0, 1.0, 0.1), 
                     alpha_coef = seq(0.0, 1.0, 0.1), 
                     lambda_cov = 2^seq(-10,-1, length.out = 20),
@@ -25,8 +26,9 @@ sjSDM_cv = function(X, Y, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
                     ...) {
   
   tune = match.arg(tune)
-  indices = 1:nrow(X)
-  set = cut(sample.int(nrow(X)), breaks = CV, labels = FALSE)
+  if(is.matrix(env) || is.data.frame(env)) env = envLinear(data = env)
+  
+  set = cut(sample.int(nrow(env$X)), breaks = CV, labels = FALSE)
   test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
   
   tune_grid = expand.grid(alpha_cov, alpha_coef, lambda_cov, lambda_coef)
@@ -48,18 +50,21 @@ sjSDM_cv = function(X, Y, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
     cv_step_result = vector("list", CV)
     for(i in 1:length(test_indices)) {
       ### model ###
-      X_test = X[test_indices[[i]],]
+      new_env = env
+      X_test = env$X[test_indices[[i]],,drop = FALSE]
       Y_test = Y[test_indices[[i]],]
       
-      X_train = X[-test_indices[[i]],]
+      new_env$X = env$X[-test_indices[[i]],,drop = FALSE]
       Y_train = Y[-test_indices[[i]],]
       
-      model = sjSDM(X = X_train, Y = Y_train, 
-                    l1_coefs = (1-a_coef)*l_coef,
-                    l2_coefs = (a_coef)*l_coef,
-                    l1_cov = (1-a_cov)*l_cov,
-                    l2_cov = (a_cov)*l_cov,
-                    ...)
+      new_env$l1_coef = (1-a_coef)*l_coef
+      new_env$l2_coef = (a_coef)*l_coef
+      biotic$l1_cov =  (1-a_cov)*l_cov
+      biotic$l2_cov =  (a_cov)*l_cov
+      new_env$formula = stats::as.formula("~0+.")
+       
+      model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, ...)
+      
       pred_test = predict.sjSDM(model, newdata = X_test)
       pred_train = predict.sjSDM(model)
       auc_test = sapply(1:ncol(Y_test), function(s) {
@@ -74,12 +79,12 @@ sjSDM_cv = function(X, Y, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
       auc_test = mean(auc_test)
       auc_train = mean(auc_train)
       ll_train = logLik.sjSDM(model)
-      if(is.data.frame(X_test)) {
-        newdata = stats::model.matrix(model$formula, X_test)
-      } else {
-        newdata = stats::model.matrix(model$formula, data.frame(X_test))
-      }
-      ll_test = model$model$logLik(newdata, Y_test,batch_size = as.integer(floor(nrow(X_test)/2)))
+      # if(is.data.frame(X_test)) {
+      #   newdata = stats::model.matrix(model$formula, X_test)
+      # } else {
+      #   newdata = stats::model.matrix(model$formula, data.frame(X_test))
+      # }
+      ll_test = model$model$logLik(X_test, Y_test,batch_size = as.integer(floor(nrow(X_test)/2)))
       cov = getCov.sjSDM(model)
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
                                  pars = tune_samples[t,],
@@ -106,7 +111,7 @@ sjSDM_cv = function(X, Y, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
   } else {
     cl = snow::makeCluster(n_cores)
     control = snow::clusterEvalQ(cl, {library(sjSDM)})
-    snow::clusterExport(cl, list("tune_samples", "test_indices","formula", "CV", "X", "Y", "..."), envir = environment())
+    snow::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env", "Y", "..."), envir = environment())
     result = snow::parLapply(cl, 1:nrow(tune_samples), tune_func)
     snow::stopCluster(cl)
   }
@@ -275,10 +280,10 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
     graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("highest", "lowest"), pos = 4)
   }
     
-  return(invisible(c(l1_cov = (1-x[maxP,]$alpha_cov)*x[maxP,]$lambda_cov, 
-                    l2_cov = (x[maxP,]$alpha_cov)*x[maxP,]$lambda_cov,
-                    l1_coef = (1-x[maxP,]$alpha_coef)*x[maxP,]$lambda_coef,
-                    l2_coef = x[maxP,]$alpha_coef*x[maxP,]$lambda_coef)))
+  return(invisible(c(lambda_cov = x[maxP,]$lambda_cov,
+                     alpha_cov = x[maxP,]$alpha_cov,
+                     lambda_coef =  x[maxP,]$lambda_coef,
+                     alpha_coef = x[maxP,]$alpha_coef)))
 }
 
 #' new_image function

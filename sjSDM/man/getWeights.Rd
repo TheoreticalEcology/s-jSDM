@@ -13,7 +13,7 @@ getWeights(object)
 \method{getWeights}{sjSDM_DNN}(object)
 }
 \arguments{
-\item{object}{object of class \code{\link{sjSDM_DNN}} or of class \code{\link{sjSDM_model}}}
+\item{object}{object of class \code{\link{sjSDM}} with \code{\link{envDNN}} object or of class \code{\link{sjSDM_model}}}
 }
 \value{
 \itemize{

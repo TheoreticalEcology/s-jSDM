@@ -7,7 +7,7 @@
 \method{summary}{sjSDM_DNN}(object, ...)
 }
 \arguments{
-\item{object}{a model fitted by \code{\link{sjSDM_DNN}}}
+\item{object}{a model fitted by \code{\link{sjSDM}} with \code{\link{envDNN}} object}
 
 \item{...}{optional arguments for compatibility with the generic function, no functionality implemented}
 }

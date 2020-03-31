@@ -1,8 +1,8 @@
 #' getCov
 #'
 #' get species-species assocation (covariance) matrix
-#' @param object a model fitted by \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, or \code{\link{sjSDM_DNN}}
-#' @seealso \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, \code{\link{sjSDM_DNN}}
+#' @param object a model fitted by \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, or \code{\link{sjSDM}} with \code{\link{envDNN}} object
+#' @seealso \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, \code{\link{envDNN}}
 #' @export
 getCov = function(object) UseMethod("getCov")
 
@@ -29,12 +29,10 @@ getCov.sjSDM_DNN = function(object){
 
 
 
-
-
 #' Get weights
 #' 
 #' return weights of each layer
-#' @param object object of class \code{\link{sjSDM_DNN}} or of class \code{\link{sjSDM_model}}
+#' @param object object of class \code{\link{sjSDM}} with \code{\link{envDNN}} object or of class \code{\link{sjSDM_model}}
 #' @return 
 #' \itemize{
 #'  \item layers - list of layer weights
@@ -60,8 +58,8 @@ getWeights.sjSDM_DNN = function(object) {
 
 #' Set weights
 #' 
-#' set layer weights and sigma in \code{\link{sjSDM_model}} or \code{\link{sjSDM_DNN}} objects
-#' @param object object of class \code{\link{sjSDM_model}} or \code{\link{sjSDM_DNN}} objects
+#' set layer weights and sigma in \code{\link{sjSDM_model}} or \code{\link{sjSDM}} with \code{\link{envDNN}} object
+#' @param object object of class \code{\link{sjSDM_model}} or \code{\link{sjSDM}} with \code{\link{envDNN}} object
 #' @param weights list of layer weights and sigma, see \code{\link{getWeights}}
 #' @export
 setWeights = function(object, weights) UseMethod("setWeights")
@@ -80,6 +78,6 @@ setWeights.sjSDM_model = function(object, weights) {
 #' @rdname setWeights
 #' @export
 setWeights.sjSDM_DNN = function(object, weights = NULL) {
-  if(is.null(weights)) weights = object$weights
+  if(is.null(weights)) weights = list(layers = object$weights, sigma = object$sigma)
   setWeights(object$model, weights)
 }

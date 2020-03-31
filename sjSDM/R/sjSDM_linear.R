@@ -3,8 +3,8 @@
 #' @description fast and accurate joint species model
 #' 
 #' @param Y matrix of species occurences/responses
-#' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
-#' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{biotic_struct}}
+#' @param env matrix of environmental predictors, object of type \code{\link{envLinear}} or \code{\link{envDNN}}
+#' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
 #' @param spatial defines spatial structure, object of type \code{\link{spatialXY}}
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
@@ -33,7 +33,7 @@
 #' @export
 sjSDM = function(Y = NULL, 
                  env = NULL,
-                 biotic = biotic_struct(),
+                 biotic = bioticStruct(),
                  spatial = NULL,
                  iter = 50L, 
                  step_size = NULL,
@@ -58,7 +58,7 @@ sjSDM = function(Y = NULL,
   
   if(device == "gpu") device = 0L
 
-  if(is.matrix(env)) env = linear(data = env)
+  if(is.matrix(env) || is.data.frame(env)) env = envLinear(data = env)
   
   link = match.arg(link)
   
@@ -71,7 +71,7 @@ sjSDM = function(Y = NULL,
 
   ### settings ##
   if(is.null(biotic$df)) biotic$df = as.integer(floor(ncol(Y) / 2))
-  if(is.null(step_size)) step_size = as.integer(floor(nrow(X) * 0.1))
+  if(is.null(step_size)) step_size = as.integer(floor(nrow(env$X) * 0.1))
   else step_size = as.integer(step_size)
 
   output = ncol(Y)
@@ -112,7 +112,10 @@ sjSDM = function(Y = NULL,
   time = system.time({model$fit(env$X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
 
   out$logLik = model$logLik(env$X, Y,batch_size = step_size,parallel = parallel)
-  if(se && !inherits(env, "envDNN")) try({ out$se = t(abind::abind(model$se(X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
+  if(se && !inherits(env, "envDNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
+  
+  
+  if(!inherits(env, "envLinear")) class(model) = c("sjSDM_model", class(model))
   
   out$model = model
   out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
