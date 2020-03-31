@@ -6,9 +6,9 @@ name: R-CMD-check
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: [ master, devel]
   pull_request:
-    branches: [ master ]
+    branches: [ master, devel]
   schedule:
     - cron: '0 1 * * *'
 
