@@ -142,7 +142,7 @@ class Model_base:
                 self.losses.append(self.layers[i].get_loss())
         
         self.__loss_function = self.__build_loss_function()
-        self.__build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
+        self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
         params = [y for x in self.weights for y in x]
         params.append(self.sigma)
         if optimizer != None:
@@ -348,11 +348,13 @@ class Model_base:
         else:
             data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=self.dtype, device=torch.device('cpu')))
 
+
+
         DataLoader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=shuffle, num_workers=int(parallel), pin_memory=pin_memory, drop_last=drop_last)
         torch.cuda.empty_cache()
         return DataLoader
 
-    def __build_cov_constrain_function(self, l1=None, l2=None, reg_on_Cov=None, reg_on_Diag=None, inverse=None):
+    def _build_cov_constrain_function(self, l1=None, l2=None, reg_on_Cov=None, reg_on_Diag=None, inverse=None):
         if reg_on_Cov:
             if reg_on_Diag:
                 diag = int(0)

@@ -28,7 +28,7 @@
 #' 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
+#' @seealso \code{\link{spatialRE}}, \code{\link{envDNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(Y = NULL, 
@@ -50,7 +50,7 @@ sjSDM = function(Y = NULL,
     learning_rate >= 0
   )
   
-  check_modul()
+  check_module()
   
   out = list()
   
@@ -77,8 +77,10 @@ sjSDM = function(Y = NULL,
   output = ncol(Y)
   input = ncol(env$X)
   
+  
   out$get_model = function(){
-    model = fa$Model_base(input, device = device, dtype = dtype)
+    if(is.null(spatial)) model = fa$Model_base(input, device = device, dtype = dtype)
+    if(inherits(spatial, "spatialRE")) model = fa$Model_spatialRE(input, device = device, dtype = dtype)
 
     if(inherits(env, "envDNN")) {
       for(i in 1:length(env$hidden))
@@ -99,21 +101,40 @@ sjSDM = function(Y = NULL,
                                           dtype = dtype))
     
     
-    model$build(df = biotic$df, 
+    if(is.null(spatial)){
+      model$build(df = biotic$df, 
                 l1 = biotic$l1_cov, 
                 l2 = biotic$l2_cov, 
                 reg_on_Diag = biotic$on_diag,
                 optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), 
                 link = link)
+    }
+    if(inherits(spatial, "spatialRE")) {
+      model$build(df = biotic$df, 
+                  re = as.integer(length(unique(spatial$re))),
+                  l1 = biotic$l1_cov, 
+                  l2 = biotic$l2_cov, 
+                  reg_on_Diag = biotic$on_diag,
+                  optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), 
+                  link = link)
+    }
+    
+    
     return(model)
   }
   model = out$get_model()
   
-  time = system.time({model$fit(env$X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
-
-  out$logLik = model$logLik(env$X, Y,batch_size = step_size,parallel = parallel)
-  if(se && !inherits(env, "envDNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
-  
+  if(is.null(spatial)) {
+    time = system.time({model$fit(env$X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
+    out$logLik = model$logLik(env$X, Y,batch_size = step_size,parallel = parallel)
+    if(se && !inherits(env, "envDNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
+    
+  }
+  if(inherits(spatial, "spatialRE")) {
+    time = system.time({model$fit(env$X, Y, spatial$re, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
+    out$logLik = model$logLik(env$X, Y, spatial$re, batch_size = step_size,parallel = parallel)
+    if(se && !inherits(env, "envDNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, spatial$re, batch_size = step_size, parallel = parallel),along=0L)) })
+  }
   
   if(!inherits(env, "envLinear")) class(model) = c("sjSDM_model", class(model))
   
@@ -127,9 +148,14 @@ sjSDM = function(Y = NULL,
   out$weights = model$weights_numpy
   out$sigma = model$get_sigma_numpy()
   out$history = model$history
+  out$spatial = spatial
   torch$cuda$empty_cache()
   if(inherits(env, "envLinear")) class(out) = "sjSDM"
   else class(out) = "sjSDM_DNN"
+  if(inherits(spatial, "spatialRE")) {
+    class(out) = c(class(out), "spatialRE")
+    out$re = model$get_re_numpy()
+  }
   return(out)
 }
 
@@ -165,6 +191,40 @@ predict.sjSDM = function(object, newdata = NULL, ...) {
   return(pred)
 }
 
+#' Predict from a fitted sjSDM model
+#' 
+#' @param object a model fitted by \code{\link{sjSDM}} with \code{\link{spatialRE}}
+#' @param newdata newdata for predictions
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+predict.sjSDM.spatialRE = function(object, newdata = NULL, ...) {
+  object = checkModel(object)
+  if(is.null(newdata)) {
+    return(object$model$predict(newdata = object$data$X, Re = object$spatial$re))
+  } else {
+    if(is.data.frame(newdata)) {
+      newdata = stats::model.matrix(object$formula, newdata)
+    } else {
+      newdata = stats::model.matrix(object$formula, data.frame(newdata))
+    }
+  }
+  pred = object$model$predict(newdata = newdata, ...)
+  return(pred)
+}
+
+
+#' Extract random effects
+#' 
+#' @param object a model fitted by \code{\link{sjSDM}} with \code{\link{spatialRE}}
+#' @export
+ranef = function(object) {
+  stopifnot(inherits(object, "spatialRE"))
+  re = object$re[,1]
+  names(re) = object$spatial$levels
+  return(re)
+}
+
+
 #' Return coefficients from a fitted sjSDM model
 #' 
 #' @param object a model fitted by \code{\link{sjSDM}}
@@ -184,7 +244,8 @@ getSe = function(object, step_size = NULL, parallel = 0L){
   if(!inherits(object, "sjSDM")) stop("object must be of class sjSDM")
   if(is.null(step_size)) step_size = object$settings$step_size
   else step_size = as.integer(step_size)
-  try({ object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel),along=0L)) })
+  if(!inherits(object, "spatialRE")) try({ object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel),along=0L)) })
+  else try({ object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, object$spatial$re, batch_size = step_size, parallel = parallel),along=0L)) })
   return(object)
 }
 
@@ -218,10 +279,18 @@ summary.sjSDM = function(object, ...) {
   p_cor[upper.tri(p_cor)] = 0.000
   colnames(p_cor) = paste0("sp", 1:ncol(p_cor))
   rownames(p_cor) = colnames(p_cor)
-
-  cat("Species-species correlation matrix: \n\n")
-  print(p_cor)
-  cat("\n\n\n")
+  
+  if(dim(p_cor)[1] < 25) {
+    cat("Species-species correlation matrix: \n\n")
+    print(p_cor)
+    cat("\n\n\n")
+  }
+  
+  if(inherits(object, "spatialRE")) {
+    cat("Spatial random effects (Intercept): \n")
+    cat("\tVar: ", round(var(object$re), 3), "\n\tStd. Dev.: ", round(sd(object$re), 3), "")
+    cat("\n\n\n")
+  }
   
   
   # TO DO: p-value parsing:
@@ -274,6 +343,30 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
     torch$manual_seed(seed)
   }
   preds = abind::abind(lapply(1:nsim, function(i) predict.sjSDM(object)), along = 0L)
+  simulation = apply(preds, 2:3, function(p) stats::rbinom(nsim, 1L,p))
+  return(simulation)
+}
+
+
+#' Generates simulations from sjSDM model
+#'
+#' Simulate nsim responses from the fitted model
+#'
+#' @param object a model fitted by \code{\link{sjSDM}} with \code{\link{spatialRE}}
+#' @param nsim number of simulations
+#' @param seed seed for random numer generator
+#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
+#'
+#' @importFrom stats simulate
+#' @export
+simulate.sjSDM.spatialRE = function(object, nsim = 1, seed = NULL, ...) {
+  object = checkModel(object)
+  if(!is.null(seed)) {
+    set.seed(seed)
+    torch$cuda$manual_seed(seed)
+    torch$manual_seed(seed)
+  }
+  preds = abind::abind(lapply(1:nsim, function(i) predict.sjSDM.spatialRE(object)), along = 0L)
   simulation = apply(preds, 2:3, function(p) stats::rbinom(nsim, 1L,p))
   return(simulation)
 }

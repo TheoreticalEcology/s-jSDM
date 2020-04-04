@@ -122,3 +122,21 @@ spatialXY = function() {
 
 
 
+#' spatial random intercept effects
+#' 
+#' @param re random effect structure
+#' @export
+spatialRE = function(re = NULL) {
+  out = list()
+  re = as.factor(re)
+  out$levels = levels(re)
+  out$re = as.integer(re) - 1L
+  class(out) = "spatialRE"
+  return(out)
+}
+
+
+
+
+
+

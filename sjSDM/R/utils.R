@@ -80,7 +80,7 @@ is_linux = function() {
 
 #' check modul
 #' check if modul is loaded
-check_modul = function(){
+check_module = function(){
   if(reticulate::py_is_null_xptr(fa)) .onLoad()
 }
 

@@ -52,7 +52,6 @@ model \%>\%
   fit(X = X, Y = Y, epochs = 10L, batch_size = 10L)
 
 weights = getWeights(model)
-
 }
 }
 \seealso{
