@@ -72,7 +72,7 @@ com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrix. 
 
 ```{r,eval=FALSE}
-model = sjSDM(X = com$env_weights, Y = com$response, iter = 10L)
+model = sjSDM(Y = com$response, env = com$env_weights, iter = 10L)
 ```
 
 
@@ -90,17 +90,29 @@ getCov(model)
 
 sjSDM supports formula description for the predictors.
 
-E.g. interaction with intercept:
+E.g. interaction with intercept and calculate p-values:
 ```{r,eval=FALSE}
-model = sjSDM(X = com$env_weights, formula = ~ X1*X2,Y = com$response, iter = 10L)
+model = sjSDM(Y = com$response, env = envLinear(data = com$env_weights, formula = ~ X1*X2,), iter = 50L, se = TRUE)
 summary(model)
 
 ```
 
 E.g. quadratic effect without intercept:
 ```{r,eval=FALSE}
-model = sjSDM(X = com$env_weights, formula = ~0+ I(X1^2),Y = com$response, iter = 10L)
+model = sjSDM(Y = com$response, env = envLinear(data = com$env_weights, formula = ~0+ I(X1^2),), iter = 50L, se = TRUE)
 summary(model)
+```
+
+
+## Adding random effect on site
+```{r,eval=FALSE}
+model = sjSDM(Y = com$response, 
+              env = envLinear(data = com$env_weights, formula = ~.,), 
+              spatial = spatialRE(re = as.factor(1:100)),
+              iter = 50L, se = TRUE)
+summary(model)
+ranef(model)
+
 ```
 
 
@@ -112,14 +124,14 @@ X = com$env_weights
 Y = com$response
 
 # three fully connected layers with relu as activation function
-model = sjSDM_DNN(X, Y, formula = ~1+X1:X2 + X2 + X3, hidden = c(5L, 5L, 5L), activation = "relu")
-
-```
-
-Let's have a look at the architecture
-```{r,eval=FALSE}
+model = sjSDM(Y = Y, 
+              env = envDNN(data = X, formula = ~., hidden = c(10L, 10L, 10L), activation = "relu"), 
+              iter = 50L, se = TRUE)
 summary(model)
 ```
+
+
+
 
 The methods for sjSDM() work also for sjSDM_DNN:
 ```{r,eval=FALSE}
@@ -165,9 +177,9 @@ getCov(model)
 
 weights = getWeights(model)
 
-setWeights(model)
+setWeights(model, weights)
 
-pred = predict(model)
+pred = predict(model, X)
 
 plot(model)
 ```

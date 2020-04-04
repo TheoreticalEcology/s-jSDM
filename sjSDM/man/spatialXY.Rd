@@ -7,5 +7,5 @@
 spatialXY()
 }
 \description{
-define spatial structure, not yet supported
+not yet supported
 }

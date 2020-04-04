@@ -32,6 +32,19 @@ summary(model)
 preds = predict(model, newdata = com$env_weights)
 
 
+# With random intercepts on site:
+RR = sample(1:5, 100, TRUE) 
+Re = rnorm(5, 0, 0.1) # simulate random intercepts (5 sites)
+SiteRE = Re[RR]
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L, Re = SiteRE)
+model = sjSDM(Y = com$response,
+              spatial = spatialRE(as.factor(RR)), # provide factors/sites
+              env = envLinear(data = com$env_weights, formula = ~.), se = TRUE)
+summary(model)
+ranef(model)
+cor(ranef(model), Re)
+
+
 
 # Regularization
 ## lambda is the regularization strength

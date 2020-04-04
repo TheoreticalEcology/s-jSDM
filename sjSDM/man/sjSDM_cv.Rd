@@ -4,10 +4,11 @@
 \alias{sjSDM_cv}
 \title{Cross validation of elastic net tuning}
 \usage{
-sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), tune = c("random",
-  "grid"), CV = 5L, tune_steps = 20L, alpha_cov = seq(0, 1, 0.1),
-  alpha_coef = seq(0, 1, 0.1), lambda_cov = 2^seq(-10, -1, length.out = 20),
-  lambda_coef = 2^seq(-10, -0.5, length.out = 20), n_cores = NULL, ...)
+sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
+  tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
+  alpha_cov = seq(0, 1, 0.1), alpha_coef = seq(0, 1, 0.1),
+  lambda_cov = 2^seq(-10, -1, length.out = 20), lambda_coef = 2^seq(-10,
+  -0.5, length.out = 20), n_cores = NULL, ...)
 }
 \arguments{
 \item{Y}{species occurrence matrix}
@@ -16,13 +17,15 @@ sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), tune = c("random",
 
 \item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}. Alpha and lambda have no influence}
 
+\item{spatial}{defines spatial structure, not yet supported}
+
 \item{tune}{tuning strategy, random or grid search}
 
 \item{CV}{n-fold cross validation}
 
 \item{tune_steps}{number of tuning steps}
 
-\item{alpha_cov}{weighting of l1 and l2 on covariances: \eqn{(1 - \alpha) * |cov| + \alpha ||w||^2}}
+\item{alpha_cov}{weighting of l1 and l2 on covariances: \eqn{(1 - \alpha) * |cov| + \alpha ||cov||^2}}
 
 \item{alpha_coef}{weighting of l1 and l2 on coefficients: \eqn{(1 - \alpha) * |coef| + \alpha ||coef||^2}}
 

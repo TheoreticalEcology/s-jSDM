@@ -1,10 +1,13 @@
-#' linear
+#' Linear model of environmental response 
 #' 
-#' create linear env covariates
+#' specify the model to be fitted
 #' @param data matrix of environmental predictors
 #' @param formula formula object for predictors
-#' @param lambda lambda penality
-#' @param alpha weighting between LASSO and ridge
+#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}
+#' 
+#' @seealso \code{\link{envDNN}}, \code{\link{sjSDM}}
+#' @example /inst/examples/sjSDM-example.R
 #' @export
 envLinear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   if(is.data.frame(data)) {
@@ -41,15 +44,28 @@ envLinear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   return(out)
 }
 
-#' env DNN
+#' Print a envLinear object
 #' 
-#' create deep neural network 
+#' @param x object created by \code{\link{envLinear}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+print.envLinear = function(x, ...) {
+  print(x$formula)
+}
+
+
+#' Non-linear nodel (deep neural network) of environmental responses
+#' 
+#' specify the model to be fitted
 #' @param data matrix of environmental predictors
 #' @param formula formula object for predictors
-#' @param hidden hidden units in layers, length of hidden correspond to number of layers
-#' @param activation activation functions for layer, must be of same length as hidden
-#' @param lambda lambda penality
-#' @param alpha weighting between LASSO and ridge
+#' @param hidden hidden units in layers, length of hidden corresponds to number of layers
+#' @param activation activation functions, can be of length one, or a vector of activation functions for each layer. Currently supported: tanh, relu, or sigmoid
+#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |weights| + \alpha ||weights||^2}
+#' 
+#' @seealso \code{\link{envLinear}}, \code{\link{sjSDM}}
+#' @example /inst/examples/sjSDM-example.R
 #' @export
 envDNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu",  lambda = 0.0, alpha = 0.5) {
   if(is.data.frame(data)) {
@@ -89,13 +105,27 @@ envDNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activa
   return(out)
 }
 
+#' Print a envDNN object
+#' 
+#' @param x object created by \code{\link{envDNN}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+print.envDNN = function(x, ...) {
+  print(x$formula)
+  cat("\nLayers with n nodes: ", x$hidden)
+}
+
+
 #' biotic structure
 #' 
-#' define biotic interaction structur
+#' define biotic (species-species) assocation (interaction) structur
 #' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}
-#' @param lambda lambda penality
-#' @param alpha weighting between LASSO and ridge
+#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}
 #' @param on_diag regularization on diagonals 
+#' 
+#' @seealso \code{\link{sjSDM}}
+#' @example /inst/examples/sjSDM-example.R
 #' @export
 bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = TRUE) {
   out = list()
@@ -107,11 +137,19 @@ bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = TRUE) {
   return(out)
 }
 
+#' Print a bioticStruct object
+#' 
+#' @param x object created by \code{\link{bioticStruct}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+print.bioticStruct = function(x, ...) {
+  cat("df: ",x$df)
+}
 
 
 #' spatial
 #' 
-#' define spatial structure, not yet supported
+#' not yet supported
 #' @export
 spatialXY = function() {
   out = list()
@@ -122,9 +160,12 @@ spatialXY = function() {
 
 
 
-#' spatial random intercept effects
+#' spatial random effects
 #' 
-#' @param re random effect structure
+#' define spatial random effects (random intercepts for sites)
+#' @param re vector of factors or integers 
+#' @seealso \code{\link{sjSDM}}
+#' @example /inst/examples/sjSDM-example.R
 #' @export
 spatialRE = function(re = NULL) {
   out = list()
@@ -134,6 +175,15 @@ spatialRE = function(re = NULL) {
   class(out) = "spatialRE"
   return(out)
 }
+
+#' Print a spatialRE object
+#' 
+#' @param x object created by \code{\link{spatialRE}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+print.spatialRE = function(x, ...) {
+}
+
 
 
 

@@ -17,7 +17,7 @@ sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
 
 \item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}}
 
-\item{spatial}{defines spatial structure, object of type \code{\link{spatialXY}}}
+\item{spatial}{defines spatial structure, object of type \code{\link{spatialRE}}}
 
 \item{iter}{number of fitting iterations}
 
@@ -258,6 +258,19 @@ summary(model)
 preds = predict(model, newdata = com$env_weights)
 
 
+# With random intercepts on site:
+RR = sample(1:5, 100, TRUE) 
+Re = rnorm(5, 0, 0.1) # simulate random intercepts (5 sites)
+SiteRE = Re[RR]
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L, Re = SiteRE)
+model = sjSDM(Y = com$response,
+              spatial = spatialRE(as.factor(RR)), # provide factors/sites
+              env = envLinear(data = com$env_weights, formula = ~.), se = TRUE)
+summary(model)
+ranef(model)
+cor(ranef(model), Re)
+
+
 
 # Regularization
 ## lambda is the regularization strength
@@ -309,7 +322,7 @@ Chen, D., Xue, Y., & Gomes, C. P. (2018). End-to-end learning for the deep multi
 Pichler, M., and Hartig, F. (2020). A new method for faster and more accurate inference of species associations from novel community data. arXiv preprint arXiv:2003.05331.
 }
 \seealso{
-\code{\link{spatialRE}}, \code{\link{envDNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
+\code{\link{spatialRE}}, \code{\link{sjSDM_cv}}, \code{\link{envDNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
 }
 \author{
 Maximilian Pichler

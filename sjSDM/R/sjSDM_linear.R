@@ -5,7 +5,7 @@
 #' @param Y matrix of species occurences/responses
 #' @param env matrix of environmental predictors, object of type \code{\link{envLinear}} or \code{\link{envDNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
-#' @param spatial defines spatial structure, object of type \code{\link{spatialXY}}
+#' @param spatial defines spatial structure, object of type \code{\link{spatialRE}}
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
@@ -28,7 +28,7 @@
 #' 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{spatialRE}}, \code{\link{envDNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
+#' @seealso \code{\link{spatialRE}}, \code{\link{sjSDM_cv}}, \code{\link{envDNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(Y = NULL, 
@@ -288,7 +288,7 @@ summary.sjSDM = function(object, ...) {
   
   if(inherits(object, "spatialRE")) {
     cat("Spatial random effects (Intercept): \n")
-    cat("\tVar: ", round(var(object$re), 3), "\n\tStd. Dev.: ", round(sd(object$re), 3), "")
+    cat("\tVar: ", round(stats::var(object$re), 3), "\n\tStd. Dev.: ", round(stats::sd(object$re), 3), "")
     cat("\n\n\n")
   }
   

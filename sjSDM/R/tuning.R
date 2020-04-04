@@ -3,10 +3,11 @@
 #' @param Y species occurrence matrix
 #' @param env matrix of environmental predictors or object of type \code{\link{envLinear}}, or \code{\link{envDNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}. Alpha and lambda have no influence
+#' @param spatial defines spatial structure, not yet supported
 #' @param tune tuning strategy, random or grid search
 #' @param tune_steps number of tuning steps
 #' @param CV n-fold cross validation
-#' @param alpha_cov weighting of l1 and l2 on covariances: \eqn{(1 - \alpha) * |cov| + \alpha ||w||^2}
+#' @param alpha_cov weighting of l1 and l2 on covariances: \eqn{(1 - \alpha) * |cov| + \alpha ||cov||^2}
 #' @param alpha_coef weighting of l1 and l2 on coefficients: \eqn{(1 - \alpha) * |coef| + \alpha ||coef||^2}
 #' @param lambda_cov overall regularization strength on covariances
 #' @param lambda_coef overall regularization strength on coefficients
@@ -17,7 +18,7 @@
 #' @seealso \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}
 #' @export
 
-sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
+sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
                     alpha_cov = seq(0.0, 1.0, 0.1), 
                     alpha_coef = seq(0.0, 1.0, 0.1), 
                     lambda_cov = 2^seq(-10,-1, length.out = 20),
@@ -62,8 +63,9 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), tune = c("random", "
       biotic$l1_cov =  (1-a_cov)*l_cov
       biotic$l2_cov =  (a_cov)*l_cov
       new_env$formula = stats::as.formula("~0+.")
+
        
-      model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, ...)
+      model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = NULL, ...)
       
       pred_test = predict.sjSDM(model, newdata = X_test)
       pred_train = predict.sjSDM(model)
@@ -79,11 +81,6 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), tune = c("random", "
       auc_test = mean(auc_test)
       auc_train = mean(auc_train)
       ll_train = logLik.sjSDM(model)
-      # if(is.data.frame(X_test)) {
-      #   newdata = stats::model.matrix(model$formula, X_test)
-      # } else {
-      #   newdata = stats::model.matrix(model$formula, data.frame(X_test))
-      # }
       ll_test = model$model$logLik(X_test, Y_test,batch_size = as.integer(floor(nrow(X_test)/2)))
       cov = getCov.sjSDM(model)
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
