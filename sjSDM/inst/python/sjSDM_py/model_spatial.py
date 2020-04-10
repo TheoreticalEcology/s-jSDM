@@ -91,12 +91,13 @@ s
             if any_layers:
                 for i in range(1, len(self.layers)):
                     mu = self.layers[i](mu)
-            loss = loss_function(mu, y, spatial_re, x.shape[0], sampling)
-            loss = torch.add(torch.sum(loss), torch.sum(re_loss(spatial_re)))
+            loss = loss_function(mu, y, spatial_re, x.shape[0], sampling).sum().add(re_loss(spatial_re).sum())
+            #loss = torch.add(torch.sum(loss), torch.sum(re_loss(spatial_re)))
             loss_reg = torch.tensor(0.0, dtype=self.dtype, device=self.device).to(self.device)
             if any_losses:
                 for k in range(len(self.losses)):
-                    loss_reg += self.losses[k]()
+                    #loss_reg += self.losses[k]()
+                    loss_reg.add(self.losses[k]() )
                 logLikReg += loss_reg.data.cpu().numpy()
             logLik += loss.data.cpu().numpy()
             torch.cuda.empty_cache()
@@ -135,8 +136,8 @@ s
                     y = y.to(self.device, non_blocking=True)
                     spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
                     mu = torch.nn.functional.linear(x, w.t())
-                    loss = loss_func(mu, y, spatial_re, x.shape[0], sampling)
-                    loss = torch.add(torch.sum(loss), torch.sum(re_loss(spatial_re)))
+                    loss = loss_func(mu, y, spatial_re, x.shape[0], sampling).sum().add( re_loss(spatial_re).sum() )
+                    #loss = torch.add(torch.sum(loss), torch.sum(re_loss(spatial_re)))
                     first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True,allow_unused=True)
                     second = []
                     for j in range(self.input_shape):
@@ -213,11 +214,11 @@ s
                     for i in range(1, len(self.layers)):
                         mu = self.layers[i](mu)
                 
-                loss = self.__loss_function(mu, y, spatial_re, batch_size, sampling)
-                loss = torch.add(torch.mean(loss), torch.mean(re_loss(spatial_re)))
+                loss = self.__loss_function(mu, y, spatial_re, batch_size, sampling).mean().add( re_loss(spatial_re).mean() )
+                #loss = torch.add(torch.mean(loss), torch.mean(re_loss(spatial_re)))
                 if any_losses:
                     for k in range(len(self.losses)):
-                        loss += self.losses[k]()
+                        loss.add(self.losses[k]())
                 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -304,23 +305,32 @@ s
         
         if train:
             def tmp(mu, Ys, spatial_re, batch_size, sampling):
+                #noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
+                #samples = torch.add(torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu), spatial_re)
+                #E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
+                #indll = torch.neg(torch.add(torch.mul(torch.log(E), Ys), torch.mul(torch.log(torch.sub(one,E)),torch.sub(one,Ys))))
+                #logprob = torch.neg(torch.sum(indll, dim = 2))
+                #maxlogprob = torch.max(logprob, dim = 0).values
+                #Eprob = torch.mean(torch.exp(torch.sub(logprob,maxlogprob)), dim = 0)
+                #loss = torch.sub(torch.neg(torch.log(Eprob)),maxlogprob)
+
                 noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
-                samples = torch.add(torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu), spatial_re)
-                E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
-                indll = torch.neg(torch.add(torch.mul(torch.log(E), Ys), torch.mul(torch.log(torch.sub(one,E)),torch.sub(one,Ys))))
-                logprob = torch.neg(torch.sum(indll, dim = 2))
-                maxlogprob = torch.max(logprob, dim = 0).values
-                Eprob = torch.mean(torch.exp(torch.sub(logprob,maxlogprob)), dim = 0)
-                loss = torch.sub(torch.neg(torch.log(Eprob)),maxlogprob)
+                E = link_func(torch.tensordot(noise, self.sigma.t(), dims = 1).add(mu).add(spatial_re).mul(alpha)).mul(one.sub(eps)).add(eps.mul(half))
+                logprob = E.log().mul(Ys).add(one.sub(E).log().mul(one.sub(Ys))).neg().sum(dim = 2).neg()
+                maxlogprob = logprob.max(dim = 0).values
+                Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                loss = Eprob.log().neg().sub(maxlogprob)
                 return loss
         else:
             def tmp(mu, spatial_re, batch_size, sampling):
-                noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
-                print(noise.shape)
-                samples = torch.add(torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu), spatial_re)
+                #noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
+                #samples = torch.add(torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu), spatial_re)
                 #E = torch.add(torch.mul(torch.sigmoid(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
-                E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
-                return torch.mean(E, dim = 0)
+                #E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
+
+                noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
+                E = link_func(torch.tensordot(noise, self.sigma.t(), dims = 1).add(mu).add(spatial_re).mul(alpha)).mul(one.sub(eps)).add(eps.mul(half))                
+                return E.mean(dim = 0)
 
         return tmp
 
