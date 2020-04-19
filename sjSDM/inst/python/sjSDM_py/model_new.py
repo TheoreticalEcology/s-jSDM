@@ -122,22 +122,43 @@ class Model_sjSDM:
         else:
             pin_memory = True
         #init_func = lambda: torch.multiprocessing.set_start_method('spawn', True)
-        if type(Y) is np.ndarray:
-            if type(SP) is np.ndarray:
-                data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
-                                                      torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
-                                                      torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')))
-            else:
-                data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
-                                                      torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')))
+        if type(RE) is np.ndarray:
+            if type(Y) is np.ndarray:
+                if type(SP) is np.ndarray:
+                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
+                                                          torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
+                                                          torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')),
+                                                          torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
+                else:
+                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
+                                                          torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
+                                                          torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
 
-        else:
-            if type(SP) is np.ndarray:
-                data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')),
-                                                      torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')))
-            else: 
-                data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')))
-                    
+            else:
+                if type(SP) is np.ndarray:
+                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')),
+                                                          torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')),
+                                                          torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
+                else: 
+                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')),
+                                                          torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
+        
+        else: 
+            if type(Y) is np.ndarray:
+                if type(SP) is np.ndarray:
+                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
+                                                        torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
+                                                        torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')))
+                else:
+                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
+                                                        torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')))
+
+            else:
+                if type(SP) is np.ndarray:
+                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')),
+                                                        torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')))
+                else: 
+                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')))            
 
         DataLoader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=shuffle, num_workers=int(parallel), pin_memory=pin_memory, drop_last=drop_last)
         torch.cuda.empty_cache()
@@ -176,7 +197,7 @@ class Model_sjSDM:
         dataLoader = self._get_DataLoader(X, Y, SP, RE, batch_size, True, parallel)
         any_losses = len(self.losses) > 0
         #torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        batch_loss = torch.zeros(stepSize, device = self.device, dtype = self.dtype).to(self.device)
+        batch_loss = np.zeros(stepSize)
         self.history = np.zeros(epochs)
 
         df = self.df
@@ -207,9 +228,9 @@ class Model_sjSDM:
                         self.optimizer.zero_grad()
                         loss.backward()
                         self.optimizer.step()
-                        batch_loss[step].data = loss.data
+                        batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
-                    bl = np.mean(batch_loss.data.cpu().numpy())
+                    bl = np.mean(batch_loss)
                     _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
                     sys.stdout.flush()
                     self.history[epoch] = bl    
@@ -229,9 +250,9 @@ class Model_sjSDM:
                         self.optimizer.zero_grad()
                         loss.backward()
                         self.optimizer.step()
-                        batch_loss[step].data = loss.data
+                        batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
-                    bl = np.mean(batch_loss.data.cpu().numpy())
+                    bl = np.mean(batch_loss)
                     _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
                     sys.stdout.flush()
                     self.history[epoch] = bl 
@@ -253,9 +274,9 @@ class Model_sjSDM:
                         self.optimizer.zero_grad()
                         loss.backward()
                         self.optimizer.step()
-                        batch_loss[step].data = loss.data
+                        batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
-                    bl = np.mean(batch_loss.data.cpu().numpy())
+                    bl = np.mean(batch_loss)
                     _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
                     sys.stdout.flush()
                     self.history[epoch] = bl
@@ -273,9 +294,9 @@ class Model_sjSDM:
                         self.optimizer.zero_grad()
                         loss.backward()
                         self.optimizer.step()
-                        batch_loss[step].data = loss.data
+                        batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
-                    bl = np.mean(batch_loss.data.cpu().numpy())
+                    bl = np.mean(batch_loss)
                     _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
                     sys.stdout.flush()
                     self.history[epoch] = bl
@@ -359,6 +380,67 @@ class Model_sjSDM:
         torch.cuda.empty_cache()
         print(logLikReg)
         return logLik, logLikReg
+
+    def predict(self, newdata=None,SP=None,RE=None, train=False, batch_size=25, parallel=0, sampling=100):
+        """predict for newdata
+        
+        Predict on newdata in batches
+
+        :param newdata: 2D-numpy array, environmental data
+        :param train: logical of 1, in case of dropout layer -> train state
+        :param batch_size: int of 1, newdata will be split into batches
+        :param sampling: int of 1, sampling parameter for the Monte-Carlo Integreation
+        :param parallel: int of 1, number of workers for the dataLoader
+
+        """
+        dataLoader = self._get_DataLoader(X = newdata, Y = None, SP=SP,RE=RE, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
+        loss_function = self._build_loss_function(train = False)
+
+        any_layers = len(self.layers) > 0
+        pred = []
+        if self.device.type == 'cuda':
+            device = self.device.type+ ":" + str(self.device.index)
+        else:
+            device = 'cpu'
+        
+        if type(SP) is np.ndarray:
+            if type(RE) is np.ndarray:
+                for step, (x, sp, re) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    sp = sp.to(self.device, non_blocking=True)
+                    spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
+                    mu = self.env(x) + self.spatial(sp) + spatial_re
+                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    #loss = torch.sum(loss)
+                    pred.append(loss)
+            else:
+                for step, (x, sp) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    sp = sp.to(self.device, non_blocking=True)
+                    mu = self.env(x) + self.spatial(sp)
+                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    pred.append(loss)
+        else:
+            if type(RE) is np.ndarray:
+                for step, (x, re) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
+                    mu = self.env(x) + spatial_re
+                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    #loss = torch.sum(loss)
+                    pred.append(loss)
+            else:
+                for step, (x) in enumerate(dataLoader):
+                    x = x[0].to(self.device, non_blocking=True)
+                    mu = self.env(x)
+                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    pred.append(loss)
+        predictions = torch.cat(pred, dim = 0).data.cpu().numpy()
+        return predictions
 
     def se(self, X, Y, SP=None, RE=None, batch_size=25, parallel=0, sampling=100):
         dataLoader = self._get_DataLoader(X, Y, SP, RE, batch_size=batch_size, shuffle=False)
