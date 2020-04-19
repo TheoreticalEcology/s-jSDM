@@ -106,7 +106,7 @@ sjSDM = function(Y = NULL,
                 l1 = biotic$l1_cov, 
                 l2 = biotic$l2_cov, 
                 reg_on_Diag = biotic$on_diag,
-                optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), 
+                optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.00), 
                 link = link)
     }
     if(inherits(spatial, "spatialRE")) {
@@ -115,7 +115,7 @@ sjSDM = function(Y = NULL,
                   l1 = biotic$l1_cov, 
                   l2 = biotic$l2_cov, 
                   reg_on_Diag = biotic$on_diag,
-                  optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.01), 
+                  optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.00), 
                   link = link)
     }
     
