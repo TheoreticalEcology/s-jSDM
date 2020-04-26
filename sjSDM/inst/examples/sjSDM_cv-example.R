@@ -27,7 +27,7 @@ best = plot(tune_results, perf = "logLik")
 
 # fit model with new regularization paramter:
 model = sjSDM(Y = com$response,
-              env = envLinear(com$env_weights, 
+              env = linear(com$env_weights, 
                               lambda = best[["lambda_coef"]],
                               alpha = best[["alpha_coef"]]),
               biotic = bioticStruct(lambda = best[["lambda_cov"]],

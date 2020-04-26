@@ -13,7 +13,7 @@ sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
 \arguments{
 \item{Y}{species occurrence matrix}
 
-\item{env}{matrix of environmental predictors or object of type \code{\link{envLinear}}, or \code{\link{envDNN}}}
+\item{env}{matrix of environmental predictors or object of type \code{\link{linear}}, or \code{\link{DNN}}}
 
 \item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}. Alpha and lambda have no influence}
 
@@ -70,7 +70,7 @@ best = plot(tune_results, perf = "logLik")
 
 # fit model with new regularization paramter:
 model = sjSDM(Y = com$response,
-              env = envLinear(com$env_weights, 
+              env = linear(com$env_weights, 
                               lambda = best[["lambda_coef"]],
                               alpha = best[["alpha_coef"]]),
               biotic = bioticStruct(lambda = best[["lambda_cov"]],

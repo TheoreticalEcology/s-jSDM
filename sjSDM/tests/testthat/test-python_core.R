@@ -8,5 +8,8 @@ testthat::test_that("sjSDM python core", {
   library(sjSDM)
   path = system.file("python", package = "sjSDM")
   result = system(paste0("pytest ", path, "/"),intern = TRUE)
-  testthat::expect(!grepl("failed", result[length(result)], ignore.case = TRUE), failure_message = result)
+  res = result[length(result)]
+  testthat::expect(!any(strsplit(res, " ", fixed = TRUE)[[1]] %in% "failed"), failure_message = result)
 })
+
+

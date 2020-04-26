@@ -2,21 +2,18 @@
 % Please edit documentation in R/methods.R
 \name{setWeights}
 \alias{setWeights}
-\alias{setWeights.sjSDM_model}
-\alias{setWeights.sjSDM_DNN}
+\alias{setWeights.sjSDM}
 \title{Set weights}
 \usage{
 setWeights(object, weights)
 
-\method{setWeights}{sjSDM_model}(object, weights)
-
-\method{setWeights}{sjSDM_DNN}(object, weights = NULL)
+\method{setWeights}{sjSDM}(object, weights = NULL)
 }
 \arguments{
-\item{object}{object of class \code{\link{sjSDM_model}} or \code{\link{sjSDM}} with \code{\link{envDNN}} object}
+\item{object}{object of class  \code{\link{sjSDM}} with \code{\link{DNN}} object}
 
 \item{weights}{list of layer weights and sigma, see \code{\link{getWeights}}}
 }
 \description{
-set layer weights and sigma in \code{\link{sjSDM_model}} or \code{\link{sjSDM}} with \code{\link{envDNN}} object
+set layer weights and sigma in \code{\link{sjSDM}} with \code{\link{DNN}} object
 }

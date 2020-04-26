@@ -28,22 +28,31 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  getCov(model)
 
 ## ----eval=FALSE----------------------------------------------------------
-#  model = sjSDM(Y = com$response, env = envLinear(data = com$env_weights, formula = ~ X1*X2,), iter = 50L, se = TRUE)
+#  model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~ X1*X2,), iter = 50L, se = TRUE)
 #  summary(model)
 #  
 
 ## ----eval=FALSE----------------------------------------------------------
-#  model = sjSDM(Y = com$response, env = envLinear(data = com$env_weights, formula = ~0+ I(X1^2),), iter = 50L, se = TRUE)
+#  model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~0+ I(X1^2)), iter = 50L, se = TRUE)
+#  summary(model)
+
+## ----eval=FALSE----------------------------------------------------------
+#  model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~0+ I(X1^2),lambda = 0.5), iter = 50L)
 #  summary(model)
 
 ## ----eval=FALSE----------------------------------------------------------
 #  model = sjSDM(Y = com$response,
-#                env = envLinear(data = com$env_weights, formula = ~.,),
-#                spatial = spatialRE(re = as.factor(1:100)),
-#                iter = 50L, se = TRUE)
+#                env = linear(data = com$env_weights, formula = ~0+ I(X1^2),lambda = 0.5),
+#                biotic = bioticStruct(lambda =0.1),
+#                iter = 50L)
 #  summary(model)
-#  ranef(model)
-#  
+
+## ----eval=FALSE----------------------------------------------------------
+#  model = sjSDM(Y = com$response,
+#                env = linear(data = com$env_weights, formula = ~0+ I(X1^2),lambda = 0.5),
+#                biotic = bioticStruct(lambda =0.1, on_diag = FALSE,inverse = TRUE),
+#                iter = 50L)
+#  summary(model)
 
 ## ----eval=FALSE----------------------------------------------------------
 #  com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
@@ -52,7 +61,7 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  
 #  # three fully connected layers with relu as activation function
 #  model = sjSDM(Y = Y,
-#                env = envDNN(data = X, formula = ~., hidden = c(10L, 10L, 10L), activation = "relu"),
+#                env = DNN(data = X, formula = ~., hidden = c(10L, 10L, 10L), activation = "relu"),
 #                iter = 50L, se = TRUE)
 #  summary(model)
 
@@ -73,27 +82,23 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  X = com$env_weights
 #  Y = com$response
 #  
-#  model = sjSDM_model(input_shape = 3L)
-#  model %>%
-#    layer_dense(units = 10L, activation = "tanh") %>%
-#    layer_dense(units = 10L, activation = "relu") %>%
-#    layer_dense(units = 5L)
+#  XYcoords = matrix(rnorm(200), 100, 2)
 #  
-#  model %>%
-#    compile(df = 50L, optimizer = optimizer_adamax(learning_rate = 0.01), l1_cov = 0.0001, l2_cov = 0.0001)
-#  
-#  model %>%
-#    fit(X = X, Y = Y, epochs = 10L, batch_size = 10L)
-#  
+#  model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2))
 #  summary(model)
+
+## ----eval=FALSE----------------------------------------------------------
 #  
-#  getCov(model)
+#  model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2, lambda = 0.4))
+#  summary(model)
+
+## ----eval=FALSE----------------------------------------------------------
 #  
-#  weights = getWeights(model)
+#  model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = DNN(XYcoords, ~0+X1:X2, lambda = 0.4))
+#  summary(model)
+
+## ----eval=FALSE----------------------------------------------------------
 #  
-#  setWeights(model, weights)
-#  
-#  pred = predict(model, X)
-#  
-#  plot(model)
+#  model = sjSDM(Y, env = DNN(X, ~X1+X2), spatial = DNN(XYcoords, ~0+X1:X2, lambda = 0.4))
+#  summary(model)
 

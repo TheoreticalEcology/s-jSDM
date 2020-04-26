@@ -6,10 +6,10 @@
 #' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}
 #' 
-#' @seealso \code{\link{envDNN}}, \code{\link{sjSDM}}
+#' @seealso \code{\link{DNN}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @export
-envLinear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
+linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   if(is.data.frame(data)) {
     
     if(!is.null(formula)){
@@ -35,21 +35,26 @@ envLinear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
       X = stats::model.matrix(formula,data.frame(data))
     }
   }
+  
+  if(lambda == 0.0) {
+    lambda = -99.9
+  }
+  
   out = list()
   out$formula = formula
   out$X = X
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
-  class(out) = "envLinear"
+  class(out) = "linear"
   return(out)
 }
 
-#' Print a envLinear object
+#' Print a linear object
 #' 
-#' @param x object created by \code{\link{envLinear}}
+#' @param x object created by \code{\link{linear}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
-print.envLinear = function(x, ...) {
+print.linear = function(x, ...) {
   print(x$formula)
 }
 
@@ -64,10 +69,10 @@ print.envLinear = function(x, ...) {
 #' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |weights| + \alpha ||weights||^2}
 #' 
-#' @seealso \code{\link{envLinear}}, \code{\link{sjSDM}}
+#' @seealso \code{\link{linear}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @export
-envDNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu",  lambda = 0.0, alpha = 0.5) {
+DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu",  lambda = 0.0, alpha = 0.5) {
   if(is.data.frame(data)) {
     
     if(!is.null(formula)){
@@ -101,16 +106,16 @@ envDNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activa
   out$hidden = as.integer(hidden)
   if(length(hidden) != length(activation)) activation = rep(activation, length(hidden))
   out$activation = activation
-  class(out) = "envDNN"
+  class(out) = "DNN"
   return(out)
 }
 
-#' Print a envDNN object
+#' Print a DNN object
 #' 
-#' @param x object created by \code{\link{envDNN}}
+#' @param x object created by \code{\link{DNN}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
-print.envDNN = function(x, ...) {
+print.DNN = function(x, ...) {
   print(x$formula)
   cat("\nLayers with n nodes: ", x$hidden)
 }
@@ -123,14 +128,16 @@ print.envDNN = function(x, ...) {
 #' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}
 #' @param on_diag regularization on diagonals 
+#' @param inverse regularization on the inverse covariance matrix
 #' 
 #' @seealso \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @export
-bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = TRUE) {
+bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = TRUE, inverse=FALSE) {
   out = list()
   out$l1_cov = (1-alpha)*lambda
   out$l2_cov = alpha*lambda
+  out$inverse = inverse
   if(!is.null(df)) out$df = as.integer(df)
   out$on_diag = on_diag
   class(out) = "bioticStruct"
@@ -144,17 +151,6 @@ bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = TRUE) {
 #' @export
 print.bioticStruct = function(x, ...) {
   cat("df: ",x$df)
-}
-
-
-#' spatial
-#' 
-#' not yet supported
-#' @export
-spatialXY = function() {
-  out = list()
-  class(out) = "spatialXY"
-  return(out)
 }
 
 

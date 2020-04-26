@@ -80,7 +80,7 @@ class Model_sjSDM:
                 self.losses.append(lambda: self.l1_l2[1](p, l2))
 
     def add_spatial(self, input_shape, output_shape, hidden = [], activation = ['linear'], l1=-99, l2=-99):
-        hidden.append(1)
+        #hidden.append(1)
         self.spatial = (self._build_NN(input_shape, output_shape, hidden, activation))
         self.params.append(self.spatial.parameters())
         for p in self.spatial.parameters():
@@ -101,7 +101,7 @@ class Model_sjSDM:
                 else:
                     model_list.append(nn.Linear(hidden[i-1], hidden[i], bias=False))
 
-                if activation[i] == "ReLU":
+                if activation[i] == "relu":
                      model_list.append(nn.ReLU())
                 if activation[i] == "tanh": 
                     model_list.append(nn.Tanh())
@@ -373,12 +373,12 @@ class Model_sjSDM:
                 loss_reg = loss_reg.add(self.losses[k]())
             
         logLikReg = loss_reg.data.cpu().numpy()
-        print(loss_reg)
+        #print(loss_reg)
             
         if type(RE) is np.ndarray:
             logLikReg += (-re_loss(self.re).sum().data.cpu().numpy())
         torch.cuda.empty_cache()
-        print(logLikReg)
+        #print(logLikReg)
         return logLik, logLikReg
 
     def predict(self, newdata=None,SP=None,RE=None, train=False, batch_size=25, parallel=0, sampling=100):
@@ -396,7 +396,6 @@ class Model_sjSDM:
         dataLoader = self._get_DataLoader(X = newdata, Y = None, SP=SP,RE=RE, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
         loss_function = self._build_loss_function(train = False)
 
-        any_layers = len(self.layers) > 0
         pred = []
         if self.device.type == 'cuda':
             device = self.device.type+ ":" + str(self.device.index)
@@ -411,7 +410,7 @@ class Model_sjSDM:
                     spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
                     mu = self.env(x) + self.spatial(sp) + spatial_re
                     # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
                     #loss = torch.sum(loss)
                     pred.append(loss)
             else:
@@ -420,7 +419,7 @@ class Model_sjSDM:
                     sp = sp.to(self.device, non_blocking=True)
                     mu = self.env(x) + self.spatial(sp)
                     # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
                     pred.append(loss)
         else:
             if type(RE) is np.ndarray:
@@ -429,7 +428,7 @@ class Model_sjSDM:
                     spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
                     mu = self.env(x) + spatial_re
                     # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
                     #loss = torch.sum(loss)
                     pred.append(loss)
             else:
@@ -437,7 +436,7 @@ class Model_sjSDM:
                     x = x[0].to(self.device, non_blocking=True)
                     mu = self.env(x)
                     # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
                     pred.append(loss)
         predictions = torch.cat(pred, dim = 0).data.cpu().numpy()
         return predictions
@@ -703,10 +702,12 @@ class Model_sjSDM:
         return [(lambda p: p.data.cpu().numpy())(p) for p in self.env.parameters()]
 
     def set_env_weights(self, w):
+        counter = 0
         with torch.no_grad():
             for i in range(len(self.env)):
                 if type(self.env[i]) is torch.nn.modules.linear.Linear:
-                    self.env[i].weight = torch.nn.Parameter(torch.tensor(w[i], dtype=self.env[i].weight.dtype, device=self.env[i].weight.device))
+                    self.env[i].weight = torch.nn.Parameter(torch.tensor(w[counter], dtype=self.env[i].weight.dtype, device=self.env[i].weight.device))
+                    counter+=counter
 
     @property
     def spatial_weights(self):
@@ -717,9 +718,11 @@ class Model_sjSDM:
 
     def set_spatial_weights(self, w):
         if self.spatial is not None:
+            counter = 0
             with torch.no_grad():
                 for i in range(len(self.spatial)):
                     if type(self.spatial[i]) is torch.nn.modules.linear.Linear:
-                        self.spatial[i].weight = torch.nn.Parameter(torch.tensor(w[i], dtype=self.spatial[i].weight.dtype, device=self.spatial[i].weight.device))
+                        self.spatial[i].weight = torch.nn.Parameter(torch.tensor(w[counter], dtype=self.spatial[i].weight.dtype, device=self.spatial[i].weight.device))
+                        counter+=counter
         else:
             return None

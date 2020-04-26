@@ -1,7 +1,7 @@
 #' Cross validation of elastic net tuning
 #' 
 #' @param Y species occurrence matrix
-#' @param env matrix of environmental predictors or object of type \code{\link{envLinear}}, or \code{\link{envDNN}}
+#' @param env matrix of environmental predictors or object of type \code{\link{linear}}, or \code{\link{DNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}. Alpha and lambda have no influence
 #' @param spatial defines spatial structure, not yet supported
 #' @param tune tuning strategy, random or grid search
@@ -27,7 +27,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                     ...) {
   
   tune = match.arg(tune)
-  if(is.matrix(env) || is.data.frame(env)) env = envLinear(data = env)
+  if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
   
   set = cut(sample.int(nrow(env$X)), breaks = CV, labels = FALSE)
   test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
