@@ -52,6 +52,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     list(5, 20, TRUE, "linear")
   )
   testthat::test_that("sjSDM Func", {
+    skip_if_no_torch()
     for(i in 1:length(Funcs)) {
       test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], link =  Funcs[[i]][[4]])
     }
@@ -67,6 +68,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     bioticStruct(4L, lambda = 0.1, inverse = TRUE)
   )
   testthat::test_that("sjSDM Biotic", {
+    skip_if_no_torch()
     for(i in 1:length(biotic)) {
       test_model(Y1, env=linear(X1), biotic = biotic[[i]])
     }
@@ -83,6 +85,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(X1, lambda = 0.1, alpha=1.0)
   )
   testthat::test_that("sjSDM env", {
+    skip_if_no_torch()
     for(i in 1:length(envs)) {
       test_model(Y1, env = envs[[i]])
     }
@@ -105,6 +108,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, hidden = c(4,3,6),activation = c("relu", "tanh", "sigmoid"), lambda = 0.1, alpha=1.0)
   )
   testthat::test_that("sjSDM DNN", {
+    skip_if_no_torch()
     for(i in 1:length(DNN)) {
       test_model(Y1, env = DNN[[i]])
     }
@@ -121,6 +125,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(SP, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
   )
   testthat::test_that("sjSDM Spatial", {
+    skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = linear(X1), spatial = Spatial[[i]])
     }
@@ -141,6 +146,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
   )
   testthat::test_that("sjSDM Mix", {
+    skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = Env[[i]], spatial = Spatial[[i]])
     }
