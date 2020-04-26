@@ -76,8 +76,9 @@ class Layer_dense:
         if self.l1 > 0 or self.l2 > 0:
             l1_t = torch.tensor(self.l1, dtype=self.dtype, device=self.device).to(self.device)
             l2_t = torch.tensor(self.l2, dtype=self.dtype, device=self.device).to(self.device)
-            self.loss = lambda: torch.add(torch.sum(l2_t * self.w * self.w), 
-                                          torch.sum(l1_t * torch.abs(self.w)))
+            #self.loss = lambda: torch.add(torch.sum(l2_t * self.w * self.w), 
+            #                              torch.sum(l1_t * torch.abs(self.w)))
+            self.loss = lambda: self.w.pow(2.0).sum().mul(l2_t).add(self.w.abs().sum().mul(l1_t))
         
         if self.activation is None:
             activation = lambda input: input

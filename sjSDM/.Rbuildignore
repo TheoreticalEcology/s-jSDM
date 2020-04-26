@@ -3,6 +3,7 @@
 ^LICENSE\.md$
 ^.travis\.yml$
 inst/python/.pytest_cache
+inst/.pytest_cache
 inst/python/.vscode
 inst/python/.eggs
 ^doc$

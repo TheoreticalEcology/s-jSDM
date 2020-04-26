@@ -1,5 +1,5 @@
 import pytest
-import sjSDM_py as fa
+from .. import sjSDM_py as fa
 import numpy as np
 
 @pytest.fixture

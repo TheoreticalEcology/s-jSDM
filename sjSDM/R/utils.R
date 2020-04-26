@@ -78,7 +78,40 @@ is_linux = function() {
   identical(tolower(Sys.info()[["sysname"]]), "linux")
 }
 
+#' check modul
+#' check if modul is loaded
+check_module = function(){
+  if(reticulate::py_is_null_xptr(fa)) .onLoad()
+}
 
+
+
+parse_nn = function(nn) {
+  slices = reticulate::iterate(nn)
+  
+  layers = sapply(slices, function(s) {sl = strsplit(class(s)[1], ".", fixed=TRUE)[[1]]; return(sl[length(sl)])})
+  txt = paste0("===================================\n")
+  
+  wM = matrix(NA, nrow = length(layers), ncol= 2L)
+  
+  for(i in 1:length(layers)) {
+    if(layers[i] == "Linear") {
+      wM[i, 1] = slices[[i]]$in_features
+      wM[i, 2] = slices[[i]]$out_features
+      txt = paste0(txt, 
+                   "Dense:\t\t (", slices[[i]]$in_features, ", ",slices[[i]]$out_features, ")\n"
+                   )
+    } else {
+      txt = paste0(txt,
+                   "Activation:\t ", layers[i], "\n"
+                   )
+    }
+  }
+  txt = paste0(txt, "===================================\n")
+  
+  txt = paste0(txt, "Weights :\t ", sum(apply(wM, 1,cumprod)[2,], na.rm = TRUE), "\n")
+  return(txt)
+}
 
 #' @importFrom magrittr %>%
 #' @export

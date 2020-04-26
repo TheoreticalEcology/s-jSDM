@@ -3,24 +3,18 @@
 \name{getCov}
 \alias{getCov}
 \alias{getCov.sjSDM}
-\alias{getCov.sjSDM_model}
-\alias{getCov.sjSDM_DNN}
 \title{getCov}
 \usage{
 getCov(object)
 
 \method{getCov}{sjSDM}(object)
-
-\method{getCov}{sjSDM_model}(object)
-
-\method{getCov}{sjSDM_DNN}(object)
 }
 \arguments{
-\item{object}{a model fitted by \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, or \code{\link{sjSDM_DNN}}}
+\item{object}{a model fitted by \code{\link{sjSDM}},  or \code{\link{sjSDM}} with \code{\link{DNN}} object}
 }
 \description{
 get species-species assocation (covariance) matrix
 }
 \seealso{
-\code{\link{sjSDM}}, \code{\link{sjSDM_model}}, \code{\link{sjSDM_DNN}}
+\code{\link{sjSDM}},\code{\link{DNN}}
 }

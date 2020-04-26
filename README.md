@@ -35,7 +35,7 @@ community <- simulate_SDM(sites = 100, species = 10, env = 5)
 Env <- community$env_weights
 Occ <- community$response
 
-model <- sjSDM(X = Env, Y = Occ, formula = ~0+X1*X2 + X3 + X4)
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~0+X1*X2 + X3 + X4), se = TRUE)
 summary(model)
 ```
 

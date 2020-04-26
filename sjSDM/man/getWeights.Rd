@@ -2,18 +2,15 @@
 % Please edit documentation in R/methods.R
 \name{getWeights}
 \alias{getWeights}
-\alias{getWeights.sjSDM_model}
-\alias{getWeights.sjSDM_DNN}
+\alias{getWeights.sjSDM}
 \title{Get weights}
 \usage{
 getWeights(object)
 
-\method{getWeights}{sjSDM_model}(object)
-
-\method{getWeights}{sjSDM_DNN}(object)
+\method{getWeights}{sjSDM}(object)
 }
 \arguments{
-\item{object}{object of class \code{\link{sjSDM_DNN}} or of class \code{\link{sjSDM_model}}}
+\item{object}{object of class \code{\link{sjSDM}} with \code{\link{DNN}}}
 }
 \value{
 \itemize{

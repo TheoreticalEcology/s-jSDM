@@ -72,7 +72,7 @@ com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrix. 
 
 ```{r,eval=FALSE}
-model = sjSDM(X = com$env_weights, Y = com$response, iter = 10L)
+model = sjSDM(Y = com$response, env = com$env_weights, iter = 10L)
 ```
 
 
@@ -90,16 +90,48 @@ getCov(model)
 
 sjSDM supports formula description for the predictors.
 
-E.g. interaction with intercept:
+E.g. interaction with intercept and calculate p-values:
 ```{r,eval=FALSE}
-model = sjSDM(X = com$env_weights, formula = ~ X1*X2,Y = com$response, iter = 10L)
+model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~ X1*X2,), iter = 50L, se = TRUE)
 summary(model)
 
 ```
 
 E.g. quadratic effect without intercept:
 ```{r,eval=FALSE}
-model = sjSDM(X = com$env_weights, formula = ~0+ I(X1^2),Y = com$response, iter = 10L)
+model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~0+ I(X1^2)), iter = 50L, se = TRUE)
+summary(model)
+```
+
+
+## Regularization
+### Regularization on abiotic coefficients
+sjSDM supports l1 (lasso) and l2 (ridge) regularization:
+* alpha is the weighting between lasso and ridge
+* alpha = 0.0 corresponds to pure lasso
+* alpha = 1.0 corresponds to pure ridge
+```{r,eval=FALSE}
+model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~0+ I(X1^2),lambda = 0.5), iter = 50L)
+summary(model)
+```
+
+### Regularization on species-species associations
+We can do the same for the species associations:
+
+```{r,eval=FALSE}
+model = sjSDM(Y = com$response, 
+              env = linear(data = com$env_weights, formula = ~0+ I(X1^2),lambda = 0.5),
+              biotic = bioticStruct(lambda =0.1),
+              iter = 50L)
+summary(model)
+```
+
+Regularization on the inverse covariance matrix (precision) is also supported:
+```{r,eval=FALSE}
+model = sjSDM(Y = com$response, 
+              env = linear(data = com$env_weights, formula = ~0+ I(X1^2),lambda = 0.5),
+              biotic = bioticStruct(lambda =0.1, on_diag = FALSE,inverse = TRUE),
+              iter = 50L)
 summary(model)
 ```
 
@@ -112,16 +144,15 @@ X = com$env_weights
 Y = com$response
 
 # three fully connected layers with relu as activation function
-model = sjSDM_DNN(X, Y, formula = ~1+X1:X2 + X2 + X3, hidden = c(5L, 5L, 5L), activation = "relu")
-
-```
-
-Let's have a look at the architecture
-```{r,eval=FALSE}
+model = sjSDM(Y = Y, 
+              env = DNN(data = X, formula = ~., hidden = c(10L, 10L, 10L), activation = "relu"), 
+              iter = 50L, se = TRUE)
 summary(model)
 ```
 
-The methods for sjSDM() work also for sjSDM_DNN:
+
+
+The methods for sjSDM() work also for the non-linear model:
 ```{r,eval=FALSE}
 getCov(model) # species association matrix
 pred = predict(model) # predict on fitted data
@@ -141,38 +172,39 @@ plot(model)
 
 
 
-# Fitting a non-linear (deep neural network) model with full control of layers
+# Adding a spatial term
 ```{r,eval=FALSE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 X = com$env_weights
 Y = com$response
 
-model = sjSDM_model(input_shape = 3L)
-model %>% 
-  layer_dense(units = 10L, activation = "tanh") %>% 
-  layer_dense(units = 10L, activation = "relu") %>% 
-  layer_dense(units = 5L)
+XYcoords = matrix(rnorm(200), 100, 2)
 
-model %>% 
-  compile(df = 50L, optimizer = optimizer_adamax(learning_rate = 0.01), l1_cov = 0.0001, l2_cov = 0.0001)
-
-model %>% 
-  fit(X = X, Y = Y, epochs = 10L, batch_size = 10L)
-
+model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2))
 summary(model)
-
-getCov(model)
-
-weights = getWeights(model)
-
-setWeights(model)
-
-pred = predict(model)
-
-plot(model)
 ```
 
 
+## Regularization on the spatial model:
+
+```{r,eval=FALSE}
+
+model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2, lambda = 0.4))
+summary(model)
+```
 
 
+## We can also use a non-linear model as a spatial model:
 
+```{r,eval=FALSE}
+
+model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = DNN(XYcoords, ~0+X1:X2, lambda = 0.4))
+summary(model)
+```
+
+## Or for both:
+```{r,eval=FALSE}
+
+model = sjSDM(Y, env = DNN(X, ~X1+X2), spatial = DNN(XYcoords, ~0+X1:X2, lambda = 0.4))
+summary(model)
+```

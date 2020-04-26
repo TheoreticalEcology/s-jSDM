@@ -3,6 +3,7 @@
 #' @param env number of environment variables
 #' @param sites number of sites
 #' @param species number of species
+#' @param Re random effects (intercepts)
 #' @param correlation correlated species TRUE or FALSE
 #' @param weight_range sample true weights from uniform range, default -1,1
 #' @param link probit, logit or idential
@@ -24,6 +25,7 @@ simulate_SDM = function(
   env = 5L,
   sites = 100L,
   species = 5L,
+  Re = NULL,
   correlation = TRUE,
   weight_range = c(-1,1),
   link = "probit",
@@ -97,6 +99,8 @@ simulate_SDM = function(
     mvtnorm::rmvnorm(sites, mean = rep(0,species), sigma = species_covariance)
 
   raw_response = linear_reponse + re_i_j
+  
+  if(!is.null(Re)) raw_response = raw_response + Re
 
   inv_logit = function(x) 1/(1+exp(-x))
 
