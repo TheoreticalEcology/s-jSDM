@@ -16,7 +16,7 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports:
-    reticulate,
+    reticulate (>= 1.15),
     stats,
     mvtnorm,
     utils,
