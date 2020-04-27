@@ -81,6 +81,14 @@ is_linux = function() {
 #' check modul
 #' check if modul is loaded
 check_module = function(){
+  if(!exists("fa")){
+    .onLoad()
+  }
+
+  if(!exists("fa")){
+    stop("PyTorch not installed", call. = FALSE)
+  }
+
   if(reticulate::py_is_null_xptr(fa)) .onLoad()
 }
 

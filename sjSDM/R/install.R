@@ -148,6 +148,12 @@ install_sjSDM = function(method = "conda",
           pip = pip,
           ...
         )
+        reticulate::conda_install(
+          packages = "pyro-ppl",
+          envname = envname,
+          conda = conda,
+          pip = TRUE
+        )
       } else if (method == "virtualenv" || method == "auto") {
         reticulate::virtualenv_install(
           packages = packages$pip,
@@ -172,6 +178,12 @@ install_sjSDM = function(method = "conda",
           python_version = conda_python_version,
           pip = pip,
           ...
+        )
+        reticulate::conda_install(
+          packages = "pyro-ppl",
+          envname = envname,
+          conda = conda,
+          pip = TRUE
         )
         
       }
