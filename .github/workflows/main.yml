@@ -70,7 +70,7 @@ jobs:
           Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
-          Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'));library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();try({devtools::test()})"
+          Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'));library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();try({testthat::test_dir('tests/testthat/')})"
       - name: Check
         continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
         run: |
