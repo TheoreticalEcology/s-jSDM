@@ -53,7 +53,8 @@ jobs:
       - name: Install Python
         run: |
           cd sjSDM
-          Rscript -e "remotes::install_github('rstudio/reticulate')" -e "install.packages('devtools', dependencies=TRUE)"
+          Rscript -e "remotes::install_github('rstudio/reticulate')" 
+          Rscript -e "remotes::install_cran('devtools')"
       - name: Install miniconda mac
         if: matrix.os == 'macos-latest'
         run: |
