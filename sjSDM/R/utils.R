@@ -4,9 +4,9 @@
 is_torch_available = function() {
   #implementation_module <- resolve_implementation_module()
   if (reticulate::py_module_available("torch")) {
-    TRUE
+    return(TRUE)
   } else {
-    FALSE
+    return(FALSE)
   }
 }
 

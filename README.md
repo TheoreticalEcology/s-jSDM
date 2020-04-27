@@ -21,7 +21,7 @@ Install the package via
 devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
 ```
 
-Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly, If you have conda installed, the dependencies can be automatically installed from within R:
+Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly,  the dependencies can be automatically installed from within R:
 
 ```{r}
 sjSDM::install_sjSDM(version = "gpu") # or
@@ -39,7 +39,12 @@ model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~0+X1*X2 + X3 + X4), 
 summary(model)
 ```
 
-If it fails, check out the help of ?install_sjSDM and vignette("Dependencies", package = "sjSDM")
+If it fails, check out the help of ?install_sjSDM, ?installation_help, and vignette("Dependencies", package = "sjSDM"). 
+
+#### Installation workflow:
+1. Try install_sjSDM()
+2. New session, if no 'PyTorch not found' appears it should work, otherwise see ?installation_help
+3. If do not get the pkg to run, create an issue [https://github.com/TheoreticalEcology/s-jSDM/issues](issue tracker) or write an email to maximilian.pichler at ur.de
 
 
 ### Python Package

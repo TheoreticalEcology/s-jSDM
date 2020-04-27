@@ -2,7 +2,7 @@
 % Please edit documentation in R/sjSDM.R
 \name{sjSDM}
 \alias{sjSDM}
-\title{sjSDM2}
+\title{sjSDM}
 \usage{
 sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
   iter = 50L, step_size = NULL, learning_rate = 0.01, se = FALSE,
@@ -16,7 +16,7 @@ sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
 
 \item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}}
 
-\item{spatial}{defines spatial structure, object of type \code{\link{spatialRE}}, \code{\link{linear}} or \code{\link{DNN}}}
+\item{spatial}{defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}}
 
 \item{iter}{number of fitting iterations}
 
@@ -43,8 +43,14 @@ fast and accurate joint species model
 The function fits a multivariate probit model via Monte-Carlo integration (see Chen et al., 2018) of the joint likelihood for all species. See Pichler and Hartig, 2020 for benchmark results.
 
 sjSDM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. 
-See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}, or the section below for details.
+See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
 }
+\section{Installation}{
+
+\code{\link{install_sjSDM}} should be theoretically able to install conda and pytorch automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this in on your own with our trouble shooting guide \code{\link{installation_help}}.
+If the trouble shooting guide did not help, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with a copy of the \code{\link{install_diagnostic}} output as a quote.
+}
+
 \examples{
 \donttest{
   

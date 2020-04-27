@@ -59,7 +59,7 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision",
+             cpu = "pytorch torchvision cpuonly",
              gpu = "pytorch torchvision cudatoolkit=10.1")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch -c defaults -c numba/label/dev"
     
@@ -74,7 +74,7 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision",
+             cpu = "pytorch torchvision cpuonly",
              gpu = "pytorch torchvision cudatoolkit=10.1")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch"
 
@@ -196,18 +196,35 @@ install_sjSDM = function(method = "conda",
   }
 }
 
-# 
-# install_diagnostic = function() {
-#   conda_envs = reticulate::conda_list()
-#   
-#   conda = reticulate::conda_binary()
-#   
-#   configs = ""
-#   
-#   for(n in conda_envs$name) {
-#     configs = paste0(configs, "\n\n\n\nENV: ", n)
-#     configs = paste0(configs, "\ntorch:\n", system(paste0(conda, " list -n" ,n, " torch*"), intern = TRUE)   )
-#     configs = paste0(configs, "\nnumpy:\n", system(paste0(conda, " list -n" ,n, " numpy*"),  intern = TRUE)    )
-#   }
-#   system(paste0(reticulate::conda_binary(), " list -n torch numpy"))
-# }
+
+#' @title install diagnostic
+#' 
+#' @description Print information about available conda environments, python configs, and pytorch versions. 
+#' @details If the trouble shooting guide \code{\link{installation_help}} did not help with the installation, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with the output of this function as a quote. 
+#' 
+#' @seealso \code{\link{installation_help}}, \code{\link{install_sjSDM}}
+#' @export
+install_diagnostic = function() {
+  conda_envs = reticulate::conda_list()
+
+  conda = reticulate::conda_binary()
+
+  configs = ""
+  conda_info = ""
+  suppressWarnings({
+  try({
+  for(n in conda_envs$name) {
+    configs = paste0(configs, "\n\n\nENV: ", n)
+    configs = paste0(configs, "\n\n\ntorch:\n", paste0(system(paste0(conda, " list -n" ,n, " torch*"), intern = TRUE) ,collapse = "\n" ))
+    configs = paste0(configs, "\n\n\nnumpy:\n", paste0(system(paste0(conda, " list -n" ,n, " numpy*"),  intern = TRUE)  ,collapse = "\n" )   )
+  }
+    conda_info = paste0(system(paste0(conda, " info"), intern=TRUE), collapse = "\n")
+  }, silent = TRUE)})
+  
+  print(conda_envs)
+  cat(configs)
+  cat("\n\n\n")
+  print(reticulate::py_config())
+  cat("\n\n\n")
+  cat(conda_info)
+}

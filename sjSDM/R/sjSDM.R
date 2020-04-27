@@ -1,11 +1,11 @@
-#' @title sjSDM2
+#' @title sjSDM
 #'
 #' @description fast and accurate joint species model
 #' 
 #' @param Y matrix of species occurences/responses
 #' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
-#' @param spatial defines spatial structure, object of type \code{\link{spatialRE}}, \code{\link{linear}} or \code{\link{DNN}}
+#' @param spatial defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
@@ -19,7 +19,12 @@
 #' @details The function fits a multivariate probit model via Monte-Carlo integration (see Chen et al., 2018) of the joint likelihood for all species. See Pichler and Hartig, 2020 for benchmark results.
 #' 
 #' sjSDM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. 
-#' See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}, or the section below for details.
+#' See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
+#' 
+#' 
+#' @section Installation:
+#' \code{\link{install_sjSDM}} should be theoretically able to install conda and pytorch automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this in on your own with our trouble shooting guide \code{\link{installation_help}}.
+#' If the trouble shooting guide did not help, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with a copy of the \code{\link{install_diagnostic}} output as a quote. 
 #' 
 #' @references 
 #' Chen, D., Xue, Y., & Gomes, C. P. (2018). End-to-end learning for the deep multivariate probit model. arXiv preprint arXiv:1803.08591.
