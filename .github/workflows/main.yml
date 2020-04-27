@@ -68,6 +68,11 @@ jobs:
           cd sjSDM
           Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
+      - name: testthat
+        if: matrix.os == 'ubuntu-16.04'
+        continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
+        run: |
+          Rscript -e "library(sjSDM);devtools::test('sjSDM/')"
       - name: Check
         continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
         run: |
