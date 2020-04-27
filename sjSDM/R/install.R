@@ -17,22 +17,50 @@
 install_sjSDM = function(method = "conda",
                            conda = "auto",
                            version = c("cpu", "gpu"),
-                           envname = "r-sjSDM",
+                           envname = "r-reticulate",
                            extra_packages = NULL,
                            restart_session = TRUE,
                            conda_python_version = "3.6",
                            pip = FALSE,
                            cuda = c("10.1", "9,2"), ...) {
-
+  
+  
+  is_windows = function() {
+    identical(.Platform$OS.type, "windows")
+  }
+  
+  is_unix = function() {
+    identical(.Platform$OS.type, "unix")
+  }
+  
+  is_osx = function() {
+    Sys.info()["sysname"] == "Darwin"
+  }
+  
+  is_linux = function() {
+    identical(tolower(Sys.info()[["sysname"]]), "linux")
+  }
   version = match.arg(version)
   cuda = match.arg(cuda)
+  
+  
+  conda = tryCatch(reticulate::conda_binary(), error = function(e) e)
+  
+  if(inherits(conda, "error")) {
+    reticulate::install_miniconda()
+  }
+  
+  
+  channel = "pytorch"
+  
+  
 
   if(is_windows()) {
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision cpuonly -c pytorch",
-             gpu = "pytorch torchvision cudatoolkit=10.1 -c pytorch")
+             cpu = "pytorch torchvision",
+             gpu = "pytorch torchvision cudatoolkit=10.1")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch -c defaults -c numba/label/dev"
     
     package$pip = 
@@ -46,8 +74,8 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision cpuonly -c pytorch",
-             gpu = "pytorch torchvision cudatoolkit=10.1 -c pytorch")
+             cpu = "pytorch torchvision",
+             gpu = "pytorch torchvision cudatoolkit=10.1")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch"
 
     package$pip =
@@ -65,8 +93,8 @@ install_sjSDM = function(method = "conda",
     
     package$pip =
       switch(version,
-             cpu = "pytorch torchvision -c pytorch",
-             gpu = "pytorch torchvision -c pytorch")
+             cpu = "pytorch torchvision",
+             gpu = "pytorch torchvision")
     
     if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
   }
@@ -115,6 +143,7 @@ install_sjSDM = function(method = "conda",
           packages = packages$conda,
           envname = envname,
           conda = conda,
+          channel = channel,
           python_version = conda_python_version,
           pip = pip,
           ...
@@ -139,6 +168,7 @@ install_sjSDM = function(method = "conda",
           packages = packages$conda,
           envname = envname,
           conda = conda,
+          channel = channel,
           python_version = conda_python_version,
           pip = pip,
           ...
@@ -165,3 +195,19 @@ install_sjSDM = function(method = "conda",
     cat(error$message)
   }
 }
+
+# 
+# install_diagnostic = function() {
+#   conda_envs = reticulate::conda_list()
+#   
+#   conda = reticulate::conda_binary()
+#   
+#   configs = ""
+#   
+#   for(n in conda_envs$name) {
+#     configs = paste0(configs, "\n\n\n\nENV: ", n)
+#     configs = paste0(configs, "\ntorch:\n", system(paste0(conda, " list -n" ,n, " torch*"), intern = TRUE)   )
+#     configs = paste0(configs, "\nnumpy:\n", system(paste0(conda, " list -n" ,n, " numpy*"),  intern = TRUE)    )
+#   }
+#   system(paste0(reticulate::conda_binary(), " list -n torch numpy"))
+# }
