@@ -44,7 +44,7 @@ If it fails, check out the help of ?install_sjSDM, ?installation_help, and vigne
 #### Installation workflow:
 1. Try install_sjSDM()
 2. New session, if no 'PyTorch not found' appears it should work, otherwise see ?installation_help
-3. If do not get the pkg to run, create an issue [https://github.com/TheoreticalEcology/s-jSDM/issues](issue tracker) or write an email to maximilian.pichler at ur.de
+3. If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
 
 
 ### Python Package
