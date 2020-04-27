@@ -49,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd sjSDM
-          Rscript -e "install.packages('remotes')" -e "remotes::install_deps(dependencies = TRUE)" -e "remotes::install_cran('rcmdcheck')"
+          Rscript -e "install.packages(c('remotes', 'devtools'))" -e "remotes::install_deps(dependencies = TRUE)" -e "remotes::install_cran('rcmdcheck')"
       - name: Install Python
         run: |
           cd sjSDM
@@ -68,11 +68,7 @@ jobs:
           cd sjSDM
           Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
-      - name: testthat
-        if: matrix.os == 'ubuntu-16.04'
-        continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
-        run: |
-          Rscript -e "library(sjSDM);devtools::test('sjSDM/')"
+          Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);library(reticulate);library(sjSDM);try({devtools::test()})"
       - name: Check
         continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
         run: |
