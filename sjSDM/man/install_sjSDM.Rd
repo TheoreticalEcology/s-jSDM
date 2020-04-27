@@ -5,7 +5,7 @@
 \title{Install sjSDM and its dependencies}
 \usage{
 install_sjSDM(method = "conda", conda = "auto", version = c("cpu", "gpu"),
-  envname = "r-sjSDM", extra_packages = NULL, restart_session = TRUE,
+  envname = "r-reticulate", extra_packages = NULL, restart_session = TRUE,
   conda_python_version = "3.6", pip = FALSE, cuda = c("10.1", "9,2"), ...)
 }
 \arguments{
