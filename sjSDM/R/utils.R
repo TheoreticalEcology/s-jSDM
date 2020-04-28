@@ -56,8 +56,9 @@ checkModel = function(object) {
   
   object$model = object$get_model()
   
-  object$model$set_weights(object$weights)
-  object$model$set_sigma(object$sigma)
+  object$model$set_env_weights(lapply(object$weights, function(w) reticulate::r_to_py(w)$copy()))
+  if(!is.null(object$spatial)) object$model$set_spatial_weights(lapply(object$spatial_weights, function(w) reticulate::r_to_py(w)$copy()))
+  object$model$set_sigma(reticulate::r_to_py(object$sigma)$copy())
   return(object)
 }
 

@@ -152,11 +152,37 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     }
   })
   
+
+testthat::test_that("sjSDM reload model", {
+  com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+  model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L)
+  saveRDS(model, "test_model.RDS")
+  model = readRDS("test_model.RDS")
+  testthat::expect_error(predict(model), NA)
+  testthat::expect_error(predict(model, newdata = com$env_weights), NA)
   
+  SP = matrix(rnorm(200), 100, 2)
+  model = sjSDM(Y = com$response,env = com$env_weights,spatial = linear(SP), iter = 2L)
+  saveRDS(model, "test_model.RDS")
+  model = readRDS("test_model.RDS")
+  testthat::expect_error(predict(model), NA)
+  testthat::expect_error(predict(model, newdata = com$env_weights, SP = SP), NA)
   
+  com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+  model = sjSDM(Y = com$response,env = DNN(com$env_weights), iter = 2L)
+  saveRDS(model, "test_model.RDS")
+  model2 = readRDS("test_model.RDS")
+  testthat::expect_error(predict(model2), NA)
+  testthat::expect_error(predict(model2, newdata = com$env_weights), NA)
   
-# 
-# })
+  SP = matrix(rnorm(200), 100, 2)
+  model = sjSDM(Y = com$response,env = DNN(com$env_weights),spatial = DNN(SP), iter = 2L)
+  saveRDS(model, "test_model.RDS")
+  model2 = readRDS("test_model.RDS")
+  testthat::expect_error(predict(model2), NA)
+  testthat::expect_error(predict(model2, newdata = com$env_weights, SP = SP), NA)
+  file.remove("test_model.RDS")
+})
 
 
 

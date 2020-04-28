@@ -717,7 +717,7 @@ class Model_sjSDM:
             for i in range(len(self.env)):
                 if type(self.env[i]) is torch.nn.modules.linear.Linear:
                     self.env[i].weight = torch.nn.Parameter(torch.tensor(w[counter], dtype=self.env[i].weight.dtype, device=self.env[i].weight.device))
-                    counter+=counter
+                    counter+=1
 
     @property
     def spatial_weights(self):
@@ -733,6 +733,6 @@ class Model_sjSDM:
                 for i in range(len(self.spatial)):
                     if type(self.spatial[i]) is torch.nn.modules.linear.Linear:
                         self.spatial[i].weight = torch.nn.Parameter(torch.tensor(w[counter], dtype=self.spatial[i].weight.dtype, device=self.spatial[i].weight.device))
-                        counter+=counter
+                        counter+=1
         else:
             return None
