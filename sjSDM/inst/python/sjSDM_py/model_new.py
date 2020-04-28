@@ -118,7 +118,8 @@ class Model_sjSDM:
     def _get_DataLoader(self, X, Y=None,SP=None,RE=None, batch_size=25, shuffle=True, parallel=0, drop_last=True):
         # reticulate creates non writeable arrays
         X = X.copy()
-        Y = Y.copy()
+        if type(Y) is np.ndarray:
+            Y = Y.copy()
         if type(SP) is np.ndarray:
             SP = SP.copy()
         if type(RE) is np.ndarray:
