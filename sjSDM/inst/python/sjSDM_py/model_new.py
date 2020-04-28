@@ -116,6 +116,14 @@ class Model_sjSDM:
         return model
     
     def _get_DataLoader(self, X, Y=None,SP=None,RE=None, batch_size=25, shuffle=True, parallel=0, drop_last=True):
+        # reticulate creates non writeable arrays
+        X = X.copy()
+        Y = Y.copy()
+        if type(SP) is np.ndarray:
+            SP = SP.copy()
+        if type(RE) is np.ndarray:
+            RE = RE.copy()
+
         if self.device.type == 'cuda':
             torch.cuda.set_device(self.device)
             pin_memory = False
@@ -125,6 +133,7 @@ class Model_sjSDM:
         if type(RE) is np.ndarray:
             if type(Y) is np.ndarray:
                 if type(SP) is np.ndarray:
+
                     data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
                                                           torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')),
