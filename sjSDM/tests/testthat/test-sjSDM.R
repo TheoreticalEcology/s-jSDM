@@ -154,6 +154,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
 
 testthat::test_that("sjSDM reload model", {
+  skip_if_no_torch()
   com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
   model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L)
   saveRDS(model, "test_model.RDS")
