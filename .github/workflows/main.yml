@@ -69,6 +69,7 @@ jobs:
           cd sjSDM
           Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
+          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
       - name: tests ubuntu
         if: matrix.os == 'ubuntu-16.04'
         run: |
