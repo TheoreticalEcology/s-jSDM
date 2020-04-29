@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-16.04']
+        os: ['ubuntu-16.04', 'macos-latest']
         include:
           - os: ubuntu-16.04
             cran: https://demo.rstudiopm.com/all/__linux__/xenial/latest
@@ -70,7 +70,14 @@ jobs:
           Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
+      - name: tests ubuntu
+        if: runner.os == 'ubuntu-16.04'
+        run: |
           Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'));library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();try({testthat::test_dir('tests/testthat/')})"
+      - name: tests MacOS
+        if: runner.os == 'macos-latest'
+        run: |
+          Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);try(Sys.setenv(RETICULATE_PYTHON = '/Users/runner/miniconda/envs/r-reticulate/bin/python'));library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();try({testthat::test_dir('tests/testthat/')})"
       - name: Check
         continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
         run: |
