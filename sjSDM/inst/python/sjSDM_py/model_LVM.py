@@ -1,16 +1,14 @@
-from .dist_mvp import MultivariateProbit
 import torch
 import numpy as np
 import pyro
-import logging
 import sys
-logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 class Model_LVM():
     def __init__(self, device="cpu", dtype="float32"):
         device, dtype = self._device_and_dtype(device, dtype)
         self.device = device
         self.dtype = dtype
+        self.pyro = pyro
     
     @staticmethod
     def _device_and_dtype(device, dtype):
@@ -102,7 +100,7 @@ class Model_LVM():
         torch.cuda.empty_cache()
         return DataLoader
     
-    def build_model(self, X, Y,Re,SP, df, scale_mu = 5.0, scale_scale = 1.0, batch_size = 20):
+    def build_model(self, X, Y, df, scale_mu = 5.0, scale_lf = 1.0,scale_lv=1.0, batch_size = 20):
         pyro.enable_validation(True)
         pyro.clear_param_store()
         #XX = torch.tensor(X, dtype = torch.float32)
@@ -115,90 +113,77 @@ class Model_LVM():
         sp = self.sp
         n = self.n
 
-        if Re is None:
-            def model(XX, YY=None, indices=None, link = self.link):
-                mu_scale = torch.ones([e, sp])
-                mu_loc = torch.zeros([e, sp])
-
-                lv_scale2 = torch.ones([n, df])
-                lv_loc = torch.zeros([n, df])
-
-                lf_scale2 = torch.ones([df, sp])
-                lf_loc = torch.zeros([df, sp])
-
-                mu = pyro.sample("mu", pyro.distributions.Normal(mu_loc, mu_scale).to_event())
-
-                lf = pyro.sample("lf", pyro.distributions.Normal(lf_loc, lf_scale2).to_event())
-
-                lv = pyro.sample("lv", pyro.distributions.Normal(lv_loc, lv_scale2).to_event())
-
-                with pyro.plate('data', size = XX.shape[0]):
-                    loc_tmp = torch.sigmoid(XX.matmul(mu).add( lv.matmul(lf) ))
-                    #loc_tmp = mu(XX[ind,:])
-                    pyro.sample("obs", pyro.distributions.Binomial(1, probs = loc_tmp).to_event(), obs = YY)
-        else:
-            len_unique = np.unique(Re[:,0]).shape[0]
-            #indices = torch.tensor(Re, dtype=torch.long)
-            def model(XX, YY=None, Re=None, link = self.link):
-                mu_scale = torch.ones([e, sp])*scale_mu
-                mu_loc = torch.zeros([e, sp])
-                scale_scale2 = torch.ones([sp, df])*scale_scale
-                scale_loc = torch.zeros([sp, df])
-                mu = pyro.sample("mu", pyro.distributions.Normal(mu_loc, mu_scale).to_event())
-                scale = pyro.sample("scale", pyro.distributions.Normal(scale_loc, scale_scale2).to_event())
-                re = pyro.sample("re", pyro.distributions.Normal(0.0, torch.ones([len_unique,1])).to_event())
-                with pyro.plate('data', size = XX.shape[0]):
-                    if Re is None:
-                        loc_tmp = XX.matmul(mu)
-                    else:
-                        loc_tmp = XX.matmul(mu) + re.gather(0, Re)
-                    pyro.sample("obs", MultivariateProbit(loc_tmp, scale), obs = YY)
-        
+        def model(XX, YY=None, indices=None, posterior = self.posterior):
+            mu_scale = torch.ones([e, sp])*scale_mu
+            mu_loc = torch.zeros([e, sp])
+            lv_scale2 = torch.ones([n, df])*scale_lv
+            lv_loc = torch.zeros([n, df])
+            lf_scale2 = torch.ones([df, sp])*scale_lf
+            lf_loc = torch.zeros([df, sp])
+            mu = pyro.sample("mu", pyro.distributions.Normal(mu_loc, mu_scale).to_event())
+            lf = pyro.sample("lf", pyro.distributions.Normal(lf_loc, lf_scale2).to_event())
+            lv = pyro.sample("lv", pyro.distributions.Normal(lv_loc, lv_scale2).to_event())
+            with pyro.plate('data', size = XX.shape[0]):
+                loc_tmp = XX.matmul(mu).add( lv.index_select(0, indices).matmul(lf) )
+                posterior(loc_tmp, YY)
         return model
 
+    def create_link(self, family="binomial", link="logit"):
+        if family == "binomial":
+            if link == "logit":
+                self.link = lambda value: torch.sigmoid(value)
+                self.posterior = lambda loc, YY: pyro.sample("obs", pyro.distributions.Binomial(1, probs = torch.sigmoid(loc)).to_event(), obs = YY)
+                self.logLik = lambda loc, YY: pyro.distributions.Binomial(1, probs = torch.sigmoid(loc)).log_prob(YY)
+            if link == "probit":
+                normal = torch.distributions.Normal(0.0, 1.0)
+                self.link = lambda value: normal.cdf(value)
+                self.posterior = lambda loc, YY: pyro.sample("obs", pyro.distributions.Binomial(1, probs = normal.cdf(loc)).to_event(), obs = YY)
+                self.logLik = lambda loc, YY:  pyro.distributions.Binomial(1, probs = normal.cdf(loc)).log_prob(YY)
+        if family == "poisson":
+            if link == "log":
+                self.link = lambda value: value.exp()
+                self.posterior = lambda loc, YY: pyro.sample("obs", pyro.distributions.Poisson(rate= loc.exp()).to_event(), obs = YY)
+                self.logLik = lambda loc, YY: pyro.distributions.Poisson(rate= loc.exp()).log_prob(YY)
+            if link == "linear":
+                self.link = lambda value: torch.clamp(value, min=0.00000001)
+                self.posterior = lambda loc, YY: pyro.sample("obs", pyro.distributions.Poisson(rate= torch.clamp(loc, min=0.00000001)).to_event(), obs = YY)
+                self.logLik = lambda loc, YY: pyro.distributions.Poisson(rate= torch.clamp(loc, min=0.00000001)).log_prob(YY)
 
-    def fit(self, X, Y, df,RE=None, SP=None,
+    def fit(self, X, Y, df,
             guide='LaplaceApproximation', 
-            scale_mu = 5.0, scale_scale = 0.01, 
-            lr = 0.001, epochs = 200,
+            scale_mu = 5.0, scale_lf = 1.0,scale_lv=1.0, 
+            lr = [0.1], epochs = 200,
+            family = "binomial",
+            link = "logit",
             batch_size = 25,
             num_samples=100,
-            parallel = 0,
-            link = "logit"):
+            parallel = 0):
         
         if self.device.type == 'cuda':
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
         else:
             torch.set_default_tensor_type('torch.FloatTensor')
-            
 
-        self.link = link
+        self.create_link(family, link)
+            
+        #self.link = link
         torch.cuda.empty_cache()
         guide2 = guide
-        self.model = self.build_model(X, Y,RE,SP, df, scale_mu, scale_scale, batch_size)
+        self.model = self.build_model(X, Y, df, scale_mu, scale_lf, scale_lv, batch_size)
         elbo = pyro.infer.JitTrace_ELBO(ignore_jit_warnings=True)
         if guide2 == 'LaplaceApproximation':
             self.guide = pyro.infer.autoguide.AutoLaplaceApproximation(self.model)
 
         if guide2 == 'LowRankMultivariateNormal':
-            #self.guide = pyro.infer.autoguide.AutoLowRankMultivariateNormal(self.model, init_loc_fn=pyro.infer.autoguide.init_to_mean)
-            self.guide = pyro.infer.autoguide.AutoGuideList(self.model)
-            self.guide.add(pyro.infer.autoguide.AutoLowRankMultivariateNormal(pyro.poutine.block(self.model, expose=["mu"]), init_loc_fn=pyro.infer.autoguide.init_to_mean, init_scale=scale_mu))
-            self.guide.add(pyro.infer.autoguide.AutoLowRankMultivariateNormal(pyro.poutine.block(self.model, expose=["scale"]),  init_loc_fn=pyro.infer.autoguide.init_to_mean, init_scale=scale_scale))
+            self.guide = pyro.infer.autoguide.AutoLowRankMultivariateNormal(self.model, init_loc_fn=pyro.infer.autoguide.init_to_mean)
             elbo = pyro.infer.Trace_ELBO(ignore_jit_warnings=True)
-            if type(RE) is np.ndarray:
-                self.guide.add(pyro.infer.autoguide.AutoLowRankMultivariateNormal(pyro.poutine.block(self.model, expose=["re"]), init_loc_fn=pyro.infer.autoguide.init_to_mean, init_scale=1.0))
 
         if guide2 == "Delta":
-            self.guide = pyro.infer.autoguide.AutoDelta(self.model, init_loc_fn=pyro.infer.autoguide.init_to_mean)
+            self.guide = pyro.infer.autoguide.AutoDelta(self.model)
 
         if guide2 == 'DiagonalNormal':
-            self.guide = pyro.infer.autoguide.AutoGuideList(self.model)
-            self.guide.add(pyro.infer.autoguide.AutoDiagonalNormal(pyro.poutine.block(self.model, expose=["mu"]), init_loc_fn=pyro.infer.autoguide.init_to_mean, init_scale=scale_mu ))
-            self.guide.add(pyro.infer.autoguide.AutoDiagonalNormal(pyro.poutine.block(self.model, expose=["scale"]),  init_loc_fn=pyro.infer.autoguide.init_to_mean, init_scale=scale_scale))
-            if type(RE) is np.ndarray:
-                self.guide.add(pyro.infer.autoguide.AutoDiagonalNormal(pyro.poutine.block(self.model, expose=["re"]), init_loc_fn=pyro.infer.autoguide.init_to_mean, init_scale=1.0))
-
+            self.guide = pyro.infer.autoguide.AutoDiagonalNormal(self.model)
+ 
         
         if len(lr) is 1:
              adam = pyro.optim.Adam({'lr' : lr[0]})
@@ -206,111 +191,71 @@ class Model_LVM():
             def per_param_callable(module_name, param_name):
                 if param_name == 'mu':
                     return {"lr": lr[0]}
+                if param_name == 'lf':
+                    return {"lr": lr[2]}
                 else:
-                    return {"lr": lr[1]}
+                    return {"lr": lr[3]}
             adam = pyro.optim.Adam(per_param_callable)
-        #elbo = pyro.infer.Trace_ELBO(ignore_jit_warnings=True)
-        #guide()
-        XX = torch.tensor(X, dtype=torch.float32)
-        YY = torch.tensor(Y, dtype=torch.float32)
+
         
         self.svi = pyro.infer.SVI(self.model, self.guide, adam, loss = elbo)
         stepSize = np.floor(X.shape[0] / batch_size).astype(int)
-        dataLoader = self._get_DataLoader(X, Y, SP, RE, batch_size, True, parallel)
+        dataLoader = self._get_DataLoader(X, Y, batch_size = batch_size, shuffle=True, parallel=parallel)
         batch_loss = np.zeros(stepSize)
         self.history = np.zeros(epochs)
-        if RE is None:          
-            for epoch in range(epochs):
-                for step, (x, y, ind) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    y = y.to(self.device, non_blocking=True)
-                    ind = ind.to(self.device, non_blocking=True).view([-1])
-                    loss = self.svi.step(XX, YY)
-                    batch_loss[step] = loss
-                bl = np.mean(batch_loss)
-                _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                sys.stdout.flush()
-            self.posterior_samples = pyro.infer.Predictive(self.model, guide=self.guide, num_samples=num_samples)(torch.tensor(X, dtype=torch.float32), 
-                                                                                                                  torch.tensor(Y, dtype=torch.float32))
-
-        else:
-            for epoch in range(epochs):
-                for step, (x, y, re) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    y = y.to(self.device, non_blocking=True)
-                    re=re.to(self.device, non_blocking=True)
-                    #print(re.dtype)
-                    loss = self.svi.step(x, y, re)
-                    batch_loss[step] = loss
-                bl = np.mean(batch_loss)
-                _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                sys.stdout.flush()
-            self.posterior_samples = pyro.infer.Predictive(self.model, guide=self.guide, num_samples=num_samples)(torch.tensor(X, dtype=torch.float32), 
-                                                                                                                  torch.tensor(Y, dtype=torch.float32),
-                                                                                                                  torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long).view([-1]))
-
-        
-        self.scale = self.posterior_samples["lf"].data.squeeze().mean(dim=0).cpu()
-        self.lv = self.posterior_samples["lv"].data.squeeze().mean(dim=0).cpu()
-        self.mu = self.posterior_samples["mu"].data.squeeze().mean(dim=0).cpu()
-        
-        if RE is None:
-            self.Re = None
-        else:
-            self.Re = self.posterior_samples["re"].data.squeeze().mean(dim=0).cpu()
-    
-    def predict(self, newdata, SP=None, RE=None, batch_size = 25, parallel=0, num_samples=10 ):
-        dataLoader = self._get_DataLoader(X = newdata, Y = None, SP=SP,RE=RE, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
-        pred = []
-        if RE is None:                          
-            for step, (x) in enumerate(dataLoader):
-                x = x[0].to(self.device, non_blocking=True)
-                pred.append(pyro.infer.Predictive(self.model, guide=self.guide, num_samples=num_samples)(XX = x,YY= None)["obs"].squeeze())
-        else:
-            for step, (x, re) in enumerate(dataLoader):
-                x = x.to(self.device, non_blocking=True)
-                re = re.to(self.device, non_blocking=True)
-                pred.append(pyro.infer.Predictive(self.model, guide=self.guide, num_samples=num_samples)(XX = x,YY= None, RE=re)["obs"].squeeze())  
-        return torch.cat(pred, dim=1).data.cpu().numpy()
-    
-    def logLik(self, X, Y, RE=None, SP=None, batch_size = 25, parallel=0):
-        if self.device.type == 'cuda':
-            device = self.device.type+ ":" + str(self.device.index)
-        else:
-            device = 'cpu'
-
-        ww = torch.tensor(self.weights)
-        logLik = 0
-        dataLoader = self._get_DataLoader(X = X, Y = Y, SP=SP,RE=RE, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
-        pred = []
-        if RE is None:                          
-            for step, (x, y) in enumerate(dataLoader):
+        for epoch in range(epochs):
+            for step, (x, y, ind) in enumerate(dataLoader):
                 x = x.to(self.device, non_blocking=True)
                 y = y.to(self.device, non_blocking=True)
-                mu = torch.nn.functional.linear(x, ww.t())
-                logLik += MultivariateProbit(mu, self.scale).log_prob(y).sum().data.cpu().numpy()
-                
-        else:
-            for step, (x, y, re) in enumerate(dataLoader):
-                x = x.to(self.device, non_blocking=True)
-                re = re.to(self.device, non_blocking=True)
-                spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                y = y.to(self.device, non_blocking=True)
-                mu = torch.nn.functional.linear(x, ww.t()) + spatial_re
-                logLik += MultivariateProbit(mu, self.scale).log_prob(y).sum().data.cpu().numpy()
-        return logLik  
+                ind = ind.to(self.device, non_blocking=True).view([-1])
+                loss = self.svi.step(x, y, ind)
+                batch_loss[step] = loss
+            bl = np.mean(batch_loss)
+            _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+            sys.stdout.flush()
+        self.posterior_samples = pyro.infer.Predictive(self.model, guide=self.guide, num_samples=num_samples)(torch.tensor(X, dtype=torch.float32), 
+                                                                                                              torch.tensor(Y, dtype=torch.float32),
+                                                                                                              torch.tensor(np.arange(0, X.shape[0]), dtype=torch.long))
+
+        
+        self.lf = self.posterior_samples["lf"].data.squeeze().mean(dim=0)
+        self.lv = self.posterior_samples["lv"].data.squeeze().mean(dim=0)
+        self.mu = self.posterior_samples["mu"].data.squeeze().mean(dim=0)
+
+    def getLogLik(self, X, Y, batch_size = 25, parallel=0, num_samples=10 ):
+        dataLoader = self._get_DataLoader(X = X, Y = Y, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
+        ll = 0
+        for step, (x, y, ind) in enumerate(dataLoader):
+            x = x.to(self.device, non_blocking=True)
+            y = y.to(self.device, non_blocking=True)
+            ind = ind.to(self.device, non_blocking=True).view([-1])
+            lin = self.link(x.matmul(self.mu).add( self.lv.index_select(0, ind).matmul(self.lf) ))
+            ll += self.logLik(lin, y).sum().data.cpu().numpy()
+        return ll
+    
+    def predict(self, newdata, batch_size = 25, parallel=0, num_samples=10 ):
+        dataLoader = self._get_DataLoader(X = newdata, Y = None, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
+        pred = []
+        for step, (x, ind) in enumerate(dataLoader):
+            x = x.to(self.device, non_blocking=True)
+            lin = self.link(x.matmul(self.mu))
+            pred.append(lin)
+        return torch.cat(pred, dim=0).data.cpu()
+
 
     @property
     def covariance(self):
-        return self.scale.t().matmul(self.scale).data.cpu().numpy()
+        return self.lf.t().matmul(self.lf).data.cpu().numpy()
 
     @property
     def weights(self):
         return self.mu.data.cpu().numpy()
 
     @property
-    def re(self):
-        if self.Re is None:
-            return None
-        else:
-            return self.Re.data.cpu().numpy()
+    def lfs(self):
+        return self.lf.data.cpu().numpy()
+
+
+    @property
+    def lvs(self):
+        return self.lv.data.cpu().numpy()
