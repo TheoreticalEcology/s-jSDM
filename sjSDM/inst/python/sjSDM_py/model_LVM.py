@@ -192,9 +192,9 @@ class Model_LVM():
                 if param_name == 'mu':
                     return {"lr": lr[0]}
                 if param_name == 'lf':
-                    return {"lr": lr[2]}
+                    return {"lr": lr[1]}
                 else:
-                    return {"lr": lr[3]}
+                    return {"lr": lr[2]}
             adam = pyro.optim.Adam(per_param_callable)
 
         

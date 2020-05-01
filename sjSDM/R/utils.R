@@ -122,6 +122,17 @@ parse_nn = function(nn) {
   return(txt)
 }
 
-#' @importFrom magrittr %>%
-#' @export
-magrittr::`%>%`
+
+serialize_state = function(model) {
+  tmp = tempfile(pattern = "svi state")
+  on.exit(unlink(tmp), add = TRUE)
+  model$pyro$get_param_store()$save(tmp)
+  return(readBin(tmp, what = "raw", n = file.size(tmp), size=1))
+}
+
+unserialize_state = function(model, state) {
+  tmp = tempfile(pattern = "svi state")
+  on.exit(unlink(tmp), add = TRUE)
+  writeBin(state, tmp)
+  model$pyro$get_param_store()$load(tmp)
+}
