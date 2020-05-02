@@ -2,8 +2,7 @@
 % Please edit documentation in R/sLVM.R
 \name{sLVM}
 \alias{sLVM}
-\title{sLVM
-scalable LVM model}
+\title{sLVM}
 \usage{
 sLVM(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
   priors = list(3, 1, 1), posterior = c("DiagonalNormal",
@@ -30,8 +29,69 @@ sLVM(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
 \item{step_size}{batch_size}
 
 \item{lr}{learning_rate, can be also a list (for each parameter type)}
+
+\item{device}{which device to be used, "cpu" or "gpu"}
+
+\item{dtype}{which data type, most GPUs support only 32 bit floats.}
 }
 \description{
-sLVM
-scalable LVM model
+Latent-variable model
+}
+\details{
+The function fits the LVM (see Warton et al., 2015) with stochastic variational inference
+
+
+sLVM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. 
+See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
+}
+\section{Guide}{
+
+Guide is the distribution that is assumed for the posterior distribution
+}
+
+\examples{
+\donttest{
+  
+# Basic workflow:
+## simulate community:
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+
+## fit model:
+model = sLVM(Y = com$response,X = com$env_weights, 
+             iter = 50L, family = binomial("probit"))
+coef(model)
+summary(model)
+getCov(model)
+
+# get latent variables and factors
+getLF(model)
+getLV(model)
+
+## get credible intervals:
+getCI(model)
+
+## fit model with interactions:
+model = sLVM(Y = com$response,
+             X = com$env_weights, formula = ~X1:X2 + X3, 
+             family = binomial("probit"))
+summary(model)
+
+## without intercept:
+
+## predict with model:
+preds = predict(model, newdata = com$env_weights)
+
+## predictions over parameter distribution:
+preds = predict(model, newdata = com$env_weights, mean_field = FALSE)
+dim(preds)
+}
+}
+\references{
+Warton, D. I., Blanchet, F. G., O’Hara, R. B., Ovaskainen, O., Taskinen, S., Walker, S. C., & Hui, F. K. (2015). So many variables: joint modeling in community ecology. Trends in Ecology & Evolution, 30(12), 766-779.
+}
+\seealso{
+\code{\link{print.sLVM}}, \code{\link{predict.sLVM}}, \code{\link{coef.sLVM}}, \code{\link{summary.sLVM}}, \code{\link{getCov}}, \code{\link{getLF}}, \code{\link{getCI}}, \code{\link{getLF}}
+}
+\author{
+Maximilian Pichler
 }

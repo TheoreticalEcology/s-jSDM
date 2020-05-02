@@ -57,47 +57,47 @@ class Model_LVM():
         if type(RE) is np.ndarray:
             if type(Y) is np.ndarray:
                 if type(SP) is np.ndarray:
-                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
-                                                          torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
+                    data = torch.utils.data.TensorDataset(torch.tensor(X.copy(), dtype=torch.float32, device=torch.device('cpu')), 
+                                                          torch.tensor(Y.copy(), dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')),
                                                           torch.tensor(np.arange(0, X.shape[0]).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
                 else:
-                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
-                                                          torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
+                    data = torch.utils.data.TensorDataset(torch.tensor(X.copy(), dtype=torch.float32, device=torch.device('cpu')), 
+                                                          torch.tensor(Y.copy(), dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')),
                                                           torch.tensor(np.arange(0, X.shape[0]).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
 
             else:
                 if type(SP) is np.ndarray:
-                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')),
+                    data = torch.utils.data.TensorDataset(torch.tensor(X.copy(), dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')),
                                                           torch.tensor(np.arange(0, X.shape[0]).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
                 else: 
-                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')),
+                    data = torch.utils.data.TensorDataset(torch.tensor(X.copy(), dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(np.asarray(RE).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')),
                                                           torch.tensor(np.arange(0, X.shape[0]).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
         
         else: 
             if type(Y) is np.ndarray:
                 if type(SP) is np.ndarray:
-                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
-                                                        torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
+                    data = torch.utils.data.TensorDataset(torch.tensor(X.copy(), dtype=torch.float32, device=torch.device('cpu')), 
+                                                        torch.tensor(Y.copy(), dtype=torch.float32, device=torch.device('cpu')),
                                                         torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(np.arange(0, X.shape[0]).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
                 else:
-                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')), 
-                                                        torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')),
+                    data = torch.utils.data.TensorDataset(torch.tensor(X.copy(), dtype=torch.float32, device=torch.device('cpu')), 
+                                                        torch.tensor(Y.copy(), dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(np.arange(0, X.shape[0]).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
 
             else:
                 if type(SP) is np.ndarray:
-                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')),
+                    data = torch.utils.data.TensorDataset(torch.tensor(X.copy(), dtype=torch.float32, device=torch.device('cpu')),
                                                         torch.tensor(SP, dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(np.arange(0, X.shape[0]).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))
                 else: 
-                    data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=torch.float32, device=torch.device('cpu')),
+                    data = torch.utils.data.TensorDataset(torch.tensor(X.copy(), dtype=torch.float32, device=torch.device('cpu')),
                                                           torch.tensor(np.arange(0, X.shape[0]).reshape([-1,1]), dtype=torch.long, device=torch.device('cpu')))          
 
         DataLoader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=shuffle, num_workers=int(parallel), pin_memory=pin_memory, drop_last=drop_last)
@@ -218,16 +218,16 @@ class Model_LVM():
             bl = np.mean(batch_loss)
             _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
             sys.stdout.flush()
-        self.posterior_samples = pyro.infer.Predictive(self.model, guide=self.guide, num_samples=num_samples)(torch.tensor(X, dtype=torch.float32), 
-                                                                                                              torch.tensor(Y, dtype=torch.float32),
+        self.posterior_samples = pyro.infer.Predictive(self.model, guide=self.guide, num_samples=num_samples)(torch.tensor(X.copy(), dtype=torch.float32), 
+                                                                                                              torch.tensor(Y.copy(), dtype=torch.float32),
                                                                                                               torch.tensor(np.arange(0, X.shape[0]), dtype=torch.long))
 
         
-        self.lf = self.posterior_samples["lf"].data.squeeze().mean(dim=0)
-        self.lv = self.posterior_samples["lv"].data.squeeze().mean(dim=0)
-        self.mu = self.posterior_samples["mu"].data.squeeze().mean(dim=0)
+        self.lf = self.posterior_samples["lf"].data.squeeze(dim=1).mean(dim=0)
+        self.lv = self.posterior_samples["lv"].data.squeeze(dim=1).mean(dim=0)
+        self.mu = self.posterior_samples["mu"].data.squeeze(dim=1).mean(dim=0)
 
-    def getLogLik(self, X, Y, batch_size = 25, parallel=0, num_samples=10 ):
+    def getLogLik(self, X, Y, batch_size = 25, parallel=0):
         dataLoader = self._get_DataLoader(X = X, Y = Y, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
         ll = 0
         for step, (x, y, ind) in enumerate(dataLoader):
@@ -238,14 +238,36 @@ class Model_LVM():
             ll += self.logLik(lin, y).sum().data.cpu().numpy()
         return ll
     
-    def predict(self, newdata, batch_size = 25, parallel=0, num_samples=10 ):
+    def predict(self, newdata, batch_size = 25, parallel=0, mean_field=True ):
         dataLoader = self._get_DataLoader(X = newdata, Y = None, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
         pred = []
+
+        if mean_field:
+            for step, (x, ind) in enumerate(dataLoader):
+                x = x.to(self.device, non_blocking=True)
+                lin = self.link(x.matmul(self.mu))
+                pred.append(lin)
+            return torch.cat(pred, dim=0).data.cpu().numpy()
+        else:
+            mu = self.posterior_samples["mu"].squeeze(dim=1)
+            for step, (x, ind) in enumerate(dataLoader):
+                x = x.to(self.device, non_blocking=True)
+                lin = self.link( x.expand([mu.shape[0],batch_size,newdata.shape[1]]).matmul(mu) )
+                pred.append(lin)
+            return torch.cat(pred,dim=1).data.cpu().numpy()
+
+    def predictPosterior(self, X, batch_size = 25, parallel=0, num_samples=10):
+        dataLoader = self._get_DataLoader(X = X, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
+        pred = []
+        mu = self.posterior_samples["mu"].squeeze(dim=1)
+        lf = self.posterior_samples["lf"].squeeze(dim=1)
+        lv = self.posterior_samples["lv"].squeeze(dim=1)
         for step, (x, ind) in enumerate(dataLoader):
             x = x.to(self.device, non_blocking=True)
-            lin = self.link(x.matmul(self.mu))
+            ind = ind.to(self.device, non_blocking=True).view([-1])
+            lin = self.link( x.expand([mu.shape[0],batch_size,X.shape[1]]).matmul(mu).add( lv.index_select(1, ind).matmul(lf) ) )
             pred.append(lin)
-        return torch.cat(pred, dim=0).data.cpu()
+        return torch.cat(pred,dim=1).data.cpu().numpy()
 
     @property
     def covariance(self):
@@ -262,3 +284,6 @@ class Model_LVM():
     @property
     def lvs(self):
         return self.lv.data.cpu().numpy()
+
+    def set_posterior_samples(self, ps):
+        self.posterior_samples = ps
