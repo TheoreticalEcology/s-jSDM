@@ -63,12 +63,13 @@ sLVM = function(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
   
   out$get_model = function(){
     model = fa$Model_LVM(device=device, dtype=dtype)
+    model$build(as.integer(c(nrow(X), ncol(X))), as.integer(ncol(Y)),  df = lv, guide=posterior, 
+                scale_mu=priors[[1]], scale_lf=priors[[2]],scale_lv=priors[[3]])
+    return(model)
   }
   model = out$get_model()
   time = system.time({model$fit(reticulate::r_to_py(X)$copy(), 
                                 reticulate::r_to_py(Y)$copy(), 
-                                df = lv, guide=posterior, 
-                                scale_mu=priors[[1]], scale_lf=priors[[2]],scale_lv=priors[[3]],
                                 lr =lr, batch_size = as.integer(step_size), epochs = as.integer(iter), parallel = 0L)})[3]
   out$model = model
   out$data = list(X = X, Y = Y)
@@ -80,16 +81,84 @@ sLVM = function(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
   out$lf = model$lfs
   out$lv = model$lvs
   out$mu = model$weights
+  out$covariance = model$covariance
   out$posterior_samples = lapply(model$posterior_samples, function(p) p$data$squeeze()$cpu()$numpy())
-  class(out) = "LVM"
+  class(out) = "sLVM"
   return(out)
 }
-com = simulate_SDM(env = 3L, species = 5L, sites = 400L)
+# com = simulate_SDM(env = 3L, species = 5L, sites = 400L)
+# 
+# m = sLVM(com$response, com$env_weights,
+#          family = binomial("probit"), formula = ~0+.,posterior = "DiagonalNormal", lr = list(0.03), iter=100L, priors = list(2.0,1.0,1.0))
+# plot(density(m$posterior_samples$mu[,3,2]))
+# abline(v = quantile(m$posterior_samples$mu[,3,2], probs = c(0.025, 0.975)))
+# abline(v = mean((m$posterior_samples$mu[,3,2])), col="red")
+# abline(v = median((m$posterior_samples$mu[,3,2])), col="red")
 
-m = sLVM(com$response, com$env_weights,
-         family = binomial("probit"), formula = ~0+.,posterior = "DiagonalNormal", lr = list(0.03), iter=100L, priors = list(10.0,1.0,1.0))
-plot(density(m$posterior_samples$mu[,3,1]))
-abline(v = quantile(m$posterior_samples$mu[,3,1], probs = c(0.025, 0.975)))
-abline(v = mean((m$posterior_samples$mu[,3,1])), col="red")
-abline(v = median((m$posterior_samples$mu[,3,1])), col="red")
+
+
+
+
+
+#' Print a fitted sjSDM model
+#' 
+#' @param x a model fitted by \code{\link{sLVM}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+print.sLVM = function(x, ...) {
+  cat("sLVM model, see summary(model) for details \n")
+}
+
+
+#' Predict from a fitted sjSDM model
+#' 
+#' @param object a model fitted by \code{\link{sLVM}}
+#' @param newdata newdata for predictions
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+predict.sLVM = function(object, newdata = NULL, ...) {
+  object = checkModel(object)
+  
+  if(inherits(object, "spatial")) {
+    
+    
+    if(is.null(newdata)) {
+      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X))
+    } else {
+      
+      if(is.data.frame(newdata)) {
+        newdata = stats::model.matrix(object$formula, newdata)
+      } else {
+        newdata = stats::model.matrix(object$formula, data.frame(newdata))
+      }
+      
+      if(is.data.frame(SP)) {
+        sp = stats::model.matrix(object$spatial$formula, SP)
+      } else {
+        sp = stats::model.matrix(object$spatial$formula, data.frame(SP))
+      }
+      
+    }
+    pred = object$model$predict(newdata = newdata, SP = sp, ...)
+    return(pred)
+    
+    
+  } else {
+    
+    if(is.null(newdata)) {
+      return(object$model$predict(newdata = object$data$X))
+    } else {
+      if(is.data.frame(newdata)) {
+        newdata = stats::model.matrix(object$formula, newdata)
+      } else {
+        newdata = stats::model.matrix(object$formula, data.frame(newdata))
+      }
+    }
+    pred = object$model$predict(newdata = newdata, ...)
+    return(pred)
+    
+  }
+}
+
+
 

@@ -9,6 +9,10 @@ class Model_LVM():
         self.device = device
         self.dtype = dtype
         self.pyro = pyro
+        if self.device.type == 'cuda' and torch.cuda.is_available():
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        else:
+            torch.set_default_tensor_type('torch.FloatTensor')
     
     @staticmethod
     def _device_and_dtype(device, dtype):
@@ -100,14 +104,21 @@ class Model_LVM():
         torch.cuda.empty_cache()
         return DataLoader
     
-    def build_model(self, X, Y, df, scale_mu = 5.0, scale_lf = 1.0,scale_lv=1.0, batch_size = 20):
+    def build(self, input_shape, out, scale_mu = 5.0, scale_lf = 1.0,scale_lv=1.0,  df=2,
+              guide='LaplaceApproximation', 
+              family = "binomial", link = "logit"):
+
+        self.create_link(family, link)
+            
+        #self.link = link
+        torch.cuda.empty_cache()
         pyro.enable_validation(True)
         pyro.clear_param_store()
         #XX = torch.tensor(X, dtype = torch.float32)
         #YY = torch.tensor(Y, dtype = torch.float32)
-        self.e = X.shape[1]
-        self.sp = Y.shape[1]
-        self.n = X.shape[0]
+        self.e = input_shape[1]
+        self.sp = out
+        self.n = input_shape[0]
         self.df = df
         e = self.e
         sp = self.sp
@@ -126,7 +137,24 @@ class Model_LVM():
             with pyro.plate('data', size = XX.shape[0]):
                 loc_tmp = XX.matmul(mu).add( lv.index_select(0, indices).matmul(lf) )
                 posterior(loc_tmp, YY)
-        return model
+        self.model = model
+
+        guide2 = guide
+        self.elbo = pyro.infer.JitTrace_ELBO(ignore_jit_warnings=True)
+        if guide2 == 'LaplaceApproximation':
+            self.guide = pyro.infer.autoguide.AutoLaplaceApproximation(self.model)
+
+        if guide2 == 'LowRankMultivariateNormal':
+            self.guide = pyro.infer.autoguide.AutoLowRankMultivariateNormal(self.model, init_loc_fn=pyro.infer.autoguide.init_to_mean)
+            self.elbo = pyro.infer.Trace_ELBO(ignore_jit_warnings=True)
+
+        if guide2 == "Delta":
+            self.guide = pyro.infer.autoguide.AutoDelta(self.model)
+
+        if guide2 == 'DiagonalNormal':
+            self.guide = pyro.infer.autoguide.AutoDiagonalNormal(self.model)
+    
+
 
     def create_link(self, family="binomial", link="logit"):
         if family == "binomial":
@@ -149,40 +177,17 @@ class Model_LVM():
                 self.posterior = lambda loc, YY: pyro.sample("obs", pyro.distributions.Poisson(rate= torch.clamp(loc, min=0.00000001)).to_event(), obs = YY)
                 self.logLik = lambda loc, YY: pyro.distributions.Poisson(rate= torch.clamp(loc, min=0.00000001)).log_prob(YY)
 
-    def fit(self, X, Y, df,
-            guide='LaplaceApproximation', 
-            scale_mu = 5.0, scale_lf = 1.0,scale_lv=1.0, 
+    def fit(self, X, Y,
             lr = [0.1], epochs = 200,
-            family = "binomial",
-            link = "logit",
             batch_size = 25,
             num_samples=100,
             parallel = 0):
         
-        if self.device.type == 'cuda':
+        if self.device.type == 'cuda' and torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
         else:
             torch.set_default_tensor_type('torch.FloatTensor')
 
-        self.create_link(family, link)
-            
-        #self.link = link
-        torch.cuda.empty_cache()
-        guide2 = guide
-        self.model = self.build_model(X, Y, df, scale_mu, scale_lf, scale_lv, batch_size)
-        elbo = pyro.infer.JitTrace_ELBO(ignore_jit_warnings=True)
-        if guide2 == 'LaplaceApproximation':
-            self.guide = pyro.infer.autoguide.AutoLaplaceApproximation(self.model)
-
-        if guide2 == 'LowRankMultivariateNormal':
-            self.guide = pyro.infer.autoguide.AutoLowRankMultivariateNormal(self.model, init_loc_fn=pyro.infer.autoguide.init_to_mean)
-            elbo = pyro.infer.Trace_ELBO(ignore_jit_warnings=True)
-
-        if guide2 == "Delta":
-            self.guide = pyro.infer.autoguide.AutoDelta(self.model)
-
-        if guide2 == 'DiagonalNormal':
-            self.guide = pyro.infer.autoguide.AutoDiagonalNormal(self.model)
  
         
         if len(lr) is 1:
@@ -198,7 +203,7 @@ class Model_LVM():
             adam = pyro.optim.Adam(per_param_callable)
 
         
-        self.svi = pyro.infer.SVI(self.model, self.guide, adam, loss = elbo)
+        self.svi = pyro.infer.SVI(self.model, self.guide, adam, loss = self.elbo)
         stepSize = np.floor(X.shape[0] / batch_size).astype(int)
         dataLoader = self._get_DataLoader(X, Y, batch_size = batch_size, shuffle=True, parallel=parallel)
         batch_loss = np.zeros(stepSize)
@@ -242,7 +247,6 @@ class Model_LVM():
             pred.append(lin)
         return torch.cat(pred, dim=0).data.cpu()
 
-
     @property
     def covariance(self):
         return self.lf.t().matmul(self.lf).data.cpu().numpy()
@@ -254,7 +258,6 @@ class Model_LVM():
     @property
     def lfs(self):
         return self.lf.data.cpu().numpy()
-
 
     @property
     def lvs(self):

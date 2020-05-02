@@ -20,9 +20,9 @@ def model_base():
             batch_size = 25,
             num_samples=100):
         model = fa.Model_LVM()
-        model.fit(X=X, Y=Y,df=df,guide=guide,
-                  scale_mu=scale_mu,scale_lf=scale_lf,scale_lv=scale_lv,lr=lr,epochs=epochs,
-                  family=family,link=link,batch_size=batch_size, num_samples=num_samples)
+        model.build(X.shape, Y.shape[1], df=df,guide=guide,
+                  scale_mu=scale_mu,scale_lf=scale_lf,scale_lv=scale_lv, family=family,link=link)
+        model.fit(X=X, Y=Y,epochs=epochs,batch_size=batch_size, num_samples=num_samples)
         return model
     return _get
 
