@@ -177,7 +177,7 @@ class Model_sjSDM:
     def build(self, df=None,Re=None, optimizer=None, l1=0.0, l2=0.0,
               reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit"):
         
-        if self.device.type == 'cuda':
+        if self.device.type == 'cuda' and torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
             self.env.cuda(self.device)
             if self.spatial is not None:

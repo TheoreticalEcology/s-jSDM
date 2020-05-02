@@ -88,13 +88,13 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             cpu = "torch torchvision",
-             gpu = "torch torchvision")
+             cpu = "pytorch torchvision",
+             gpu = "pytorch torchvision")
     
     package$pip =
       switch(version,
-             cpu = "pytorch torchvision",
-             gpu = "pytorch torchvision")
+             cpu = "torch torchvision",
+             gpu = "torch torchvision")
     
     if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
   }
