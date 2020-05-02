@@ -1,7 +1,7 @@
 #' getCov
 #'
 #' get species-species assocation (covariance) matrix
-#' @param object a model fitted by \code{\link{sjSDM}},  or \code{\link{sjSDM}} with \code{\link{DNN}} object
+#' @param object a model fitted by \code{\link{sjSDM}}, \code{\link{sLVM}}  or \code{\link{sjSDM}} with \code{\link{DNN}} object
 #' @seealso \code{\link{sjSDM}},\code{\link{DNN}}
 #' @export
 getCov = function(object) UseMethod("getCov")
@@ -14,6 +14,11 @@ getCov.sjSDM = function(object){
 }
 
 
+#' @rdname getCov
+#' @export
+getCov.sLVM= function(object){
+  return(object$covariance)
+}
 
 
 #' Get weights

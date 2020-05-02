@@ -33,7 +33,7 @@
 #' 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{spatialRE}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
+#' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(Y = NULL, 

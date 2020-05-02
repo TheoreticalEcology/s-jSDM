@@ -16,7 +16,7 @@ testthat::test_that("sjSDM examples", {
   raw = readLines(to_do[2])
   testthat::expect_error(run_raw(raw), NA, info = paste0(raw, collapse = "\n"))
   
-  # raw = readLines(to_do[3])
-  # testthat::expect_error(run_raw(raw), NA, info = paste0(raw, collapse = "\n"))
+  raw = readLines(to_do[3])
+  testthat::expect_error(run_raw(raw), NA, info = paste0(raw, collapse = "\n"))
 })
 

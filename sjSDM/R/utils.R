@@ -22,43 +22,26 @@ is_sjSDM_py_available = function() {
 }
 
 
-#' useGPU
-#' use a specific gpu
-#' @param device number
-#' @export
-useGPU = function(device = 0) {
-  if(!torch$cuda$is_available()) stop("Cuda/gpu not available...")
-  device <<- torch$device(paste0("cuda:",device))
-}
-
-#' useCPU
-#' use CPU
-#' @export
-useCPU = function(){
-  device <<- torch$device("cpu")
-}
-
-#' gpuInfo
-#' list gpu infos
-#' @export
-gpuInfo = function(){
-  print(torch$cuda$get_device_properties(device))
-}
-
-
 #' check model
 #' check model and rebuild if necessary
 #' @param object of class sjSDM
 checkModel = function(object) {
-  if(!inherits(object, c("sjSDM", "sjSDM_DNN"))) stop("model not of class sjSDM")
+  if(!inherits(object, c("sjSDM", "sjSDM_DNN", "sLVM"))) stop("model not of class sjSDM")
   
   if(!reticulate::py_is_null_xptr(object$model)) return(object)
   
   object$model = object$get_model()
   
-  object$model$set_env_weights(lapply(object$weights, function(w) reticulate::r_to_py(w)$copy()))
-  if(!is.null(object$spatial)) object$model$set_spatial_weights(lapply(object$spatial_weights, function(w) reticulate::r_to_py(w)$copy()))
-  object$model$set_sigma(reticulate::r_to_py(object$sigma)$copy())
+  if(inherits(object, c("sjSDM", "sjSDM_DNN"))){
+    object$model$set_env_weights(lapply(object$weights, function(w) reticulate::r_to_py(w)$copy()))
+    if(!is.null(object$spatial)) object$model$set_spatial_weights(lapply(object$spatial_weights, function(w) reticulate::r_to_py(w)$copy()))
+    object$model$set_sigma(reticulate::r_to_py(object$sigma)$copy())
+  }
+  
+  if(inherits(object, "sLVM")) {
+    unserialize_state(object, object$state)
+    object$model$set_posterior_samples(lapply(object$posterior_samples, function(p) torch$tensor(p, dtype=object$model$dtype, device=object$model$device)))
+  }
   return(object)
 }
 
@@ -122,6 +105,17 @@ parse_nn = function(nn) {
   return(txt)
 }
 
-#' @importFrom magrittr %>%
-#' @export
-magrittr::`%>%`
+
+serialize_state = function(model) {
+  tmp = tempfile(pattern = "svi state")
+  on.exit(unlink(tmp), add = TRUE)
+  model$pyro$get_param_store()$save(tmp)
+  return(readBin(tmp, what = "raw", n = file.size(tmp), size=1))
+}
+
+unserialize_state = function(model, state) {
+  tmp = tempfile(pattern = "svi state")
+  on.exit(unlink(tmp), add = TRUE)
+  writeBin(state, tmp)
+  model$model$pyro$get_param_store()$load(tmp)
+}
