@@ -22,6 +22,9 @@ is_sjSDM_py_available = function() {
 }
 
 
+copyRP = function(w) reticulate::r_to_py(w)$copy()
+
+
 #' check model
 #' check model and rebuild if necessary
 #' @param object of class sjSDM

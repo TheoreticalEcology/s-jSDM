@@ -4,21 +4,38 @@
 \alias{varPart}
 \title{varPart}
 \usage{
-varPart(beta, sp = NULL, covariance, covX, covSP = NULL)
+varPart(model, order = c("EB", "E"), method = c("coef", "III"), ...)
 }
 \arguments{
-\item{beta}{abiotic weights}
+\item{model}{object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below}
 
-\item{sp}{spatial weights}
+\item{order}{if method == "III", the order in which the modules are removed, with spatial term: \code{c("ESB", "ES", "E")}}
 
-\item{covariance}{species associations}
+\item{method}{method for vp, coefficients or type III}
 
-\item{covX}{environmental covariance matrix}
-
-\item{covSP}{spatial covariance matrix}
+\item{...}{arguments passed to \code{\link{Rsquared}}}
 }
 \description{
-variation partitioning
+variation partitioning of abiotic, biotic, and spatial effects
+}
+\examples{
+library(sjSDM)
+
+
+com = simulate_SDM(sites = 300L, species = 12L)
+SP = matrix(rnorm(300*2), 300, 2)
+model = sjSDM(Y = com$response,env = linear(com$env_weights, lambda = 0.001), spatial = linear(SP, lambda = 0.001), biotic = bioticStruct(lambda = 0.001),iter = 40L)
+varPart(model)
+# or another type based on R^2
+varPart(model, method = "III", order = c("ESB", "ES", "E"))
+
+if(require(gllvm)){
+# varPart with method="coef" can be also used for other models: 
+## we can provide the spatial terms as normal predictors (note: you should use SP1:SP2 )
+lvm = gllvm(com$response, data.frame(com$env_weights, SP), family = binomial("probit"))
+model2 = list(t(cbind(coef(lvm)$Xcoef, coef(lvm)$Intercept)), getResidualCov(lvm, FALSE)$cov, cov(lvm$TMBfn$env$data$x))
+varPart(model2)
+}
 }
 \author{
 Maximilian Pichler

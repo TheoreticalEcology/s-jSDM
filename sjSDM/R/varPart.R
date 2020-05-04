@@ -1,66 +1,194 @@
 #' varPart
 #' 
-#' variation partitioning
+#' variation partitioning of abiotic, biotic, and spatial effects
+#' 
+#' @param model object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below
+#' @param method method for vp, coefficients or type III
+#' @param order if method == "III", the order in which the modules are removed, with spatial term: \code{c("ESB", "ES", "E")}
+#' @param ... arguments passed to \code{\link{Rsquared}}
+#' 
+#' @example /inst/examples/varPart-example.R
+#' @author Maximilian Pichler
+#' @export
+varPart = function(model, order = c("EB", "E"),method = c("coef", "III"), ...) {
+  stopifnot(
+    #inherits(model, "sjSDM"),
+    #inherits(model$settings$env, "linear"),
+    is.null(model$settings$spatial) || inherits(model$settings$spatial, "linear")
+    )
+  method = match.arg(method)
+  if(method == "coef") {
+    
+    if(inherits(model, "sjSDM")) {
+    
+      coefs = coef.sjSDM(model)[[1]]
+      if(inherits(coefs, "list")) coefs = coefs[[1]]
+      env = t(coefs)
+      
+      beta = env
+      sigma = getCov(model)
+      covX = cov(model$data$X)
+      
+      if(!is.null(model$settings$spatial)) {
+        sp = t(coef(model)[[2]][[1]])
+        covSP = cov(model$settings$spatial$X)
+        
+        vp = varPartTypCoef(beta = beta, sp = sp, association = sigma, covX = covX, covSP = covSP)
+        colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
+        colnames(vp$env) = model$names
+        res = list(split = vp, 
+                   total = list(env = rowSums(vp$env), spatial = rowSums(vp$spatial), biotic = vp$biotic))
+      } else {
+        vp = varPartTypCoef(beta = beta,  association = sigma, covX = covX)
+        colnames(vp$env) = model$names
+        res = list(split = vp, 
+                   total = list(env = rowSums(vp$env), biotic = vp$biotic))
+      }
+      
+      return(res)
+    } else {
+      
+      beta = model[[1]]
+      sigma = model[[2]]
+      covX = model[[3]]
+      
+      vp = varPartTypCoef(beta = beta,  association = sigma, covX = covX)
+      colnames(vp$env) = model$names
+      res = list(split = vp, 
+                 total = list(env = rowSums(vp$env), biotic = vp$biotic))
+      return(res)
+    }
+  
+  } else {
+    res = varPartTypIII(model, order=order, ...)
+    return(res)
+  }
+}
+
+#model = list(t(cbind(coef(m)$Xcoef, coef(m)$Intercept)), getResidualCov(m, FALSE)$cov, cov(m$TMBfn$env$data$x))
+
+#' varPartTypCoef
+#' 
+#' variation partitioning with coefficients
 #' @param beta abiotic weights
 #' @param sp spatial weights
-#' @param covariance species associations
+#' @param association species associations
 #' @param covX environmental covariance matrix
 #' @param covSP spatial covariance matrix
 #' 
 #' @author Maximilian Pichler
 #' @export
 
-varPart = function(beta, sp=NULL, covariance, covX, covSP=NULL) {
+varPartTypCoef = function(beta, sp=NULL, association, covX, covSP=NULL) {
   nsp = ncol(beta)
   nGroups = nrow(beta)
   
-  predXTotal = rep(0, nsp)
-  predXSplit = matrix(0, nrow = nsp, ncol = nGroups)
-  predSPTotal = rep(0, nsp)
-  if(!is.null(sp)) predSPSplit = matrix(0, nrow = nsp, ncol = nrow(sp))
+  Xtotal = rep(0, nsp)
+  Xsplit = matrix(0, nrow = nsp, ncol = nGroups)
+  SPtotal = rep(0, nsp)
+  if(!is.null(sp)) SPsplit = matrix(0, nrow = nsp, ncol = nrow(sp))
   PredRandom = matrix(0, nrow = nsp, ncol = 1L)
   
   for (j in 1:nsp) {
     predXTotalSub = beta[,j] %*% crossprod(covX, beta[,j])
-    predXTotal[j] <- predXTotal[j] + predXTotalSub
+    Xtotal[j] <- Xtotal[j] + predXTotalSub
     for (k in 1:nGroups) {
       predXPart = beta[k, j] %*% crossprod(covX[k,k], beta[k,j])
-      predXSplit[j, k] <- predXSplit[j, k] + predXPart
+      Xsplit[j, k] <- Xsplit[j, k] + predXPart
     }
   }
   
   if(!is.null(sp)) {
     for (j in 1:nsp) {
       predSPTotalSub = sp[,j] %*% crossprod(covSP, sp[,j])
-      predSPTotal[j] <- predSPTotal[j] + predSPTotalSub
+      SPtotal[j] <- SPtotal[j] + predSPTotalSub
       for (k in 1:(nrow(sp))) {
         predSPPart = sp[k, j] %*% crossprod(covSP[k,k], sp[k,j])
-        predSPSplit[j, k] <- predSPSplit[j, k] + predSPPart
+        SPsplit[j, k] <- SPsplit[j, k] + predSPPart
       }
     }
   }
   
-  PredRandom = rowSums(covariance^2)
+  PredRandom = rowSums(association^2)/sqrt(ncol(association))
   
   if(is.null(sp)) {
-    variTotal = predXTotal + PredRandom
-    variPartX = predXTotal/variTotal
-    
+    variTotal = Xtotal + PredRandom
+    variPartX = Xtotal/variTotal
     variPartRandom = PredRandom/variTotal
-    variPartXSplit =  predXSplit/replicate(nGroups,apply(predXSplit, 1, sum))
-    variPart = cbind(replicate(nGroups, variPartX) * variPartXSplit, variPartRandom)
-    res = variPart
+    variPartXSplit =  Xsplit/replicate(nGroups,apply(Xsplit, 1, sum))
+    res = list(env = replicate(nGroups, variPartX) * variPartXSplit, 
+               biotic=variPartRandom)
     return(res)
   } else {
-    variTotal = predXTotal + PredRandom + predSPTotal
-    variPartX = predXTotal/variTotal
-    variPartSP = predSPTotal/variTotal
-    
+    variTotal = Xtotal + PredRandom + SPtotal
+    variPartX = Xtotal/variTotal
+    variPartSP = SPtotal/variTotal
     variPartRandom = PredRandom/variTotal
-    variPartXSplit =  predXSplit/replicate(nGroups,apply(predXSplit, 1, sum))
-    variPartSPSplit =  predSPSplit/replicate(nrow(sp),apply(predSPSplit, 1, sum))
-    variPart = cbind(replicate(nGroups, variPartX) * variPartXSplit,replicate(nrow(sp), variPartSP) * variPartSPSplit, variPartRandom)
-    res = variPart
+    variPartXSplit =  Xsplit/replicate(nGroups,apply(Xsplit, 1, sum))
+    variPartSPSplit =  SPsplit/replicate(nrow(sp),apply(SPsplit, 1, sum))
+    res = list(env = replicate(nGroups, variPartX) * variPartXSplit,
+               spatial = replicate(nrow(sp), variPartSP) * variPartSPSplit, 
+               biotic=variPartRandom)
     return(res)
   }
 }
+
+
+
+#' varPartTypIII
+#' 
+#' variation partitioning Typ III
+#' @param model object fitted by \code{\link{sjSDM}}
+#' @param order which modules should be removed: E (environment), S (spatial), or B (biotic)
+#' @param ... arguments passed to \code{\link{Rsquared}}
+#' 
+#' @author Maximilian Pichler
+#' @export
+
+varPartTypIII = function(model, order = NULL, ...) {
+  if(!is.null(model$spatial_weights)) {
+    sp = TRUE
+    order = c("ESB", "ES", "E")
+  } else {
+    sp = FALSE
+    order = c("EB", "E")
+  }
+  res = vector("list", length(order)+1)
+  res[[1]] = Rsquared(model, ...)
+  for(i in 1:length(order))res[[i+1]] = getRsquaredWOmodule(model,modules = order[[i]],...)
+  names(res) =  c("full", order)
+  return(res)
+}
+
+
+getRsquaredWOmodule = function(model, modules = c("E"), ...) {
+  modules = strsplit(modules,split = "")[[1]]
+  for(i in modules) {
+    if(i == "E") {
+      model$model$set_env_weights(lapply(model$weights, function(w) copyRP(matrix(0.0, nrow(w), ncol(w) )) ))
+    }
+    if(i == "B") {
+      model$model$set_sigma(copyRP(diag(1.0, ncol(model$data$Y))))
+      model$model$df= as.integer(ncol(model$data$Y))
+    }
+    if(i == "S") {
+      model$model$set_spatial_weights(lapply(model$spatial_weights, function(w) copyRP(matrix(0.0, nrow(w), ncol(w)))    ))
+    }
+  }
+  R2 = Rsquared(model, ...)
+  
+  for(i in modules) {
+    if(i == "E") {
+      model$model$set_env_weights(copyRP(model$weights))
+    }
+    if(i == "B") {
+      model$model$set_sigma(copyRP(model$sigma))
+      model$model$df= as.integer(ncol(model$sigma))
+    }
+    if(i == "S") {
+      model$model$set_spatial_weights(lapply(model$spatial_weights, function(w) copyRP(matrix(0.0, nrow(w), ncol(w) ))))
+    }
+  }
+  return(R2)
+}
+

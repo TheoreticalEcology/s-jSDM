@@ -144,7 +144,7 @@ sjSDM = function(Y = NULL,
   out$model = model
   out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
                       step_size = step_size,learning_rate = learning_rate, 
-                      parallel = parallel,device = device, dtype = dtype)
+                      parallel = parallel,link=link,device = device, dtype = dtype)
   out$time = time
   out$data = list(X = env$X, Y = Y)
   out$sessionInfo = utils::sessionInfo()
@@ -173,16 +173,22 @@ print.sjSDM = function(x, ...) {
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param newdata newdata for predictions
 #' @param SP spatial predictors (e.g. X and Y coordinates)
+#' @param type raw or link
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
-predict.sjSDM = function(object, newdata = NULL, SP = NULL, ...) {
+predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("raw", "link"),...) {
   object = checkModel(object)
+  
+  type = match.arg(type)
+  
+  if(type == "raw") link = FALSE
+  else link = TRUE
   
   if(inherits(object, "spatial")) {
     
     
     if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X))
+      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link))
     } else {
       
       if(is.data.frame(newdata)) {
@@ -198,14 +204,14 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, ...) {
       }
       
     }
-    pred = object$model$predict(newdata = newdata, SP = sp, ...)
+    pred = object$model$predict(newdata = newdata, SP = sp, link=link, ...)
     return(pred)
     
     
   } else {
     
     if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X))
+      return(object$model$predict(newdata = object$data$X, link=link))
     } else {
       if(is.data.frame(newdata)) {
         newdata = stats::model.matrix(object$formula, newdata)
@@ -213,7 +219,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, ...) {
         newdata = stats::model.matrix(object$formula, data.frame(newdata))
       }
     }
-    pred = object$model$predict(newdata = newdata, ...)
+    pred = object$model$predict(newdata = newdata, link=link, ...)
     return(pred)
     
   }

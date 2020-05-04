@@ -391,7 +391,7 @@ class Model_sjSDM:
         #print(logLikReg)
         return logLik, logLikReg
 
-    def predict(self, newdata=None,SP=None,RE=None, train=False, batch_size=25, parallel=0, sampling=100):
+    def predict(self, newdata=None,SP=None,RE=None, train=False, batch_size=25, parallel=0, sampling=100, link=True):
         """predict for newdata
         
         Predict on newdata in batches
@@ -404,7 +404,7 @@ class Model_sjSDM:
 
         """
         dataLoader = self._get_DataLoader(X = newdata, Y = None, SP=SP,RE=RE, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
-        loss_function = self._build_loss_function(train = False)
+        loss_function = self._build_loss_function(train = False, raw=not link)
 
         pred = []
         if self.device.type == 'cuda':
@@ -627,7 +627,7 @@ class Model_sjSDM:
                 self.losses.append( lambda: self.l1_l2[1](self.sigma, l2) )
         return None
 
-    def _build_loss_function(self, train=True):
+    def _build_loss_function(self, train=True, raw=False):
 
         if train:
             if self.link == "logit":
@@ -686,7 +686,10 @@ class Model_sjSDM:
             elif self.link == "logit":
                 link_func = lambda value: torch.sigmoid(value)
             elif self.link == "linear":
-                link_func = lambda value: torch.clamp(value, 0.0, 1.0)   
+                link_func = lambda value: torch.clamp(value, 0.0, 1.0)
+
+            if raw:
+                link_func = lambda value: value
 
             def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                 noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
