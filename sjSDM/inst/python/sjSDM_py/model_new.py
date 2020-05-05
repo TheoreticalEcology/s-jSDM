@@ -16,6 +16,12 @@ class Model_sjSDM:
         self.dtype = dtype
         self.alpha = alpha
         self.re = None
+        
+                
+        if self.device.type == 'cuda' and torch.cuda.is_available():
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        else:
+            torch.set_default_tensor_type('torch.FloatTensor')
 
         @torch.jit.script
         def l1_loss(tensor: torch.Tensor, l1: float):
@@ -250,6 +256,7 @@ class Model_sjSDM:
                         x = x.to(self.device, non_blocking=True)
                         y = y.to(self.device, non_blocking=True)
                         sp = sp.to(self.device, non_blocking=True)
+                        
                         mu = self.env(x) + self.spatial(sp)
                         #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
                         loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)

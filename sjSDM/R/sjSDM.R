@@ -79,8 +79,8 @@ sjSDM = function(Y = NULL,
   if(is.null(step_size)) step_size = as.integer(floor(nrow(env$X) * 0.1))
   else step_size = as.integer(step_size)
 
-  output = ncol(Y)
-  input = ncol(env$X)
+  output = as.integer(ncol(Y))
+  input = as.integer(ncol(env$X))
   
   
   out$get_model = function(){
@@ -88,7 +88,7 @@ sjSDM = function(Y = NULL,
 
     if(inherits(env, "DNN")) {
       activation=env$activation
-      hidden = env$hidden
+      hidden = as.integer(env$hidden)
     } else {
       hidden = list()
       activation = c("linear")
@@ -99,10 +99,10 @@ sjSDM = function(Y = NULL,
       if(inherits(spatial, "DNN")) {
         activation_spatial=spatial$activation
         hidden_spatial = spatial$hidden
-        model$add_spatial(ncol(spatial$X), output_shape = output, hidden = hidden_spatial, activation = activation_spatial, l1 = spatial$l1, l2= spatial$l2)
+        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, hidden = hidden_spatial, activation = activation_spatial, l1 = spatial$l1, l2= spatial$l2)
       } 
       if(inherits(spatial, "linear")) {
-        model$add_spatial(ncol(spatial$X), output_shape = output, l1 = spatial$l1, l2= spatial$l2)
+        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, l1 = spatial$l1, l2= spatial$l2)
       }
     }
     
