@@ -6,9 +6,13 @@ name: R-CMD-check
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: 
+      - master
+      - devel
   pull_request:
-    branches: [ master ]
+    branches: 
+      - master
+      - devel
   schedule:
     - cron: '0 1 * * *'
 
@@ -17,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest', 'macOS-latest', 'ubuntu-16.04']
+        os: ['windows-latest', 'ubuntu-16.04']
         include:
           - os: ubuntu-16.04
             cran: https://demo.rstudiopm.com/all/__linux__/xenial/latest
@@ -49,14 +53,33 @@ jobs:
       - name: Install Python
         run: |
           cd sjSDM
-          Rscript -e "remotes::install_github('rstudio/reticulate')"
-          Rscript -e "reticulate::install_miniconda()"
+          Rscript -e "remotes::install_github('rstudio/reticulate')" 
+          Rscript -e "remotes::install_cran('devtools')"
+      - name: Install miniconda mac
+        if: matrix.os == 'macos-latest'
+        run: |
+          wget https://repo.continuum.io/miniconda/Miniconda3-py37_4.8.2-MacOSX-x86_64.sh -O miniconda.sh
+          bash miniconda.sh -b -p $HOME/miniconda
+          export PATH="$HOME/miniconda/bin:$PATH"
+          hash -r
+          rm miniconda.sh
+          conda config --set auto_update_conda false
       - name: Install PyTorch
         run: |
           cd sjSDM
           Rscript -e "remotes::install_local()"
-          Rscript -e "reticulate::conda_create('r-reticulate', packages = c('python==3.6.9'))"
-          Rscript -e "sjSDM::install_sjSDM()"
+          Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
+          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
+      - name: tests ubuntu
+        if: matrix.os == 'ubuntu-16.04'
+        run: |
+          cd sjSDM
+          Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'));library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();try({testthat::test_dir('tests/testthat/')})"
+      - name: tests windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd sjSDM
+          Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();install_diagnostic();try({testthat::test_dir('tests/testthat/')})"
       - name: Check
         continue-on-error: ${{ contains(matrix.allow_failure, 'true') }}
         run: |

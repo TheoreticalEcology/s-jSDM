@@ -1,8 +1,8 @@
 #' getCov
 #'
 #' get species-species assocation (covariance) matrix
-#' @param object a model fitted by \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, or \code{\link{sjSDM_DNN}}
-#' @seealso \code{\link{sjSDM}}, \code{\link{sjSDM_model}}, \code{\link{sjSDM_DNN}}
+#' @param object a model fitted by \code{\link{sjSDM}}, \code{\link{sLVM}}  or \code{\link{sjSDM}} with \code{\link{DNN}} object
+#' @seealso \code{\link{sjSDM}},\code{\link{DNN}}
 #' @export
 getCov = function(object) UseMethod("getCov")
 
@@ -16,25 +16,15 @@ getCov.sjSDM = function(object){
 
 #' @rdname getCov
 #' @export
-getCov.sjSDM_model = function(object){
-  return(object$get_cov())
+getCov.sLVM= function(object){
+  return(object$covariance)
 }
-
-
-#' @rdname getCov
-#' @export
-getCov.sjSDM_DNN = function(object){
-  return(object$sigma %*% t(object$sigma))
-}
-
-
-
 
 
 #' Get weights
 #' 
 #' return weights of each layer
-#' @param object object of class \code{\link{sjSDM_DNN}} or of class \code{\link{sjSDM_model}}
+#' @param object object of class \code{\link{sjSDM}} with \code{\link{DNN}}
 #' @return 
 #' \itemize{
 #'  \item layers - list of layer weights
@@ -44,42 +34,31 @@ getCov.sjSDM_DNN = function(object){
 getWeights = function(object) UseMethod("getWeights")
 
 
-#' @rdname getWeights
-#' @export
-getWeights.sjSDM_model = function(object) {
-  return(list(layers = object$weights_numpy, sigma = object$sigma_numpy))
-}
-
 
 #' @rdname getWeights
 #' @export
-getWeights.sjSDM_DNN = function(object) {
-  getWeights(object$model)
+getWeights.sjSDM= function(object) {
+  return(list(env=object$model$env_weights, spatial=object$model$spatial_weights, sigma = object$model$get_sigma))
 }
+
+
 
 
 #' Set weights
 #' 
-#' set layer weights and sigma in \code{\link{sjSDM_model}} or \code{\link{sjSDM_DNN}} objects
-#' @param object object of class \code{\link{sjSDM_model}} or \code{\link{sjSDM_DNN}} objects
+#' set layer weights and sigma in \code{\link{sjSDM}} with \code{\link{DNN}} object
+#' @param object object of class  \code{\link{sjSDM}} with \code{\link{DNN}} object
 #' @param weights list of layer weights and sigma, see \code{\link{getWeights}}
 #' @export
 setWeights = function(object, weights) UseMethod("setWeights")
 
-#' @rdname setWeights
-#' @export
-setWeights.sjSDM_model = function(object, weights) {
-  object$set_weights(weights$layers)
-  object$set_sigma(weights$sigma)
-  object$weights_numpy = weights$layers
-  object$sigma_numpy = weights$sigma
-  return(invisible(object))
-}
-
 
 #' @rdname setWeights
 #' @export
-setWeights.sjSDM_DNN = function(object, weights = NULL) {
-  if(is.null(weights)) weights = object$weights
-  setWeights(object$model, weights)
+setWeights.sjSDM= function(object, weights = NULL) {
+  if(is.null(weights)) weights = list(env = object$weights, spatial = object$spatial_weights)
+  #setWeights(object$model, weights)
+  
+  object$model$set_env_weights(w = weights[[1]])
+  object$model$set_spatial_weights(w = weights[[2]])
 }

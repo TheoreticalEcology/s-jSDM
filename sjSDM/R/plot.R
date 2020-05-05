@@ -157,11 +157,21 @@ add_species_arrows = function(radius = 5.0, label = "Species", reverse = TRUE, s
 #' @param circleBreak circle break or not
 #' @param top top negative and positive associations
 #' @param occ species occurence data
+#' @param cols_association col gradient for association lines
+#' @param cols_occurrence col gradient for species 
+#' @param lwd_occurrence lwd for occurrence lines
+#' @param species_indices indices for sorting species
 #' @export
 plotAssociations = function(sigma, radius = 5.0, main = NULL, 
-                            circleBreak = FALSE, top = 30L, occ = NULL){
+                            circleBreak = FALSE, top = 10L, occ = NULL, 
+                            cols_association = c("#FF0000", "#BF003F", "#7F007F", "#3F00BF", "#0000FF"),
+                            cols_occurrence = c( "#BEBEBE", "#8E8E8E", "#5F5F5F", "#2F2F2F", "#000000"),
+                            lwd_occurrence = 1.0,
+                            species_indices = NULL
+                            ){
 
   ##### circle #####
+  
   lineSeq = 0.94*radius
   nseg = 100
   graphics::plot(NULL, NULL, xlim = c(-radius,radius), ylim =c(-radius,radius),pty="s", axes = F, xlab = "", ylab = "")
@@ -173,16 +183,25 @@ plotAssociations = function(sigma, radius = 5.0, main = NULL,
 
   #### curves ####
   n = ncol(sigma)
-
+  
+  if(!is.null(species_indices))
+    sigma = sigma[species_indices, species_indices]
+  else {
+    ### occ ###
+    if(!is.null(occ)) {
+      species_indices = sort(apply(occ, 2, sum))
+      sigma = sigma[species_indices, species_indices]
+    }
+  }
+  
   #sigma = re_scale(result[[10]]$sigma)[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
   sigma = stats::cov2cor(sigma)
   sigmas = sigma[upper.tri(sigma)]
   upper = order(sigmas, decreasing = TRUE)[1:top]
   lower = order(sigmas, decreasing = FALSE)[1:top]
-  cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
+  cuts = cut(sigmas, breaks = seq(-1,1,length.out = length(cols_association) + 1))
   to_plot = (1:length(sigmas) %in% upper) | (1:length(sigmas) %in% lower)
-  cols = 1:11
-  levels(cuts) = cols
+  levels(cuts) = cols_association
   cuts = as.character(cuts)
 
   angles = seq(0,355,length.out = n+1)[1:(n)]
@@ -201,21 +220,24 @@ plotAssociations = function(sigma, radius = 5.0, main = NULL,
     }
   }
   
+  
+  ### occ ###
   if(!is.null(occ)) {
     lineSeq = radius
-    occ_logs = log(sort(apply(occ, 2, sum)))
-    cuts = cut(occ_logs, breaks = 10)
-    cols = 1:10 #colfunc(5)
-    levels(cuts) = cols
+    occ_abs = sort(apply(occ, 2, sum))
+    occ_logs = log(occ_abs)
+    cuts = cut(occ_logs, breaks = length(cols_occurrence))
+    cols = cols_occurrence #colfunc(5)
+    levels(cuts) = cols_occurrence
     for(i in 1:length(occ_logs)){
       p1 = coords[i,]
       x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
       y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
-      graphics::segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1)
+      graphics::segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1, lwd = lwd_occurrence)
     }
-    add_legend(1:11, angles = c(140,110))
+    add_legend(cols_association, angles = c(140,110))
     graphics::text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq*1.14), labels = "covariance", pos = 2, xpd = NA)
-    add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+    add_legend(cols = cols, range = c(min(occ_abs), max(occ_abs)), angles = c(70,40))
     graphics::text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq*1.14), labels = "Sp. abundance", pos = 4, xpd = NA)
   }
   

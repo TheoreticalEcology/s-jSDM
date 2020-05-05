@@ -142,12 +142,18 @@ class Model_base:
                 self.losses.append(self.layers[i].get_loss())
         
         self.__loss_function = self.__build_loss_function()
-        self.__build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
+        self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
         params = [y for x in self.weights for y in x]
         params.append(self.sigma)
         if optimizer != None:
             self.optimizer = optimizer(params = params)
     
+
+        
+   # def fill_lower_tril(self, sigma):
+   #     xc = torch.cat([sigma[self.r_dim:], sigma.flip(dims=[0])])
+   #     y = xc.view(self.r_dim, self.r_dim)
+   #     return torch.tril(y)
     def fit(self, X=None, Y=None, batch_size=25, epochs=100, sampling=100, parallel=0):
         """fit model
 
@@ -191,10 +197,11 @@ class Model_base:
                         mu = self.layers[i](mu)
                 
                 loss = self.__loss_function(mu, y, batch_size, sampling)
-                loss = torch.mean(loss)
+                loss = loss.mean()
                 if any_losses:
                     for k in range(len(self.losses)):
-                        loss += self.losses[k]()
+                        #loss += self.losses[k]()
+                        loss.add(self.losses[k]())
                 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -263,12 +270,12 @@ class Model_base:
             if any_layers:
                 for i in range(1, len(self.layers)):
                     mu = self.layers[i](mu)
-            loss = loss_function(mu, y, batch_size, sampling)
-            loss = torch.sum(loss)
+            loss = loss_function(mu, y, x.shape[0], sampling).sum()
+            #loss = torch.sum(loss)
             loss_reg = torch.tensor(0.0, dtype=self.dtype, device=self.device).to(self.device)
             if any_losses:
                 for k in range(len(self.losses)):
-                    loss_reg += self.losses[k]()
+                    loss_reg.add(self.losses[k]())
                 logLikReg += loss_reg.data.cpu().numpy()
             logLik += loss.data.cpu().numpy()
             torch.cuda.empty_cache()
@@ -300,8 +307,7 @@ class Model_base:
                     x = x.to(self.device, non_blocking=True)
                     y = y.to(self.device, non_blocking=True)
                     mu = torch.nn.functional.linear(x, w.t())
-                    loss = loss_func(mu, y, x.shape[0], sampling)
-                    loss = torch.sum(loss)
+                    loss = loss_func(mu, y, x.shape[0], sampling).sum()
                     first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True,allow_unused=True)
                     second = []
                     for j in range(self.input_shape):
@@ -346,7 +352,7 @@ class Model_base:
         torch.cuda.empty_cache()
         return DataLoader
 
-    def __build_cov_constrain_function(self, l1=None, l2=None, reg_on_Cov=None, reg_on_Diag=None, inverse=None):
+    def _build_cov_constrain_function(self, l1=None, l2=None, reg_on_Cov=None, reg_on_Diag=None, inverse=None):
         if reg_on_Cov:
             if reg_on_Diag:
                 diag = int(0)
@@ -356,27 +362,35 @@ class Model_base:
             if l1 > 0.0:
                 l1 = torch.tensor(l1, device = self.device, dtype = self.dtype).to(self.device)
                 def l1_ll():
-                    ss = torch.matmul(self.sigma, self.sigma.t())
+                    #ss = torch.matmul(self.sigma, self.sigma.t())
+                    ss = self.sigma.matmul(self.sigma.t())
                     if inverse:
-                        ss = torch.inverse(ss)
-                    return torch.mul(l1, torch.sum(torch.abs(torch.triu(ss, diag))))
+                        #ss = torch.inverse(ss)
+                        ss = ss.inverse()
+                    #return torch.mul(l1, torch.sum(torch.abs(torch.triu(ss, diag))))
+                    return ss.triu(diag).abs().sum().mul(l1)
                 self.losses.append(l1_ll)
             
             if l2 > 0.0 :
                 l2 = torch.tensor(l2, device = self.device, dtype = self.dtype).to(self.device)
                 def l2_ll():
-                    ss = torch.matmul(self.sigma, self.sigma.t())
+                    #ss = torch.matmul(self.sigma, self.sigma.t())
+                    ss = self.sigma.matmul(self.sigma.t())
                     if inverse:
-                        ss = torch.inverse(ss)
-                    return torch.mul(l2, torch.sum(torch.pow(torch.triu(ss, diag), 2.0)))
+                        #ss = torch.inverse(ss)
+                        ss = ss.inverse()
+                    #return torch.mul(l2, torch.sum(torch.pow(torch.triu(ss, diag), 2.0)))
+                    return ss.triu(diag).pow(2.0).sum().mul(l2)
                 self.losses.append(l2_ll)
         else:
             if l1 > 0.0:
                 l1 = torch.tensor(l1, device = self.device, dtype = self.dtype).to(self.device)
-                self.losses.append(lambda: torch.mul(l1, torch.sum(torch.abs(self.sigma))))
+                #self.losses.append(lambda: torch.mul(l1, torch.sum(torch.abs(self.sigma))))
+                self.losses.append( lambda: self.sigma.abs().sum().mul(l1) )
             if l2 > 0.0:
                 l2 = torch.tensor(l2, device = self.device, dtype = self.dtype).to(self.device)
-                self.losses.append(lambda: torch.mul(l2, torch.sum(torch.pow(self.sigma, 2.0))))
+                #self.losses.append(lambda: torch.mul(l2, torch.sum(torch.pow(self.sigma, 2.0))))
+                self.losses.append( lambda: self.sigma.pow(2.0).sum().mul(l1) )
         return None
     
     def __build_loss_function(self, train=True):
@@ -387,26 +401,37 @@ class Model_base:
         half = torch.tensor(0.5, dtype=self.dtype).to(self.device)
         if self.link == "probit": 
             link_func = lambda value: torch.distributions.Normal(zero, one).cdf(value)
-        else:
+        elif self.link == "logit":
             link_func = lambda value: torch.sigmoid(value)
+        elif self.link == "linear":
+            link_func = lambda value: torch.clamp(value, zero, one)
+
         
         if train:
             def tmp(mu, Ys, batch_size, sampling):
                 noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
-                samples = torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu)
-                E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
-                indll = torch.neg(torch.add(torch.mul(torch.log(E), Ys), torch.mul(torch.log(torch.sub(one,E)),torch.sub(one,Ys))))
-                logprob = torch.neg(torch.sum(indll, dim = 2))
-                maxlogprob = torch.max(logprob, dim = 0).values
-                Eprob = torch.mean(torch.exp(torch.sub(logprob,maxlogprob)), dim = 0)
-                loss = torch.sub(torch.neg(torch.log(Eprob)),maxlogprob)
+                E = link_func(torch.tensordot(noise, self.sigma.t(), dims = 1).add(mu).mul(alpha)).mul(one.sub(eps)).add(eps.mul(half))
+                logprob = E.log().mul(Ys).add(one.sub(E).log().mul(one.sub(Ys))).neg().sum(dim = 2).neg()
+                maxlogprob = logprob.max(dim = 0).values
+                Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                loss = Eprob.log().neg().sub(maxlogprob)
+
+                #samples = torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu)
+                #E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
+                #indll = torch.neg(torch.add(torch.mul(torch.log(E), Ys), torch.mul(torch.log(torch.sub(one,E)),torch.sub(one,Ys))))
+                #logprob = torch.neg(torch.sum(indll, dim = 2))
+                #maxlogprob = torch.max(logprob, dim = 0).values
+                #Eprob = torch.mean(torch.exp(torch.sub(logprob,maxlogprob)), dim = 0)
+                #loss = torch.sub(torch.neg(torch.log(Eprob)),maxlogprob)
                 return loss
         else:
             def tmp(mu, batch_size, sampling):
-                noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
-                samples = torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu)
+                #noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
+                #samples = torch.add(torch.tensordot(noise, self.sigma.t(), dims = 1), mu)
                 #E = torch.add(torch.mul(torch.sigmoid(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
-                E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
-                return torch.mean(E, dim = 0)
+                #E = torch.add(torch.mul(link_func(torch.mul(alpha, samples)) , torch.sub(one,eps)), torch.mul(eps, half))
+                noise = torch.randn(size = [sampling, batch_size, self.df],dtype = self.dtype, device = self.device)
+                E = link_func(torch.tensordot(noise, self.sigma.t(), dims = 1).add(mu).mul(alpha)).mul(one.sub(eps)).add(eps.mul(half))
+                return E.mean(dim = 0)
 
         return tmp
