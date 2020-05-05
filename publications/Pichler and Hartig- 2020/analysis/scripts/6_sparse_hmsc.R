@@ -84,7 +84,7 @@ for(i in 1:nrow(setup)) {
                  studyDesign = studyDesign, ranLevels = list(sample = rL), distr = "probit")
     time =
       system.time({
-        model = sampleMcmc(model, thin = 50, samples = 1000, transient = 50,verbose = 5000,
+        model = sampleMcmc(model, thin = 50, samples = 1000, transient = 5000,verbose = 5000,
                            nChains = 2L)
       })
     
@@ -135,6 +135,6 @@ for(i in 1:nrow(setup)) {
     auc = auc,
     post = diagnosis
   )
-  saveRDS(hmsc, "results/sparse_hmsc.RDS")
+  saveRDS(hmsc, "results/sparse_hmsc2.RDS")
 }
 

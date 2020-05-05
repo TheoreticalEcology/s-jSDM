@@ -62,7 +62,7 @@ for(i in 1:nrow(setup)) {
     result_time= result_time,
     auc = auc
   )
-  saveRDS(gpu_dmvp, "results/gpu_sjSDM.RDS")
+  saveRDS(gpu_dmvp, "results/gpu_sjSDM_probit.RDS")
 }
 
 
