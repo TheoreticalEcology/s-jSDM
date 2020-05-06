@@ -175,7 +175,7 @@ class Model_sjSDM:
         return DataLoader
 
     def build(self, df=None,Re=None, optimizer=None, l1=0.0, l2=0.0,
-              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit"):
+              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit", diag=False):
         
         if self.device.type == 'cuda' and torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -188,12 +188,18 @@ class Model_sjSDM:
         self.link = link
         self.df = df
         r_dim = self.output_shape
-        low = -np.sqrt(6.0/(r_dim+df))
-        high = np.sqrt(6.0/(r_dim+df))               
-        self.sigma = torch.tensor(np.random.uniform(low, high, [r_dim, df]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
-        self._loss_function = self._build_loss_function()
-        self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
-        self.params.append([self.sigma])
+        if not diag:
+            low = -np.sqrt(6.0/(r_dim+df))
+            high = np.sqrt(6.0/(r_dim+df))               
+            self.sigma = torch.tensor(np.random.uniform(low, high, [r_dim, df]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
+            self._loss_function = self._build_loss_function()
+            self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
+            self.params.append([self.sigma])
+        else:
+            self.sigma = torch.zeros([r_dim, r_dim], dtype = self.dtype, device = self.device).to(self.device)
+            self.df = r_dim
+            self._loss_function = self._build_loss_function()
+            self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
         
         if Re != None:
             self.re = torch.tensor(np.random.normal(0.0, 0.0001, [Re, 1]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)

@@ -1,23 +1,19 @@
-#' varPart
+#' importance 
 #' 
-#' variation partitioning of abiotic, biotic, and spatial effects
+#' importance of abiotic, biotic, and spatial effects
 #' 
 #' @param model object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below
-#' @param method method for vp, coefficients or type III
-#' @param order if method == "III", the order in which the modules are removed, with spatial term: \code{c("ESB", "ES", "E")}
-#' @param ... arguments passed to \code{\link{Rsquared}}
 #' 
 #' @example /inst/examples/varPart-example.R
 #' @author Maximilian Pichler
 #' @export
-varPart = function(model, order = c("EB", "E"),method = c("coef", "III"), ...) {
+importance = function(model) {
   stopifnot(
     #inherits(model, "sjSDM"),
     #inherits(model$settings$env, "linear"),
     is.null(model$settings$spatial) || inherits(model$settings$spatial, "linear")
     )
   method = match.arg(method)
-  if(method == "coef") {
     
     if(inherits(model, "sjSDM")) {
     
@@ -33,13 +29,13 @@ varPart = function(model, order = c("EB", "E"),method = c("coef", "III"), ...) {
         sp = t(coef(model)[[2]][[1]])
         covSP = cov(model$settings$spatial$X)
         
-        vp = varPartTypCoef(beta = beta, sp = sp, association = sigma, covX = covX, covSP = covSP)
+        vp = getImportance(beta = beta, sp = sp, association = sigma, covX = covX, covSP = covSP)
         colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
         colnames(vp$env) = model$names
         res = list(split = vp, 
                    total = list(env = rowSums(vp$env), spatial = rowSums(vp$spatial), biotic = vp$biotic))
       } else {
-        vp = varPartTypCoef(beta = beta,  association = sigma, covX = covX)
+        vp = getImportance(beta = beta,  association = sigma, covX = covX)
         colnames(vp$env) = model$names
         res = list(split = vp, 
                    total = list(env = rowSums(vp$env), biotic = vp$biotic))
@@ -52,22 +48,18 @@ varPart = function(model, order = c("EB", "E"),method = c("coef", "III"), ...) {
       sigma = model[[2]]
       covX = model[[3]]
       
-      vp = varPartTypCoef(beta = beta,  association = sigma, covX = covX)
+      vp = getImportance(beta = beta,  association = sigma, covX = covX)
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), biotic = vp$biotic))
       return(res)
     }
-  
-  } else {
-    res = varPartTypIII(model, order=order, ...)
-    return(res)
-  }
+
 }
 
 #model = list(t(cbind(coef(m)$Xcoef, coef(m)$Intercept)), getResidualCov(m, FALSE)$cov, cov(m$TMBfn$env$data$x))
 
-#' varPartTypCoef
+#' getImportance
 #' 
 #' variation partitioning with coefficients
 #' @param beta abiotic weights
@@ -77,9 +69,8 @@ varPart = function(model, order = c("EB", "E"),method = c("coef", "III"), ...) {
 #' @param covSP spatial covariance matrix
 #' 
 #' @author Maximilian Pichler
-#' @export
 
-varPartTypCoef = function(beta, sp=NULL, association, covX, covSP=NULL) {
+getImportance = function(beta, sp=NULL, association, covX, covSP=NULL) {
   nsp = ncol(beta)
   nGroups = nrow(beta)
   

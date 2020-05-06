@@ -113,7 +113,8 @@ sjSDM = function(Y = NULL,
                 reg_on_Diag = biotic$on_diag,
                 inverse = biotic$inverse,
                 optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.00), 
-                link = link)
+                link = link,
+                diag=biotic$diag)
     
     return(model)
   }

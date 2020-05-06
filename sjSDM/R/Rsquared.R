@@ -25,7 +25,7 @@ Rsquared = function(model, X = NULL, Y = NULL, SP=NULL, adjust=FALSE, averageSP 
 
   nsite = nrow(Y)
   nsp = ncol(Y)
-  preds = lapply(1:100, function(i) predict(model,X = X,SP=SP, link ="raw"))
+  preds = lapply(1:100, function(i) predict(model, link ="raw"))#,newdata = X,SP=SP, link ="raw"))
   Ypred = apply(abind::abind(preds, along = 0L), 2:3, mean)
   link = binomial(link = model$settings$link)
   if(model$settings$link == "probit") varDist = 1
@@ -62,5 +62,7 @@ Rsquared = function(model, X = NULL, Y = NULL, SP=NULL, adjust=FALSE, averageSP 
   }
   return(R2)
 }
+
+
 
  
