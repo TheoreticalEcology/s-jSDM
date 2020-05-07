@@ -1,6 +1,40 @@
+#' Rsquared2
+#' 
+#' claculate Rsquared following Nakagawa 
+#' @param model model
+#' @param X new environmental covariates
+#' @param Y new species occurences
+#' @param SP new spatial covariates
+#' @param ... additional parameters
+#' 
+#' @author Maximilian Pichler
+#' @export
+Rsquared2 = function(model, X = NULL, Y = NULL, SP = NULL,...) {
+  
+  if(model$settings$link == "probit") varDist = 1
+  else varDist = pi^2/3
+  
+  sigma = model$model$get_sigma
+  df = model$settings$biotic$df
+  model$model$set_sigma(matrix(0.0, nrow(sigma), ncol(sigma)))
+  preds = predict(model, link ="raw")#,newdata = X,SP=SP, link ="raw"))
+  model$model$set_sigma(sigma)
+  vv = var(as.vector(preds))
+  Assocation = getCov(model)
+  
+  re = sum(diag(diag(1, nrow(Assocation), ncol(Assocation)) %*% Assocation))/(ncol(Assocation))
+  return(list(
+    marginal = vv/(vv+  re +varDist),
+    conditional = (vv + re)/(vv+  re +varDist)
+  ))
+}
+
+
+
+
 #' Rsquared
 #' 
-#' claculate Rsquared following Nawagaka 
+#' claculate Rsquared following Nakagawa 
 #' @param model model
 #' @param X new environmental covariates
 #' @param Y new species occurences
