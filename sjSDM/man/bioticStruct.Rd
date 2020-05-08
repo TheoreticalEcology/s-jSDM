@@ -4,7 +4,7 @@
 \alias{bioticStruct}
 \title{biotic structure}
 \usage{
-bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = TRUE,
+bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
   inverse = FALSE)
 }
 \arguments{
