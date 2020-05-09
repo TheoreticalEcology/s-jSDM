@@ -393,10 +393,3 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
 logLik.sjSDM <- function(object, ...){
   return(object$logLik[[1]])
 }
-
-
-
-
-
-
-
