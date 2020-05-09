@@ -83,7 +83,7 @@ sLVM = function(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
   out$get_model = function(){
     model = fa$Model_LVM(device=device, dtype=dtype)
     model$build(as.integer(c(nrow(X), ncol(X))), as.integer(ncol(Y)),  df = lv, guide=posterior, 
-                scale_mu=priors[[1]], scale_lf=priors[[2]],scale_lv=priors[[3]])
+                scale_mu=priors[[1]], scale_lf=priors[[2]],scale_lv=priors[[3]], family = family$family, link = family$link)
     return(model)
   }
   model = out$get_model()

@@ -85,6 +85,19 @@ getCov(model)
 
 
 
+
+
+# Anova 
+com = simulate_SDM(env = 3L, species = 15L, sites = 200L)
+
+XY = matrix(rnorm(400), 200, 2)
+model = sjSDM(Y = com$response, env = linear(com$env_weights), 
+              spatial = linear(XY, ~0+X1:X2))
+result = anova(model, cv = 2L)
+print(result)
+plot(result)
+
+
 # Deep neural network
 ## we can fit also a deep neural network instead of a linear model:
 model = sjSDM(Y = com$response,

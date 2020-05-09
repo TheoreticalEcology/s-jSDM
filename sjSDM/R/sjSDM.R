@@ -33,7 +33,7 @@
 #' 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
+#' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(Y = NULL, 
@@ -62,30 +62,30 @@ sjSDM = function(Y = NULL,
   if(is.numeric(device)) device = as.integer(device)
   
   if(device == "gpu") device = 0L
-
+  
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
   
   link = match.arg(link)
   
-
+  
   out$formula = env$formula
   out$names = colnames(env$X)
   out$species = colnames(Y)
   out$cl = match.call()
   link = match.arg(link)
-
+  
   ### settings ##
   if(is.null(biotic$df)) biotic$df = as.integer(floor(ncol(Y) / 2))
   if(is.null(step_size)) step_size = as.integer(floor(nrow(env$X) * 0.1))
   else step_size = as.integer(step_size)
-
+  
   output = as.integer(ncol(Y))
   input = as.integer(ncol(env$X))
   
   
   out$get_model = function(){
     model = fa$Model_sjSDM( device = device, dtype = dtype)
-
+    
     if(inherits(env, "DNN")) {
       activation=env$activation
       hidden = as.integer(env$hidden)
@@ -113,7 +113,8 @@ sjSDM = function(Y = NULL,
                 reg_on_Diag = biotic$on_diag,
                 inverse = biotic$inverse,
                 optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.00), 
-                link = link)
+                link = link,
+                diag=biotic$diag)
     
     return(model)
   }
@@ -125,7 +126,7 @@ sjSDM = function(Y = NULL,
     if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
   
   } else {
-    time = system.time({model$fit(env$X, Y,SP=spatial$X, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
+    time = system.time({model$fit(env$X, Y=Y,SP=spatial$X, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
     out$logLik = model$logLik(env$X, Y, SP=spatial$X, batch_size = step_size,parallel = parallel)
     if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, SP=spatial$X,batch_size = step_size, parallel = parallel),along=0L)) })
     
@@ -144,7 +145,7 @@ sjSDM = function(Y = NULL,
   out$model = model
   out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
                       step_size = step_size,learning_rate = learning_rate, 
-                      parallel = parallel,device = device, dtype = dtype)
+                      parallel = parallel,link=link,device = device, dtype = dtype)
   out$time = time
   out$data = list(X = env$X, Y = Y)
   out$sessionInfo = utils::sessionInfo()
@@ -173,16 +174,22 @@ print.sjSDM = function(x, ...) {
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param newdata newdata for predictions
 #' @param SP spatial predictors (e.g. X and Y coordinates)
+#' @param type raw or link
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
-predict.sjSDM = function(object, newdata = NULL, SP = NULL, ...) {
+predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "raw"),...) {
   object = checkModel(object)
+  
+  type = match.arg(type)
+  
+  if(type == "raw") link = FALSE
+  else link = TRUE
   
   if(inherits(object, "spatial")) {
     
     
     if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X))
+      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link))
     } else {
       
       if(is.data.frame(newdata)) {
@@ -198,14 +205,14 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, ...) {
       }
       
     }
-    pred = object$model$predict(newdata = newdata, SP = sp, ...)
+    pred = object$model$predict(newdata = newdata, SP = sp, link=link, ...)
     return(pred)
     
     
   } else {
     
     if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X))
+      return(object$model$predict(newdata = object$data$X, link=link))
     } else {
       if(is.data.frame(newdata)) {
         newdata = stats::model.matrix(object$formula, newdata)
@@ -213,7 +220,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, ...) {
         newdata = stats::model.matrix(object$formula, data.frame(newdata))
       }
     }
-    pred = object$model$predict(newdata = newdata, ...)
+    pred = object$model$predict(newdata = newdata, link=link, ...)
     return(pred)
     
   }
@@ -386,10 +393,3 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
 logLik.sjSDM <- function(object, ...){
   return(object$logLik[[1]])
 }
-
-
-
-
-
-
-

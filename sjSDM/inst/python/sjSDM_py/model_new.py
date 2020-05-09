@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import itertools
+from tqdm import tqdm
 from torch import nn, optim
 import sys
 
@@ -181,7 +182,7 @@ class Model_sjSDM:
         return DataLoader
 
     def build(self, df=None,Re=None, optimizer=None, l1=0.0, l2=0.0,
-              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit"):
+              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit", diag=False):
         
         if self.device.type == 'cuda' and torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -194,12 +195,18 @@ class Model_sjSDM:
         self.link = link
         self.df = df
         r_dim = self.output_shape
-        low = -np.sqrt(6.0/(r_dim+df))
-        high = np.sqrt(6.0/(r_dim+df))               
-        self.sigma = torch.tensor(np.random.uniform(low, high, [r_dim, df]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
-        self._loss_function = self._build_loss_function()
-        self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
-        self.params.append([self.sigma])
+        if not diag:
+            low = -np.sqrt(6.0/(r_dim+df))
+            high = np.sqrt(6.0/(r_dim+df))               
+            self.sigma = torch.tensor(np.random.uniform(low, high, [r_dim, df]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
+            self._loss_function = self._build_loss_function()
+            self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
+            self.params.append([self.sigma])
+        else:
+            self.sigma = torch.zeros([r_dim, r_dim], dtype = self.dtype, device = self.device).to(self.device)
+            self.df = r_dim
+            self._loss_function = self._build_loss_function()
+            self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
         
         if Re != None:
             self.re = torch.tensor(np.random.normal(0.0, 0.0001, [Re, 1]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
@@ -225,10 +232,11 @@ class Model_sjSDM:
             device = 'cpu'
 
         re_loss = lambda value: -torch.distributions.Normal(0.0, 1.0).log_prob(value)
-        
+        desc='loss: Inf'
+        ep_bar = tqdm(range(epochs),bar_format= "Iter: {n_fmt}/{total_fmt} {l_bar}{bar}| [{elapsed}, {rate_fmt}{postfix}]", file=sys.stdout)
         if type(SP) is np.ndarray:
             if type(RE) is np.ndarray:
-                for epoch in range(epochs):
+                for epoch in ep_bar:
                     for step, (x, y, sp, re) in enumerate(dataLoader):
                         x = x.to(self.device, non_blocking=True)
                         y = y.to(self.device, non_blocking=True)
@@ -247,16 +255,17 @@ class Model_sjSDM:
                         batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
                     bl = np.mean(batch_loss)
-                    _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    sys.stdout.flush()
+                    bl = np.round(bl, 3)
+                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    #sys.stdout.flush()
                     self.history[epoch] = bl    
             else: 
-                for epoch in range(epochs):
+                for epoch in ep_bar:
                     for step, (x, y, sp) in enumerate(dataLoader):
                         x = x.to(self.device, non_blocking=True)
                         y = y.to(self.device, non_blocking=True)
                         sp = sp.to(self.device, non_blocking=True)
-                        
                         mu = self.env(x) + self.spatial(sp)
                         #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
                         loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
@@ -270,12 +279,14 @@ class Model_sjSDM:
                         batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
                     bl = np.mean(batch_loss)
-                    _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    sys.stdout.flush()
+                    bl = np.round(bl, 3)
+                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    #sys.stdout.flush()
                     self.history[epoch] = bl 
 
         else:
-            for epoch in range(epochs):
+            for epoch in ep_bar:
                 if type(RE) is np.ndarray:
                     for step, (x, y, re) in enumerate(dataLoader):
                         x = x.to(self.device, non_blocking=True)
@@ -294,8 +305,10 @@ class Model_sjSDM:
                         batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
                     bl = np.mean(batch_loss)
-                    _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    sys.stdout.flush()
+                    bl = np.round(bl, 3)
+                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    #sys.stdout.flush()
                     self.history[epoch] = bl
                 else:
                     for step, (x, y) in enumerate(dataLoader):
@@ -314,8 +327,10 @@ class Model_sjSDM:
                         batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
                     bl = np.mean(batch_loss)
-                    _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    sys.stdout.flush()
+                    bl = np.round(bl, 3)
+                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    #sys.stdout.flush()
                     self.history[epoch] = bl
         torch.cuda.empty_cache()
         
@@ -398,7 +413,7 @@ class Model_sjSDM:
         #print(logLikReg)
         return logLik, logLikReg
 
-    def predict(self, newdata=None,SP=None,RE=None, train=False, batch_size=25, parallel=0, sampling=100):
+    def predict(self, newdata=None,SP=None,RE=None, train=False, batch_size=25, parallel=0, sampling=100, link=True):
         """predict for newdata
         
         Predict on newdata in batches
@@ -411,7 +426,7 @@ class Model_sjSDM:
 
         """
         dataLoader = self._get_DataLoader(X = newdata, Y = None, SP=SP,RE=RE, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
-        loss_function = self._build_loss_function(train = False)
+        loss_function = self._build_loss_function(train = False, raw=not link)
 
         pred = []
         if self.device.type == 'cuda':
@@ -634,7 +649,7 @@ class Model_sjSDM:
                 self.losses.append( lambda: self.l1_l2[1](self.sigma, l2) )
         return None
 
-    def _build_loss_function(self, train=True):
+    def _build_loss_function(self, train=True, raw=False):
 
         if train:
             if self.link == "logit":
@@ -693,7 +708,10 @@ class Model_sjSDM:
             elif self.link == "logit":
                 link_func = lambda value: torch.sigmoid(value)
             elif self.link == "linear":
-                link_func = lambda value: torch.clamp(value, 0.0, 1.0)   
+                link_func = lambda value: torch.clamp(value, 0.0, 1.0)
+
+            if raw:
+                link_func = lambda value: value
 
             def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                 noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))

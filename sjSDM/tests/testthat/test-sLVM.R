@@ -7,7 +7,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
                       posterior = "DiagonalNormal",
                       iter = 1L,
                       step_size = 20L, lr = list(0.1)) {
-    testthat::expect_error({model = sLVM(Y=!!Y, X=!!X, formula=!!formula,
+    testthat::expect_error({model <<- sLVM(Y=!!Y, X=!!X, formula=!!formula,
                                          family = !!family, priors=!!priors,
                                          posterior = !!posterior,iter=!!iter,
                                          step_size = !!step_size, lr=!!lr)}, NA)
@@ -47,11 +47,11 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
     list(2, binomial("probit")),
     list(2, binomial("logit")),
     list(2, poisson("log")),
-    list(2, poisson("identity")),
+    #list(2, poisson("identity")),
     list(23, binomial("probit")),
     list(23, binomial("logit")),
-    list(23, poisson("log")),
-    list(23, poisson("identity"))
+    list(23, poisson("log"))
+    #list(23, poisson("identity"))
 
   )
   testthat::test_that("sLVM Func", {
