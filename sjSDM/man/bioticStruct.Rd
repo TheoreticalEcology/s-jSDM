@@ -4,7 +4,7 @@
 \alias{bioticStruct}
 \title{biotic structure}
 \usage{
-bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = TRUE,
+bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
   inverse = FALSE, diag = FALSE)
 }
 \arguments{
@@ -88,6 +88,19 @@ summary(model)
 coef(model)
 getCov(model)
 
+
+
+
+
+# Anova 
+com = simulate_SDM(env = 3L, species = 15L, sites = 200L)
+
+XY = matrix(rnorm(400), 200, 2)
+model = sjSDM(Y = com$response, env = linear(com$env_weights), 
+              spatial = linear(XY, ~0+X1:X2))
+result = anova(model, cv = 2L)
+print(result)
+plot(result)
 
 
 # Deep neural network

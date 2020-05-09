@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import itertools
+from tqdm import tqdm
 from torch import nn, optim
 import sys
 
@@ -16,6 +17,12 @@ class Model_sjSDM:
         self.dtype = dtype
         self.alpha = alpha
         self.re = None
+        
+                
+        if self.device.type == 'cuda' and torch.cuda.is_available():
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        else:
+            torch.set_default_tensor_type('torch.FloatTensor')
 
         @torch.jit.script
         def l1_loss(tensor: torch.Tensor, l1: float):
@@ -225,10 +232,11 @@ class Model_sjSDM:
             device = 'cpu'
 
         re_loss = lambda value: -torch.distributions.Normal(0.0, 1.0).log_prob(value)
-        
+        desc='loss: Inf'
+        ep_bar = tqdm(range(epochs),bar_format= "Iter: {n_fmt}/{total_fmt} {l_bar}{bar}| [{elapsed}, {rate_fmt}{postfix}]", file=sys.stdout)
         if type(SP) is np.ndarray:
             if type(RE) is np.ndarray:
-                for epoch in range(epochs):
+                for epoch in ep_bar:
                     for step, (x, y, sp, re) in enumerate(dataLoader):
                         x = x.to(self.device, non_blocking=True)
                         y = y.to(self.device, non_blocking=True)
@@ -247,11 +255,13 @@ class Model_sjSDM:
                         batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
                     bl = np.mean(batch_loss)
-                    _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    sys.stdout.flush()
+                    bl = np.round(bl, 3)
+                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    #sys.stdout.flush()
                     self.history[epoch] = bl    
             else: 
-                for epoch in range(epochs):
+                for epoch in ep_bar:
                     for step, (x, y, sp) in enumerate(dataLoader):
                         x = x.to(self.device, non_blocking=True)
                         y = y.to(self.device, non_blocking=True)
@@ -269,12 +279,14 @@ class Model_sjSDM:
                         batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
                     bl = np.mean(batch_loss)
-                    _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    sys.stdout.flush()
+                    bl = np.round(bl, 3)
+                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    #sys.stdout.flush()
                     self.history[epoch] = bl 
 
         else:
-            for epoch in range(epochs):
+            for epoch in ep_bar:
                 if type(RE) is np.ndarray:
                     for step, (x, y, re) in enumerate(dataLoader):
                         x = x.to(self.device, non_blocking=True)
@@ -293,8 +305,10 @@ class Model_sjSDM:
                         batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
                     bl = np.mean(batch_loss)
-                    _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    sys.stdout.flush()
+                    bl = np.round(bl, 3)
+                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    #sys.stdout.flush()
                     self.history[epoch] = bl
                 else:
                     for step, (x, y) in enumerate(dataLoader):
@@ -313,8 +327,10 @@ class Model_sjSDM:
                         batch_loss[step] = loss.item()
                     #torch.cuda.empty_cache()
                     bl = np.mean(batch_loss)
-                    _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    sys.stdout.flush()
+                    bl = np.round(bl, 3)
+                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    #sys.stdout.flush()
                     self.history[epoch] = bl
         torch.cuda.empty_cache()
         

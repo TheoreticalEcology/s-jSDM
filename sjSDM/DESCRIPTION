@@ -28,7 +28,8 @@ Imports:
     Metrics,
     snow,
     scales,
-    mgcv
+    mgcv,
+    Ternary
 Suggests:
     testthat,
     knitr,

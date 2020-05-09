@@ -1,13 +1,19 @@
-#' anova
+#' Anova
 #' 
-#' anova
+#' Compute analysis of variance via cross-validation for environmental, associations, and spatial effects 
 #' 
-#' @param object model of object...
+#' @param object model of object \code{\link{sjSDM}}
+#' @param cv number of cross-validation splits
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#'  
+#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}
 #' @export
 
-anova.sjSDM = function(object, ...) {
+anova.sjSDM = function(object, cv = 5L,...) {
   
-  splits = createSplit(nrow(object$settings$env$X), 5L)
+  splits = createSplit(nrow(object$settings$env$X), cv)
+  
+  out = list()
   
   if(!is.null(object$spatial_weights)){
     
@@ -36,8 +42,8 @@ anova.sjSDM = function(object, ...) {
     BS = list(ll = sum(unlist(.BS[1,])), R = mean(unlist(.BS[2,])), R2 = mean(unlist(.BS[3,])))
     
     res = data.frame(matrix(NA, 9,5))
-    colnames(res) = c("Group", "relativll", "relativR2", "marR22", "condR22")    
-    res$Group = c("Empty", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
+    colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
+    res$Modules = c("_", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
     res[1,2:4] = unlist(empty)
     
     res[2,2] = -empty$ll + A$ll # A
@@ -70,6 +76,7 @@ anova.sjSDM = function(object, ...) {
     res[7,4] = empty$R2 + BS$R2 - res[4,4] - res[3,4]
     res[8,4] = empty$R2 + full$R2 - sum(res[2:7,4])
     res[9,4] = empty$R2 + full$R2
+    out$spatial = TRUE
     
   } else {
     .empty = sapply(splits, function(sp) turnOn(object, modules = "", test = sp))
@@ -86,8 +93,8 @@ anova.sjSDM = function(object, ...) {
     
     
     res = data.frame(matrix(NA, 5,5))
-    colnames(res) = c("Group", "relativll", "relativR2", "marR22", "condR22")    
-    res$Group = c("Empty", "A", "B", "A+B", "Full")
+    colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
+    res$Modules = c("_", "A", "B", "A+B", "Full")
     res[1,2:4] = unlist(empty)
     
     res[2,2] = -empty$ll + A$ll # A
@@ -108,22 +115,63 @@ anova.sjSDM = function(object, ...) {
     res[3,4] = empty$R2 + B$R2
     res[4,4] = empty$R2 + AB$R2 - res[2,4] - res[3,4]
     res[5,4] = empty$R2 + AB$R2
-    
-    
-    }
-  return(res)
+    out$spatial = FALSE
+  }
+  out$result = res[,-5]
+  class(out) = c("sjSDManova")
+  return(out)
+}
+
+#' Print sjSDM anova
+#' 
+#' @param x an object of \code{\link{anova.sjSDM}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+print.sjSDManova = function(x, ...) {
+  cat("Changes relative to empty model (without modules):\n\n")
+  print(x$result,row.names = FALSE)
 }
 
 
-createSplit = function(n=NULL,CV=5) {
-  set = cut(sample.int(n), breaks = CV, labels = FALSE)
-  test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
-  return(test_indices)
+#' Plot anova
+#' 
+#' @param x a model fitted by \code{\link{sjSDM_cv}}
+#' @param y unused argument
+#' @param perf performance measurement to plot
+#' @param cols colors for the groups
+#' @param alpha alpha for colors
+#' @param ... Additional arguments to pass to \code{plot()}
+#' @export
+plot.sjSDManova = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#BEAED4","#FDC086"),alpha=0.15, ...) {
+  lineSeq = 0.3
+  nseg = 100
+  dr = 1.0
+  perf = match.arg(perf)
+  graphics::plot(NULL, NULL, xlim = c(0,1), ylim =c(0,1),pty="s", axes = FALSE, xlab = "", ylab = "")
+  xx = 1.1*lineSeq*cos( seq(0,2*pi, length.out=nseg))
+  yy = 1.1*lineSeq*sin( seq(0,2*pi, length.out=nseg))
+  graphics::polygon(xx+lineSeq,yy+(1-lineSeq), col= addA(cols[1],alpha = alpha), border = "black", lty = 1, lwd = 1)
+  graphics::text(lineSeq-0.1, (1-lineSeq),labels = round(x$result[[perf]][x$result$Modules=="A"], 3))
+  graphics::text(mean(xx+lineSeq), 0.9,labels = "Environmental", pos = 3)
+  
+  graphics::polygon(xx+1-lineSeq,yy+1-lineSeq, col= addA(cols[2],alpha = alpha), border = "black", lty = 1, lwd = 1)
+  graphics::text(1-lineSeq+0.1, (1-lineSeq),labels = round(x$result[[perf]][x$result$Modules=="B"], 3))
+  graphics::text(1-mean(xx+lineSeq), 0.9,labels = "Associations", pos = 3)
+  graphics::text(0.5, (1-lineSeq),labels = round(x$result[[perf]][x$result$Modules=="A+B"], 3))
+  
+  if(x$spatial) {
+    graphics::polygon(xx+0.5,yy+lineSeq, col= addA(cols[3],alpha = alpha), border = "black", lty = 1, lwd = 1)
+    graphics::text(0.5, lineSeq+0.0,pos = 1,labels = round(x$result[[perf]][x$result$Modules=="S"], 3))
+    graphics::text(0.5, 0.1,labels = "Spatial", pos = 1)
+    graphics::text(0.5, (1-lineSeq),labels = round(x$result[[perf]][x$result$Modules=="A+B"], 3))
+    graphics::text(0.3, 0.5,pos=1,labels = round(x$result[[perf]][x$result$Modules=="A+S"], 3))
+    graphics::text(1-0.3, 0.5,pos=1,labels = round(x$result[[perf]][x$result$Modules=="B+S"], 3))
+    graphics::text(0.5, 0.5+0.05,labels = round(x$result[[perf]][x$result$Modules=="A+B+S"], 3))
+  }
 }
 
-# test = createSplit(100L, 5L)[[1]]
 
-# an1 = anova(model)
+
 
 turnOn = function(model, modules = c("AB"), test= NULL, ...) {
   modules = strsplit(modules,split = "")[[1]]
@@ -175,7 +223,7 @@ turnOn = function(model, modules = c("AB"), test= NULL, ...) {
   )
   
   if(is.null(test)) {
-    return(list(ll = logLik(m2), R=Rsquared(m2,...)))
+    return(list(ll = logLik.sjSDM(m2), R=Rsquared(m2,...)))
   } else {
     
     m2$data$X = test_env 

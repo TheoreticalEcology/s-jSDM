@@ -29,15 +29,40 @@ sjSDM::install_sjSDM(version = "cpu")
 ```
 Once the dependencies are installed, the following code should run:
 
+Simulate a community and fit model:
 ```{r}
 library(sjSDM)
-community <- simulate_SDM(sites = 100, species = 10, env = 5)
+community <- simulate_SDM(sites = 400, species = 50, env = 5)
 Env <- community$env_weights
 Occ <- community$response
+Sp <- matrix(rnorm(800), 100, 2) # spatial coordinates (no effect on species occurences)
 
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~0+X1*X2 + X3 + X4), se = TRUE)
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~0+X1*X2 + X3 + X4), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE)
 summary(model)
+
 ```
+Let's have a look at the importance of the three groups (environment, associations, and space) on the occurences:
+```{r}
+imp = importance(model)
+print(imp)
+plot(imp)
+```
+![](images/importance.PNG)
+
+As expected, space has no effect on occurences.
+
+Let's have a look on community level how the three groups contribute to the overall explained variance 
+```{r}
+an = anova(model)
+print(an)
+plot(an)
+```
+The anova shows the relative changes in the logLik of the groups and their intersections:
+![](images/anova.PNG)
+
+Space has a high positive value which means that space does not increase the model fit.
+
+
 
 If it fails, check out the help of ?install_sjSDM, ?installation_help, and vignette("Dependencies", package = "sjSDM"). 
 

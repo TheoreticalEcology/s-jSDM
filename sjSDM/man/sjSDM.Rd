@@ -118,6 +118,19 @@ getCov(model)
 
 
 
+
+
+# Anova 
+com = simulate_SDM(env = 3L, species = 15L, sites = 200L)
+
+XY = matrix(rnorm(400), 200, 2)
+model = sjSDM(Y = com$response, env = linear(com$env_weights), 
+              spatial = linear(XY, ~0+X1:X2))
+result = anova(model, cv = 2L)
+print(result)
+plot(result)
+
+
 # Deep neural network
 ## we can fit also a deep neural network instead of a linear model:
 model = sjSDM(Y = com$response,
@@ -149,7 +162,7 @@ Chen, D., Xue, Y., & Gomes, C. P. (2018). End-to-end learning for the deep multi
 Pichler, M., and Hartig, F. (2020). A new method for faster and more accurate inference of species associations from novel community data. arXiv preprint arXiv:2003.05331.
 }
 \seealso{
-\code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
+\code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 }
 \author{
 Maximilian Pichler

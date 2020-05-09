@@ -21,9 +21,16 @@ is_sjSDM_py_available = function() {
   }
 }
 
+createSplit = function(n=NULL,CV=5) {
+  set = cut(sample.int(n), breaks = CV, labels = FALSE)
+  test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
+  return(test_indices)
+}
+
 
 copyRP = function(w) reticulate::r_to_py(w)$copy()
 
+addA = function(col, alpha = 0.25) apply(sapply(col, grDevices::col2rgb)/255, 2, function(x) grDevices::rgb(x[1], x[2], x[3], alpha=alpha))
 
 #' check model
 #' check model and rebuild if necessary

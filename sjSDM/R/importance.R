@@ -4,7 +4,7 @@
 #' 
 #' @param model object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below
 #' 
-#' @example /inst/examples/varPart-example.R
+#' @example /inst/examples/importance-example.R
 #' @author Maximilian Pichler
 #' @export
 importance = function(model) {
@@ -13,9 +13,10 @@ importance = function(model) {
     #inherits(model$settings$env, "linear"),
     is.null(model$settings$spatial) || inherits(model$settings$spatial, "linear")
     )
-  method = match.arg(method)
+  #method = match.arg(method)
     
     if(inherits(model, "sjSDM")) {
+      sp_names = colnames(model$data$Y)
     
       coefs = coef.sjSDM(model)[[1]]
       if(inherits(coefs, "list")) coefs = coefs[[1]]
@@ -23,11 +24,12 @@ importance = function(model) {
       
       beta = env
       sigma = getCov(model)
-      covX = cov(model$data$X)
+      covX = stats::cov(model$data$X)
       
       if(!is.null(model$settings$spatial)) {
-        sp = t(coef(model)[[2]][[1]])
-        covSP = cov(model$settings$spatial$X)
+        spatial = TRUE
+        sp = t(coef.sjSDM(model)[[2]][[1]])
+        covSP = stats::cov(model$settings$spatial$X)
         
         vp = getImportance(beta = beta, sp = sp, association = sigma, covX = covX, covSP = covSP)
         colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
@@ -39,10 +41,12 @@ importance = function(model) {
         colnames(vp$env) = model$names
         res = list(split = vp, 
                    total = list(env = rowSums(vp$env), biotic = vp$biotic))
+        spatial=FALSE
       }
       
-      return(res)
+      #return(res)
     } else {
+      sp_names = NULL
       
       beta = model[[1]]
       sigma = model[[2]]
@@ -52,10 +56,57 @@ importance = function(model) {
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), biotic = vp$biotic))
-      return(res)
+      #return(res)
     }
-
+  out = list()
+  out$names = sp_names
+  out$res = res
+  out$spatial = spatial
+  class(out) = "sjSDMimportance"
+  return(out)
 }
+
+#' Print importance
+#' 
+#' @param x an object of \code{\link{importance}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+print.sjSDMimportance= function(x, ...) {
+  if(is.null(x$sp_names)) print(data.frame(sp = 1:length(x$res$total$biotic), x$res$total))
+  else print(data.frame(sp = x$sp_names, x$res$total))
+}
+
+
+#' Plot importance
+#' 
+#' @param x a model fitted by \code{\link{importance}}
+#' @param y unused argument
+#' @param contour plot contour or not
+#' @param col.points point color
+#' @param cex.points point size
+#' @param pch point symbol
+#' @param col.contour contour color
+#' @param ... Additional arguments to pass to \code{plot()}
+#' @export
+plot.sjSDMimportance= function(x, y,contour=FALSE,col.points="#24526e",cex.points=1.2,pch=19,
+                           col.contour="#ffbf02", ...) {
+  if(is.null(x$sp_names)) data = data.frame(sp = 1:length(x$res$total$biotic), x$res$total)
+  else data = data.frame(sp = x$sp_names, x$res$total)
+  
+  if(ncol(data) > 3) {
+    Ternary::TernaryPlot(grid.lines = 2, 
+                         axis.labels = seq(0, 1, by = 0.5), 
+                         alab = 'Environmental', blab = 'Spatial', clab = 'Biotic',
+                         grid.col = "grey")
+    if(contour) Ternary::TernaryDensityContour(data[,2:4], resolution = 10L, col=col.contour)
+    Ternary::TernaryPoints(data[,2:4], col = col.points, pch = pch, cex=cex.points)
+  } else {
+    graphics::barplot(t(data[,2:3]), las = 2, names.arg=data$sp)
+  }
+  return(invisible(data))
+}
+
+
 
 #model = list(t(cbind(coef(m)$Xcoef, coef(m)$Intercept)), getResidualCov(m, FALSE)$cov, cov(m$TMBfn$env$data$x))
 
@@ -134,7 +185,6 @@ getImportance = function(beta, sp=NULL, association, covX, covSP=NULL) {
 #' @param ... arguments passed to \code{\link{Rsquared}}
 #' 
 #' @author Maximilian Pichler
-#' @export
 
 varPartTypIII = function(model, order = NULL, ...) {
   if(!is.null(model$spatial_weights)) {

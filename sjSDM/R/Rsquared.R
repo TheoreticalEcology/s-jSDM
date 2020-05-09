@@ -16,10 +16,10 @@ Rsquared2 = function(model, X = NULL, Y = NULL, SP = NULL,...) {
   
   sigma = model$model$get_sigma
   df = model$settings$biotic$df
-  model$model$set_sigma(matrix(0.0, nrow(sigma), ncol(sigma)))
-  preds = predict(model, link ="raw")#,newdata = X,SP=SP, link ="raw"))
-  model$model$set_sigma(sigma)
-  vv = var(as.vector(preds))
+  model$model$set_sigma(copyRP(matrix(0.0, nrow(sigma), ncol(sigma))))
+  preds = predict.sjSDM(model, link ="raw")#,newdata = X,SP=SP, link ="raw"))
+  model$model$set_sigma(copyRP(sigma))
+  vv = stats::var(as.vector(preds))
   Assocation = getCov(model)
   
   re = sum(diag(diag(1, nrow(Assocation), ncol(Assocation)) %*% Assocation))/(ncol(Assocation))
@@ -59,9 +59,9 @@ Rsquared = function(model, X = NULL, Y = NULL, SP=NULL, adjust=FALSE, averageSP 
 
   nsite = nrow(Y)
   nsp = ncol(Y)
-  preds = lapply(1:100, function(i) predict(model, link ="raw"))#,newdata = X,SP=SP, link ="raw"))
+  preds = lapply(1:100, function(i) predict.sjSDM(model, link ="raw"))#,newdata = X,SP=SP, link ="raw"))
   Ypred = apply(abind::abind(preds, along = 0L), 2:3, mean)
-  link = binomial(link = model$settings$link)
+  link = stats::binomial(link = model$settings$link)
   if(model$settings$link == "probit") varDist = 1
   else varDist = pi^2/3
   
@@ -70,7 +70,7 @@ Rsquared = function(model, X = NULL, Y = NULL, SP=NULL, adjust=FALSE, averageSP 
   YMeans = matrix(colMeans(Ypred), nrow = nsite, ncol = nsp, byrow = TRUE)
   varModelSite = (Ypred - YMeans)^2/(nsite - 1)
   varModel = colSums(varModelSite)
-  varAdd = diag(var(Y - link$linkinv(Ypred)))
+  varAdd = diag(stats::var(Y - link$linkinv(Ypred)))
   varTot = matrix(varModel + varAdd + varDist, nrow = nsite, ncol = nsp, byrow = TRUE)#+ colSums(getCov(model)^2)
   R2 = (varModelSite)/varTot
   if(averageSite) {

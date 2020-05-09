@@ -33,7 +33,7 @@
 #' 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}
+#' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(Y = NULL, 
@@ -62,33 +62,33 @@ sjSDM = function(Y = NULL,
   if(is.numeric(device)) device = as.integer(device)
   
   if(device == "gpu") device = 0L
-
+  
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
   
   link = match.arg(link)
   
-
+  
   out$formula = env$formula
   out$names = colnames(env$X)
   out$species = colnames(Y)
   out$cl = match.call()
   link = match.arg(link)
-
+  
   ### settings ##
   if(is.null(biotic$df)) biotic$df = as.integer(floor(ncol(Y) / 2))
   if(is.null(step_size)) step_size = as.integer(floor(nrow(env$X) * 0.1))
   else step_size = as.integer(step_size)
-
-  output = ncol(Y)
-  input = ncol(env$X)
+  
+  output = as.integer(ncol(Y))
+  input = as.integer(ncol(env$X))
   
   
   out$get_model = function(){
     model = fa$Model_sjSDM( device = device, dtype = dtype)
-
+    
     if(inherits(env, "DNN")) {
       activation=env$activation
-      hidden = env$hidden
+      hidden = as.integer(env$hidden)
     } else {
       hidden = list()
       activation = c("linear")
@@ -99,10 +99,10 @@ sjSDM = function(Y = NULL,
       if(inherits(spatial, "DNN")) {
         activation_spatial=spatial$activation
         hidden_spatial = spatial$hidden
-        model$add_spatial(ncol(spatial$X), output_shape = output, hidden = hidden_spatial, activation = activation_spatial, l1 = spatial$l1, l2= spatial$l2)
+        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, hidden = hidden_spatial, activation = activation_spatial, l1 = spatial$l1, l2= spatial$l2)
       } 
       if(inherits(spatial, "linear")) {
-        model$add_spatial(ncol(spatial$X), output_shape = output, l1 = spatial$l1, l2= spatial$l2)
+        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, l1 = spatial$l1, l2= spatial$l2)
       }
     }
     
@@ -177,7 +177,7 @@ print.sjSDM = function(x, ...) {
 #' @param type raw or link
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @export
-predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("raw", "link"),...) {
+predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "raw"),...) {
   object = checkModel(object)
   
   type = match.arg(type)

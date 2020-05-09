@@ -134,7 +134,7 @@ print.DNN = function(x, ...) {
 #' @seealso \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @export
-bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = TRUE, inverse=FALSE, diag = FALSE) {
+bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = FALSE, inverse=FALSE, diag = FALSE) {
   out = list()
   out$l1_cov = (1-alpha)*lambda
   out$l2_cov = alpha*lambda

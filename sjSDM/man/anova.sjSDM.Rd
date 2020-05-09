@@ -2,13 +2,20 @@
 % Please edit documentation in R/anova.R
 \name{anova.sjSDM}
 \alias{anova.sjSDM}
-\title{anova}
+\title{Anova}
 \usage{
-\method{anova}{sjSDM}(object, ...)
+\method{anova}{sjSDM}(object, cv = 5L, ...)
 }
 \arguments{
-\item{object}{model of object...}
+\item{object}{model of object \code{\link{sjSDM}}}
+
+\item{cv}{number of cross-validation splits}
+
+\item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
 \description{
-anova
+Compute analysis of variance via cross-validation for environmental, associations, and spatial effects
+}
+\seealso{
+\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}
 }
