@@ -17,20 +17,20 @@ The method itself is wrapped into an R package, available under subfolder sjSDM.
 
 Install the package via
 
-```{r}
+```r
 devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
 ```
 
 Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly,  the dependencies can be automatically installed from within R:
 
-```{r}
+```r
 sjSDM::install_sjSDM(version = "gpu") # or
 sjSDM::install_sjSDM(version = "cpu")
 ```
 Once the dependencies are installed, the following code should run:
 
 Simulate a community and fit model:
-```{r}
+```r
 library(sjSDM)
 community <- simulate_SDM(sites = 400, species = 50, env = 5)
 Env <- community$env_weights
@@ -42,23 +42,24 @@ summary(model)
 
 ```
 Let's have a look at the importance of the three groups (environment, associations, and space) on the occurences:
-```{r}
+```r
 imp = importance(model)
 print(imp)
 plot(imp)
 ```
-![](images/importance.PNG)
+
+<img src="images/importance.PNG" width="400">
 
 As expected, space has no effect on occurences.
 
 Let's have a look on community level how the three groups contribute to the overall explained variance 
-```{r}
+```r
 an = anova(model)
 print(an)
 plot(an)
 ```
 The anova shows the relative changes in the logLik of the groups and their intersections:
-![](images/anova.PNG)
+<img src="images/anova.PNG" width="400">
 
 Space has a high positive value which means that space does not increase the model fit.
 
@@ -73,12 +74,12 @@ If it fails, check out the help of ?install_sjSDM, ?installation_help, and vigne
 
 
 ### Python Package
-```{python}
+```bash
 pip install sjSDM_py
 ```
 Python example
 
-```{python}
+```python
 import sjSDM_py as fa
 import numpy as np
 Env = np.random.randn(100, 5)
