@@ -3,15 +3,19 @@
 #' @param Y species occurrence matrix
 #' @param env matrix of environmental predictors or object of type \code{\link{linear}}, or \code{\link{DNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}. Alpha and lambda have no influence
-#' @param spatial defines spatial structure, not yet supported
+#' @param spatial defines spatial structure, object of type \code{\link{linear}}, or \code{\link{DNN}}
 #' @param tune tuning strategy, random or grid search
 #' @param tune_steps number of tuning steps
 #' @param CV n-fold cross validation
 #' @param alpha_cov weighting of l1 and l2 on covariances: \eqn{(1 - \alpha) * |cov| + \alpha ||cov||^2}
 #' @param alpha_coef weighting of l1 and l2 on coefficients: \eqn{(1 - \alpha) * |coef| + \alpha ||coef||^2}
+#' @param alpha_spatial weighting of l1 and l2 on spatial coefficients: \eqn{(1 - \alpha) * |coef_sp| + \alpha ||coef_sp||^2}
 #' @param lambda_cov overall regularization strength on covariances
 #' @param lambda_coef overall regularization strength on coefficients
+#' @param lambda_spatial overall regularization strength on spatial coefficients
+#' @param device device, default cpu
 #' @param n_cores number of cores for parallelization 
+#' @param n_gpu number of gpus
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}
 #' 
 #' @example /inst/examples/sjSDM_cv-example.R
@@ -20,20 +24,30 @@
 
 sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
                     alpha_cov = seq(0.0, 1.0, 0.1), 
-                    alpha_coef = seq(0.0, 1.0, 0.1), 
+                    alpha_coef = seq(0.0, 1.0, 0.1),
+                    alpha_spatial = seq(0.0, 1.0, 0.1), 
                     lambda_cov = 2^seq(-10,-1, length.out = 20),
                     lambda_coef = 2^seq(-10,-0.5, length.out = 20),
+                    lambda_spatial = 2^seq(-10,-0.5, length.out = 20),
+                    device="cpu",
                     n_cores = NULL, 
+                    n_gpu = NULL,
                     ...) {
   
   tune = match.arg(tune)
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
+  if(is.matrix(spatial) || is.data.frame(spatial)) spatial = linear(data = spatial)
   
   set = cut(sample.int(nrow(env$X)), breaks = CV, labels = FALSE)
   test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
   
-  tune_grid = expand.grid(alpha_cov, alpha_coef, lambda_cov, lambda_coef)
-  colnames(tune_grid) = c("alpha_cov", "alpha_coef", "lambda_cov", "lambda_coef")
+  if(is.null(spatial)) {
+    tune_grid = expand.grid(alpha_cov, alpha_coef, lambda_cov, lambda_coef)
+    colnames(tune_grid) = c("alpha_cov", "alpha_coef", "lambda_cov", "lambda_coef")
+  } else {
+    tune_grid = expand.grid(alpha_cov, alpha_coef,alpha_spatial, lambda_cov, lambda_coef, lambda_spatial)
+    colnames(tune_grid) = c("alpha_cov", "alpha_coef", "alpha_spatial","lambda_cov", "lambda_coef", "lambda_spatial")
+  }
   
   if(tune == "random") {
     tune_samples = tune_grid[sample.int(nrow(tune_grid), tune_steps),]
@@ -43,10 +57,21 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
   
   
   tune_func = function(t){
-    a_cov = tune_samples[t,1]
-    a_coef = tune_samples[t,2]
-    l_cov = tune_samples[t,3]
-    l_coef = tune_samples[t,4]
+
+    if(!is.null(spatial)) {
+      a_cov = tune_samples[t,1]
+      a_coef = tune_samples[t,2]
+      a_sp = tune_samples[t,3]
+      l_cov = tune_samples[t,4]
+      l_coef = tune_samples[t,5]
+      l_sp = tune_samples[t,6]
+    } else {
+      a_cov = tune_samples[t,1]
+      a_coef = tune_samples[t,2]
+      l_cov = tune_samples[t,3]
+      l_coef = tune_samples[t,4]
+    }
+
     # lists work better for parallel support 
     cv_step_result = vector("list", CV)
     for(i in 1:length(test_indices)) {
@@ -64,10 +89,32 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       biotic$l2_cov =  (a_cov)*l_cov
       new_env$formula = stats::as.formula("~0+.")
 
-       
-      model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = NULL, ...)
+      if(!is.null(spatial)) {
+        new_spatial = spatial
+        SP_test = spatial$X[test_indices[[i]],,drop = FALSE]
+        new_spatial$X = spatial$X[-test_indices[[i]],,drop = FALSE]
+        new_spatial$l1_coef = (1-a_sp)*l_sp
+        new_spatial$l2_coef = (a_sp)*l_sp
+        new_spatial$formula = stats::as.formula("~0+.")
+      } else {
+        new_spatial = NULL
+        SP_test = NULL
+      }
       
-      pred_test = predict.sjSDM(model, newdata = X_test)
+      if(!is.null(n_gpu)) {
+          
+        myself = paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')
+        
+                 
+         dist = cbind(nodes,(n_gpu-1):0)
+         device2 = as.integer(as.numeric(dist[which(dist[,1] %in% myself, arr.ind = TRUE), 2]))
+         model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2, ...)
+      } else {
+        model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device, ...)
+      }
+      
+      model$model$set_sigma(matrix(0.0, ncol(Y_train), model$model$df))
+      pred_test = predict.sjSDM(model, newdata = X_test, SP = SP_test)
       pred_train = predict.sjSDM(model)
       auc_test = sapply(1:ncol(Y_test), function(s) {
         a = Metrics::auc(Y_test[,s], pred_test[,s])
@@ -81,8 +128,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       auc_test = mean(auc_test)
       auc_train = mean(auc_train)
       ll_train = logLik.sjSDM(model)
-      ll_test = model$model$logLik(X_test, Y_test,batch_size = as.integer(floor(nrow(X_test)/2)))
-      cov = getCov.sjSDM(model)
+      ll_test = model$model$logLik(X_test, Y_test, SP = SP_test, batch_size = as.integer(floor(nrow(X_test)/2)))
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
                                  pars = tune_samples[t,],
                                  pred_test = pred_test,
@@ -92,9 +138,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                                  auc_test = auc_test,
                                  auc_train = auc_train,
                                  auc_macro_test = auc_macro_test,
-                                 auc_macro_train = auc_macro_train,
-                                 coef = coef.sjSDM(model),
-                                 cov = cov)
+                                 auc_macro_train = auc_macro_train)
     }
     return(cv_step_result)
   }
@@ -107,8 +151,10 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
     }
   } else {
     cl = snow::makeCluster(n_cores)
+    nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
+    #print(nodes)
     control = snow::clusterEvalQ(cl, {library(sjSDM)})
-    snow::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env", "Y", "..."), envir = environment())
+    snow::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","..."), envir = environment())
     result = snow::parLapply(cl, 1:nrow(tune_samples), tune_func)
     snow::stopCluster(cl)
   }
@@ -123,14 +169,16 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                AUC_train = rep(NA, CV*nrow(tune_samples)),
                AUC_macro_train = rep(NA, CV*nrow(tune_samples)))
   
+  if(is.null(spatial)) n=7
+  else n=9
   for(t in 1:nrow(tune_samples)) {
     for(i in 1:CV) {
-      summary_results[summary_results$iter == t & summary_results$CV_set == i, 7] = result[[t]][[i]]$ll_train
-      summary_results[summary_results$iter == t & summary_results$CV_set == i, 8] = result[[t]][[i]]$ll_test[[1]]
-      summary_results[summary_results$iter == t & summary_results$CV_set == i, 9] = result[[t]][[i]]$auc_test
-      summary_results[summary_results$iter == t & summary_results$CV_set == i, 10] = result[[t]][[i]]$auc_macro_test
-      summary_results[summary_results$iter == t & summary_results$CV_set == i, 11] = result[[t]][[i]]$auc_train
-      summary_results[summary_results$iter == t & summary_results$CV_set == i, 12] = result[[t]][[i]]$auc_macro_test
+      summary_results[summary_results$iter == t & summary_results$CV_set == i, n] = result[[t]][[i]]$ll_train
+      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+1] = result[[t]][[i]]$ll_test[[1]]
+      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+2] = result[[t]][[i]]$auc_test
+      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+3] = result[[t]][[i]]$auc_macro_test
+      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+4] = result[[t]][[i]]$auc_train
+      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+5] = result[[t]][[i]]$auc_macro_test
     }
   }
   
@@ -140,15 +188,20 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                    logLik = rep(NA,nrow(tune_samples)))
   
   for(t in 1:nrow(tune_samples)) {
-      res[t,2] = mean(summary_results[summary_results$iter == t, 9 ])
-      res[t,3] = mean(summary_results[summary_results$iter == t, 10])
-      res[t,4] = sum(summary_results[summary_results$iter == t, 8])
+      res[t,2] = mean(summary_results$AUC_macro_test[summary_results$iter == t])
+      res[t,3] = mean(summary_results$AUC_train[summary_results$iter == t])
+      res[t,4] = sum(summary_results$ll_test[summary_results$iter == t])
   }
   short_summary = cbind(tune_samples, res[,-1])
   short_summary$l1_cov = (1-short_summary$alpha_cov)*short_summary$lambda_cov
   short_summary$l2_cov = short_summary$alpha_cov*short_summary$lambda_cov
   short_summary$l1_coef = (1-short_summary$alpha_coef)*short_summary$lambda_coef
   short_summary$l2_coef = short_summary$alpha_coef*short_summary$lambda_coef
+
+  if(!is.null(spatial)) {
+    short_summary$l1_sp = (1-short_summary$alpha_sp)*short_summary$lambda_sp
+    short_summary$l2_sp = short_summary$alpha_sp*short_summary$lambda_sp
+  }
   
   out = list(tune_results = result, short_summary = short_summary, summary = summary_results, settings = list(tune_samples = tune_samples, CV = CV, tune = tune))
   class(out) = c("sjSDM_cv")
@@ -185,7 +238,7 @@ summary.sjSDM_cv = function(object, ...) {
 #' @param k number of knots for the gm
 #' @param ... Additional arguments to pass to \code{plot()}
 #' @export
-plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolution = 15,k = 3, ...) {
+plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolution = 6,k = 3, ...) {
   oldpar = graphics::par()
   on.exit(do.call(graphics::par, oldpar))
   x = x$short_summary
@@ -193,37 +246,93 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
   if(perf == "AUC") perf = "AUC_test"
   if(perf == "AUC_macro") perf = "AUC_test_macro"
   
-  form = paste0(perf, " ~ te(alpha_cov, lambda_cov, k = ",k,") + te(alpha_coef, lambda_coef, k = ", k, ")")
+  if("lambda_spatial"  %in% colnames(x)) spatial = TRUE
+  else spatial = FALSE
+  
+  if(spatial) form = paste0(perf, " ~ te(alpha_cov, lambda_cov, k = ",k,") + te(alpha_coef, lambda_coef, k = ", k, ") + te(alpha_spatial, lambda_spatial, k = ", k ,")")
+  else form = paste0(perf, " ~ te(alpha_cov, lambda_cov, k = ",k,") + te(alpha_coef, lambda_coef, k = ", k, ")")
   g = mgcv::gam(stats::as.formula(form), data = x)
   
   xn1 = seq(min(x$alpha_cov), max(x$alpha_cov), length.out = resolution)
   yn1 = seq(min(x$lambda_cov), max(x$lambda_cov), length.out = resolution)
   xn2 = seq(min(x$alpha_coef), max(x$alpha_coef), length.out = resolution)
   yn2 = seq(min(x$lambda_coef), max(x$lambda_coef), length.out = resolution)
-  d = data.frame(expand.grid(xn1, yn1, xn2, yn2))
-  colnames(d) = c("alpha_cov", "lambda_cov", "alpha_coef", "lambda_coef")
-  pp = mgcv::predict.gam(g, d)
-  preds = cbind(pp, d)
   
-  res_coef = vector("list", resolution^2)
-  res_cov = vector("list", resolution^2)
-  counter = 1
-  for(i in 1:resolution) {
-    for(j in 1:resolution) {
-      res_cov[[counter]] =  preds[preds$alpha_coef == unique(preds$alpha_coef)[j] & preds$lambda_coef == unique(preds$lambda_coef)[i], ]
-      res_coef[[counter]] =  preds[preds$alpha_cov == unique(preds$alpha_cov)[j] & preds$lambda_cov == unique(preds$lambda_cov)[i], ]
-      
-      counter = counter + 1
+  if(spatial) {
+    
+    xn3 = seq(min(x$alpha_spatial), max(x$alpha_spatial), length.out = resolution)
+    yn3 = seq(min(x$lambda_spatial), max(x$lambda_spatial), length.out = resolution)
+    
+    d = data.frame(expand.grid(xn1, yn1, xn2, yn2, xn3, yn3))
+    colnames(d) = c("alpha_cov", "lambda_cov", "alpha_coef", "lambda_coef", "alpha_spatial", "lambda_spatial")
+    pp = mgcv::predict.gam(g, d)
+    preds = cbind(pp, d)
+    
+    res_coef = vector("list", resolution^4)
+    res_cov = vector("list", resolution^4)
+    res_spatial = vector("list", resolution^4)
+    counter = 1
+    for(i in 1:resolution) {
+      for(j in 1:resolution) {
+        for(s in 1:resolution) {
+          for(k in 1:resolution) {
+            res_cov[[counter]] =  preds[preds$alpha_coef == unique(preds$alpha_coef)[j] & 
+                                        preds$lambda_coef == unique(preds$lambda_coef)[i] &
+                                        preds$lambda_spatial == unique(preds$lambda_spatial)[s] &
+                                        preds$alpha_spatial == unique(preds$alpha_spatial)[k], ]
+            res_coef[[counter]] =  preds[preds$alpha_cov == unique(preds$alpha_cov)[j] & 
+                                         preds$lambda_cov == unique(preds$lambda_cov)[i] &
+                                         preds$lambda_spatial == unique(preds$lambda_spatial)[s] &
+                                         preds$alpha_spatial == unique(preds$alpha_spatial)[k], ]
+            res_spatial[[counter]] =  preds[preds$alpha_coef == unique(preds$alpha_coef)[j] & 
+                                            preds$lambda_coef == unique(preds$lambda_coef)[i] &
+                                            preds$alpha_cov == unique(preds$alpha_cov)[s] & 
+                                            preds$lambda_cov == unique(preds$lambda_cov)[k], ]
+            counter = counter + 1
+          }
+        }
+      }
     }
+    res_coef = abind::abind(res_coef, along = 0L)
+    res_coef = apply(res_coef, 2:3, mean)
+    
+    res_cov = abind::abind(res_cov, along = 0L)
+    res_cov = apply(res_cov, 2:3, mean)
+    
+    res_spatial = abind::abind(res_spatial, along = 0L)
+    res_spatial = apply(res_spatial, 2:3, mean)
+    
+    x_scaled = x[,1:6]
+    x_scaled = sapply(x_scaled, function(s) scales::rescale(s, c(0,1)))
+  } else {
+    
+    d = data.frame(expand.grid(xn1, yn1, xn2, yn2))
+    colnames(d) = c("alpha_cov", "lambda_cov", "alpha_coef", "lambda_coef")
+    pp = mgcv::predict.gam(g, d)
+    preds = cbind(pp, d)
+    
+    res_coef = vector("list", resolution^2)
+    res_cov = vector("list", resolution^2)
+    counter = 1
+    for(i in 1:resolution) {
+      for(j in 1:resolution) {
+        res_cov[[counter]] =  preds[preds$alpha_coef == unique(preds$alpha_coef)[j] & preds$lambda_coef == unique(preds$lambda_coef)[i], ]
+        res_coef[[counter]] =  preds[preds$alpha_cov == unique(preds$alpha_cov)[j] & preds$lambda_cov == unique(preds$lambda_cov)[i], ]
+        
+        counter = counter + 1
+      }
+    }
+    res_coef = abind::abind(res_coef, along = 0L)
+    res_coef = apply(res_coef, 2:3, mean)
+    
+    res_cov = abind::abind(res_cov, along = 0L)
+    res_cov = apply(res_cov, 2:3, mean)
+    
+    x_scaled = x[,1:4]
+    x_scaled = sapply(x_scaled, function(s) scales::rescale(s, c(0,1)))
+  
   }
-  res_coef = abind::abind(res_coef, along = 0L)
-  res_coef = apply(res_coef, 2:3, mean)
   
-  res_cov = abind::abind(res_cov, along = 0L)
-  res_cov = apply(res_cov, 2:3, mean)
-  
-  x_scaled = x[,1:4]
-  x_scaled = sapply(x_scaled, function(s) scales::rescale(s, c(0,1)))
   if(perf == "logLik") {
     maxP = which.min(x[[perf]])
     minP = which.max(x[[perf]])
@@ -239,48 +348,112 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
 
   perf_ind = which(perf == colnames(x), arr.ind = TRUE)
   
-  graphics::par(mfrow = c(1,2), mar = c(4,4,3,4), oma = c(2,2,2,2))
-  new_image(res_cov[,c(1,2,3)], range = range, cols = cols)
-  graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
-  graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
-  graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
-  graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
-  graphics::points(x = x_scaled[maxP,1], y = x_scaled[maxP,3], pch = 8, cex = 1.5, col = "darkgreen")
-  graphics::text(x = x_scaled[maxP,1], y = x_scaled[maxP,3]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), col = "darkgreen", xpd = NA)
-  graphics::points(x = x_scaled[minP,1], y = x_scaled[minP,3], pch = 8, cex = 1.5, col = "red")
-  graphics::text(x = x_scaled[minP,1], y = x_scaled[minP,3]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), col = "red", xpd = NA)
-  graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Covariance: alpha * lambda", xpd = NA)
-  graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),3], col = "#0F222E")
-  
-  new_image(res_coef[,c(1,4,5)], range = range, cols = cols)
-  graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
-  graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
-  graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
-  graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
-  graphics::points(x = x_scaled[maxP,2], y = x_scaled[maxP,4], pch = 8, cex = 1.5, col = "darkgreen")
-  graphics::text(x = x_scaled[maxP,2], y = x_scaled[maxP,4]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), xpd = NA, col = "darkgreen")
-  graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,4], pch = 8, cex = 1.5, col = "red")
-  graphics::text(x = x_scaled[minP,2], y = x_scaled[minP,4]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
-  graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Coefficients: alpha * lambda", xpd = NA)
-  graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),3], col = "#0F222E")
-  yy = rev(seq(0.35, 0.66, length.out = length(cols)+1))+0.3
-  for(i in 1:length(cols)) graphics::rect(xleft = 1.22+0.0, xright = 1.26+0.0, ybottom = yy[i], ytop = yy[i+1], border = NA, xpd = NA, col = rev(cols)[i])
-  graphics::text(x =1.24+0.0, y = min(yy), pos = 1, label = round(range[1], 2), xpd = NA)
-  graphics::text(x =1.24+0.0, y = max(yy), pos = 3, label = round(range[2], 2), xpd = NA)
-  if(perf != "logLik") label = "AUC"
-  else label = "logLik"
-  graphics::text(y = 1.05*mean(yy), x = 1.24+0.03, labels = label, srt = -90, pos = 4, xpd = NA)
-  graphics::points(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, pch = 8, col = c("darkgreen", "red"))
-  if(perf == "logLik") {
-    graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("lowest", "highest"), pos = 4)
-  } else {
-    graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("highest", "lowest"), pos = 4)
-  }
+  if(spatial) {
+    graphics::par(mfrow = c(1,3), mar = c(4,4,3,4), oma = c(2,2,2,2))
+    new_image(res_cov[,c(1,2,3)], range = range, cols = cols)
+    graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
+    graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
+    graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
+    graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
+    graphics::points(x = x_scaled[maxP,1], y = x_scaled[maxP,4], pch = 8, cex = 1.5, col = "darkgreen")
+    graphics::text(x = x_scaled[maxP,1], y = x_scaled[maxP,4]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), col = "darkgreen", xpd = NA)
+    graphics::points(x = x_scaled[minP,1], y = x_scaled[minP,4], pch = 8, cex = 1.5, col = "red")
+    graphics::text(x = x_scaled[minP,1], y = x_scaled[minP,4]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), col = "red", xpd = NA)
+    graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Covariance: alpha * lambda", xpd = NA)
+    graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),4], col = "#0F222E")
     
-  return(invisible(c(lambda_cov = x[maxP,]$lambda_cov,
-                     alpha_cov = x[maxP,]$alpha_cov,
-                     lambda_coef =  x[maxP,]$lambda_coef,
-                     alpha_coef = x[maxP,]$alpha_coef)))
+    new_image(res_coef[,c(1,4,5)], range = range, cols = cols)
+    graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
+    graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
+    graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
+    graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
+    graphics::points(x = x_scaled[maxP,2], y = x_scaled[maxP,5], pch = 8, cex = 1.5, col = "darkgreen")
+    graphics::text(x = x_scaled[maxP,2], y = x_scaled[maxP,5]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), xpd = NA, col = "darkgreen")
+    graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,5], pch = 8, cex = 1.5, col = "red")
+    graphics::text(x = x_scaled[minP,2], y = x_scaled[minP,5]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
+    graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Environmental: alpha * lambda", xpd = NA)
+    graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),5], col = "#0F222E")
+    
+    new_image(res_spatial[,c(1,6,7)], range = range, cols = cols)
+    graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
+    graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
+    graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
+    graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
+    graphics::points(x = x_scaled[maxP,2], y = x_scaled[maxP,6], pch = 8, cex = 1.5, col = "darkgreen")
+    graphics::text(x = x_scaled[maxP,2], y = x_scaled[maxP,6]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), xpd = NA, col = "darkgreen")
+    graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,6], pch = 8, cex = 1.5, col = "red")
+    graphics::text(x = x_scaled[minP,2], y = x_scaled[minP,6]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
+    graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Spatial: alpha * lambda", xpd = NA)
+    graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),6], col = "#0F222E")
+    
+    
+    
+    yy = rev(seq(0.35, 0.66, length.out = length(cols)+1))+0.3
+    for(i in 1:length(cols)) graphics::rect(xleft = 1.22+0.0, xright = 1.26+0.0, ybottom = yy[i], ytop = yy[i+1], border = NA, xpd = NA, col = rev(cols)[i])
+    graphics::text(x =1.24+0.0, y = min(yy), pos = 1, label = round(range[1], 2), xpd = NA)
+    graphics::text(x =1.24+0.0, y = max(yy), pos = 3, label = round(range[2], 2), xpd = NA)
+    if(perf != "logLik") label = "AUC"
+    else label = "logLik"
+    graphics::text(y = 1.05*mean(yy), x = 1.24+0.03, labels = label, srt = -90, pos = 4, xpd = NA)
+    graphics::points(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, pch = 8, col = c("darkgreen", "red"))
+    if(perf == "logLik") {
+      graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("lowest", "highest"), pos = 4)
+    } else {
+      graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("highest", "lowest"), pos = 4)
+    }
+    
+    return(invisible(c(lambda_cov = x[maxP,]$lambda_cov,
+                       alpha_cov = x[maxP,]$alpha_cov,
+                       lambda_coef =  x[maxP,]$lambda_coef,
+                       alpha_coef = x[maxP,]$alpha_coef,
+                       lambda_spatial =  x[maxP,]$lambda_spatial,
+                       alpha_spatial = x[maxP,]$alpha_spatial)))
+    
+  } else {
+    
+    graphics::par(mfrow = c(1,2), mar = c(4,4,3,4), oma = c(2,2,2,2))
+    new_image(res_cov[,c(1,2,3)], range = range, cols = cols)
+    graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
+    graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
+    graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
+    graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
+    graphics::points(x = x_scaled[maxP,1], y = x_scaled[maxP,3], pch = 8, cex = 1.5, col = "darkgreen")
+    graphics::text(x = x_scaled[maxP,1], y = x_scaled[maxP,3]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), col = "darkgreen", xpd = NA)
+    graphics::points(x = x_scaled[minP,1], y = x_scaled[minP,3], pch = 8, cex = 1.5, col = "red")
+    graphics::text(x = x_scaled[minP,1], y = x_scaled[minP,3]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), col = "red", xpd = NA)
+    graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Covariance: alpha * lambda", xpd = NA)
+    graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),3], col = "#0F222E")
+    
+    new_image(res_coef[,c(1,4,5)], range = range, cols = cols)
+    graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
+    graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
+    graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
+    graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
+    graphics::points(x = x_scaled[maxP,2], y = x_scaled[maxP,4], pch = 8, cex = 1.5, col = "darkgreen")
+    graphics::text(x = x_scaled[maxP,2], y = x_scaled[maxP,4]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), xpd = NA, col = "darkgreen")
+    graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,4], pch = 8, cex = 1.5, col = "red")
+    graphics::text(x = x_scaled[minP,2], y = x_scaled[minP,4]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
+    graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Coefficients: alpha * lambda", xpd = NA)
+    graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),3], col = "#0F222E")
+    yy = rev(seq(0.35, 0.66, length.out = length(cols)+1))+0.3
+    for(i in 1:length(cols)) graphics::rect(xleft = 1.22+0.0, xright = 1.26+0.0, ybottom = yy[i], ytop = yy[i+1], border = NA, xpd = NA, col = rev(cols)[i])
+    graphics::text(x =1.24+0.0, y = min(yy), pos = 1, label = round(range[1], 2), xpd = NA)
+    graphics::text(x =1.24+0.0, y = max(yy), pos = 3, label = round(range[2], 2), xpd = NA)
+    if(perf != "logLik") label = "AUC"
+    else label = "logLik"
+    graphics::text(y = 1.05*mean(yy), x = 1.24+0.03, labels = label, srt = -90, pos = 4, xpd = NA)
+    graphics::points(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, pch = 8, col = c("darkgreen", "red"))
+    if(perf == "logLik") {
+      graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("lowest", "highest"), pos = 4)
+    } else {
+      graphics::text(x = c(1.15, 1.15), y = c(0.2, 0.27), xpd = NA, label= c("highest", "lowest"), pos = 4)
+    }
+      
+    return(invisible(c(lambda_cov = x[maxP,]$lambda_cov,
+                       alpha_cov = x[maxP,]$alpha_cov,
+                       lambda_coef =  x[maxP,]$lambda_coef,
+                       alpha_coef = x[maxP,]$alpha_coef)))
+  }
 }
 
 #' new_image function

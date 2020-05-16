@@ -35,4 +35,11 @@ testthat::test_that("sjSDM_cv", {
   testthat::expect_error(suppressWarnings(plot(model)), NA)
   testthat::expect_error(summary(model), NA)
   
+  SP = matrix(runif(nrow(X1)*2, -1, 1), nrow(X1), 2)
+  testthat::expect_error(sjSDM_cv(Y1, X1,SP, iter = 1L, CV = 2L, tune_steps = 3L, n_cores = 2L), NA)
+  testthat::expect_error(sjSDM_cv(Y1, X1,linear(SP, ~0+X1:X2), iter = 1L, CV = 2L, tune_steps = 3L, n_cores = 2L), NA)
+  testthat::expect_error(model = sjSDM_cv(Y1, X1,DNN(SP, ~0+X1:X2, hidden = c(5L, 3L)), iter = 1L, CV = 2L, tune_steps = 3L, n_cores = 2L), NA)
+  testthat::expect_error(suppressWarnings(plot(model)), NA)
+  testthat::expect_error(summary(model), NA)  
+  
 })
