@@ -62,11 +62,11 @@ Load results:
 ```{r}
 setwd(here::here())
 cpu = readRDS(file = "./results/cpu_sjSDM.RDS")
-gpu = readRDS(file = "./results/gpu_sjSDM.RDS")
+gpu = readRDS(file = "./results/gpu_sjSDM_probit.RDS")
 gllvm = readRDS(file = "./results/gllvm.RDS")
 bc = readRDS(file = "./results/BayesCommDiag.RDS")
 bc$post = NULL # save memory
-hmsc = readRDS(file = "./results/hmscDiag.RDS")
+hmsc = readRDS(file = "./results/hmsc.RDS")
 hmsc$post = NULL # save memory
 large_scale = readRDS("./results/large_scale.RDS")
 setup2 = large_scale$setup
@@ -131,7 +131,7 @@ dev.off()
 ## B
 pdf(file = "./figures/Fig_2_a.pdf", width = 6, height = 4.5)
 par(mfrow = c(1,1), mgp = c(2.1,0.6,0), mar = c(4, 2, 1,0.7), oma = c(0.0,1.3,0.0,0))
-plot(NULL, NULL, xlim = c(0,1), ylim = c(0.0,2), xaxt = "n",xlab = "",main = "",yaxt = "n",  ylab = "runtime in seconds", xpd = NA,yaxs="i")
+plot(NULL, NULL, xlim = c(0,1), ylim = c(0.0,6), xaxt = "n",xlab = "",main = "",yaxt = "n",  ylab = "runtime in minutes", xpd = NA,yaxs="i")
 coords = matrix(NA, 9, 2)
 
 coords[1:3,1] = c(0, 0.07+0.02, 2*0.07+ 2*0.02)
@@ -144,9 +144,9 @@ coords[7:9, 1] = coords[1:3,1]+2*0.125+2*0.25
 coords[7:9, 2] = coords[1:3,2]+2*0.125+2*0.25
 
 counter = 1
-site_labels = c("5000" = "5,000", "17000" = "17,000", "31000" = "31,000")
+site_labels = c("5000" = "5,000", "15000" = "15,000", "30000" = "30,000")
 species_labels = c("300" = "300", "500" = "500", "1000" = "1,000")
-xx = unique(setup2$sites)[c(1,7,14)]
+xx = unique(setup2$sites)
 tt = seq(0, max((large_scale$result_time))*1.1, length.out = 6)
 for(j in xx){
   for(i in unique(setup2$species)) {
@@ -164,16 +164,18 @@ for(j in xx){
                y0 = mu-se, y1=mu-se)
           
    
-      if(counter==1)axis(2, at = (tt/60),labels = c(round(tt,0)), las = 2, lwd = 0, lwd.ticks = 1, font = 1)
+      if(counter==1)axis(2, at = (tt/60),labels = c(round(tt/60,1)), las = 2, lwd = 0, lwd.ticks = 1, font = 1)
       if(i == "300") {
-        text(x = coords[counter,2] + 0.04, y = mu + 0.30 ,pos = 3, labels = paste0(site_labels[as.character(j)], " sites"))
+        if(j == 15000) d = 0.5
+        else d = 0.3
+        text(x = coords[counter,2] + 0.04, y = max(large_scale$result_time[setup2$species == i & setup2$sites == j]/60) + d ,pos = 3, labels = paste0(site_labels[as.character(j)], " sites"))
       }
       
-      text(x= coords[counter,1], y = -0.08, pos = 1, srt = 45, labels = species_labels[as.character(i)], xpd = NA)
+      text(x= coords[counter,1], y = -0.1, pos = 1, srt = 45, labels = species_labels[as.character(i)], xpd = NA)
       counter = counter + 1
   }
 }
-text(0.5, y = -0.30, pos = 1, label = "Species", xpd = NA)
+text(0.5, y = -0.70, pos = 1, label = "Species", xpd = NA)
     legend("topleft",horiz = FALSE, legend = c("G-sjSDM"), col = cols[2], bty="n", lty = 1,  seg.len = 0.5, lwd = 2, xpd = NA, cex = 1.0, x.intersp = 1.2)
 dev.off()
 
@@ -243,17 +245,17 @@ Load results:
 ```{r}
 setwd(here::here())
 if(!exists("cpu")) cpu = readRDS(file = "./results/cpu_sjSDM.RDS")
-if(!exists("gpu")) gpu = readRDS(file = "./results/gpu_sjSDM.RDS")
+if(!exists("gpu")) gpu = readRDS(file = "./results/gpu_sjSDM_probit.RDS")
 if(!exists("gllvm")) gllvm = readRDS(file = "./results/gllvm.RDS")
 if(!exists("bc")) bc = readRDS(file = "./results/BayesCommDiag.RDS")
 bc$post = NULL
-if(!exists("hmsc")) hmsc = readRDS(file = "./results/hmscDiag.RDS")
+if(!exists("hmsc")) hmsc = readRDS(file = "./results/hmsc.RDS")
 hmsc$post = NULL
 if(!exists("gllvmSparse")) gllvmSparse = readRDS(file = "./results/sparse_gllvm.RDS")
 if(!exists("gpuSparse")) gpuSparse = readRDS(file = "./results/sparse_gpu_sjSDM.RDS")
 if(!exists("bcSparse")) bcSparse = readRDS(file = "./results/sparse_bc.RDS")
 bcSparse$post = NULL # to save memory
-if(!exists("hmscSparse")) hmscSparse = readRDS(file = "./results/sparse_hmsc.RDS")
+if(!exists("hmscSparse")) hmscSparse = readRDS(file = "./results/sparse_hmsc2.RDS")
 hmscSparse$post = NULL # to save memory
 if(!exists("data_sets")) load("./data_sets2.RData")
 ```
@@ -436,19 +438,14 @@ for(k in 1:3) {
     
     for(i in 1:10) {
       try({
-      tmp = which.max(sapply(gpuSparse$auc[[j]][[i]]$pred, function(rr) {
-          Sens = rr$confusion$cm$byClass[,1]
-          Spec = rr$confusion$cm$byClass[,2]
-          TSS = Sens+ Spec - 1
-          return(sum(table(rr$confusion$true)/sum(table(rr$confusion$true))*TSS))
-        }))
-        raw = gpuSparse$auc[[j]][[i]]$pred[[tmp]]$raw_weights[[1]]
-        true = data_sets[[indicesSim[i]]]$sim$species_weights
+
+      raw = gpuSparse$auc[[j]][[i]]$pred$raw_weights
+      true = data_sets[[indicesSim[i]]]$sim$species_weights
       gpu_result_env[j,i] = mean(as.vector(raw > 0) == as.vector(true > 0))
       gpu_result_rmse[j,i] = sqrt(mean((as.vector(raw) - as.vector(true))^2))
 
-      gllvm_result_env[j,i] = mean(as.vector(gllvmSparse$auc[[j]][[i]]$pred$raw_weights > 0) == as.vector(true> 0))
-      gllvm_result_rmse[j,i] = sqrt(mean((as.vector(gllvmSparse$auc[[j]][[i]]$pred$raw_weights) - as.vector(true))^2))
+      gllvm_result_env[j,i] = mean(as.vector(t(gllvmSparse$auc[[j]][[i]]$pred$raw_weights) > 0) == as.vector(true> 0))
+      gllvm_result_rmse[j,i] = sqrt(mean((as.vector(t(gllvmSparse$auc[[j]][[i]]$pred$raw_weights)) - as.vector(true))^2))
       
       bc_result_env[j,i] = mean(as.vector(bcSparse$auc[[j]][[i]]$pred$raw_weights > 0) == as.vector(true> 0))
       bc_result_rmse[j,i] = sqrt(mean((as.vector(bcSparse$auc[[j]][[i]]$pred$raw_weights) - as.vector(true))^2))
@@ -541,6 +538,13 @@ dev.off()
 
 ```
 
+### Table large scale accuracies:
+```{r}
+cov_acc = apply(large_scale$result_corr_acc, 1, mean)
+env_acc = apply(large_scale$result_env, 1, mean)
+env_rmse = apply(large_scale$result_rmse_env, 1, mean)
+write.csv2(rbind(cov_acc, env_acc, env_rmse), "results/large_scale_results.csv")
+```
 
 
 ### Figure S3 - Covariance behaviour
@@ -551,6 +555,7 @@ gpu_beh = readRDS(file = "./results/gpu_sjSDM_behaviour_sites.RDS")
 gllvm_beh = readRDS(file = "./results/gllvm_behaviour_sites.RDS")
 bc_beh = readRDS(file = "./results/bc_behaviour_sites.RDS")
 hmsc_beh = readRDS(file = "./results/hmsc_behaviour_sites.RDS")
+
 ```
 
 
@@ -695,8 +700,6 @@ dev.off()
 ```
 
 ## Convergence checks
-
-
 ```{r}
 check_convergence = function(convergence, hmscObject = FALSE){
     result = vector("list", 27)
@@ -927,11 +930,13 @@ add_legend = function(cols = RColorBrewer::brewer.pal(11,"Spectral"), range = c(
   }
  }
 }
+
+re_scale = function(x) return(cov2cor(x))
+
 ```
 
 
 ```{r}
-re_scale = function(x) return(cov2cor(x))
 
 res = list(result0, result1, result2, result3)
 turn_over_list = lapply(res, function(result) {
@@ -1088,7 +1093,7 @@ cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
 to_plot = (1:length(sigmas) %in% upper) | (1:length(sigmas) %in% lower)
 levels(cuts) = viridis::viridis(11)
 cuts = as.character(cuts)
-n = ncol(result[[15]]$sigma)
+n = ncol(sigma)
 lineSeq = 4.7
 nseg = 100
 plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
@@ -1391,7 +1396,7 @@ for(i in sort(unique(max_effects[lr_step,]))) {
          xpd = NA, labels = round(min(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
   
    text(srt = 0, 
-         x = (3.6+1.5)*cos(deg2rad(sub[nrow(sub),3]-4)), s
+         x = (3.6+1.5)*cos(deg2rad(sub[nrow(sub),3]-4)), 
          y =  (3.6+1.5)*sin(deg2rad(sub[nrow(sub),3]-4)), 
          xpd = NA, labels = round(max(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
 }
@@ -1413,6 +1418,341 @@ text(x[11],-5.2, labels = +1)
 dev.off()
 }
 ```
+
+### Figure 5 new
+```{r}
+results = readRDS("results/tuning_fungi.RDS")
+base_sigma = re_scale(getCov(results$base))
+tuned_sigma = re_scale(getCov(results$model))
+```
+
+
+```{r}
+
+#layout(matrix(c(1,2,3,rep(4,9)), 3,3 ,byrow = F), c(0.9,1.3,1.3), c(1,1,1))
+
+par(mfrow = c(2,2))
+par( mar = c(1,2,2.1,2)+0.3)
+#A
+sigma = base_sigma[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
+sigmas = sigma[upper.tri(sigma)]
+upper = order(sigmas, decreasing = TRUE)[1:number]
+lower = order(sigmas, decreasing = FALSE)[1:number]
+cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
+to_plot = (1:length(sigmas) %in% upper) | (1:length(sigmas) %in% lower)
+levels(cuts) = viridis::viridis(11)
+cuts = as.character(cuts)
+n = ncol(sigma)
+lineSeq = 4.7
+nseg = 100
+plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 1.1e-3")
+text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "A", font = 2, cex = 1.5)
+
+xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
+yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
+polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
+angles = seq(0,355,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*lineSeq
+yy = sin(deg2rad(angles))*lineSeq
+
+counter = 1
+coords = cbind(xx, yy, angles)
+for(i in 1:n) {
+  for(j in i:n){
+    if(i!=j) {
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, lineSeq = lineSeq)
+      counter = counter + 1
+      #cat(counter, "\n")
+    }
+  }
+}
+
+lineSeq = 5.0
+occ_logs = log(sort(apply(occ, 2, sum)))
+cuts = cut(occ_logs, breaks = 10)
+cols = viridis::magma(10) #colfunc(5)
+levels(cuts) = cols
+for(i in 1:length(occ_logs)){
+  p1 = coords[i,]
+ x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+ y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1)
+}
+add_legend(viridis::viridis(11), angles = c(140,110))
+text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
+add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
+### arrows
+segments(x0 = cos(deg2rad(-1))*(lineSeq-0.2), x1 = cos(deg2rad(-1))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(-1))*(lineSeq-0.2), y1 = sin(deg2rad(-1))*(lineSeq+0.9), xpd = NA)
+segments(x0 = cos(deg2rad(356))*(lineSeq-0.2), x1 = cos(deg2rad(356))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(356))*(lineSeq-0.2), y1 = sin(deg2rad(356))*(lineSeq+0.9), xpd = NA)
+# first
+angles = seq(150,195,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+end = curve_text(195+3, "Species",lineSeq = lineSeq+0.6,reverse = TRUE)
+
+# second
+angles = seq(rad2deg(end)+3,rad2deg(end)+45+8,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+arrow_angle = max(angles)-2.8
+polygon(x = c(cos(deg2rad(arrow_angle))*(lineSeq+0.5), cos(deg2rad(arrow_angle))*(lineSeq+0.7), cos(deg2rad(max(angles)))*(lineSeq+0.6), cos(deg2rad(arrow_angle))*(lineSeq+0.5)),
+        y = c(sin(deg2rad(arrow_angle))*(lineSeq+0.5), sin(deg2rad(arrow_angle))*(lineSeq+0.7), sin(deg2rad(max(angles)))*(lineSeq+0.6), sin(deg2rad(arrow_angle))*(lineSeq+0.5)),col = "black", xpd = NA)
+
+# B
+
+effects = coef(results$base)[[1]][,-1]
+within = apply(effects, 1, function(e) which.max(abs(e)))
+max_eff = sapply(1:length(within), function(i) effects[i,within[i]])
+effect_comb = cbind(max_eff, within)
+effect_comb_ind = order(within, max_eff)
+
+sigma = base_sigma[effect_comb_ind, effect_comb_ind]
+sigmas = sigma[upper.tri(sigma)]
+upper = order(sigmas, decreasing = TRUE)[1:number]
+lower = order(sigmas, decreasing = FALSE)[1:number]
+cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
+to_plot = 1:length(sigmas) %in% upper | 1:length(sigmas) %in% lower
+levels(cuts) = viridis::viridis(11)
+cuts = as.character(cuts)
+n = ncol(sigma)
+lineSeq = 3.5
+nseg = 100
+plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = -5, y = 5.3, pos = 3, xpd = NA, labels = "D", font = 2, cex = 1.5)
+
+xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
+yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
+polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
+angles = seq(0,360,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*lineSeq
+yy = sin(deg2rad(angles))*lineSeq
+
+counter = 1
+coords = cbind(xx, yy, angles)
+for(i in 1:n) {
+  for(j in i:n){
+    if(i!=j) {
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, species = TRUE, lineSeq = 3.5, lwd = 1.3)
+      counter = counter + 1
+    }
+  }
+}
+cols = RColorBrewer::brewer.pal(8,"Dark2")
+
+effect_comb2 = effect_comb
+effect_comb2[,1] = ff(effect_comb[,1])
+effect_comb2 = cbind(effect_comb2, effect_comb[,1])
+for(i in sort(unique(within))) {
+  sub = coords[within[effect_comb_ind] == i,]
+  sub_eff = effect_comb2[effect_comb_ind,][effect_comb2[effect_comb_ind,2] == i,]
+  from = sub[1,3]
+  to = sub[nrow(sub),3]
+
+  
+  x = c((3.6+1.5*(sub_eff[,1]))*cos(deg2rad(sub[,3]) ), 
+        rev((3.6+1.5/2)*cos(deg2rad(sub[,3]))))
+  
+  y = c((3.6+1.5*(sub_eff[,1]))*sin(deg2rad(sub[,3])),
+        rev((3.6+1.5/2)*sin(deg2rad(sub[,3]))))
+  
+  names(env2)
+  angleName = (from+to)/2
+  if(angleName > 180) reverse = TRUE
+  else reverse = FALSE
+  curve_text(angleName, label = names(env2)[i],reverse = reverse,lineSeq = 5.2, middle = TRUE, extend = 1.2, col = cols[i])
+  #y
+  polygon(x, y, xpd = NA,col = cols[i])
+  text(srt = 0, 
+         x = (3.6+1.5)*cos(deg2rad(sub[1,3]+4)), 
+         y =  (3.6+1.5)*sin(deg2rad(sub[1,3]+4)), 
+         xpd = NA, labels = round(min(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
+  
+   text(srt = 0, 
+         x = (3.6+1.5)*cos(deg2rad(sub[nrow(sub),3]-4)), 
+         y =  (3.6+1.5)*sin(deg2rad(sub[nrow(sub),3]-4)), 
+         xpd = NA, labels = round(max(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
+}
+#legend("bottomleft", legend = rev(names(env2)), pch = 15, col = rev(cols), bty = "n")
+#rec_cols = RColorBrewer::brewer.pal(11,"Spectral")
+rec_cols = viridis::viridis(11)
+
+x = seq(3,5, length.out = 12)
+for(i in 1:length(rec_cols)){
+  rect(xleft = x[i], xright = x[i+1], ybottom = -5, ytop = -5+diff(x)[1], col = rec_cols[i], xpd = NA, border = NA)
+}
+text(x[1],-5.2, labels = -1)
+text(x[11],-5.2, labels = +1)
+
+
+
+
+##############
+
+sigma = tuned_sigma[order(apply(occ, 2, sum)), order(apply(occ, 2, sum))]
+sigmas = sigma[upper.tri(sigma)]
+upper = order(sigmas, decreasing = TRUE)[1:number]
+lower = order(sigmas, decreasing = FALSE)[1:number]
+cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
+to_plot = (1:length(sigmas) %in% upper) | (1:length(sigmas) %in% lower)
+levels(cuts) = viridis::viridis(11)
+cuts = as.character(cuts)
+n = ncol(sigma)
+lineSeq = 4.7
+nseg = 100
+plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = 0, y = 5.7, pos = 3, xpd = NA, labels = "Penalty: 1.1e-3")
+text(x = -6, y = 5.7, pos = 3, xpd = NA, labels = "A", font = 2, cex = 1.5)
+
+xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
+yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
+polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
+angles = seq(0,355,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*lineSeq
+yy = sin(deg2rad(angles))*lineSeq
+
+counter = 1
+coords = cbind(xx, yy, angles)
+for(i in 1:n) {
+  for(j in i:n){
+    if(i!=j) {
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, lineSeq = lineSeq)
+      counter = counter + 1
+      #cat(counter, "\n")
+    }
+  }
+}
+
+lineSeq = 5.0
+occ_logs = log(sort(apply(occ, 2, sum)))
+cuts = cut(occ_logs, breaks = 10)
+cols = viridis::magma(10) #colfunc(5)
+levels(cuts) = cols
+for(i in 1:length(occ_logs)){
+  p1 = coords[i,]
+ x1 = c(cos(deg2rad(p1[3]))*(lineSeq+0.1), cos(deg2rad(p1[3]))*(lineSeq+0.3))
+ y1 = c(sin(deg2rad(p1[3]))* (lineSeq+0.1), sin(deg2rad(p1[3]))* (lineSeq+0.3))
+ segments(x0 = x1[1], x1 = x1[2], y0 = y1[1], y1 = y1[2], col = as.character(cuts[i]), lend = 1)
+}
+add_legend(viridis::viridis(11), angles = c(140,110))
+text(cos(deg2rad(123))*(lineSeq+0.7), sin(deg2rad(123))*(lineSeq+0.7), labels = "covariance", pos = 2, xpd = NA)
+add_legend(cols = cols, range = c(2, 112), angles = c(70,40))
+text(cos(deg2rad(53))*(lineSeq+0.7), sin(deg2rad(55))*(lineSeq+0.7), labels = "Sp. abundance", pos = 4, xpd = NA)
+### arrows
+segments(x0 = cos(deg2rad(-1))*(lineSeq-0.2), x1 = cos(deg2rad(-1))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(-1))*(lineSeq-0.2), y1 = sin(deg2rad(-1))*(lineSeq+0.9), xpd = NA)
+segments(x0 = cos(deg2rad(356))*(lineSeq-0.2), x1 = cos(deg2rad(356))*(lineSeq+0.9), 
+         y0 = sin(deg2rad(356))*(lineSeq-0.2), y1 = sin(deg2rad(356))*(lineSeq+0.9), xpd = NA)
+# first
+angles = seq(150,195,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+end = curve_text(195+3, "Species",lineSeq = lineSeq+0.6,reverse = TRUE)
+
+# second
+angles = seq(rad2deg(end)+3,rad2deg(end)+45+8,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*(lineSeq+0.6)
+yy = sin(deg2rad(angles))*(lineSeq+0.6)
+lines(xx, yy, xpd = NA)
+arrow_angle = max(angles)-2.8
+polygon(x = c(cos(deg2rad(arrow_angle))*(lineSeq+0.5), cos(deg2rad(arrow_angle))*(lineSeq+0.7), cos(deg2rad(max(angles)))*(lineSeq+0.6), cos(deg2rad(arrow_angle))*(lineSeq+0.5)),
+        y = c(sin(deg2rad(arrow_angle))*(lineSeq+0.5), sin(deg2rad(arrow_angle))*(lineSeq+0.7), sin(deg2rad(max(angles)))*(lineSeq+0.6), sin(deg2rad(arrow_angle))*(lineSeq+0.5)),col = "black", xpd = NA)
+
+# B
+
+effects = coef(results$model)[[1]][,-1]
+within = apply(effects, 1, function(e) which.max(abs(e)))
+max_eff = sapply(1:length(within), function(i) effects[i,within[i]])
+effect_comb = cbind(max_eff, within)
+effect_comb_ind = order(within, max_eff)
+
+sigma = tuned_sigma[effect_comb_ind, effect_comb_ind]
+sigmas = sigma[upper.tri(sigma)]
+upper = order(sigmas, decreasing = TRUE)[1:number]
+lower = order(sigmas, decreasing = FALSE)[1:number]
+cuts = cut(sigmas, breaks = seq(-1,1,length.out = 12))
+to_plot = 1:length(sigmas) %in% upper | 1:length(sigmas) %in% lower
+levels(cuts) = viridis::viridis(11)
+cuts = as.character(cuts)
+n = ncol(sigma)
+lineSeq = 3.5
+nseg = 100
+plot(NULL, NULL, xlim = c(-5,5), ylim =c(-5,5),pty="s", axes = F, xlab = "", ylab = "")
+text(x = -5, y = 5.3, pos = 3, xpd = NA, labels = "D", font = 2, cex = 1.5)
+
+xx = lineSeq*cos( seq(0,2*pi, length.out=nseg) )
+yy = lineSeq*sin( seq(0,2*pi, length.out=nseg) )
+polygon(xx,yy, col= "white", border = "black", lty = 1, lwd = 1)
+angles = seq(0,360,length.out = n+1)[1:(n)]
+xx = cos(deg2rad(angles))*lineSeq
+yy = sin(deg2rad(angles))*lineSeq
+
+counter = 1
+coords = cbind(xx, yy, angles)
+for(i in 1:n) {
+  for(j in i:n){
+    if(i!=j) {
+      if(to_plot[counter]) add_curve(coords[i,], coords[j,], col = cuts[counter], n = 5, species = TRUE, lineSeq = 3.5, lwd = 1.3)
+      counter = counter + 1
+    }
+  }
+}
+cols = RColorBrewer::brewer.pal(8,"Dark2")
+
+effect_comb2 = effect_comb
+effect_comb2[,1] = ff(effect_comb[,1])
+effect_comb2 = cbind(effect_comb2, effect_comb[,1])
+for(i in sort(unique(within))) {
+  sub = coords[within[effect_comb_ind] == i,]
+  sub_eff = effect_comb2[effect_comb_ind,][effect_comb2[effect_comb_ind,2] == i,]
+  from = sub[1,3]
+  to = sub[nrow(sub),3]
+
+  
+  x = c((3.6+1.5*(sub_eff[,1]))*cos(deg2rad(sub[,3]) ), 
+        rev((3.6+1.5/2)*cos(deg2rad(sub[,3]))))
+  
+  y = c((3.6+1.5*(sub_eff[,1]))*sin(deg2rad(sub[,3])),
+        rev((3.6+1.5/2)*sin(deg2rad(sub[,3]))))
+  
+  names(env2)
+  angleName = (from+to)/2
+  if(angleName > 180) reverse = TRUE
+  else reverse = FALSE
+  curve_text(angleName, label = names(env2)[i],reverse = reverse,lineSeq = 5.2, middle = TRUE, extend = 1.2, col = cols[i])
+  #y
+  polygon(x, y, xpd = NA,col = cols[i])
+  text(srt = 0, 
+         x = (3.6+1.5)*cos(deg2rad(sub[1,3]+4)), 
+         y =  (3.6+1.5)*sin(deg2rad(sub[1,3]+4)), 
+         xpd = NA, labels = round(min(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
+  
+   text(srt = 0, 
+         x = (3.6+1.5)*cos(deg2rad(sub[nrow(sub),3]-4)), 
+         y =  (3.6+1.5)*sin(deg2rad(sub[nrow(sub),3]-4)), 
+         xpd = NA, labels = round(max(sub_eff[,3]), 2), col = cols[i], cex = 0.9)
+}
+#legend("bottomleft", legend = rev(names(env2)), pch = 15, col = rev(cols), bty = "n")
+#rec_cols = RColorBrewer::brewer.pal(11,"Spectral")
+rec_cols = viridis::viridis(11)
+
+x = seq(3,5, length.out = 12)
+for(i in 1:length(rec_cols)){
+  rect(xleft = x[i], xright = x[i+1], ybottom = -5, ytop = -5+diff(x)[1], col = rec_cols[i], xpd = NA, border = NA)
+}
+text(x[1],-5.2, labels = -1)
+text(x[11],-5.2, labels = +1)
+
+
+
+```
+
 
 
 

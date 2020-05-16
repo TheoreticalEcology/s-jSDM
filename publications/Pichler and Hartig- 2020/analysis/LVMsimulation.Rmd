@@ -57,11 +57,11 @@ for(d in 1:5) {
   sjSDM_cov = sjSDM_rmse = matrix(NA, 5, 5)
   for(i in 1:5) {
     for(j in 1:5) {
-    sjSDM = sjSDM(data[[d]][[i]][[j]]$X, data[[d]][[i]][[j]]$Y, formula = ~0+., step_size = 20L, 
-                  iter = 100L, device = 0L, sampling = 500L, learning_rate = 0.005)
+    sjSDM = sjSDM(data[[d]][[i]][[j]]$Y, env = linear(data[[d]][[i]][[j]]$X, ~0+.), step_size = 20L, 
+                  iter = 100L, device = 2, learning_rate = 0.005)
     sp_sjSDM = getCov(sjSDM)
     sjSDM_cov[i,j] = data[[d]][[i]][[j]]$corr_acc(sp_sjSDM)
-    sjSDM_rmse[i,j] = sqrt(mean(as.vector(coef(sjSDM)[[1]] - data[[d]][[i]][[j]]$SPW)^2))
+    sjSDM_rmse[i,j] = sqrt(mean(as.vector(t(coef(sjSDM)[[1]]) - data[[d]][[i]][[j]]$SPW)^2))
     }
   }
   sjSDM_res[[d]] = list(cov = sjSDM_cov, rmse = sjSDM_rmse)
@@ -134,7 +134,7 @@ Hmsc_res =
 
 
 
-save(sjSDM_res, Hmsc_res, gllvm_res,  file = "./results/LVMsimulation.RData")
+save(sjSDM_res, Hmsc_res, gllvm_res,  file = "./results/LVMsimulation2.RData")
 ```
 
 

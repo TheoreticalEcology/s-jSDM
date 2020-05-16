@@ -36,20 +36,21 @@ for(i in 1:nrow(setup)) {
     counter = counter + 1L
     
      # model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
-    model = sjSDM(train_X, train_Y, formula = ~0+X1+X2+X3+X4+X5, learning_rate = 0.01, 
-                  df = as.integer(ncol(train_Y)/2),iter = 50L, step_size = as.integer(nrow(train_X)*0.1),
+    model = sjSDM(train_Y, env = linear(train_X, ~0+X1+X2+X3+X4+X5 ), learning_rate = 0.01, 
+                  iter = 50L, step_size = as.integer(nrow(train_X)*0.1),
                   device = 0L)
       
     time = model$time
     result_corr_acc[i,j] =  sim$corr_acc(getCov(model))
-    result_env[i,j] = mean(as.vector(coef(model)[[1]] > 0) == as.vector(sim$species_weights > 0))
-    result_rmse_env[i,j] =  sqrt(mean((as.vector(coef(model)[[1]]) - as.vector(sim$species_weights))^2))
+    ce = t(coef(model)[[1]]) 
+    result_env[i,j] = mean(as.vector(ce > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(ce) - as.vector(sim$species_weights))^2))
     result_time[i,j] = time
-    pred = predict(model, newdata = test_X)
+    pred = apply(abind::abind(lapply(1:100, function(i) predict(model, newdata = test_X)), along = -1L), 2:3, mean)
     sub_auc[[j]] = list(pred = pred, true = test_Y)
     rm(model)
     gc()
-    .torch$cuda$empty_cache()
+    torch$cuda$empty_cache()
     #saveRDS(setup, file = "benchmark.RDS")
   }
   auc[[i]] = sub_auc

@@ -39,8 +39,8 @@ for(i in 1:length(sites)) {
     Y = data_set[[i]][[j]]$response
     sim = data_set[[i]][[j]]
     
-    model = sjSDM(X, Y, formula = ~0+X1+X2+X3+X4+X5, learning_rate = 0.01, 
-                  df = as.integer(ncol(Y)/2),iter = 50L, step_size = as.integer(nrow(X)*0.1),
+    model = sjSDM(Y, env=linear(X, formula = ~0+X1+X2+X3+X4+X5), learning_rate = 0.01, 
+                  iter = 50L, step_size = as.integer(nrow(X)*0.1),
                   device = 0L)
     time = model$time
     result_corr_acc[i,j] =  sim$corr_acc(getCov(model))

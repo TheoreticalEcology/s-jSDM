@@ -21,8 +21,8 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
   env_scaled = mlr::normalizeFeatures(env)
   
   
-  model = sjSDM(env_scaled, pa, formula = ~., learning_rate = learning_rate, 
-                df = as.integer(ncol(pa)/2),iter = epochs, step_size = batch_size,
+  model = sjSDM( pa, env = linear(env_scaled, formula = ~.), learning_rate = learning_rate, 
+                iter = epochs, step_size = batch_size,
                 device = "cpu")
   time = model$time
   cpu = 
@@ -38,8 +38,8 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
   env_scaled = mlr::normalizeFeatures(env)
   
   
-  model = sjSDM(env_scaled, pa, formula = ~., learning_rate = learning_rate, 
-                df = as.integer(ncol(pa)/2),iter = epochs, step_size = batch_size,
+  model = sjSDM( pa, env = linear(env_scaled, formula = ~.), learning_rate = learning_rate, 
+                 iter = epochs, step_size = batch_size,
                 device = 0L)
   time = model$time
   gpu = 
