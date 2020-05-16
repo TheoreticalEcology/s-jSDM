@@ -53,19 +53,6 @@ lrs = seq(-12, -0.1, length.out = 18)
 f = function(x) 2^x
 lrs = f(lrs)
 
-########## Parallel setup: ###########
-library(snow)
-cl = makeCluster(6L)
-snow::clusterExport(cl, list("cf_function", "macro_auc"))
-snow::clusterEvalQ(cl,library(sjSDM) )
-
-nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
-snow::clusterExport(cl, list("nodes"))
-snow::clusterEvalQ(cl, {
-  torch$cuda$manual_seed(42L)
-  })
-
-
 counter = 1
 for(i in 1:nrow(setup)) {
   sub_auc = vector("list", 10L)
@@ -81,42 +68,26 @@ for(i in 1:nrow(setup)) {
     test_Y = data_sets[[counter]]$test_Y
     sim = data_sets[[counter]]$sim
     counter = counter + 1L
-    
-    snow::clusterExport(cl, list("train_X", "train_Y", "test_X", "test_Y", "sim", "tmp"))
-    time = system.time({
-      res_tmp = parLapply(cl,lrs, function(lambda) {
-        if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[1:2]) dev = 0L
-        else if(paste(Sys.info()[['nodename']], Sys.getpid(), sep='-') %in% nodes[3:4]) dev = 1L 
-        else dev = 2L
-        
-         
-        model = sjSDM(train_X, train_Y, formula = ~0+X1+X2+X3+X4+X5, df = as.integer(tmp$species*tmp$sites), learning_rate = 0.01,
-                      l1_cov = 0.5*lambda, l2_cov= 0.5*lambda, iter = 50L, step_size = as.integer(nrow(train_X)*0.1), device = dev)
-        res = list(sigma = getCov(model), raw_weights = coef(model), pred = predict(model, test_X), confusion = cf_function(round(getCov(model), 4), sim$correlation))
-        rm(model)
-        torch$cuda$empty_cache()
-        return(res)
-      })
-    })
 
-    result_corr_acc[i,j] =  max(sapply(res_tmp, function(rr) sim$corr_acc(round(rr$sigma, 4))))
-    result_corr_acc_min[i,j] =  min(sapply(res_tmp, function(rr) sim$corr_acc(round(rr$sigma,4))))
-    result_corr_tss[i,j] = max(sapply(res_tmp, function(rr) {
-      Sens = rr$confusion$cm$byClass[,1]
-      Spec = rr$confusion$cm$byClass[,2]
-      TSS = Sens+ Spec - 1
-      return(sum(table(rr$confusion$true)/sum(table(rr$confusion$true))*TSS))
-    }))
+    model = sjSDM(train_Y, env=linear(train_X, ~0+.), iter = 100L, device = 2L, learning_rate = 0.003, 
+                   #biotic = bioticStruct(lambda = best[["lambda_cov"]], alpha = best[["alpha_cov"]]))
+                  biotic = bioticStruct(lambda = 0.1, alpha = 0.5))
+    res = list(sigma = getCov(model), raw_weights = t(coef(model)[[1]]), pred = predict(model, test_X), 
+               confusion = cf_function(round(getCov(model), 4), sim$correlation))
     
-    result_corr_auc[i,j] = max(sapply(res_tmp, function(rr) {
-      return(macro_auc(sim$correlation, round(rr$sigma, 4)))
-    }))
+    result_corr_acc[i,j] =   sim$corr_acc(round(res$sigma, 4))
+    result_corr_acc_min[i,j] =  NA
     
-    result_time[i,j] = time[3]
-    sub_auc[[j]] = list(pred = res_tmp, true = test_Y)
+    Sens = res$confusion$cm$byClass[,1]
+    Spec = res$confusion$cm$byClass[,2]
+    TSS = Sens+ Spec - 1
+    result_corr_tss[i,j] = sum(table(res$confusion$true)/sum(table(res$confusion$true))*TSS)
+    
+    result_corr_auc[i,j] = macro_auc(sim$correlation, round(res$sigma, 4))
+    result_time[i,j] = model$time
+    sub_auc[[j]] = list(pred = res, true = test_Y)
     gc()
-    .torch$cuda$empty_cache()
-    
+    torch$cuda$empty_cache()
     #saveRDS(setup, file = "benchmark.RDS")
   }
   auc[[i]] = sub_auc
