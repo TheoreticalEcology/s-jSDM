@@ -7,8 +7,10 @@
 sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
   tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
   alpha_cov = seq(0, 1, 0.1), alpha_coef = seq(0, 1, 0.1),
-  lambda_cov = 2^seq(-10, -1, length.out = 20), lambda_coef = 2^seq(-10,
-  -0.5, length.out = 20), n_cores = NULL, ...)
+  alpha_spatial = seq(0, 1, 0.1), lambda_cov = 2^seq(-10, -1, length.out =
+  20), lambda_coef = 2^seq(-10, -0.5, length.out = 20),
+  lambda_spatial = 2^seq(-10, -0.5, length.out = 20), device = "cpu",
+  n_cores = NULL, n_gpu = NULL, ...)
 }
 \arguments{
 \item{Y}{species occurrence matrix}
@@ -17,7 +19,7 @@ sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
 
 \item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}. Alpha and lambda have no influence}
 
-\item{spatial}{defines spatial structure, not yet supported}
+\item{spatial}{defines spatial structure, object of type \code{\link{linear}}, or \code{\link{DNN}}}
 
 \item{tune}{tuning strategy, random or grid search}
 
@@ -29,11 +31,19 @@ sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
 
 \item{alpha_coef}{weighting of l1 and l2 on coefficients: \eqn{(1 - \alpha) * |coef| + \alpha ||coef||^2}}
 
+\item{alpha_spatial}{weighting of l1 and l2 on spatial coefficients: \eqn{(1 - \alpha) * |coef_sp| + \alpha ||coef_sp||^2}}
+
 \item{lambda_cov}{overall regularization strength on covariances}
 
 \item{lambda_coef}{overall regularization strength on coefficients}
 
+\item{lambda_spatial}{overall regularization strength on spatial coefficients}
+
+\item{device}{device, default cpu}
+
 \item{n_cores}{number of cores for parallelization}
+
+\item{n_gpu}{number of gpus}
 
 \item{...}{arguments passed to sjSDM, see \code{\link{sjSDM}}}
 }

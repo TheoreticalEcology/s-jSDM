@@ -4,7 +4,7 @@
 \alias{plot.sjSDM_cv}
 \title{Plot elastic net tuning}
 \usage{
-\method{plot}{sjSDM_cv}(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolution = 15, k = 3, ...)
+\method{plot}{sjSDM_cv}(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolution = 6, k = 3, ...)
 }
 \arguments{
 \item{x}{a model fitted by \code{\link{sjSDM_cv}}}
