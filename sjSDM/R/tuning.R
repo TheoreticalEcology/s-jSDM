@@ -113,9 +113,11 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
         model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device, ...)
       }
       
-      model$model$set_sigma(matrix(0.0, ncol(Y_train), model$model$df))
-      pred_test = predict.sjSDM(model, newdata = X_test, SP = SP_test)
-      pred_train = predict.sjSDM(model)
+      #model$model$set_sigma(matrix(0.0, ncol(Y_train), model$model$df))
+      mean_func = function(f) apply(abind::abind(lapply(1:50, function(i) f() ),along = -1), 2:3, mean)
+      
+      pred_test = mean_func(function() predict.sjSDM(model, newdata = X_test, SP = SP_test) )
+      pred_train = mean_func(function() predict.sjSDM(model) )
       auc_test = sapply(1:ncol(Y_test), function(s) {
         a = Metrics::auc(Y_test[,s], pred_test[,s])
         return(ifelse(is.na(a),0.5, a))} )
@@ -128,7 +130,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       auc_test = mean(auc_test)
       auc_train = mean(auc_train)
       ll_train = logLik.sjSDM(model)
-      ll_test = model$model$logLik(X_test, Y_test, SP = SP_test, batch_size = as.integer(floor(nrow(X_test)/2)))
+      ll_test = mean_func(function() model$model$logLik(X_test, Y_test, SP = SP_test, batch_size = as.integer(floor(nrow(X_test)/2))) )
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
                                  pars = tune_samples[t,],
                                  pred_test = pred_test,
