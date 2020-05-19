@@ -130,7 +130,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       auc_test = mean(auc_test)
       auc_train = mean(auc_train)
       ll_train = logLik.sjSDM(model)
-      ll_test = mean_func(function() model$model$logLik(X_test, Y_test, SP = SP_test, batch_size = as.integer(floor(nrow(X_test)/2))) )
+      ll_test =  mean(sapply(1:50, function(i) model$model$logLik(X_test, Y_test, SP = SP_test, batch_size = as.integer(floor(nrow(X_test)/2)))[[1]] ))
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
                                  pars = tune_samples[t,],
                                  pred_test = pred_test,
@@ -176,7 +176,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
   for(t in 1:nrow(tune_samples)) {
     for(i in 1:CV) {
       summary_results[summary_results$iter == t & summary_results$CV_set == i, n] = result[[t]][[i]]$ll_train
-      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+1] = result[[t]][[i]]$ll_test[[1]]
+      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+1] = result[[t]][[i]]$ll_test
       summary_results[summary_results$iter == t & summary_results$CV_set == i, n+2] = result[[t]][[i]]$auc_test
       summary_results[summary_results$iter == t & summary_results$CV_set == i, n+3] = result[[t]][[i]]$auc_macro_test
       summary_results[summary_results$iter == t & summary_results$CV_set == i, n+4] = result[[t]][[i]]$auc_train
