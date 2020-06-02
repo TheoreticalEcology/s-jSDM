@@ -334,7 +334,7 @@ class Model_sjSDM:
                     self.history[epoch] = bl
         torch.cuda.empty_cache()
         
-    def logLik(self,X, Y,SP=None,RE=None, batch_size=25, parallel=0, sampling=100):
+    def logLik(self,X, Y,SP=None,RE=None, batch_size=25, parallel=0, sampling=100,individual=False,train=True):
         """Returns log-likelihood of model
 
         :param X: 2D-numpy array, environemntal predictors
@@ -345,7 +345,7 @@ class Model_sjSDM:
 
         """
         dataLoader = self._get_DataLoader(X = X, Y = Y, SP=SP, RE=RE, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
-        loss_function = self._build_loss_function(train = True)
+        loss_function = self._build_loss_function(train=train)
         torch.cuda.empty_cache()
         any_losses = len(self.losses) > 0
         
@@ -353,7 +353,8 @@ class Model_sjSDM:
             device = self.device.type+ ":" + str(self.device.index)
         else:
             device = 'cpu'
-        logLik = 0
+
+        logLik = []
         logLikReg = 0
         
         re_loss = lambda value: torch.distributions.Normal(0.0, 1.0).log_prob(value)
@@ -366,10 +367,11 @@ class Model_sjSDM:
                     sp = sp.to(self.device, non_blocking=True)
                     spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
                     mu = self.env(x) + self.spatial(sp) + spatial_re
-                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    # loss = self._loss_function(mu, y, sigma_zero, batch_size, sampling, df, alpha, device)
+                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
                     #loss = torch.sum(loss)
-                    logLik += loss.data.cpu().numpy()
+                    #logLik += loss.data.cpu().numpy()
+                    logLik.append(loss.data)
             else:
                 for step, (x, y, sp) in enumerate(dataLoader):
                     x = x.to(self.device, non_blocking=True)
@@ -377,8 +379,9 @@ class Model_sjSDM:
                     sp = sp.to(self.device, non_blocking=True)
                     mu = self.env(x) + self.spatial(sp)
                     # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
-                    logLik += loss.data.cpu().numpy()
+                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                    #logLik += loss.data.cpu().numpy()
+                    logLik.append(loss.data)
         else:
             if type(RE) is np.ndarray:
                 for step, (x, y, re) in enumerate(dataLoader):
@@ -387,17 +390,19 @@ class Model_sjSDM:
                     spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
                     mu = self.env(x) + spatial_re
                     # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
+                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
                     #loss = torch.sum(loss)
-                    logLik += loss.data.cpu().numpy()
+                    #logLik += loss.data.cpu().numpy()
+                    logLik.append(loss.data)
             else:
                 for step, (x, y) in enumerate(dataLoader):
                     x = x.to(self.device, non_blocking=True)
                     y = y.to(self.device, non_blocking=True)
                     mu = self.env(x)
                     # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device).sum()
-                    logLik += loss.data.cpu().numpy()
+                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                    #logLik += loss.data.cpu().numpy()
+                    logLik.append(loss.data)
         
         #if any_losses:
         loss_reg = torch.tensor(0.0, device=self.device, dtype=self.dtype).to(self.device)
@@ -410,6 +415,10 @@ class Model_sjSDM:
         if type(RE) is np.ndarray:
             logLikReg += (-re_loss(self.re).sum().data.cpu().numpy())
         torch.cuda.empty_cache()
+        if individual is not True:
+            logLik = torch.cat(logLik).sum().data.cpu().numpy()
+        else:
+            logLik = torch.cat(logLik).data.cpu().numpy()
         #print(logLikReg)
         return logLik, logLikReg
 
@@ -673,26 +682,7 @@ class Model_sjSDM:
                     loss = Eprob.log().neg().sub(maxlogprob)
                     return loss
             elif self.link == "probit":
-                #link_func = lambda value: torch.distributions.Normal(0.0, 1.0).cdf(value)
-                #def tmp3(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float):
-                #    noise = torch.randn(size = [sampling, batch_size, df])
-                #    E = torch.distributions.Normal(0.0, 1.0).cdf(torch.tensordot(noise, sigma.t(), dims = 1).add(mu).mul(alpha)).mul(0.99999).add(0.000005)
-                #    logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
-                #    maxlogprob = logprob.max(dim = 0).values
-                #    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
-                #    loss = Eprob.log().neg().sub(maxlogprob)
-                #    return loss
-                #
-                #tmp2 = torch.jit.trace(tmp3, example_inputs=[torch.randn([100, self.output_shape]), 
-                #                       torch.ones([100, self.output_shape]),
-                #                       torch.randn([self.output_shape, self.df]),
-                #                       torch.tensor(100),
-                #                       torch.tensor(100),
-                #                       torch.tensor(self.df),
-                #                       torch.tensor(self.alpha)],
-                #                       check_tolerance=100.0)
-                #tmp = lambda mu, Ys, sigma, batch_size, sampling, df, alpha, _ : tmp2(mu, Ys, sigma, torch.tensor(batch_size), torch.tensor(sampling), torch.tensor(df), torch.tensor(alpha))
-                #
+
                 link_func = lambda value: torch.distributions.Normal(0.0, 1.0).cdf(value)
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))

@@ -5,21 +5,23 @@
 #' @param X new environmental covariates
 #' @param Y new species occurences
 #' @param SP new spatial covariates
+#' @param individual R squared for each site
 #' @param ... additional parameters
 #' 
 #' @author Maximilian Pichler
 #' @export
-Rsquared2 = function(model, X = NULL, Y = NULL, SP = NULL,...) {
+Rsquared2 = function(model, X = NULL, Y = NULL, SP = NULL,individual=TRUE,...) {
   
   if(model$settings$link == "probit") varDist = 1
   else varDist = pi^2/3
   
   sigma = model$model$get_sigma
   df = model$settings$biotic$df
-  model$model$set_sigma(copyRP(matrix(0.0, nrow(sigma), ncol(sigma))))
-  preds = predict.sjSDM(model, link ="raw")#,newdata = X,SP=SP, link ="raw"))
-  model$model$set_sigma(copyRP(sigma))
-  vv = stats::var(as.vector(preds))
+  #model$model$set_sigma(copyRP(matrix(0.0, nrow(sigma), ncol(sigma))))
+  preds = apply(abind::abind(lapply(1:50, function(i) predict.sjSDM(model, link ="raw") ), along = -1L), 2:3, mean)#,newdata = X,SP=SP, link ="raw"))
+  #model$model$set_sigma(copyRP(sigma))
+  if(!individual) vv = stats::var(as.vector(preds))
+  else vv = apply(preds,1,stats::var)
   Assocation = getCov(model)
   
   re = sum(diag(diag(1, nrow(Assocation), ncol(Assocation)) %*% Assocation))/(ncol(Assocation))

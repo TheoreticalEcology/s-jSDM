@@ -4,121 +4,161 @@
 #' 
 #' @param object model of object \code{\link{sjSDM}}
 #' @param cv number of cross-validation splits
+#' @param individual compute analysis of variance on species and site level
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #'  
 #' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}
 #' @export
 
-anova.sjSDM = function(object, cv = 5L,...) {
+anova.sjSDM = function(object, cv = 5L,individual=FALSE,...) {
   
-  splits = createSplit(nrow(object$settings$env$X), cv)
+  if(is.logical(cv)) cv = 0
+  
+  if(cv > 0) splits = createSplit(nrow(object$settings$env$X), cv)
+  else splits = list(NULL)
   
   out = list()
   
+  
+  if(!individual) {
+  
+    fit_and_form = function(mod) {
+      .tmp = sapply(splits, function(sp) turnOn(object, modules = mod, test = sp, individual = individual))
+      return(list(ll = sum(unlist(.tmp[1,])), R = mean(unlist(.tmp[2,])),R2 = mean(unlist(.tmp[3,])) ))
+    }
+  
+  } else {
+    
+    fit_and_form = function(mod) {
+      .tmp = lapply(splits, function(sp) turnOn(object, modules = mod, test = sp, individual = individual))
+      return(list(ll = unlist(lapply(.tmp, function(l) l$ll)), 
+                  R =  unlist(lapply(.tmp, function(l) l$R)),
+                  R2 = unlist(lapply(.tmp, function(l) l$R2)) ))
+    }
+    
+  }
+  
   if(!is.null(object$spatial_weights)){
+    modules = list("", "ABS", "A", "B", "S", "AB", "AS", "BS")
+    results = lapply(modules, function(m) fit_and_form(m))
+    names(results) = c("empty", "full","A", "B", "S", "AB", "AS", "BS")
     
-    .empty = sapply(splits, function(sp) turnOn(object, modules = "", test = sp))
-    empty = list(ll = sum(unlist(.empty[1,])), R = mean(unlist(.empty[2,])),R2 = mean(unlist(.empty[3,])) )
+    if(!individual) {
     
-    .full = sapply(splits, function(sp) turnOn(object, modules = "ABS", test = sp))
-    full = list(ll = sum(unlist(.full[1,])), R = mean(unlist(.full[2,])),R2 = mean(unlist(.full[3,])))
-    
-    .A = sapply(splits, function(sp) turnOn(object, modules = "A", test = sp))
-    A = list(ll = sum(unlist(.A[1,])), R = mean(unlist(.A[2,])),R2 = mean(unlist(.A[3,])))
-    
-    .B = sapply(splits, function(sp) turnOn(object, modules = "B", test = sp))
-    B = list(ll = sum(unlist(.B[1,])), R = mean(unlist(.B[2,])),R2 = mean(unlist(.B[3,])))
-    
-    .S = sapply(splits, function(sp) turnOn(object, modules = "S", test = sp))
-    S = list(ll = sum(unlist(.S[1,])), R = mean(unlist(.S[2,])),R2 = mean(unlist(.S[3,])))
-    
-    .AB = sapply(splits, function(sp) turnOn(object, modules = "AB", test = sp))
-    AB = list(ll = sum(unlist(.AB[1,])), R = mean(unlist(.AB[2,])), R2 = mean(unlist(.AB[3,])))
-    
-    .AS = sapply(splits, function(sp) turnOn(object, modules = "AS", test = sp))
-    AS = list(ll = sum(unlist(.AS[1,])), R = mean(unlist(.AS[2,])),R2 = mean(unlist(.AS[3,])))
-    
-    .BS = sapply(splits, function(sp) turnOn(object, modules = "BS", test = sp))
-    BS = list(ll = sum(unlist(.BS[1,])), R = mean(unlist(.BS[2,])), R2 = mean(unlist(.BS[3,])))
-    
-    res = data.frame(matrix(NA, 9,5))
-    colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
-    res$Modules = c("_", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
-    res[1,2:4] = unlist(empty)
-    
-    res[2,2] = -empty$ll + A$ll # A
-    res[3,2] = -empty$ll + B$ll # B
-    res[4,2] = -empty$ll + S$ll # S
-    
-    res[5,2] = -empty$ll + AB$ll - (res[2,2] + res[3,2] )# A+B
-    res[6,2] = -empty$ll + AS$ll - (res[2,2] + res[4,2] )# A+S
-    res[7,2] = -empty$ll + BS$ll - (res[4,2] + res[3,2] )# B+S
-    
-    res[8,2] = -empty$ll + full$ll - sum(res[2:7,2]) # A+B+S
-    res[9,2] = -empty$ll + full$ll # Full
-    
-    res[2,3] = empty$R + A$R
-    res[3,3] = empty$R + B$R
-    res[4,3] = empty$R + S$R
-    
-    res[5,3] = empty$R + AB$R - res[2,3] - res[3,3]
-    res[6,3] = empty$R + AS$R - res[2,3] - res[4,3]
-    res[7,3] = empty$R + BS$R - res[4,3] - res[3,3]
-    res[8,3] = empty$R + full$R - sum(res[2:7,3])
-    res[9,3] = empty$R + full$R
-    
-    
-    res[2,4] = empty$R2 + A$R2
-    res[3,4] = empty$R2 + B$R2
-    res[4,4] = empty$R2 + S$R2
-    res[5,4] = empty$R2 + AB$R2 - res[2,4] - res[3,4]
-    res[6,4] = empty$R2 + AS$R2 - res[2,4] - res[4,4]
-    res[7,4] = empty$R2 + BS$R2 - res[4,4] - res[3,4]
-    res[8,4] = empty$R2 + full$R2 - sum(res[2:7,4])
-    res[9,4] = empty$R2 + full$R2
-    out$spatial = TRUE
+      res = data.frame(matrix(NA, 9,5))
+      colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
+      res$Modules = c("_", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
+      res[1,2:4] = unlist(results$empty)
+      
+      res[2,2] = -results$empty$ll + results$A$ll # A
+      res[3,2] = -results$empty$ll + results$B$ll # B
+      res[4,2] = -results$empty$ll + results$S$ll # S
+      res[5,2] = -results$empty$ll + results$AB$ll - (res[2,2] + res[3,2] )# A+B
+      res[6,2] = -results$empty$ll + results$AS$ll - (res[2,2] + res[4,2] )# A+S
+      res[7,2] = -results$empty$ll + results$BS$ll - (res[4,2] + res[3,2] )# B+S
+      res[8,2] = -results$empty$ll + results$full$ll - sum(res[2:7,2]) # A+B+S
+      res[9,2] = -results$empty$ll + results$full$ll # Full
+      res[2,3] = results$empty$R + results$A$R
+      res[3,3] = results$empty$R + results$B$R
+      res[4,3] = results$empty$R + results$S$R
+      res[5,3] = results$empty$R + results$AB$R - res[2,3] - res[3,3]
+      res[6,3] = results$empty$R + results$AS$R - res[2,3] - res[4,3]
+      res[7,3] = results$empty$R + results$BS$R - res[4,3] - res[3,3]
+      res[8,3] = results$empty$R + results$full$R - sum(res[2:7,3])
+      res[9,3] = results$empty$R + results$full$R
+      res[2,4] = results$empty$R2 + results$A$R2
+      res[3,4] = results$empty$R2 + results$B$R2
+      res[4,4] = results$empty$R2 + results$S$R2
+      res[5,4] = results$empty$R2 + results$AB$R2 - res[2,4] - res[3,4]
+      res[6,4] = results$empty$R2 + results$AS$R2 - res[2,4] - res[4,4]
+      res[7,4] = results$empty$R2 + results$BS$R2 - res[4,4] - res[3,4]
+      res[8,4] = results$empty$R2 + results$full$R2 - sum(res[2:7,4])
+      res[9,4] = results$empty$R2 + results$full$R2
+      out$spatial = TRUE
+    } else {
+      
+      res = array(NA, dim = c(nrow(object$data$Y),9,4))
+      #colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
+      #res$Modules = c("_", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
+      res[,1,1:3] = do.call(cbind, results$empty)
+      
+      res[,2,1] = -results$empty$ll + results$A$ll # A
+      res[,3,1] = -results$empty$ll + results$B$ll # B
+      res[,4,1] = -results$empty$ll + results$S$ll # S
+      res[,5,1] = -results$empty$ll + results$AB$ll - (res[,2,1] + res[,3,1] )# A+B
+      res[,6,1] = -results$empty$ll + results$AS$ll - (res[,2,1] + res[,4,1] )# A+S
+      res[,7,1] = -results$empty$ll + results$BS$ll - (res[,4,1] + res[,3,1] )# B+S
+      res[,8,1] = -results$empty$ll + results$full$ll - sum(res[,2:7,1]) # A+B+S
+      res[,9,1] = -results$empty$ll + results$full$ll # Full
+      res[,2,2] = results$empty$R + results$A$R
+      res[,3,2] = results$empty$R + results$B$R
+      res[,4,2] = results$empty$R + results$S$R
+      res[,5,2] = results$empty$R + results$AB$R - res[,2,2] - res[,3,2]
+      res[,6,2] = results$empty$R + results$AS$R - res[,2,2] - res[,4,2]
+      res[,7,2] = results$empty$R + results$BS$R - res[,4,2] - res[,3,2]
+      res[,8,2] = results$empty$R + results$full$R - sum(res[,2:7,2])
+      res[,9,2] = results$empty$R + results$full$R
+      res[,2,3] = results$empty$R2 + results$A$R2
+      res[,3,3] = results$empty$R2 + results$B$R2
+      res[,4,3] = results$empty$R2 + results$S$R2
+      res[,5,3] = results$empty$R2 + results$AB$R2 - res[,2,3] - res[,3,3]
+      res[,6,3] = results$empty$R2 + results$AS$R2 - res[,2,3] - res[,4,3]
+      res[,7,3] = results$empty$R2 + results$BS$R2 - res[,4,3] - res[,3,3]
+      res[,8,3] = results$empty$R2 + results$full$R2 - sum(res[,2:7,3])
+      res[,9,3] = results$empty$R2 + results$full$R2
+      
+    }
     
   } else {
-    .empty = sapply(splits, function(sp) turnOn(object, modules = "", test = sp))
-    empty = list(ll = sum(unlist(.empty[1,])), R = mean(unlist(.empty[2,])), R2 = mean(unlist(.empty[3,])))
+    modules = list("","A", "B", "AB")
+    results = lapply(modules, function(m) fit_and_form(m))
+    names(results) = c("empty", "A", "B", "AB")
     
-    .A = sapply(splits, function(sp) turnOn(object, modules = "A", test = sp))
-    A = list(ll = sum(unlist(.A[1,])), R = mean(unlist(.A[2,])), R2 = mean(unlist(.A[3,])))
-    
-    .B = sapply(splits, function(sp) turnOn(object, modules = "B", test = sp))
-    B = list(ll = sum(unlist(.B[1,])), R = mean(unlist(.B[2,])), R2 = mean(unlist(.B[3,])))
-    
-    .AB = sapply(splits, function(sp) turnOn(object, modules = "AB", test = sp))
-    AB = list(ll = sum(unlist(.AB[1,])), R = mean(unlist(.AB[2,])), R2 = mean(unlist(.AB[3,])))
-    
-    
-    res = data.frame(matrix(NA, 5,5))
-    colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
-    res$Modules = c("_", "A", "B", "A+B", "Full")
-    res[1,2:4] = unlist(empty)
-    
-    res[2,2] = -empty$ll + A$ll # A
-    res[3,2] = -empty$ll + B$ll # B
-    
-    res[4,2] = -empty$ll + AB$ll - (res[2,2] + res[3,2] )# A+B
-    
-    res[5,2] = -empty$ll + AB$ll  # Full
-    
-    res[2,3] = empty$R + A$R
-    res[3,3] = empty$R + B$R
-    
-    res[4,3] = empty$R + AB$R - res[2,3] - res[3,3]
-    res[5,3] = empty$R + AB$R
-    
-    
-    res[2,4] = empty$R2 + A$R2
-    res[3,4] = empty$R2 + B$R2
-    res[4,4] = empty$R2 + AB$R2 - res[2,4] - res[3,4]
-    res[5,4] = empty$R2 + AB$R2
-    out$spatial = FALSE
+    if(!individual) {
+      res = data.frame(matrix(NA, 5,5))
+      colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
+      res$Modules = c("_", "A", "B", "A+B", "Full")
+      res[1,2:4] = unlist(results$empty)
+      res[2,2] = -results$empty$ll + results$A$ll # A
+      res[3,2] = -results$empty$ll + results$B$ll # B
+      res[4,2] = -results$empty$ll + results$AB$ll - (res[2,2] + res[3,2] )# A+B
+      res[5,2] = -results$empty$ll + results$AB$ll  # Full
+      res[2,3] = results$empty$R + results$A$R
+      res[3,3] = results$empty$R + results$B$R
+      res[4,3] = results$empty$R + results$AB$R - res[2,3] - res[3,3]
+      res[5,3] = results$empty$R + results$AB$R
+      res[2,4] = results$empty$R2 +results$A$R2
+      res[3,4] = results$empty$R2 +results$B$R2
+      res[4,4] = results$empty$R2 +results$AB$R2 - res[2,4] - res[3,4]
+      res[5,4] = results$empty$R2 +results$AB$R2
+      out$spatial = FALSE
+    } else {
+      
+      res = array(NA, dim = c(nrow(object$data$Y),5,4))
+      #colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
+      #res$Modules = c("_", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
+      res[,1,1:3] = do.call(cbind, results$empty)
+      
+      res[,2,2-1] = -results$empty$ll + results$A$ll # A
+      res[,3,2-1] = -results$empty$ll + results$B$ll # B
+      res[,4,2-1] = -results$empty$ll + results$AB$ll - (res[,2,1] + res[,3,1] )# A+B
+      res[,5,2-1] = -results$empty$ll + results$AB$ll  # Full
+      res[,2,3-1] = results$empty$R + results$A$R
+      res[,3,3-1] = results$empty$R + results$B$R
+      res[,4,3-1] = results$empty$R + results$AB$R - res[,2,2] - res[,3,2]
+      res[,5,3-1] = results$empty$R + results$AB$R
+      res[,2,4-1] = results$empty$R2 +results$A$R2
+      res[,3,4-1] = results$empty$R2 +results$B$R2
+      res[,4,4-1] = results$empty$R2 +results$AB$R2 - res[,2,3] - res[,3,3]
+      res[,5,4-1] = results$empty$R2 +results$AB$R2
+      out$spatial = FALSE
+    }
   }
-  out$result = res[,-5]
-  class(out) = c("sjSDManova")
+  if(!individual) out$result = res[,-5]
+  else out$result = res
+  
+  if(!individual) class(out) = c("sjSDManova")
+  else class(out) = c("sjSDManovaIndividual")
   return(out)
 }
 
@@ -135,18 +175,22 @@ print.sjSDManova = function(x, ...) {
 
 #' Plot anova
 #' 
-#' @param x a model fitted by \code{\link{sjSDM_cv}}
+#' @param x anova object from \code{\link{anova.sjSDM}}
 #' @param y unused argument
 #' @param perf performance measurement to plot
 #' @param cols colors for the groups
 #' @param alpha alpha for colors
+#' @param percent use relative instead of absolute values
 #' @param ... Additional arguments to pass to \code{plot()}
 #' @export
-plot.sjSDManova = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#BEAED4","#FDC086"),alpha=0.15, ...) {
+plot.sjSDManova = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#BEAED4","#FDC086"),alpha=0.15,percent=TRUE, ...) {
   lineSeq = 0.3
   nseg = 100
   dr = 1.0
   perf = match.arg(perf)
+  
+  if(percent) x$result[,-1] = x$result[,-1] / do.call(rbind, rep(list(x$result[nrow(x$result),-1]), nrow(x$result)))
+  
   graphics::plot(NULL, NULL, xlim = c(0,1), ylim =c(0,1),pty="s", axes = FALSE, xlab = "", ylab = "")
   xx = 1.1*lineSeq*cos( seq(0,2*pi, length.out=nseg))
   yy = 1.1*lineSeq*sin( seq(0,2*pi, length.out=nseg))
@@ -170,10 +214,21 @@ plot.sjSDManova = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#B
   }
 }
 
+#' Plot anova
+#' 
+#' @param x anova object from \code{\link{anova.sjSDM}}
+#' @param y unused argument
+#' @param perf performance measurement to plot
+#' @param cols colors for the groups
+#' @param alpha alpha for colors
+#' @param percent use relative instead of absolute values
+#' @param ... Additional arguments to pass to \code{plot()}
+#' @export
+plot.sjSDManovaIndividual = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#BEAED4","#FDC086"),alpha=0.15,percent=TRUE, ...) {
+}
 
 
-
-turnOn = function(model, modules = c("AB"), test= NULL, ...) {
+turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, ...) {
   modules = strsplit(modules,split = "")[[1]]
   
   env = model$settings$env
@@ -189,25 +244,36 @@ turnOn = function(model, modules = c("AB"), test= NULL, ...) {
     Y = model$data$Y
   }
   env2 = env
-  env2$X = matrix(0.0, nrow(env2$X),ncol(env2$X))
+  
+  
+  # if(length(modules) == 0) env2$X = cbind(env2$X[,1,drop=FALSE], matrix(0.0, nrow(env2$X),ncol(env2$X)-1L ))
+  # else 
+  env2$X =  matrix(0.0, nrow(env2$X),ncol(env2$X))
+  
   biotic2 = bioticStruct(diag = TRUE)
   spatial2 = spatial
   if(!is.null(spatial2)) {
     spatial2$X = matrix(0.0, nrow(spatial2$X),ncol(spatial2$X))
-    test_sp = matrix(0.0, nrow(model$settings$spatial$X[test,,drop=FALSE]),ncol(spatial2$X))
+    if(!is.null(test)) test_sp = matrix(0.0, nrow(model$settings$spatial$X[test,,drop=FALSE]),ncol(spatial2$X))
   }
-  test_env = matrix(0.0, nrow(model$settings$env$X[test,,drop=FALSE]),ncol(env2$X))
+  if(!is.null(test)) {
+    # if(length(modules) == 0) test_env = cbind(matrix(1.0,  nrow(model$settings$env$X[test,,drop=FALSE]),1), 
+    #                                           matrix(0.0, nrow(model$settings$env$X[test,,drop=FALSE]),ncol(env2$X)-1))
+    test_env = matrix(0.0, nrow(model$settings$env$X[test,,drop=FALSE]),ncol(env2$X))
+    #test_env = matrix(0.0, nrow(model$settings$env$X[test,,drop=FALSE]),ncol(env2$X))
+    
+  }
   
 
   for(i in modules){
     if(i == "A") {
       env2 = env
-      test_env = model$settings$env$X[test,,drop=FALSE]
+      if(!is.null(test)) test_env = model$settings$env$X[test,,drop=FALSE]
     }
     if(i == "B") biotic2 = model$settings$biotic
     if(i == "S") {
       spatial2 = spatial
-      test_sp = model$settings$spatial$X[test,,drop=FALSE]
+      if(!is.null(test)) test_sp = model$settings$spatial$X[test,,drop=FALSE]
     }
   }
   
@@ -216,14 +282,25 @@ turnOn = function(model, modules = c("AB"), test= NULL, ...) {
              biotic = biotic2,
              spatial= spatial2,
              iter = model$settings$iter, 
-             step_size = model$settings$iter, 
+             step_size = model$settings$step_size, 
              link = model$settings$link, 
              learning_rate = model$settings$learning_rate,
              device = model$settings$device
   )
   
+  if(!individual) mean_func = function(f) mean(sapply(1:50, function(i) f() ))
+  else mean_func = function(f) apply(do.call(cbind, lapply(1:50, function(i) f() ) ), 1, mean)
+    
   if(is.null(test)) {
-    return(list(ll = logLik.sjSDM(m2), R=Rsquared(m2,...)))
+    if(is.null(spatial)) {
+      return(list(ll = mean_func( function() m2$model$logLik(X=m2$data$X,Y=m2$data$Y,individual=individual )[[1]] ),  
+                  R=Rsquared(model=m2,averageSite=!individual,...),
+                  R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
+    } else {
+      return(list(ll = mean_func( function() m2$model$logLik(X=m2$data$X,Y=m2$data$Y, SP=m2$settings$spatial$X,individual=individual )[[1]] ),  
+                  R=Rsquared(model=m2,averageSite=!individual,...),
+                  R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
+    }
   } else {
     
     m2$data$X = test_env 
@@ -233,12 +310,14 @@ turnOn = function(model, modules = c("AB"), test= NULL, ...) {
       
       m2$spatial$X = test_sp
       
-      return(list(ll=m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE], SP=test_sp )[[1]], 
-                  R=Rsquared(model=m2,...), R2 = Rsquared2(model=m2,...)$marginal ))
+      return(list(ll= mean_func( function() m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE], SP=test_sp,individual=individual )[[1]] ), 
+                  R=Rsquared(model=m2,averageSite=!individual,...), 
+                  R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
     } else {
 
-      return(list(ll=m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE])[[1]], 
-                  R=Rsquared(m2,...), R2 = Rsquared2(model=m2,...)$marginal))      
+      return(list(ll= mean_func( function() m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE],individual=individual)[[1]] ), 
+                  R=Rsquared(m2,averageSite=!individual,...), 
+                  R2 = Rsquared2(model=m2,individual=individual,...)$marginal))      
       
       
     }

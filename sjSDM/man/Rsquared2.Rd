@@ -4,7 +4,7 @@
 \alias{Rsquared2}
 \title{Rsquared2}
 \usage{
-Rsquared2(model, X = NULL, Y = NULL, SP = NULL, ...)
+Rsquared2(model, X = NULL, Y = NULL, SP = NULL, individual = TRUE, ...)
 }
 \arguments{
 \item{model}{model}
@@ -14,6 +14,8 @@ Rsquared2(model, X = NULL, Y = NULL, SP = NULL, ...)
 \item{Y}{new species occurences}
 
 \item{SP}{new spatial covariates}
+
+\item{individual}{R squared for each site}
 
 \item{...}{additional parameters}
 }
