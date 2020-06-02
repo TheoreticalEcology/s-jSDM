@@ -71,7 +71,7 @@ for(i in 1:nrow(setup)) {
 
     model = sjSDM(train_Y, env=linear(train_X, ~0+.), iter = 100L, device = 2L, learning_rate = 0.003, 
                    #biotic = bioticStruct(lambda = best[["lambda_cov"]], alpha = best[["alpha_cov"]]))
-                  biotic = bioticStruct(lambda = 0.1, alpha = 0.5))
+                  biotic = bioticStruct(lambda = 0.01, alpha = 0.5), link = "logit")
     res = list(sigma = getCov(model), raw_weights = t(coef(model)[[1]]), pred = predict(model, test_X), 
                confusion = cf_function(round(getCov(model), 4), sim$correlation))
     

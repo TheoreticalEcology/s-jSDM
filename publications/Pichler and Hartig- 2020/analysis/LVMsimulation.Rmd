@@ -58,7 +58,7 @@ for(d in 1:5) {
   for(i in 1:5) {
     for(j in 1:5) {
     sjSDM = sjSDM(data[[d]][[i]][[j]]$Y, env = linear(data[[d]][[i]][[j]]$X, ~0+.), step_size = 20L, 
-                  iter = 100L, device = 2, learning_rate = 0.005)
+                  iter = 100L, device = 2, learning_rate = 0.005, link = "logit")
     sp_sjSDM = getCov(sjSDM)
     sjSDM_cov[i,j] = data[[d]][[i]][[j]]$corr_acc(sp_sjSDM)
     sjSDM_rmse[i,j] = sqrt(mean(as.vector(t(coef(sjSDM)[[1]]) - data[[d]][[i]][[j]]$SPW)^2))

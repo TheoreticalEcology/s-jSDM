@@ -22,7 +22,7 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
   
   
   model = sjSDM( pa, env = linear(env_scaled, formula = ~.), learning_rate = learning_rate, 
-                iter = epochs, step_size = batch_size,
+                iter = epochs, step_size = batch_size, link="logit",
                 device = "cpu")
   time = model$time
   cpu = 
@@ -39,8 +39,8 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
   
   
   model = sjSDM( pa, env = linear(env_scaled, formula = ~.), learning_rate = learning_rate, 
-                 iter = epochs, step_size = batch_size,
-                device = 0L)
+                 iter = epochs, step_size = batch_size, link="logit",
+                device = 1L)
   time = model$time
   gpu = 
     list(

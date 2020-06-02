@@ -23,7 +23,7 @@ for(i in 1:nrow(setup)){
     
     # model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
     model = sjSDM(Y, env =linear(X, ~0+X1+X2+X3+X4+X5), learning_rate = 0.003, iter = 120L, step_size = 50L,parallel = 0L,
-                  device = 0L)
+                  device = 0L, link = "logit")
     time = model$time
     result_corr_acc[i,j] =  sim$corr_acc(getCov(model))
     ce = t(coef(model)[[1]]) 
@@ -40,5 +40,5 @@ for(i in 1:nrow(setup)){
     result_rmse_env = result_rmse_env,
     result_time= result_time
   )
-  saveRDS(result, "results/large_scale.RDS")
+  saveRDS(result, "results/large_scale_logit.RDS")
 }

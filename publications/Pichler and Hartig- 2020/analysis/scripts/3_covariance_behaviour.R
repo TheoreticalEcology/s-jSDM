@@ -41,11 +41,11 @@ for(i in 1:length(sites)) {
     
     model = sjSDM(Y, env=linear(X, formula = ~0+X1+X2+X3+X4+X5), learning_rate = 0.01, 
                   iter = 50L, step_size = as.integer(nrow(X)*0.1),
-                  device = 0L)
+                  device = 0L, link = "logit")
     time = model$time
     result_corr_acc[i,j] =  sim$corr_acc(getCov(model))
-    result_env[i,j] = mean(as.vector(coef(model)[[1]] > 0) == as.vector(sim$species_weights > 0))
-    result_rmse_env[i,j] =  sqrt(mean((as.vector(coef(model)[[1]]) - as.vector(sim$species_weights))^2))
+    result_env[i,j] = mean(as.vector(t(coef(model)[[1]]) > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(t(coef(model)[[1]])) - as.vector(sim$species_weights))^2))
     result_time[i,j] = time
     rm(model)
     gc()
@@ -201,7 +201,7 @@ for(i in 1:length(sites)) {
                  studyDesign = studyDesign, ranLevels = list(sample = rL),distr = "probit")
     time =
       system.time({
-        model = sampleMcmc(model, thin = 50, samples = 1000, transient = 50,verbose = 5000,
+        model = sampleMcmc(model, thin = 50, samples = 1000, transient = 5000,verbose = 5000,
                            nChains = 2L,nParallel = 2L)
       })
     posterior_tmp = convertToCodaObject(model)

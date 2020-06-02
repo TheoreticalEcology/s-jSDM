@@ -41,7 +41,7 @@ for(i in 1:nrow(setup)) {
     
     # model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
     model = sjSDM(train_Y, env = linear(train_X, ~0+X1+X2+X3+X4+X5 ), learning_rate = 0.01, 
-                  iter = 50L, step_size = as.integer(nrow(train_X)*0.1),
+                  iter = 50L, step_size = as.integer(nrow(train_X)*0.1), link="logit",
                   device = "cpu")
     
     time = model$time

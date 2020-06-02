@@ -36,8 +36,8 @@ for(i in 1:nrow(setup)) {
     counter = counter + 1L
     
      # model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
-    model = sjSDM(train_Y, env = linear(train_X, ~0+X1+X2+X3+X4+X5 ), learning_rate = 0.01, 
-                  iter = 50L, step_size = as.integer(nrow(train_X)*0.1),
+    model = sjSDM(train_Y, env = linear(train_X, ~0+X1+X2+X3+X4+X5), learning_rate = 0.01,
+                  iter = 50L, step_size = as.integer(nrow(train_X)*0.1), link="logit",
                   device = 0L)
       
     time = model$time
@@ -63,7 +63,7 @@ for(i in 1:nrow(setup)) {
     result_time= result_time,
     auc = auc
   )
-  saveRDS(gpu_dmvp, "results/gpu_sjSDM_probit.RDS")
+  saveRDS(gpu_dmvp, "results/gpu_sjSDM_logit.RDS")
 }
 
 
