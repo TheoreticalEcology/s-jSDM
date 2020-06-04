@@ -54,7 +54,7 @@ summary(model)
 
 ```
 Let's have a look at the importance of the three groups (environment, associations, and space) on the occurences:
-```{r,fig.height=7, fig.width=7}
+```{r,fig.height=5, fig.width=5}
 imp = importance(model)
 print(imp)
 plot(imp)
@@ -64,11 +64,12 @@ plot(imp)
 As expected, space has no effect on occurences.
 
 Let's have a look on community level how the three groups contribute to the overall explained variance 
-```{r,fig.height=7, fig.width=7}
+```{r,fig.height=4, fig.width=4}
 an = anova(model, cv = FALSE)
 print(an)
 plot(an)
 ```
+
 The anova shows the relative changes in the logLik of the groups and their intersections:
 
 Space has a high positive value which means that space does not increase the model fit.
