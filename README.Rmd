@@ -64,7 +64,7 @@ plot(imp)
 As expected, space has no effect on occurences.
 
 Let's have a look on community level how the three groups contribute to the overall explained variance 
-```{r,fig.height=4, fig.width=4}
+```{r,fig.height=7, fig.width=6.3}
 an = anova(model, cv = FALSE)
 print(an)
 plot(an)
