@@ -2,7 +2,8 @@
 title: "README"
 author: "Max Pichler"
 output: 
-  md_document
+  html_document: 
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -43,17 +44,17 @@ Once the dependencies are installed, the following code should run:
 Simulate a community and fit model:
 ```{r}
 library(sjSDM)
-community <- simulate_SDM(sites = 400, species = 25, env = 5)
+community <- simulate_SDM(sites = 400, species = 10, env = 2)
 Env <- community$env_weights
 Occ <- community$response
 SP <- matrix(rnorm(800), 400, 2) # spatial coordinates (no effect on species occurences)
 
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~0+X1*X2 + X3 + X4), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE)
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~0+X1:X2 + X1), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE)
 summary(model)
 
 ```
 Let's have a look at the importance of the three groups (environment, associations, and space) on the occurences:
-```{r}
+```{r,fig.height=7, fig.width=7}
 imp = importance(model)
 print(imp)
 plot(imp)
@@ -63,7 +64,7 @@ plot(imp)
 As expected, space has no effect on occurences.
 
 Let's have a look on community level how the three groups contribute to the overall explained variance 
-```{r}
+```{r,fig.height=7, fig.width=7}
 an = anova(model, cv = FALSE)
 print(an)
 plot(an)
