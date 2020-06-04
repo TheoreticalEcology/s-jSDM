@@ -4,22 +4,21 @@
 \alias{plot.sjSDManovaIndividual}
 \title{Plot anova}
 \usage{
-\method{plot}{sjSDManovaIndividual}(x, y, perf = c("LogLik", "R2"),
-  cols = c("#7FC97F", "#BEAED4", "#FDC086"), alpha = 0.15, percent = TRUE,
-  ...)
+\method{plot}{sjSDManovaIndividual}(x, y, contour = FALSE,
+  col.points = "#24526e", cex.points = 1.2, pch = 19, ...)
 }
 \arguments{
 \item{x}{anova object from \code{\link{anova.sjSDM}}}
 
 \item{y}{unused argument}
 
-\item{perf}{performance measurement to plot}
+\item{contour}{plot contour or not}
 
-\item{cols}{colors for the groups}
+\item{col.points}{point color}
 
-\item{alpha}{alpha for colors}
+\item{cex.points}{point size}
 
-\item{percent}{use relative instead of absolute values}
+\item{pch}{point symbol}
 
 \item{...}{Additional arguments to pass to \code{plot()}}
 }

@@ -173,6 +173,16 @@ print.sjSDManova = function(x, ...) {
 }
 
 
+#' Print sjSDM anova
+#' 
+#' @param x an object of \code{\link{anova.sjSDM}}
+#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @export
+print.sjSDManovaIndividual = function(x, ...) {
+  cat("Site specific changes relative to empty model (without modules), see plot(x)")
+}
+
+
 #' Plot anova
 #' 
 #' @param x anova object from \code{\link{anova.sjSDM}}
@@ -218,13 +228,36 @@ plot.sjSDManova = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#B
 #' 
 #' @param x anova object from \code{\link{anova.sjSDM}}
 #' @param y unused argument
-#' @param perf performance measurement to plot
-#' @param cols colors for the groups
-#' @param alpha alpha for colors
-#' @param percent use relative instead of absolute values
+#' @param contour plot contour or not
+#' @param col.points point color
+#' @param cex.points point size
+#' @param pch point symbol
 #' @param ... Additional arguments to pass to \code{plot()}
 #' @export
-plot.sjSDManovaIndividual = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#BEAED4","#FDC086"),alpha=0.15,percent=TRUE, ...) {
+plot.sjSDManovaIndividual= function(x, y,contour=FALSE,col.points="#24526e",cex.points=1.2,pch=19, ...) {
+  
+  print("not yet supported")
+  # if(dim(an$result)[2] > 5 ) {
+  #   
+  #   #tt = x$result[,9,]
+  #   #attributes(tt) = list(dim = c(dim(x$result)[1], 1, 4))
+  #   
+  #   
+  #   
+  #   #x$result = x$result / abind::abind(rep(list(tt), 9), along = 2L)
+  #   data = x$result[,2:4,1] /apply(x$result[,9,],2,sum)[1]
+  #   Ternary::TernaryPlot(grid.lines = 2, 
+  #                        axis.labels = c(round(min(data), 3), "", round(max(data), 3)), 
+  #                        alab = 'Environmental', blab = 'Spatial', clab = 'Biotic',
+  #                        grid.col = "grey")
+  #   data = scales::rescale(data)
+  #   
+  #   Ternary::TernaryPoints(data,  col = col.points, pch = pch, cex=cex.points)
+  # } else {
+  #   graphics::barplot(t(data[,2:3]), las = 2, names.arg=data$sp)
+  # }
+  # return(invisible(data))
+  
 }
 
 
