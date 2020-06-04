@@ -305,9 +305,9 @@ summary.sjSDM = function(object, ...) {
   
       coefs = coef.sjSDM(object)[[1]]
       if(inherits(coefs, "list")) coefs = coefs[[1]]
-      env = t(coefs)
+      env2 = t(coefs)
     
-      env = data.frame(env)
+      env = data.frame(env2)
       if(is.null(object$species)) colnames(env) = paste0("sp", 1:ncol(env))
       else colnames(env) = object$species
       rownames(env) = object$names
@@ -322,7 +322,7 @@ summary.sjSDM = function(object, ...) {
       
       # TO DO: p-value parsing:
       if(!is.null(object$se)) {
-        out$z = object$weights[[1]][[1]] / object$se
+        out$z = env2 / object$se
         out$P = 2*stats::pnorm(abs(out$z),lower.tail = FALSE)
         out$se = object$se
         
