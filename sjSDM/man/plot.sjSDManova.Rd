@@ -5,10 +5,11 @@
 \title{Plot anova}
 \usage{
 \method{plot}{sjSDManova}(x, y, perf = c("LogLik", "R2"),
-  cols = c("#7FC97F", "#BEAED4", "#FDC086"), alpha = 0.15, ...)
+  cols = c("#7FC97F", "#BEAED4", "#FDC086"), alpha = 0.15, percent = TRUE,
+  ...)
 }
 \arguments{
-\item{x}{a model fitted by \code{\link{sjSDM_cv}}}
+\item{x}{anova object from \code{\link{anova.sjSDM}}}
 
 \item{y}{unused argument}
 
@@ -17,6 +18,8 @@
 \item{cols}{colors for the groups}
 
 \item{alpha}{alpha for colors}
+
+\item{percent}{use relative instead of absolute values}
 
 \item{...}{Additional arguments to pass to \code{plot()}}
 }
