@@ -20,7 +20,7 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 
 ## ----eval=FALSE----------------------------------------------------------
-#  model = sjSDM(Y = com$response, env = com$env_weights, iter = 10L)
+#  model = sjSDM(Y = com$response, env = com$env_weights, iter = 50L, se=TRUE)
 
 ## ----eval=FALSE----------------------------------------------------------
 #  coef(model)
@@ -35,6 +35,10 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 ## ----eval=FALSE----------------------------------------------------------
 #  model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~0+ I(X1^2)), iter = 50L, se = TRUE)
 #  summary(model)
+
+## ----eval=FALSE----------------------------------------------------------
+#  an = anova(model, cv = FALSE)
+#  plot(an)
 
 ## ----eval=FALSE----------------------------------------------------------
 #  model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~0+ I(X1^2),lambda = 0.5), iter = 50L)

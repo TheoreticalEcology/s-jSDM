@@ -35,10 +35,7 @@ library(sjSDM)
 
 ## Installing dependencies
 
-sjSDM depends on the anaconda distribution of python and pytorch. You will get a warning if you don't have python or pytorch installed.
-
-* anaconda needs to be installed by hand, outside R https://www.anaconda.com/distribution/
-* once anaconda is installed, sjSDM can attempt to install pytorch automatically via 
+sjSDM depends on the anaconda distribution of python and pytorch. You will get a warning if you don't have python installed. sjSDM depends on Anaconda which will be installed if it is not available.
 
 ```{r, eval = F}
 install_sjSDM()
@@ -72,7 +69,7 @@ com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrix. 
 
 ```{r,eval=FALSE}
-model = sjSDM(Y = com$response, env = com$env_weights, iter = 10L)
+model = sjSDM(Y = com$response, env = com$env_weights, iter = 100L, se=TRUE)
 ```
 
 
@@ -104,6 +101,36 @@ summary(model)
 ```
 
 
+## Adding a spatial term
+```{r,eval=FALSE}
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+X = com$env_weights
+Y = com$response
+
+XYcoords = matrix(rnorm(200), 100, 2)
+
+model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2), iter = 100L)
+summary(model)
+```
+
+
+## Further analyses
+### Anova
+Analysis of variance for the two/three different compenents (environment, biotic associations, and space (optional)). sjSDM supports cross-validation in the anova to correct for the complexity of the model, which is somehow difficult to estimate:
+```{r,eval=FALSE}
+an = anova(model, cv = FALSE)
+plot(an)
+```
+
+### Importance
+We can also partition the effects of the different components
+```{r,eval=FALSE}
+imp = importance(model)
+plot(imp)
+```
+
+
+
 ## Regularization
 ### Regularization on abiotic coefficients
 sjSDM supports l1 (lasso) and l2 (ridge) regularization:
@@ -126,12 +153,13 @@ model = sjSDM(Y = com$response,
 summary(model)
 ```
 
-Regularization on the inverse covariance matrix (precision) is also supported:
+
+
+### Regularization on the spatial model:
+
 ```{r,eval=FALSE}
-model = sjSDM(Y = com$response, 
-              env = linear(data = com$env_weights, formula = ~0+ I(X1^2),lambda = 0.5),
-              biotic = bioticStruct(lambda =0.1, on_diag = FALSE,inverse = TRUE),
-              iter = 50L)
+
+model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2, lambda = 0.4))
 summary(model)
 ```
 
@@ -171,29 +199,6 @@ plot(model)
 ```
 
 
-
-# Adding a spatial term
-```{r,eval=FALSE}
-com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
-X = com$env_weights
-Y = com$response
-
-XYcoords = matrix(rnorm(200), 100, 2)
-
-model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2))
-summary(model)
-```
-
-
-## Regularization on the spatial model:
-
-```{r,eval=FALSE}
-
-model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2, lambda = 0.4))
-summary(model)
-```
-
-
 ## We can also use a non-linear model as a spatial model:
 
 ```{r,eval=FALSE}
@@ -208,3 +213,24 @@ summary(model)
 model = sjSDM(Y, env = DNN(X, ~X1+X2), spatial = DNN(XYcoords, ~0+X1:X2, lambda = 0.4))
 summary(model)
 ```
+
+
+# Fitting other distributions (e.g. species frequencies)
+sjSDM does not support directly other responses than presence-absence data, however, there are efficient workarounds which could be even more stable than the actual model. Let's have a look at observed species frequencies (count data):
+```{r,eval=FALSE}
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L,link = "identical", response = "count") # samples from a Poisson distribution
+X = com$env_weights
+Y = com$response
+```
+The log-normalization is one way to transform species counts into quasi-probabilities in the range of [0,1]:
+```{r,eval=FALSE}
+Y_pa = scales::rescale(log(Y+0.001))
+```
+
+We can use the quasi probabilities the same way as presence-absence data:
+```{r,eval=FALSE}
+
+model = sjSDM(Y_pa, env = linear(X, ~X1+X2), se = TRUE, iter = 100L)
+summary(model)
+```
+
