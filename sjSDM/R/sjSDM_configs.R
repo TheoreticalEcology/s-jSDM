@@ -183,8 +183,124 @@ print.spatialRE = function(x, ...) {
 }
 
 
+#' sjSDM control object
+#' 
+#' @param optimizer object of type
+#' @param scheduler use scheduler or not
+#' 
+#' @export
+sjSDMControl = function(optimizer = Adamax(),
+                        scheduler = FALSE) {
+  
+  control = list()
+  control$optimizer = optimizer
+  control$scheduler = scheduler
+  return(control)
+}
 
 
+#' Adamax
+#' @param betas betas
+#' @param eps eps
+#' @param weight_decay weight_decay
+#' @export
+Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.0) {
+  out = list()
+  out$params = list()
+  out$params$betas = betas
+  out$params$eps = eps
+  out$params$weight_decay = weight_decay
+  out$ff = fa$optimizer_adamax
+  return(out)
+}
 
 
+#' RMSprop
+#' @param alpha alpha
+#' @param eps eps
+#' @param weight_decay weight_decay
+#' @param momentum momentum
+#' @param centered centered
+#' @export
+RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0, momentum=0.1, centered=FALSE) {
+  out = list()
+  out$params = list()
+  out$params$alpha = alpha
+  out$params$eps = eps
+  out$params$weight_decay = weight_decay
+  out$params$momentum = momentum
+  out$params$centered = centered
+  out$ff = fa$optimizer_RMSprop
+  return(out)
+}
 
+
+#' SGD
+#' @param momentum betas
+#' @param dampening eps
+#' @param weight_decay weight_decay
+#' @param nesterov nesterov
+#' @export
+SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
+  out = list()
+  out$params = list()
+  out$params$momentum = momentum
+  out$params$dampening = dampening
+  out$params$weight_decay = weight_decay
+  out$params$nesterov = nesterov
+  out$ff = fa$optimizer_SGD
+  return(out)
+}
+
+
+#' AccSGD
+#' @param kappa betas
+#' @param xi eps
+#' @param small_const small_const
+#' @param weight_decay weight_decay
+#' @export
+AccSGD = function(     kappa=1000.0,
+                    xi=10.0,
+                    small_const=0.7,
+                    weight_decay=0) {
+  out = list()
+  out$params = list(kappa=kappa,xi=xi,small_const=small_const,weight_decay=weight_decay)
+  out$ff = fa$optimizer_AccSGD
+  return(out)
+}
+
+
+#' AdaBound
+#' @param betas betas
+#' @param final_lr eps
+#' @param gamma small_const
+#' @param eps eps
+#' @param weight_decay weight_decay
+#' @param amsbound amsbound
+#' @export
+AdaBound = function(    betas= c(0.9, 0.999),
+                        final_lr = 0.1,
+                        gamma=1e-3,
+                        eps= 1e-8,
+                        weight_decay=0,
+                        amsbound=TRUE) {
+  out = list()
+  out$params = list(betas=betas,final_lr=final_lr,gamma=gamma,eps= eps,weight_decay=weight_decay,amsbound=amsbound)
+  out$ff = fa$optimizer_AdaBound
+  return(out)
+}
+
+
+#' DiffGrad
+#' @param betas betas
+#' @param eps eps
+#' @param weight_decay weight_decay
+#' @export
+DiffGrad = function(    betas=c(0.9, 0.999),
+                        eps=1e-8,
+                        weight_decay=0) {
+  out = list()
+  out$params = list(betas=betas,eps=eps,weight_decay=weight_decay)
+  out$ff = fa$optimizer_DiffGrad
+  return(out)
+}

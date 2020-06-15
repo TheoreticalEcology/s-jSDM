@@ -1,0 +1,43 @@
+---
+title: "Optimizer"
+author: "Maximilian Pichler"
+date: "15 6 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(sjSDM)
+
+communities = lapply(c(50, 100, 150), function(sp) lapply(1:30, function(i) simulate_SDM(env = 3L, sites = 300L, species = sp)))
+
+optims = c("adamax", "rmsprop", "accsgd", "adabound", "sgd", "diffgrad")
+lr = c(0.01, 0.005, 0.002, 0.001)
+epochs = c(100, 200)
+bs = c(10, 30, 50)
+sp = c(50, 100, 150)
+iter = 1:30
+
+
+test = data.frame(expand.grid(optims, lr, epochs, bs, sp, iter))
+colnames(test) = c("optim", "lr", "epochs", "bs", "sp", "iter")
+test$acc = NA
+test$grads = NA
+test = test[order(test$sp),]
+```
+
+
+```{r}
+cuts = cut(1:nrow(test), breaks = 16)
+levels(cuts) = 1:16
+
+tests = lapply(1:16, function(i) test[cuts==paste0(i),])
+
+library(snow)
+
+
+```
+

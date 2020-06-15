@@ -182,7 +182,7 @@ class Model_sjSDM:
         return DataLoader
 
     def build(self, df=None,Re=None, optimizer=None, l1=0.0, l2=0.0,
-              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit", diag=False):
+              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit", diag=False, scheduler=True,patience=2, factor = 0.05):
         
         if self.device.type == 'cuda' and torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -213,7 +213,13 @@ class Model_sjSDM:
             self.params.append([self.re])
 
         if optimizer != None:
-            self.optimizer = optimizer(params = itertools.chain(*self.params))     
+            self.optimizer = optimizer(params = itertools.chain(*self.params))
+
+        if scheduler:
+            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode="min", patience=patience, factor=factor, verbose=True)
+            self.useSched = True
+        else:
+            self.useSched = False
 
     def fit(self, X, Y, SP=None, RE=None, batch_size=25, epochs=100, sampling=100, parallel=0):
         stepSize = np.floor(X.shape[0] / batch_size).astype(int)
@@ -259,7 +265,9 @@ class Model_sjSDM:
                     #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
                     ep_bar.set_postfix(loss=f'{bl}')
                     #sys.stdout.flush()
-                    self.history[epoch] = bl    
+                    self.history[epoch] = bl
+                    if self.useSched:
+                        self.scheduler.step(bl) 
             else: 
                 for epoch in ep_bar:
                     for step, (x, y, sp) in enumerate(dataLoader):
@@ -283,7 +291,9 @@ class Model_sjSDM:
                     #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
                     ep_bar.set_postfix(loss=f'{bl}')
                     #sys.stdout.flush()
-                    self.history[epoch] = bl 
+                    self.history[epoch] = bl
+                    if self.useSched:
+                        self.scheduler.step(bl)                    
 
         else:
             for epoch in ep_bar:
@@ -310,6 +320,8 @@ class Model_sjSDM:
                     ep_bar.set_postfix(loss=f'{bl}')
                     #sys.stdout.flush()
                     self.history[epoch] = bl
+                    if self.useSched:
+                        self.scheduler.step(bl)                     
                 else:
                     for step, (x, y) in enumerate(dataLoader):
                         x = x.to(self.device, non_blocking=True)
@@ -332,6 +344,8 @@ class Model_sjSDM:
                     ep_bar.set_postfix(loss=f'{bl}')
                     #sys.stdout.flush()
                     self.history[epoch] = bl
+                    if self.useSched:
+                        self.scheduler.step(bl) 
         torch.cuda.empty_cache()
         
     def logLik(self,X, Y,SP=None,RE=None, batch_size=25, parallel=0, sampling=100,individual=False,train=True):
