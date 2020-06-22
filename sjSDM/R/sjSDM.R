@@ -109,7 +109,7 @@ sjSDM = function(Y = NULL,
     }
     
     control$optimizer$params$lr = learning_rate
-    optimizer = do.call(control$optimizer$ff, control$optimizer$params)
+    optimizer = do.call(control$optimizer$ff(), control$optimizer$params)
     
     model$build(df = biotic$df, 
                 l1 = biotic$l1_cov, 

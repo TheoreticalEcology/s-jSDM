@@ -78,10 +78,10 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       ### model ###
       new_env = env
       X_test = env$X[test_indices[[i]],,drop = FALSE]
-      Y_test = Y[test_indices[[i]],]
+      Y_test = Y[test_indices[[i]],,drop=FALSE]
       
       new_env$X = env$X[-test_indices[[i]],,drop = FALSE]
-      Y_train = Y[-test_indices[[i]],]
+      Y_train = Y[-test_indices[[i]],,drop=FALSE]
       
       new_env$l1_coef = (1-a_coef)*l_coef
       new_env$l2_coef = (a_coef)*l_coef
@@ -130,7 +130,9 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       auc_test = mean(auc_test)
       auc_train = mean(auc_train)
       ll_train = logLik.sjSDM(model)
-      ll_test =  mean(sapply(1:50, function(i) model$model$logLik(X_test, Y_test, SP = SP_test, batch_size = as.integer(floor(nrow(X_test)/2)))[[1]] ))
+      bs =  as.integer(floor(nrow(X_test)/2))
+      if(bs == 0) bs = 1L
+      ll_test =  mean(sapply(1:50, function(i) model$model$logLik(X_test, Y_test, SP = SP_test, batch_size =bs)[[1]] ))
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
                                  pars = tune_samples[t,],
                                  pred_test = pred_test,

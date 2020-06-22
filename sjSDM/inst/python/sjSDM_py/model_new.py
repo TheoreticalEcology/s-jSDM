@@ -182,7 +182,7 @@ class Model_sjSDM:
         return DataLoader
 
     def build(self, df=None,Re=None, optimizer=None, l1=0.0, l2=0.0,
-              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit", diag=False, scheduler=True,patience=2, factor = 0.05):
+              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit", diag=False, scheduler=True,patience=2, factor = 0.90):
         
         if self.device.type == 'cuda' and torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -727,6 +727,10 @@ class Model_sjSDM:
     @property
     def weights(self):
         return [(lambda p: p.data.cpu().numpy())(p) for p in self.params()] 
+
+    @property
+    def covariance(self):
+        return self.sigma.matmul(self.sigma.t()).data.cpu().numpy()
 
     @property
     def get_sigma(self):

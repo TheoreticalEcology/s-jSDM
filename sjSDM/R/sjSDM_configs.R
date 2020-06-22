@@ -210,7 +210,7 @@ Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.0) {
   out$params$betas = betas
   out$params$eps = eps
   out$params$weight_decay = weight_decay
-  out$ff = fa$optimizer_adamax
+  out$ff = function() return(fa$optimizer_adamax)
   return(out)
 }
 
@@ -230,7 +230,7 @@ RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0, momentum=0.1, centered
   out$params$weight_decay = weight_decay
   out$params$momentum = momentum
   out$params$centered = centered
-  out$ff = fa$optimizer_RMSprop
+  out$ff = function() return(fa$optimizer_RMSprop)
   return(out)
 }
 
@@ -248,7 +248,7 @@ SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
   out$params$dampening = dampening
   out$params$weight_decay = weight_decay
   out$params$nesterov = nesterov
-  out$ff = fa$optimizer_SGD
+  out$ff = function() return(fa$optimizer_SGD)
   return(out)
 }
 
@@ -265,7 +265,7 @@ AccSGD = function(     kappa=1000.0,
                     weight_decay=0) {
   out = list()
   out$params = list(kappa=kappa,xi=xi,small_const=small_const,weight_decay=weight_decay)
-  out$ff = fa$optimizer_AccSGD
+  out$ff = function() return(fa$optimizer_AccSGD)
   return(out)
 }
 
@@ -286,7 +286,7 @@ AdaBound = function(    betas= c(0.9, 0.999),
                         amsbound=TRUE) {
   out = list()
   out$params = list(betas=betas,final_lr=final_lr,gamma=gamma,eps= eps,weight_decay=weight_decay,amsbound=amsbound)
-  out$ff = fa$optimizer_AdaBound
+  out$ff = function() return(fa$optimizer_AdaBound)
   return(out)
 }
 
@@ -301,6 +301,6 @@ DiffGrad = function(    betas=c(0.9, 0.999),
                         weight_decay=0) {
   out = list()
   out$params = list(betas=betas,eps=eps,weight_decay=weight_decay)
-  out$ff = fa$optimizer_DiffGrad
+  out$ff = function() return(fa$optimizer_DiffGrad)
   return(out)
 }
