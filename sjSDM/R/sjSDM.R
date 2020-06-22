@@ -12,7 +12,8 @@
 #' @param se calculate standard errors for environmental coefficients
 #' @param link probit or logit
 #' @param sampling number of sampling steps for Monte Carlo integreation
-#' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
+#' @param parallel number of cpu cores for the data loader, only necessary for large datasets
+#' @param control control parameters for optimizer, see \code{\link{sjSDMControl}}
 #' @param device which device to be used, "cpu" or "gpu"
 #' @param dtype which data type, most GPUs support only 32 bit floats.
 #' 
@@ -47,6 +48,7 @@ sjSDM = function(Y = NULL,
                  link = c("probit", "logit", "linear"),
                  sampling = 100L,
                  parallel = 0L, 
+                 control = sjSDMControl(),
                  device = "cpu", 
                  dtype = "float32") {
   stopifnot(
@@ -106,15 +108,18 @@ sjSDM = function(Y = NULL,
       }
     }
     
+    control$optimizer$params$lr = learning_rate
+    optimizer = do.call(control$optimizer$ff(), control$optimizer$params)
     
     model$build(df = biotic$df, 
                 l1 = biotic$l1_cov, 
                 l2 = biotic$l2_cov, 
                 reg_on_Diag = biotic$on_diag,
                 inverse = biotic$inverse,
-                optimizer = fa$optimizer_adamax(lr = learning_rate, weight_decay = 0.00), 
+                optimizer = optimizer, 
                 link = link,
-                diag=biotic$diag)
+                diag=biotic$diag,
+                scheduler=control$schedule)
     
     return(model)
   }

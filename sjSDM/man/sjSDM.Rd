@@ -7,7 +7,7 @@
 sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
   iter = 50L, step_size = NULL, learning_rate = 0.01, se = FALSE,
   link = c("probit", "logit", "linear"), sampling = 100L, parallel = 0L,
-  device = "cpu", dtype = "float32")
+  control = sjSDMControl(), device = "cpu", dtype = "float32")
 }
 \arguments{
 \item{Y}{matrix of species occurences/responses}
@@ -31,6 +31,8 @@ sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
 \item{sampling}{number of sampling steps for Monte Carlo integreation}
 
 \item{parallel}{number of cpu cores for the data loader, only necessary for large datasets}
+
+\item{control}{control parameters for optimizer, see \code{\link{sjSDMControl}}}
 
 \item{device}{which device to be used, "cpu" or "gpu"}
 

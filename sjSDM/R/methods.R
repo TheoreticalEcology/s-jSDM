@@ -10,7 +10,10 @@ getCov = function(object) UseMethod("getCov")
 #' @rdname getCov
 #' @export
 getCov.sjSDM = function(object){
-  return(object$sigma %*% t(object$sigma))
+  check_module()
+  object = checkModel(object)
+  return(object$model$covariance)
+  #return(object$sigma %*% t(object$sigma))
 }
 
 
