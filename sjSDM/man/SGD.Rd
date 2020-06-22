@@ -7,14 +7,14 @@
 SGD(momentum = 0.5, dampening = 0, weight_decay = 0, nesterov = TRUE)
 }
 \arguments{
-\item{momentum}{betas}
+\item{momentum}{strength of momentum}
 
-\item{dampening}{eps}
+\item{dampening}{decay}
 
-\item{weight_decay}{weight_decay}
+\item{weight_decay}{l2 penalty on weights}
 
-\item{nesterov}{nesterov}
+\item{nesterov}{Nesterov momentum or not}
 }
 \description{
-SGD
+stochastic gradient descent optimizer
 }

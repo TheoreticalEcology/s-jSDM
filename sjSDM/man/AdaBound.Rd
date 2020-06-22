@@ -21,5 +21,8 @@ AdaBound(betas = c(0.9, 0.999), final_lr = 0.1, gamma = 0.001,
 \item{amsbound}{amsbound}
 }
 \description{
-AdaBound
+adaptive gradient methods with dynamic bound of learning rate, see Luo et al., 2019 for details
+}
+\references{
+Luo, L., Xiong, Y., Liu, Y., & Sun, X. (2019). Adaptive gradient methods with dynamic bound of learning rate. arXiv preprint arXiv:1902.09843.
 }

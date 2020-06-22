@@ -8,16 +8,16 @@ RMSprop(alpha = 0.99, eps = 1e-08, weight_decay = 0, momentum = 0.1,
   centered = FALSE)
 }
 \arguments{
-\item{alpha}{alpha}
+\item{alpha}{decay factor}
 
-\item{eps}{eps}
+\item{eps}{fuzz factor}
 
-\item{weight_decay}{weight_decay}
+\item{weight_decay}{l2 penalty on weights}
 
 \item{momentum}{momentum}
 
-\item{centered}{centered}
+\item{centered}{centered or not}
 }
 \description{
-RMSprop
+RMSprop optimizer
 }

@@ -4,10 +4,10 @@
 \alias{sjSDMControl}
 \title{sjSDM control object}
 \usage{
-sjSDMControl(optimizer = Adamax(), scheduler = FALSE)
+sjSDMControl(optimizer = RMSprop(), scheduler = FALSE)
 }
 \arguments{
-\item{optimizer}{object of type}
+\item{optimizer}{object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, or \code{\link{AdaBound}}}
 
 \item{scheduler}{use scheduler or not}
 }

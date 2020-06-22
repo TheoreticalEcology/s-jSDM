@@ -7,12 +7,15 @@
 Adamax(betas = c(0.9, 0.999), eps = 1e-08, weight_decay = 0)
 }
 \arguments{
-\item{betas}{betas}
+\item{betas}{exponential decay rates}
 
-\item{eps}{eps}
+\item{eps}{fuzz factor}
 
-\item{weight_decay}{weight_decay}
+\item{weight_decay}{l2 penalty on weights}
 }
 \description{
-Adamax
+Adamax optimizer, see Kingma and Ba, 2014
+}
+\references{
+Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
 }

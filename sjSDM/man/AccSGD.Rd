@@ -7,14 +7,17 @@
 AccSGD(kappa = 1000, xi = 10, small_const = 0.7, weight_decay = 0)
 }
 \arguments{
-\item{kappa}{betas}
+\item{kappa}{long step}
 
-\item{xi}{eps}
+\item{xi}{advantage parameter}
 
 \item{small_const}{small_const}
 
-\item{weight_decay}{weight_decay}
+\item{weight_decay}{l2 penalty on weights}
 }
 \description{
-AccSGD
+accelerated stochastic gradient, see Kidambi et al., 2018 for details
+}
+\references{
+Kidambi, R., Netrapalli, P., Jain, P., & Kakade, S. (2018, February). On the insufficiency of existing momentum schemes for stochastic optimization. In 2018 Information Theory and Applications Workshop (ITA) (pp. 1-9). IEEE.
 }
