@@ -44,12 +44,13 @@ Once the dependencies are installed, the following code should run:
 Simulate a community and fit model:
 ```{r}
 library(sjSDM)
-community <- simulate_SDM(sites = 400, species = 10, env = 2)
+set.seed(42)
+community <- simulate_SDM(sites = 400, species = 10, env = 3)
 Env <- community$env_weights
 Occ <- community$response
-SP <- matrix(rnorm(800), 400, 2) # spatial coordinates (no effect on species occurences)
+SP <- matrix(rnorm(800, 0, 0.3), 400, 2) # spatial coordinates (no effect on species occurences)
 
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~0+X1:X2 + X1), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE)
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE)
 summary(model)
 
 ```
@@ -65,7 +66,7 @@ As expected, space has no effect on occurences.
 
 Let's have a look on community level how the three groups contribute to the overall explained variance 
 ```{r,fig.height=7, fig.width=6.3}
-an = anova(model, cv = FALSE)
+an = anova(model)
 print(an)
 plot(an)
 ```

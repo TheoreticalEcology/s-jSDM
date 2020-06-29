@@ -46,7 +46,7 @@ anova.sjSDM = function(object, cv = 5L,individual=FALSE,...) {
     if(!individual) {
     
       res = data.frame(matrix(NA, 9,5))
-      colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
+      colnames(res) = c("Modules", "LogLik","R2", "marginal R2", "condtional R2")    
       res$Modules = c("_", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
       res[1,2:4] = unlist(results$empty)
       
@@ -74,10 +74,13 @@ anova.sjSDM = function(object, cv = 5L,individual=FALSE,...) {
       res[7,4] = results$empty$R2 + results$BS$R2 - res[4,4] - res[3,4]
       res[8,4] = results$empty$R2 + results$full$R2 - sum(res[2:7,4])
       res[9,4] = results$empty$R2 + results$full$R2
+      res$R2ll = res$LogLik
+      res$R2ll[-1] = res$LogLik[-1] + res$LogLik[1]
+      res$R2ll = 1 - (res$R2ll / res$R2ll[1])
       out$spatial = TRUE
     } else {
       
-      res = array(NA, dim = c(nrow(object$data$Y),9,4))
+      res = array(NA, dim = c(nrow(object$data$Y),9,5))
       #colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
       #res$Modules = c("_", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
       res[,1,1:3] = do.call(cbind, results$empty)
@@ -106,6 +109,9 @@ anova.sjSDM = function(object, cv = 5L,individual=FALSE,...) {
       res[,7,3] = results$empty$R2 + results$BS$R2 - res[,4,3] - res[,3,3]
       res[,8,3] = results$empty$R2 + results$full$R2 - sum(res[,2:7,3])
       res[,9,3] = results$empty$R2 + results$full$R2
+      res[,,5] = res[,,1]
+      res[,-1,5] = res[,-1,5] + res[,1,5]
+      res[,,5] = 1 - (res$LogLik[,,5] / res$LogLik[,1,5])
       
     }
     
@@ -131,10 +137,13 @@ anova.sjSDM = function(object, cv = 5L,individual=FALSE,...) {
       res[3,4] = results$empty$R2 +results$B$R2
       res[4,4] = results$empty$R2 +results$AB$R2 - res[2,4] - res[3,4]
       res[5,4] = results$empty$R2 +results$AB$R2
+      res$R2ll = res$LogLik
+      res$R2ll[-1] = res$LogLik[-1] + res$LogLik[1]
+      res$R2ll = 1 - (res$R2ll / res$R2ll[1])
       out$spatial = FALSE
     } else {
       
-      res = array(NA, dim = c(nrow(object$data$Y),5,4))
+      res = array(NA, dim = c(nrow(object$data$Y),5,5))
       #colnames(res) = c("Modules", "LogLik", "R2", "marginal R2", "condtional R2")    
       #res$Modules = c("_", "A", "B", "S", "A+B", "A+S", "B+S", "A+B+S", "Full")
       res[,1,1:3] = do.call(cbind, results$empty)
@@ -151,6 +160,10 @@ anova.sjSDM = function(object, cv = 5L,individual=FALSE,...) {
       res[,3,4-1] = results$empty$R2 +results$B$R2
       res[,4,4-1] = results$empty$R2 +results$AB$R2 - res[,2,3] - res[,3,3]
       res[,5,4-1] = results$empty$R2 +results$AB$R2
+      
+      res[,,5] = res[,,1]
+      res[,-1,5] = res[,-1,5] + res[,1,5]
+      res[,,5] = 1 - (res[,,5] / res[,1,5])
       out$spatial = FALSE
     }
   }
@@ -190,7 +203,7 @@ print.sjSDManovaIndividual = function(x, ...) {
 #' @param perf performance measurement to plot
 #' @param cols colors for the groups
 #' @param alpha alpha for colors
-#' @param percent use relative instead of absolute values
+#' @param percent use relative instead of absolute values (currently not supported)
 #' @param ... Additional arguments to pass to \code{plot()}
 #' @export
 plot.sjSDManova = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#BEAED4","#FDC086"),alpha=0.15,percent=TRUE, ...) {
@@ -199,8 +212,9 @@ plot.sjSDManova = function(x, y, perf = c("LogLik", "R2"),cols = c("#7FC97F","#B
   dr = 1.0
   perf = match.arg(perf)
   
-  if(percent) x$result[,-1] = x$result[,-1] / do.call(rbind, rep(list(x$result[nrow(x$result),-1]), nrow(x$result)))
-  
+  #if(percent) x$result[,-1] = x$result[,-1] / do.call(rbind, rep(list(x$result[nrow(x$result),-1]), nrow(x$result)))
+  #if(percent)
+  if(perf == "LogLik") perf = "R2ll"
   graphics::plot(NULL, NULL, xlim = c(0,1), ylim =c(0,1),pty="s", axes = FALSE, xlab = "", ylab = "")
   xx = 1.1*lineSeq*cos( seq(0,2*pi, length.out=nseg))
   yy = 1.1*lineSeq*sin( seq(0,2*pi, length.out=nseg))

@@ -2,7 +2,7 @@
 #'
 #' @description fast and accurate joint species model
 #' 
-#' @param Y matrix of species occurences/responses
+#' @param Y matrix of species occurences/responses in range [0,1]
 #' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
 #' @param spatial defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}
@@ -41,7 +41,7 @@ sjSDM = function(Y = NULL,
                  env = NULL,
                  biotic = bioticStruct(),
                  spatial = NULL,
-                 iter = 50L, 
+                 iter = 100L, 
                  step_size = NULL,
                  learning_rate = 0.01, 
                  se = FALSE, 
@@ -54,7 +54,9 @@ sjSDM = function(Y = NULL,
   stopifnot(
     !is.null(Y),
     iter >= 0,
-    learning_rate >= 0
+    learning_rate >= 0,
+    !max(Y) > 1.0,
+    !min(Y) < 0.0
   )
   
   check_module()
