@@ -5,12 +5,12 @@
 \title{sjSDM}
 \usage{
 sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
-  iter = 50L, step_size = NULL, learning_rate = 0.01, se = FALSE,
+  iter = 100L, step_size = NULL, learning_rate = 0.01, se = FALSE,
   link = c("probit", "logit", "linear"), sampling = 100L, parallel = 0L,
   control = sjSDMControl(), device = "cpu", dtype = "float32")
 }
 \arguments{
-\item{Y}{matrix of species occurences/responses}
+\item{Y}{matrix of species occurences/responses in range [0,1]}
 
 \item{env}{matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}}
 

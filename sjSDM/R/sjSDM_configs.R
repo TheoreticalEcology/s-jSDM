@@ -209,7 +209,7 @@ sjSDMControl = function(optimizer = RMSprop(),
 #' @references 
 #' Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
 #' @export
-Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.0) {
+Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.002) {
   out = list()
   out$params = list()
   out$params$betas = betas
@@ -229,7 +229,7 @@ Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.0) {
 #' @param momentum momentum
 #' @param centered centered or not
 #' @export
-RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0, momentum=0.1, centered=FALSE) {
+RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.01, momentum=0.1, centered=FALSE) {
   out = list()
   out$params = list()
   out$params$alpha = alpha

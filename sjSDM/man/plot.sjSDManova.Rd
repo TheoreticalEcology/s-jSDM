@@ -19,7 +19,7 @@
 
 \item{alpha}{alpha for colors}
 
-\item{percent}{use relative instead of absolute values}
+\item{percent}{use relative instead of absolute values (currently not supported)}
 
 \item{...}{Additional arguments to pass to \code{plot()}}
 }

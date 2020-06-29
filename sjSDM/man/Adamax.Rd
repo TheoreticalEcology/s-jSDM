@@ -4,7 +4,7 @@
 \alias{Adamax}
 \title{Adamax}
 \usage{
-Adamax(betas = c(0.9, 0.999), eps = 1e-08, weight_decay = 0)
+Adamax(betas = c(0.9, 0.999), eps = 1e-08, weight_decay = 0.002)
 }
 \arguments{
 \item{betas}{exponential decay rates}
