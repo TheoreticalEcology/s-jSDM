@@ -18,10 +18,6 @@ class Model_sjSDM:
         self.alpha = alpha
         self.re = None
         
-                
-        #if self.device.type == 'cuda' and torch.cuda.is_available():
-        #    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        #else:
         torch.set_default_tensor_type('torch.FloatTensor')
 
         @torch.jit.script
@@ -129,8 +125,6 @@ class Model_sjSDM:
             Y = Y.copy()
         if type(SP) is np.ndarray:
             SP = SP.copy()
-        if type(RE) is np.ndarray:
-            RE = RE.copy()
 
         if self.device.type == 'cuda':
             torch.cuda.set_device(self.device)
@@ -241,111 +235,56 @@ class Model_sjSDM:
         desc='loss: Inf'
         ep_bar = tqdm(range(epochs),bar_format= "Iter: {n_fmt}/{total_fmt} {l_bar}{bar}| [{elapsed}, {rate_fmt}{postfix}]", file=sys.stdout)
         if type(SP) is np.ndarray:
-            if type(RE) is np.ndarray:
-                for epoch in ep_bar:
-                    for step, (x, y, sp, re) in enumerate(dataLoader):
-                        x = x.to(self.device, non_blocking=True)
-                        y = y.to(self.device, non_blocking=True)
-                        sp = sp.to(self.device, non_blocking=True)
-                        spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                        mu = self.env(x) + self.spatial(sp) + spatial_re
-                        #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
-                        loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                        loss = loss.mean() + re_loss(self.re).mean()
-                        if any_losses:
-                            for k in range(len(self.losses)):
-                                loss+= self.losses[k]()
-                        self.optimizer.zero_grad()
-                        loss.backward()
-                        self.optimizer.step()
-                        batch_loss[step] = loss.item()
-                    #torch.cuda.empty_cache()
-                    bl = np.mean(batch_loss)
-                    bl = np.round(bl, 3)
-                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    ep_bar.set_postfix(loss=f'{bl}')
-                    #sys.stdout.flush()
-                    self.history[epoch] = bl
-                    if self.useSched:
-                        self.scheduler.step(bl) 
-            else: 
-                for epoch in ep_bar:
-                    for step, (x, y, sp) in enumerate(dataLoader):
-                        x = x.to(self.device, non_blocking=True)
-                        y = y.to(self.device, non_blocking=True)
-                        sp = sp.to(self.device, non_blocking=True)
-                        mu = self.env(x) + self.spatial(sp)
-                        #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
-                        loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                        loss = loss.mean()
-                        if any_losses:
-                            for k in range(len(self.losses)):
-                                loss+= self.losses[k]()
-                        self.optimizer.zero_grad()
-                        loss.backward()
-                        self.optimizer.step()
-                        batch_loss[step] = loss.item()
-                    #torch.cuda.empty_cache()
-                    bl = np.mean(batch_loss)
-                    bl = np.round(bl, 3)
-                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    ep_bar.set_postfix(loss=f'{bl}')
-                    #sys.stdout.flush()
-                    self.history[epoch] = bl
-                    if self.useSched:
-                        self.scheduler.step(bl)                    
-
-        else:
             for epoch in ep_bar:
-                if type(RE) is np.ndarray:
-                    for step, (x, y, re) in enumerate(dataLoader):
-                        x = x.to(self.device, non_blocking=True)
-                        y = y.to(self.device, non_blocking=True)
-                        spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                        mu = self.env(x) + spatial_re
-                        #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
-                        loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                        loss = loss.mean() + re_loss(spatial_re).mean()
-                        if any_losses:
-                            for k in range(len(self.losses)):
-                                loss += self.losses[k]()
-                        self.optimizer.zero_grad()
-                        loss.backward()
-                        self.optimizer.step()
-                        batch_loss[step] = loss.item()
-                    #torch.cuda.empty_cache()
-                    bl = np.mean(batch_loss)
-                    bl = np.round(bl, 3)
-                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    ep_bar.set_postfix(loss=f'{bl}')
-                    #sys.stdout.flush()
-                    self.history[epoch] = bl
-                    if self.useSched:
-                        self.scheduler.step(bl)                     
-                else:
-                    for step, (x, y) in enumerate(dataLoader):
-                        x = x.to(self.device, non_blocking=True)
-                        y = y.to(self.device, non_blocking=True)
-                        mu = self.env(x)
-                        #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
-                        loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                        loss = loss.mean()
-                        if any_losses:
-                            for k in range(len(self.losses)):
-                                loss += self.losses[k]()
-                        self.optimizer.zero_grad()
-                        loss.backward()
-                        self.optimizer.step()
-                        batch_loss[step] = loss.item()
-                    #torch.cuda.empty_cache()
-                    bl = np.mean(batch_loss)
-                    bl = np.round(bl, 3)
-                    #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-                    ep_bar.set_postfix(loss=f'{bl}')
-                    #sys.stdout.flush()
-                    self.history[epoch] = bl
-                    if self.useSched:
-                        self.scheduler.step(bl) 
+                for step, (x, y, sp) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    y = y.to(self.device, non_blocking=True)
+                    sp = sp.to(self.device, non_blocking=True)
+                    mu = self.env(x) + self.spatial(sp)
+                    #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
+                    loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                    loss = loss.mean()
+                    if any_losses:
+                        for k in range(len(self.losses)):
+                            loss+= self.losses[k]()
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
+                    batch_loss[step] = loss.item()
+                #torch.cuda.empty_cache()
+                bl = np.mean(batch_loss)
+                bl = np.round(bl, 3)
+                #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                ep_bar.set_postfix(loss=f'{bl}')
+                #sys.stdout.flush()
+                self.history[epoch] = bl
+                if self.useSched:
+                    self.scheduler.step(bl)                    
+        else:
+            for epoch in ep_bar:  
+                for step, (x, y) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    y = y.to(self.device, non_blocking=True)
+                    mu = self.env(x)
+                    #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
+                    loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                    loss = loss.mean()
+                    if any_losses:
+                        for k in range(len(self.losses)):
+                            loss += self.losses[k]()
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
+                    batch_loss[step] = loss.item()
+                #torch.cuda.empty_cache()
+                bl = np.mean(batch_loss)
+                bl = np.round(bl, 3)
+                #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
+                ep_bar.set_postfix(loss=f'{bl}')
+                #sys.stdout.flush()
+                self.history[epoch] = bl
+                if self.useSched:
+                    self.scheduler.step(bl) 
         torch.cuda.empty_cache()
         
     def logLik(self,X, Y,SP=None,RE=None, batch_size=25, parallel=0, sampling=100,individual=False,train=True):
@@ -370,53 +309,26 @@ class Model_sjSDM:
 
         logLik = []
         logLikReg = 0
-        
-        re_loss = lambda value: torch.distributions.Normal(0.0, 1.0).log_prob(value)
-        
+                
         if type(SP) is np.ndarray:
-            if type(RE) is np.ndarray:
-                for step, (x, y, sp, re) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    y = y.to(self.device, non_blocking=True)
-                    sp = sp.to(self.device, non_blocking=True)
-                    spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                    mu = self.env(x) + self.spatial(sp) + spatial_re
-                    # loss = self._loss_function(mu, y, sigma_zero, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                    #loss = torch.sum(loss)
-                    #logLik += loss.data.cpu().numpy()
-                    logLik.append(loss.data)
-            else:
-                for step, (x, y, sp) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    y = y.to(self.device, non_blocking=True)
-                    sp = sp.to(self.device, non_blocking=True)
-                    mu = self.env(x) + self.spatial(sp)
-                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                    #logLik += loss.data.cpu().numpy()
-                    logLik.append(loss.data)
+            for step, (x, y, sp) in enumerate(dataLoader):
+                x = x.to(self.device, non_blocking=True)
+                y = y.to(self.device, non_blocking=True)
+                sp = sp.to(self.device, non_blocking=True)
+                mu = self.env(x) + self.spatial(sp)
+                # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                #logLik += loss.data.cpu().numpy()
+                logLik.append(loss.data)
         else:
-            if type(RE) is np.ndarray:
-                for step, (x, y, re) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    y = y.to(self.device, non_blocking=True)
-                    spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                    mu = self.env(x) + spatial_re
-                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                    #loss = torch.sum(loss)
-                    #logLik += loss.data.cpu().numpy()
-                    logLik.append(loss.data)
-            else:
-                for step, (x, y) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    y = y.to(self.device, non_blocking=True)
-                    mu = self.env(x)
-                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                    #logLik += loss.data.cpu().numpy()
-                    logLik.append(loss.data)
+            for step, (x, y) in enumerate(dataLoader):
+                x = x.to(self.device, non_blocking=True)
+                y = y.to(self.device, non_blocking=True)
+                mu = self.env(x)
+                # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                #logLik += loss.data.cpu().numpy()
+                logLik.append(loss.data)
         
         #if any_losses:
         loss_reg = torch.tensor(0.0, device=self.device, dtype=self.dtype).to(self.device)
@@ -426,8 +338,6 @@ class Model_sjSDM:
         logLikReg = loss_reg.data.cpu().numpy()
         #print(loss_reg)
             
-        if type(RE) is np.ndarray:
-            logLikReg += (-re_loss(self.re).sum().data.cpu().numpy())
         torch.cuda.empty_cache()
         if individual is not True:
             logLik = torch.cat(logLik).sum().data.cpu().numpy()
@@ -458,41 +368,20 @@ class Model_sjSDM:
             device = 'cpu'
         
         if type(SP) is np.ndarray:
-            if type(RE) is np.ndarray:
-                for step, (x, sp, re) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    sp = sp.to(self.device, non_blocking=True)
-                    spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                    mu = self.env(x) + self.spatial(sp) + spatial_re
-                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                    #loss = torch.sum(loss)
-                    pred.append(loss)
-            else:
-                for step, (x, sp) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    sp = sp.to(self.device, non_blocking=True)
-                    mu = self.env(x) + self.spatial(sp)
-                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                    pred.append(loss)
+            for step, (x, sp) in enumerate(dataLoader):
+                x = x.to(self.device, non_blocking=True)
+                sp = sp.to(self.device, non_blocking=True)
+                mu = self.env(x) + self.spatial(sp)
+                # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                pred.append(loss)
         else:
-            if type(RE) is np.ndarray:
-                for step, (x, re) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                    mu = self.env(x) + spatial_re
-                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                    #loss = torch.sum(loss)
-                    pred.append(loss)
-            else:
-                for step, (x) in enumerate(dataLoader):
-                    x = x[0].to(self.device, non_blocking=True)
-                    mu = self.env(x)
-                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                    pred.append(loss)
+            for step, (x) in enumerate(dataLoader):
+                x = x[0].to(self.device, non_blocking=True)
+                mu = self.env(x)
+                # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                pred.append(loss)
         predictions = torch.cat(pred, dim = 0).data.cpu().numpy()
         return predictions
 
@@ -511,136 +400,68 @@ class Model_sjSDM:
         _ = sys.stdout.write("\nCalculating standard errors...\n")
         #(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
         if type(SP) is np.ndarray:
-            if type(RE) is np.ndarray:
-                for i in range(Y.shape[1]):
-                    _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
-                    sys.stdout.flush()
-                    weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
-                    if i == 0:
-                        constants = torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)
-                        w = torch.cat([weights, constants], dim=1)
-                    elif i < y_dim:
-                        w = torch.cat([torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
-                                       weights, 
-                                       torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
+            for i in range(Y.shape[1]):
+                _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
+                sys.stdout.flush()
+                weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
+                if i == 0:
+                    constants = torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)
+                    w = torch.cat([weights, constants], dim=1)
+                elif i < y_dim:
+                    w = torch.cat([torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
+                                   weights, 
+                                   torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
+                else:
+                    constants = torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device)
+                    w = torch.cat([constants, weights], dim=1)
+                for step, (x, y, sp) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    y = y.to(self.device, non_blocking=True)
+                    sp = sp.to(self.device, non_blocking=True)
+                    mu = torch.nn.functional.linear(x, w.t()) + self.spatial(sp)
+                    loss = loss_func(mu, y,self.sigma, x.shape[0], sampling, self.df, self.alpha,device).sum()
+                    first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True, allow_unused=True)
+                    second = []
+                    for j in range(self.input_shape):
+                        second.append(torch.autograd.grad(first_gradients[0][j,0], inputs = weights, retain_graph = True, create_graph = False, allow_unused = False)[0])
+                        hessian = torch.cat(second,dim=1)
+                    if step < 1:
+                        hessian_out = hessian
                     else:
-                        constants = torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device)
-                        w = torch.cat([constants, weights], dim=1)
-                    for step, (x, y, sp, re) in enumerate(dataLoader):
-                        x = x.to(self.device, non_blocking=True)
-                        y = y.to(self.device, non_blocking=True)
-                        spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                        sp = sp.to(self.device, non_blocking=True)
-                        mu = torch.nn.functional.linear(x, w.t()) + self.spatial(sp) + spatial_re
-                        loss = loss_func(mu, y,self.sigma, x.shape[0], sampling, self.df, self.alpha,device).sum()
-                        first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True, allow_unused=True)
-                        second = []
-                        for j in range(self.input_shape):
-                            second.append(torch.autograd.grad(first_gradients[0][j,0], inputs = weights, retain_graph = True, create_graph = False, allow_unused = False)[0])
-                            hessian = torch.cat(second,dim=1)
-                        if step < 1:
-                            hessian_out = hessian
-                        else:
-                            hessian_out += hessian
-                    se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
-                return se
-            else:
-                for i in range(Y.shape[1]):
-                    _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
-                    sys.stdout.flush()
-                    weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
-                    if i == 0:
-                        constants = torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)
-                        w = torch.cat([weights, constants], dim=1)
-                    elif i < y_dim:
-                        w = torch.cat([torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
-                                       weights, 
-                                       torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
-                    else:
-                        constants = torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device)
-                        w = torch.cat([constants, weights], dim=1)
-                    for step, (x, y, sp) in enumerate(dataLoader):
-                        x = x.to(self.device, non_blocking=True)
-                        y = y.to(self.device, non_blocking=True)
-                        sp = sp.to(self.device, non_blocking=True)
-                        mu = torch.nn.functional.linear(x, w.t()) + self.spatial(sp)
-                        loss = loss_func(mu, y,self.sigma, x.shape[0], sampling, self.df, self.alpha,device).sum()
-                        first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True, allow_unused=True)
-                        second = []
-                        for j in range(self.input_shape):
-                            second.append(torch.autograd.grad(first_gradients[0][j,0], inputs = weights, retain_graph = True, create_graph = False, allow_unused = False)[0])
-                            hessian = torch.cat(second,dim=1)
-                        if step < 1:
-                            hessian_out = hessian
-                        else:
-                            hessian_out += hessian
-                    se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
-                return se                
+                        hessian_out += hessian
+                se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
+            return se                
         else:
-            if type(RE) is np.ndarray:
-                for i in range(Y.shape[1]):
-                    _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
-                    sys.stdout.flush()
-                    weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
-                    if i == 0:
-                        constants = torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)
-                        w = torch.cat([weights, constants], dim=1)
-                    elif i < y_dim:
-                        w = torch.cat([torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
-                                       weights, 
-                                       torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
+            for i in range(Y.shape[1]):
+                _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
+                sys.stdout.flush()
+                weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
+                if i == 0:
+                    constants = torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)
+                    w = torch.cat([weights, constants], dim=1)
+                elif i < y_dim:
+                    w = torch.cat([torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
+                                   weights, 
+                                   torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
+                else:
+                    constants = torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device)
+                    w = torch.cat([constants, weights], dim=1)
+                for step, (x, y) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    y = y.to(self.device, non_blocking=True)
+                    mu = torch.nn.functional.linear(x, w.t())
+                    loss = loss_func(mu, y,self.sigma, x.shape[0], sampling, self.df, self.alpha,device).sum()
+                    first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True, allow_unused=True)
+                    second = []
+                    for j in range(self.input_shape):
+                        second.append(torch.autograd.grad(first_gradients[0][j,0], inputs = weights, retain_graph = True, create_graph = False, allow_unused = False)[0])
+                        hessian = torch.cat(second,dim=1)
+                    if step < 1:
+                        hessian_out = hessian
                     else:
-                        constants = torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device)
-                        w = torch.cat([constants, weights], dim=1)
-                    for step, (x, y, re) in enumerate(dataLoader):
-                        x = x.to(self.device, non_blocking=True)
-                        y = y.to(self.device, non_blocking=True)
-                        spatial_re = self.re.gather(0, re.to(self.device, non_blocking=True))
-                        mu = torch.nn.functional.linear(x, w.t()) + spatial_re
-                        loss = loss_func(mu, y,self.sigma, x.shape[0], sampling, self.df, self.alpha,device).sum()
-                        first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True, allow_unused=True)
-                        second = []
-                        for j in range(self.input_shape):
-                            second.append(torch.autograd.grad(first_gradients[0][j,0], inputs = weights, retain_graph = True, create_graph = False, allow_unused = False)[0])
-                            hessian = torch.cat(second,dim=1)
-                        if step < 1:
-                            hessian_out = hessian
-                        else:
-                            hessian_out += hessian
-                    se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
-                return se
-            else:
-                for i in range(Y.shape[1]):
-                    _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
-                    sys.stdout.flush()
-                    weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
-                    if i == 0:
-                        constants = torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)
-                        w = torch.cat([weights, constants], dim=1)
-                    elif i < y_dim:
-                        w = torch.cat([torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
-                                       weights, 
-                                       torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
-                    else:
-                        constants = torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device)
-                        w = torch.cat([constants, weights], dim=1)
-                    for step, (x, y) in enumerate(dataLoader):
-                        x = x.to(self.device, non_blocking=True)
-                        y = y.to(self.device, non_blocking=True)
-                        mu = torch.nn.functional.linear(x, w.t())
-                        loss = loss_func(mu, y,self.sigma, x.shape[0], sampling, self.df, self.alpha,device).sum()
-                        first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True, allow_unused=True)
-                        second = []
-                        for j in range(self.input_shape):
-                            second.append(torch.autograd.grad(first_gradients[0][j,0], inputs = weights, retain_graph = True, create_graph = False, allow_unused = False)[0])
-                            hessian = torch.cat(second,dim=1)
-                        if step < 1:
-                            hessian_out = hessian
-                        else:
-                            hessian_out += hessian
-                    se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
-                return se                
-        
+                        hessian_out += hessian
+                se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
+            return se
 
     def _build_cov_constrain_function(self, l1=None, l2=None, reg_on_Cov=None, reg_on_Diag=None, inverse=None):
         if reg_on_Cov:
@@ -679,7 +500,7 @@ class Model_sjSDM:
                 @torch.jit.script
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
-                    E = torch.sigmoid(torch.tensordot(noise, sigma.t(), [2], [0]).add(mu).mul(alpha)).mul(0.99999).add(0.000005)
+                    E = torch.sigmoid(   torch.tensordot(noise, sigma.t(), [2], [0]).add(mu).mul(alpha)   ).mul(0.999999).add(0.0000005)
                     logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
@@ -689,7 +510,7 @@ class Model_sjSDM:
                 @torch.jit.script
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
-                    E = torch.clamp(torch.tensordot(noise, sigma.t(), [2], [0]).add(mu).mul(alpha), 0.0, 1.0).mul(0.99999).add(0.000005)
+                    E = torch.clamp(torch.tensordot(noise, sigma.t(), [2], [0]).add(mu).mul(alpha), 0.0, 1.0).mul(0.999999).add(0.0000005)
                     logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
@@ -700,7 +521,7 @@ class Model_sjSDM:
                 link_func = lambda value: torch.distributions.Normal(0.0, 1.0).cdf(value)
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
-                    E = link_func(torch.tensordot(noise, sigma.t(), dims = 1).add(mu).mul(alpha)).mul(0.99999).add(0.000005)
+                    E = link_func(torch.tensordot(noise, sigma.t(), dims = 1).add(mu)).mul(0.999999).add(0.0000005)
                     logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
@@ -719,7 +540,10 @@ class Model_sjSDM:
 
             def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                 noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
-                E = link_func(torch.tensordot(noise, sigma.t(), 1).add(mu).mul(alpha)).mul(0.99999).add(0.000005)
+                if self.link == "logit": 
+                    E = link_func(torch.tensordot(noise, sigma.t(), 1).add(mu).mul(alpha)).mul(0.999999).add(0.0000005)
+                else:
+                    E = link_func(torch.tensordot(noise, sigma.t(), 1).add(mu)).mul(0.999999).add(0.0000005)
                 return E.mean(dim = 0)
 
         return tmp
@@ -727,10 +551,6 @@ class Model_sjSDM:
     @property
     def weights(self):
         return [(lambda p: p.data.cpu().numpy())(p) for p in self.params()] 
-
-    @property
-    def covariance(self):
-        return self.sigma.matmul(self.sigma.t()).data.cpu().numpy()
 
     @property
     def get_sigma(self):
@@ -742,7 +562,7 @@ class Model_sjSDM:
             
     @property
     def covariance(self):
-        return self.sigma.matmul(self.sigma.t()).data.cpu().numpy()
+        return (self.sigma.matmul(self.sigma.t()) + torch.eye(self.sigma.shape[0], dtype=self.sigma.dtype, device=self.device)).data.cpu().numpy()
 
     @property
     def env_weights(self):
@@ -773,3 +593,10 @@ class Model_sjSDM:
                         counter+=1
         else:
             return None
+
+
+
+  # def fill_lower_tril(self, sigma):
+   #     xc = torch.cat([sigma[self.r_dim:], sigma.flip(dims=[0])])
+   #     y = xc.view(self.r_dim, self.r_dim)
+   #     return torch.tril(y)
