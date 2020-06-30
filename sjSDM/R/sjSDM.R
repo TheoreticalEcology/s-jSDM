@@ -280,11 +280,11 @@ summary.sjSDM = function(object, ...) {
   cat("Deviance: ", 2*object$logLik[[1]], "\n\n")
   cat("Regularization loss: ", object$logLik[[2]], "\n\n")
   
-  cov_m = object$sigma %*% t(object$sigma)
+  cov_m = getCov(object)
   cor_m = stats::cov2cor(cov_m)
   
   p_cor = round(cor_m, 3)
-  p_cor[upper.tri(p_cor)] = 0.000
+  # p_cor[upper.tri(p_cor)] = NULL # TODO - find out what can bet set that is numeric and doesn't show
   colnames(p_cor) = paste0("sp", 1:ncol(p_cor))
   rownames(p_cor) = colnames(p_cor)
   
