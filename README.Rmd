@@ -91,17 +91,18 @@ pip install sjSDM_py
 ```
 Python example
 
-```{python,eval=FALSE}
+```{python,eval=TRUE}
 import sjSDM_py as fa
 import numpy as np
+import torch
 Env = np.random.randn(100, 5)
 Occ = np.random.binomial(1, 0.5, [100, 10])
 
-model = fa.Model_base(5)
-model.add_layer(fa.layers.Layer_dense(10))
-model.build(df=5, optimizer=fa.optimizer_adamax(0.1))
-model.fit(X = Env, Y = Occ)
-print(model.weights_numpy)
-print(model.get_cov())
+model = fa.Model_sjSDM(device=torch.device("cpu"), dtype=torch.float32)
+model.add_env(5, 10)
+model.build(5, optimizer=fa.optimizer_adamax(0.001),scheduler=False)
+model.fit(Env, Occ, batch_size = 20, epochs = 100)
+# print(model.weights)
+# print(model.covariance)
 ```
 

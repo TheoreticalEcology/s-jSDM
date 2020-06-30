@@ -24,6 +24,9 @@ importance = function(model) {
       
       beta = env
       sigma = getCov(model)
+      sigma = cov2cor(sigma)
+      diag(sigma) = 0 # remove identity matrix
+      
       covX = stats::cov(model$data$X)
       
       if(!is.null(model$settings$spatial)) {

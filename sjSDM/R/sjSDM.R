@@ -79,7 +79,11 @@ sjSDM = function(Y = NULL,
   link = match.arg(link)
   
   ### settings ##
-  if(is.null(biotic$df)) biotic$df = as.integer(floor(ncol(Y) / 2))
+  if(is.null(biotic$df)) {
+    
+    biotic$df = max(5L, as.integer(floor(ncol(Y) / 2)))
+    
+  }
   if(is.null(step_size)) step_size = as.integer(floor(nrow(env$X) * 0.1))
   else step_size = as.integer(step_size)
   
