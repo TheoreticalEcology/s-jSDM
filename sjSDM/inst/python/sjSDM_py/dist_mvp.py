@@ -10,7 +10,7 @@ class MultivariateProbit(TorchDistribution):
     support = constraints.real
     has_rsample = True
 
-    def __init__(self, loc, scale=None, link="logit", validate_args=None):
+    def __init__(self, loc, scale=None, link="logit",sampling=100, validate_args=None):
         if loc.dim() < 1:
             raise ValueError("loc must be at least one-dimensional.")
 
@@ -24,9 +24,12 @@ class MultivariateProbit(TorchDistribution):
         self._covariance_matrix = scale
         self.loc = loc_[..., 0]  # drop rightmost dim
         self.df = scale.shape[-1]
+        self.sampling = sampling
+        self.alpha = 1.0
         
         if link == "logit":
             self.link = lambda value: torch.sigmoid(value)
+            self.alpha = 1.7012
         elif link == "probit":
             self.link = lambda value: torch.distributions.Normal(0.0, 1.0).cdf(value)
         elif link == "linear":
@@ -46,6 +49,8 @@ class MultivariateProbit(TorchDistribution):
             new.df = self.df
             new._covariance_matrix = self.scale
             new.link = self.link
+            new.sampling = self.sampling
+            new.alpha = self.alpha
         super(MultivariateProbit, new).__init__(batch_shape,
                                                 self.event_shape,
                                                 validate_args=False)
@@ -73,7 +78,7 @@ class MultivariateProbit(TorchDistribution):
         
         eps = torch.tensor(0.00001)
         one = torch.tensor(1.0)
-        alpha = torch.tensor(1.7012)
+        alpha = torch.tensor(self.alpha)
         half = torch.tensor(0.5)
         noise = torch.randn(size = torch.Size([100, shape2, self.df]))
         E = self.link(torch.tensordot(noise, self.scale.t(), dims = 1).add(self.loc).mul(alpha)).mul(one.sub(eps)).add(eps.mul(half)).mean(dim = 0)
@@ -84,11 +89,11 @@ class MultivariateProbit(TorchDistribution):
         #    self._validate_sample(value)
         
         #print(self.scale)
-        eps = torch.tensor(0.00001)
-        zero = torch.tensor(0.0)
-        one = torch.tensor(1.0)
-        alpha = torch.tensor(1.7012)
-        half = torch.tensor(0.5)
+        eps = torch.tensor(0.00001, device=value.device)
+        zero = torch.tensor(0.0, device=value.device)
+        one = torch.tensor(1.0, device=value.device)
+        alpha = torch.tensor(self.alpha, device=value.device)
+        half = torch.tensor(0.5, device=value.device)
         
         shape = value.shape
         shape2 = torch.tensor(shape[:-1]).prod().view([1])
@@ -96,7 +101,7 @@ class MultivariateProbit(TorchDistribution):
         
         #print(self.scale.shape)
         
-        noise = torch.randn(size = [100, value.shape[0], self.df])
+        noise = torch.randn(size = [self.sampling, value.shape[0], self.df], device=value.device)
         E = self.link(torch.tensordot(noise, self.scale.t(), dims = 1).add(self.loc).mul(alpha)).mul(one.sub(eps)).add(eps.mul(half))
         logprob = E.log().mul(value).add(one.sub(E).log().mul(one.sub(value))).neg().sum(dim = 2).neg()
         maxlogprob = logprob.max(dim = 0).values

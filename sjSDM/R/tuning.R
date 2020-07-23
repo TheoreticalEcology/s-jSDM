@@ -71,6 +71,17 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       l_cov = tune_samples[t,3]
       l_coef = tune_samples[t,4]
     }
+    
+    # mvp_ll = function(true, pred, sigma, device, link = "probit", cholesky = TRUE) {
+    #   if(cholesky) sigma = t(chol(sigma))
+    #   mean(sapply(1:50, function(i) {
+    #     fa$dist_mvp$MultivariateProbit(torch$tensor(pred, dtype=torch$float32, device = device),
+    #                                    scale = torch$tensor(sigma, dtype=torch$float32, device = device),
+    #     sampling = 20000L,
+    #     link = link
+    #   )$log_prob(torch$tensor(true, dtype=torch$float32, device = device))$sum()$data$cpu()$numpy()}))
+    # }
+
 
     # lists work better for parallel support 
     cv_step_result = vector("list", CV)
@@ -132,7 +143,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       ll_train = logLik.sjSDM(model)
       bs =  as.integer(floor(nrow(X_test)/2))
       if(bs == 0) bs = 1L
-      ll_test =  mean(sapply(1:50, function(i) model$model$logLik(X_test, Y_test, SP = SP_test, batch_size =bs)[[1]] ))
+      ll_test =  mean(sapply(1:100, function(i) model$model$logLik(X_test, Y_test, SP = SP_test, batch_size =bs, sampling=10000L)[[1]] ))
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
                                  pars = tune_samples[t,],
                                  pred_test = pred_test,

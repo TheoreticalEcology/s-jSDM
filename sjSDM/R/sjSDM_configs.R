@@ -128,18 +128,20 @@ print.DNN = function(x, ...) {
 #' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}
 #' @param on_diag regularization on diagonals 
+#' @param reg_on_Cov regularization on covariance matrix 
 #' @param inverse regularization on the inverse covariance matrix
 #' @param diag use diagonal marix with zeros (internal usage)
 #' 
 #' @seealso \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @export
-bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = FALSE, inverse=FALSE, diag = FALSE) {
+bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = FALSE,reg_on_Cov=TRUE, inverse=FALSE, diag = FALSE) {
   out = list()
   out$l1_cov = (1-alpha)*lambda
   out$l2_cov = alpha*lambda
   out$inverse = inverse
   out$diag = diag
+  out$reg_on_Cov = reg_on_Cov
   if(!is.null(df)) out$df = as.integer(df)
   out$on_diag = on_diag
   class(out) = "bioticStruct"

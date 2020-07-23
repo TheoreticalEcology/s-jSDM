@@ -5,7 +5,7 @@
 \title{biotic structure}
 \usage{
 bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
-  inverse = FALSE, diag = FALSE)
+  reg_on_Cov = TRUE, inverse = FALSE, diag = FALSE)
 }
 \arguments{
 \item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}}
@@ -15,6 +15,8 @@ bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
 \item{alpha}{weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}}
 
 \item{on_diag}{regularization on diagonals}
+
+\item{reg_on_Cov}{regularization on covariance matrix}
 
 \item{inverse}{regularization on the inverse covariance matrix}
 

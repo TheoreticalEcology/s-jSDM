@@ -469,23 +469,56 @@ class Model_sjSDM:
                 diag = int(0)
             else:
                 diag = int(1)
-            if l1 > 0.0:
-                @torch.jit.script
-                def l1_ll(sigma: torch.Tensor, l1: float, diag: int, inverse: bool):
-                    ss = sigma.matmul(sigma.t())
-                    if inverse:
-                        ss = ss.inverse()
-                    return ss.triu(diag).abs().sum().mul(l1)
-                self.losses.append(lambda: l1_ll(self.sigma, l1, diag, inverse))
             
-            if l2 > 0.0 :
-                @torch.jit.script
-                def l2_ll(sigma: torch.Tensor, l2: float, diag: int, inverse: bool):
-                    ss = sigma.matmul(sigma.t())
+            if l1 > 0.0 and l2 > 0.0:
+                if inverse:
+                    identity = torch.eye(self.sigma.shape[0], dtype=self.sigma.dtype, device=self.sigma.device).to(self.sigma.device)
+                    @torch.jit.script
+                    def l1_l2_ll(sigma: torch.Tensor, l1: float, l2: float, diag: int, identity: torch.Tensor):
+                        sigma1 = sigma.matmul(sigma.t())
+                        ss = sigma1.add(identity).inverse()
+                        return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1) + ss.triu(diag).pow(2.0).sum().mul(l2) + ss.tril(-1).pow(2.0).sum().mul(l2) + sigma1.pow(2.0).sum().mul(0.0001)
+                    self.losses.append(lambda: l1_l2_ll(self.sigma, l1,l2, diag, identity))
+                else:
+                    @torch.jit.script
+                    def l1_l2_ll(sigma: torch.Tensor, l1: float, l2: float, diag: int):
+                        ss = sigma.matmul(sigma.t())
+                        #ss = ss.add(identity).inverse()
+                        return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1) + ss.triu(diag).pow(2.0).sum().mul(l2) + ss.tril(-1).pow(2.0).sum().mul(l2)
+                    self.losses.append(lambda: l1_l2_ll(self.sigma, l1,l2, diag))
+            else:    
+                if l1 > 0.0:
                     if inverse:
-                        ss = ss.inverse()
-                    return ss.triu(diag).pow(2.0).sum().mul(l2)
-                self.losses.append(lambda: l2_ll(self.sigma, l2, diag, inverse))
+                        identity = torch.eye(self.sigma.shape[0], dtype=self.sigma.dtype, device=self.sigma.device).to(self.sigma.device)
+                        @torch.jit.script
+                        def l1_ll(sigma: torch.Tensor, l1: float, diag: int, identity: torch.Tensor):
+                            sigma2= sigma.matmul(sigma.t())
+                            ss = sigma2.add(identity).inverse()
+                            return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1)  + sigma2.pow(2.0).sum().mul(0.0001)
+                        self.losses.append(lambda: l1_ll(self.sigma, l1, diag, identity))
+                    else:
+                        @torch.jit.script
+                        def l1_ll(sigma: torch.Tensor, l1: float, diag: int):
+                            ss = sigma.matmul(sigma.t())
+                            return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1)
+                        self.losses.append(lambda: l1_ll(self.sigma, l1, diag))                    
+
+                if l2 > 0.0 :
+                    if inverse:
+                        identity = torch.eye(self.sigma.shape[0], dtype=self.sigma.dtype, device=self.sigma.device).to(self.sigma.device)
+                        @torch.jit.script
+                        def l2_ll(sigma: torch.Tensor, l2: float, diag: int, identity: torch.Tensor):
+                            sigma2 = sigma.matmul(sigma.t()).add(identity)
+                            ss = sigma2.inverse()
+                            return ss.triu(diag).pow(2.0).sum().mul(l2) + ss.tril(-1).pow(2.0).sum().mul(l2)
+                        self.losses.append(lambda: l2_ll(self.sigma, l2, diag, identity))
+                    else:
+                        identity = torch.eye(self.sigma.shape[0], dtype=self.sigma.dtype, device=self.sigma.device).to(self.sigma.device)
+                        @torch.jit.script
+                        def l2_ll(sigma: torch.Tensor, l2: float, diag: int):
+                            ss = sigma.matmul(sigma.t())
+                            return ss.triu(diag).pow(2.0).sum().mul(l2) + ss.tril(-1).pow(2.0).sum().mul(l2)
+                        self.losses.append(lambda: l2_ll(self.sigma, l2, diag))                    
         else:
             if l1 > 0.0:
                 self.losses.append( lambda: self.l1_l2[0](self.sigma, l1) )
