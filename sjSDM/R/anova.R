@@ -5,12 +5,13 @@
 #' @param object model of object \code{\link{sjSDM}}
 #' @param cv number of cross-validation splits
 #' @param individual compute analysis of variance on species and site level
+#' @param sampling number of sampling steps for Monte Carlo integreation
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #'  
 #' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}
 #' @export
 
-anova.sjSDM = function(object, cv = 5L,individual=FALSE,...) {
+anova.sjSDM = function(object, cv = 5L,individual=FALSE, sampling = 5000L, ...) {
   
   if(is.logical(cv)) cv = 0
   
@@ -23,14 +24,14 @@ anova.sjSDM = function(object, cv = 5L,individual=FALSE,...) {
   if(!individual) {
   
     fit_and_form = function(mod) {
-      .tmp = sapply(splits, function(sp) turnOn(object, modules = mod, test = sp, individual = individual))
+      .tmp = sapply(splits, function(sp) turnOn(object, modules = mod, test = sp, individual = individual, sampling = sampling))
       return(list(ll = sum(unlist(.tmp[1,])), R = mean(unlist(.tmp[2,])),R2 = mean(unlist(.tmp[3,])) ))
     }
   
   } else {
     
     fit_and_form = function(mod) {
-      .tmp = lapply(splits, function(sp) turnOn(object, modules = mod, test = sp, individual = individual))
+      .tmp = lapply(splits, function(sp) turnOn(object, modules = mod, test = sp, individual = individual, sampling = sampling))
       return(list(ll = unlist(lapply(.tmp, function(l) l$ll)), 
                   R =  unlist(lapply(.tmp, function(l) l$R)),
                   R2 = unlist(lapply(.tmp, function(l) l$R2)) ))
@@ -275,7 +276,7 @@ plot.sjSDManovaIndividual= function(x, y,contour=FALSE,col.points="#24526e",cex.
 }
 
 
-turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, ...) {
+turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, sampling = 1000L, ...) {
   modules = strsplit(modules,split = "")[[1]]
   
   env = model$settings$env
@@ -332,7 +333,8 @@ turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, ...) {
              step_size = model$settings$step_size, 
              link = model$settings$link, 
              learning_rate = model$settings$learning_rate,
-             device = model$settings$device
+             device = model$settings$device,
+             sampling= sampling
   )
   
   if(!individual) mean_func = function(f) mean(sapply(1:50, function(i) f() ))
@@ -340,11 +342,11 @@ turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, ...) {
     
   if(is.null(test)) {
     if(is.null(spatial)) {
-      return(list(ll = mean_func( function() m2$model$logLik(X=m2$data$X,Y=m2$data$Y,individual=individual )[[1]] ),  
+      return(list(ll = mean_func( function() m2$model$logLik(X=m2$data$X,Y=m2$data$Y,individual=individual, sampling= sampling)[[1]] ),  
                   R=Rsquared(model=m2,averageSite=!individual,...),
                   R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
     } else {
-      return(list(ll = mean_func( function() m2$model$logLik(X=m2$data$X,Y=m2$data$Y, SP=m2$settings$spatial$X,individual=individual )[[1]] ),  
+      return(list(ll = mean_func( function() m2$model$logLik(X=m2$data$X,Y=m2$data$Y, SP=m2$settings$spatial$X,individual=individual, sampling = sampling )[[1]] ),  
                   R=Rsquared(model=m2,averageSite=!individual,...),
                   R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
     }
@@ -357,12 +359,12 @@ turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, ...) {
       
       m2$spatial$X = test_sp
       
-      return(list(ll= mean_func( function() m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE], SP=test_sp,individual=individual )[[1]] ), 
+      return(list(ll= mean_func( function() m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE], SP=test_sp,individual=individual, sampling = sampling )[[1]] ), 
                   R=Rsquared(model=m2,averageSite=!individual,...), 
                   R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
     } else {
 
-      return(list(ll= mean_func( function() m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE],individual=individual)[[1]] ), 
+      return(list(ll= mean_func( function() m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE],individual=individual, sampling = sampling)[[1]] ), 
                   R=Rsquared(m2,averageSite=!individual,...), 
                   R2 = Rsquared2(model=m2,individual=individual,...)$marginal))      
       

@@ -36,6 +36,7 @@ addA = function(col, alpha = 0.25) apply(sapply(col, grDevices::col2rgb)/255, 2,
 #' check model and rebuild if necessary
 #' @param object of class sjSDM
 checkModel = function(object) {
+  check_module()
   if(!inherits(object, c("sjSDM", "sjSDM_DNN", "sLVM"))) stop("model not of class sjSDM")
   
   if(!reticulate::py_is_null_xptr(object$model)) return(object)

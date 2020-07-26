@@ -6,7 +6,7 @@
 \usage{
 sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
   iter = 100L, step_size = NULL, learning_rate = 0.01, se = FALSE,
-  link = c("probit", "logit", "linear"), sampling = 100L, parallel = 0L,
+  link = c("probit", "logit", "linear"), sampling = 1000L, parallel = 0L,
   control = sjSDMControl(), device = "cpu", dtype = "float32")
 }
 \arguments{

@@ -2,12 +2,13 @@
 #' 
 #' importance of abiotic, biotic, and spatial effects
 #' 
-#' @param model object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below
+#' @param x object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below
 #' 
 #' @example /inst/examples/importance-example.R
 #' @author Maximilian Pichler
 #' @export
-importance = function(model) {
+importance = function(x) {
+  model = x
   stopifnot(
     #inherits(model, "sjSDM"),
     #inherits(model$settings$env, "linear"),
@@ -24,8 +25,8 @@ importance = function(model) {
       
       beta = env
       sigma = getCov(model)
-      sigma = cov2cor(sigma)
-      diag(sigma) = 0 # remove identity matrix
+      #sigma = cov2cor(sigma)
+      #diag(sigma) = 0 # remove identity matrix
       
       covX = stats::cov(model$data$X)
       
@@ -154,7 +155,7 @@ getImportance = function(beta, sp=NULL, association, covX, covSP=NULL) {
     }
   }
   
-  PredRandom = rowSums(association^2)/sqrt(ncol(association))
+  PredRandom = abs(rowSums(association) - diag(association)) /(ncol(association))
   
   if(is.null(sp)) {
     variTotal = Xtotal + PredRandom

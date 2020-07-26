@@ -4,10 +4,10 @@
 \alias{importance}
 \title{importance}
 \usage{
-importance(model)
+importance(x)
 }
 \arguments{
-\item{model}{object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below}
+\item{x}{object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below}
 }
 \description{
 importance of abiotic, biotic, and spatial effects

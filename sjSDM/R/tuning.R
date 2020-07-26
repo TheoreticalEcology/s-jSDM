@@ -16,6 +16,7 @@
 #' @param device device, default cpu
 #' @param n_cores number of cores for parallelization 
 #' @param n_gpu number of gpus
+#' @param sampling number of sampling steps for Monte Carlo integreation
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}
 #' 
 #' @example /inst/examples/sjSDM_cv-example.R
@@ -32,6 +33,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                     device="cpu",
                     n_cores = NULL, 
                     n_gpu = NULL,
+                    sampling = 5000L,
                     ...) {
   
   tune = match.arg(tune)
@@ -71,6 +73,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       l_cov = tune_samples[t,3]
       l_coef = tune_samples[t,4]
     }
+    
 
     # lists work better for parallel support 
     cv_step_result = vector("list", CV)
@@ -108,9 +111,9 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                  
          dist = cbind(nodes,(n_gpu-1):0)
          device2 = as.integer(as.numeric(dist[which(dist[,1] %in% myself, arr.ind = TRUE), 2]))
-         model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2, ...)
+         model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2,sampling=sampling, ...)
       } else {
-        model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device, ...)
+        model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device, sampling=sampling,...)
       }
       
       #model$model$set_sigma(matrix(0.0, ncol(Y_train), model$model$df))
@@ -130,9 +133,9 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       auc_test = mean(auc_test)
       auc_train = mean(auc_train)
       ll_train = logLik.sjSDM(model)
-      bs =  as.integer(floor(nrow(X_test)/2))
-      if(bs == 0) bs = 1L
-      ll_test =  mean(sapply(1:50, function(i) model$model$logLik(X_test, Y_test, SP = SP_test, batch_size =bs)[[1]] ))
+      bs =  as.integer(model$settings$step_size)
+      if(bs > nrow(X_test)) bs = 1L
+      ll_test =  mean(sapply(1:20, function(i) model$model$logLik(X_test, Y_test, SP = SP_test, batch_size =bs, sampling=sampling)[[1]] ))
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
                                  pars = tune_samples[t,],
                                  pred_test = pred_test,
@@ -158,7 +161,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
     nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
     #print(nodes)
     control = snow::clusterEvalQ(cl, {library(sjSDM)})
-    snow::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","..."), envir = environment())
+    snow::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
     result = snow::parLapply(cl, 1:nrow(tune_samples), tune_func)
     snow::stopCluster(cl)
   }

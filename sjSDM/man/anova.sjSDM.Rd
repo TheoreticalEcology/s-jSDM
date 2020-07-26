@@ -4,7 +4,7 @@
 \alias{anova.sjSDM}
 \title{Anova}
 \usage{
-\method{anova}{sjSDM}(object, cv = 5L, individual = FALSE, ...)
+\method{anova}{sjSDM}(object, cv = 5L, individual = FALSE, sampling = 5000L, ...)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
@@ -12,6 +12,8 @@
 \item{cv}{number of cross-validation splits}
 
 \item{individual}{compute analysis of variance on species and site level}
+
+\item{sampling}{number of sampling steps for Monte Carlo integreation}
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }

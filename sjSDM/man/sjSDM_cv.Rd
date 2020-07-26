@@ -10,7 +10,7 @@ sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
   alpha_spatial = seq(0, 1, 0.1), lambda_cov = 2^seq(-10, -1, length.out =
   20), lambda_coef = 2^seq(-10, -0.5, length.out = 20),
   lambda_spatial = 2^seq(-10, -0.5, length.out = 20), device = "cpu",
-  n_cores = NULL, n_gpu = NULL, ...)
+  n_cores = NULL, n_gpu = NULL, sampling = 5000L, ...)
 }
 \arguments{
 \item{Y}{species occurrence matrix}
@@ -44,6 +44,8 @@ sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
 \item{n_cores}{number of cores for parallelization}
 
 \item{n_gpu}{number of gpus}
+
+\item{sampling}{number of sampling steps for Monte Carlo integreation}
 
 \item{...}{arguments passed to sjSDM, see \code{\link{sjSDM}}}
 }

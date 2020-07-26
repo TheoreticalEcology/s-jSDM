@@ -208,7 +208,7 @@ class Model_SVI():
         if guide2 == 'manually':
             self.guide = self.get_guide()
         
-        if len(lr) is 1:
+        if len(lr) == 1:
              adam = pyro.optim.Adam({'lr' : lr[0]})
         else:
             def per_param_callable(module_name, param_name):
