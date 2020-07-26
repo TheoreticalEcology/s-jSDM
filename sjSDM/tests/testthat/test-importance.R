@@ -4,13 +4,18 @@ source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
                       iter = 1L, step_size = 10L, se=FALSE, link = "logit", context = "") {
+  
+    sjSDM:::check_module()
+    if(torch$cuda$is_available()) device = "gpu"
+    else device = "cpu"
     testthat::expect_error({model = sjSDM(!!occ, env=!!env, 
                                           spatial = !!spatial, 
                                           biotic = !!biotic,
                                           iter = !!iter, 
                                           step_size = !!step_size,
                                           se = !!se,
-                                          link = !!link)}, NA)
+                                          link = !!link,
+                                          device=device)}, NA)
     testthat::expect_error({imp = importance(model)}, NA)
     testthat::expect_error({plot(imp)}, NA)
 }

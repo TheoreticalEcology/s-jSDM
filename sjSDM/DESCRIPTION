@@ -1,7 +1,7 @@
 Package: sjSDM
 Type: Package
 Title: Scalable Joint Species Distribution Modeling
-Version: 0.0.6.9000
+Version: 0.0.7.9000
 Date: 2020-02-20
 Authors@R: c(person("Maximilian",
                     "Pichler",
@@ -16,7 +16,7 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports:
-    reticulate (>= 1.15),
+    reticulate,
     stats,
     mvtnorm,
     utils,

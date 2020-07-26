@@ -46,7 +46,7 @@ sjSDM = function(Y = NULL,
                  learning_rate = 0.01, 
                  se = FALSE, 
                  link = c("probit", "logit", "linear"),
-                 sampling = 100L,
+                 sampling = 1000L,
                  parallel = 0L, 
                  control = sjSDMControl(),
                  device = "cpu", 
@@ -157,7 +157,7 @@ sjSDM = function(Y = NULL,
   out$model = model
   out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
                       step_size = step_size,learning_rate = learning_rate, 
-                      parallel = parallel,link=link,device = device, dtype = dtype)
+                      parallel = parallel,link=link,device = device, dtype = dtype, sampling = sampling)
   out$time = time
   out$data = list(X = env$X, Y = Y)
   out$sessionInfo = utils::sessionInfo()
@@ -261,6 +261,7 @@ coef.sjSDM = function(object, ...) {
 #' @export
 getSe = function(object, step_size = NULL, parallel = 0L){
   if(!inherits(object, "sjSDM")) stop("object must be of class sjSDM")
+  object = checkModel(object)
   if(is.null(step_size)) step_size = object$settings$step_size
   else step_size = as.integer(step_size)
   if(!inherits(object, "spatialRE")) try({ object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel),along=0L)) })

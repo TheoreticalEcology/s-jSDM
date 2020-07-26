@@ -7,10 +7,15 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
                       posterior = "DiagonalNormal",
                       iter = 1L,
                       step_size = 20L, lr = list(0.1)) {
+  
+    sjSDM:::check_module()
+    if(torch$cuda$is_available()) device = "gpu"
+    else device = "cpu"
     testthat::expect_error({model <<- sLVM(Y=!!Y, X=!!X, formula=!!formula,
                                          family = !!family, priors=!!priors,
                                          posterior = !!posterior,iter=!!iter,
-                                         step_size = !!step_size, lr=!!lr)}, NA)
+                                         step_size = !!step_size, lr=!!lr,
+                                         device = device)}, NA)
     testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(coef(model)) }, NA)
     testthat::expect_error({ .k = testthat::capture_output(summary(model)) }, NA)

@@ -5,7 +5,6 @@ from tqdm import tqdm
 from torch import nn, optim
 import sys
 
-
 class Model_sjSDM:
     def __init__(self,alpha = 1.70169, device="cpu", dtype="float32"):
         self.params = []
@@ -188,6 +187,8 @@ class Model_sjSDM:
         
         self.link = link
         self.df = df
+        self.l1 = l1 #test
+        self.l2 = l2 #test
         r_dim = self.output_shape
         if not diag:
             low = -np.sqrt(6.0/(r_dim+df))
@@ -266,7 +267,6 @@ class Model_sjSDM:
                     x = x.to(self.device, non_blocking=True)
                     y = y.to(self.device, non_blocking=True)
                     mu = self.env(x)
-                    #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
                     loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
                     loss = loss.mean()
                     if any_losses:
@@ -477,7 +477,7 @@ class Model_sjSDM:
                     def l1_l2_ll(sigma: torch.Tensor, l1: float, l2: float, diag: int, identity: torch.Tensor):
                         sigma1 = sigma.matmul(sigma.t())
                         ss = sigma1.add(identity).inverse()
-                        return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1) + ss.triu(diag).pow(2.0).sum().mul(l2) + ss.tril(-1).pow(2.0).sum().mul(l2) + sigma1.pow(2.0).sum().mul(0.0001)
+                        return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1) + ss.triu(diag).pow(2.0).sum().mul(l2) + ss.tril(-1).pow(2.0).sum().mul(l2) #+ sigma1.pow(2.0).sum().mul(0.0001)
                     self.losses.append(lambda: l1_l2_ll(self.sigma, l1,l2, diag, identity))
                 else:
                     @torch.jit.script
@@ -494,7 +494,7 @@ class Model_sjSDM:
                         def l1_ll(sigma: torch.Tensor, l1: float, diag: int, identity: torch.Tensor):
                             sigma2= sigma.matmul(sigma.t())
                             ss = sigma2.add(identity).inverse()
-                            return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1)  + sigma2.pow(2.0).sum().mul(0.0001)
+                            return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1) #  + sigma2.pow(2.0).sum().mul(0.0001)
                         self.losses.append(lambda: l1_ll(self.sigma, l1, diag, identity))
                     else:
                         @torch.jit.script

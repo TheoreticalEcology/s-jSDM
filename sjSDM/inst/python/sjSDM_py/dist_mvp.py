@@ -10,7 +10,7 @@ class MultivariateProbit(TorchDistribution):
     support = constraints.real
     has_rsample = True
 
-    def __init__(self, loc, scale=None, link="logit",sampling=100, validate_args=None):
+    def __init__(self, loc, scale=None, link="probit",sampling=5000, validate_args=None):
         if loc.dim() < 1:
             raise ValueError("loc must be at least one-dimensional.")
 
@@ -108,3 +108,49 @@ class MultivariateProbit(TorchDistribution):
         Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
         loss = Eprob.log().neg().sub(maxlogprob).neg()
         return loss.view(shape[:-1])
+
+
+def MVP_logLik(Y, pred, sigma, device, batch_size=25, sampling=1000, link="probit", individual=False):
+
+    torch.set_default_tensor_type('torch.FloatTensor')
+
+    if device.type == 'cuda' and torch.cuda.is_available():
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+
+    if device.type == 'cuda':
+        torch.cuda.set_device(device)
+        pin_memory = False
+        device = device.type+ ":" + str(device.index)
+    else:
+        pin_memory = True
+
+    if link=="probit":
+        link_func = lambda value: torch.distributions.Normal(0.0, 1.0).cdf(value)
+    elif link=="linear":
+        link_func = lambda value: torch.clamp(value, 0.0, 1.0)
+    elif link=="logit":
+        link_func = lambda value: torch.sigmoid(value.mul(1.70169))
+
+    data = torch.utils.data.TensorDataset(torch.tensor(Y, dtype=torch.float32, device=torch.device('cpu')), torch.tensor(pred, dtype=torch.float32, device=torch.device('cpu')))
+    DataLoader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=pin_memory, drop_last=False)
+    torch.cuda.empty_cache()
+    sigma=torch.tensor(sigma, dtype=torch.float32, device=torch.device(device))
+    logLik = []
+    for step, (y, pred) in enumerate(DataLoader):
+        y = y.to(device, non_blocking=True)
+        pred = pred.to(device, non_blocking=True)
+
+        noise = torch.randn(size = [sampling, batch_size, sigma.shape[1]], device=torch.device(device))
+        E = link_func(torch.tensordot(noise, sigma.t(), dims = 1).add(pred)).mul(0.999999).add(0.0000005)
+        logprob = E.log().mul(y).add((1.0 - E).log().mul(1.0 - y)).neg().sum(dim = 2).neg()
+        maxlogprob = logprob.max(dim = 0).values
+        Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+        loss = Eprob.log().neg().sub(maxlogprob)
+        logLik.append(loss.data)
+
+    if individual is not True:
+        logLik = torch.cat(logLik).sum().data.cpu().numpy()
+    else:
+        logLik = torch.cat(logLik).data.cpu().numpy()
+    
+    return logLik
