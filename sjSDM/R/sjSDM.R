@@ -6,11 +6,12 @@
 #' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
 #' @param spatial defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}
+#' @param family error distribution with link function, see details for supported family functions
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
 #' @param se calculate standard errors for environmental coefficients
-#' @param link probit or logit
+#' @param link deprecated, will be removed in the future. Please use the family argument.
 #' @param sampling number of sampling steps for Monte Carlo integreation
 #' @param parallel number of cpu cores for the data loader, only necessary for large datasets
 #' @param control control parameters for optimizer, see \code{\link{sjSDMControl}}
@@ -22,6 +23,13 @@
 #' sjSDM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. 
 #' See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
 #' 
+#' @section Family:
+#' Currently supported distributions and link functions:
+#' \itemize{
+#' \item \code{\link{binomial}}: \code{"probit"} or \code{"logit"}
+#' \item \code{\link{poisson}}: \code{"log"} 
+#' \item \code{\link{gaussian}}: \code{"identity"} 
+#' }
 #' 
 #' @section Installation:
 #' \code{\link{install_sjSDM}} should be theoretically able to install conda and pytorch automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this in on your own with our trouble shooting guide \code{\link{installation_help}}.
@@ -41,6 +49,7 @@ sjSDM = function(Y = NULL,
                  env = NULL,
                  biotic = bioticStruct(),
                  spatial = NULL,
+                 family = binomial("probit"),
                  iter = 100L, 
                  step_size = NULL,
                  learning_rate = 0.01, 
@@ -54,10 +63,12 @@ sjSDM = function(Y = NULL,
   stopifnot(
     !is.null(Y),
     iter >= 0,
-    learning_rate >= 0,
-    !max(Y) > 1.0,
-    !min(Y) < 0.0
+    learning_rate >= 0#,
+    #!max(Y) > 1.0,
+    #!min(Y) < 0.0
   )
+  
+  family = check_family(family)
   
   check_module()
   
@@ -124,7 +135,7 @@ sjSDM = function(Y = NULL,
                 inverse = biotic$inverse,
                 reg_on_Cov = biotic$reg_on_Cov,
                 optimizer = optimizer, 
-                link = link,
+                link = family$link,
                 diag=biotic$diag,
                 scheduler=control$schedule)
     
@@ -158,6 +169,7 @@ sjSDM = function(Y = NULL,
   out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
                       step_size = step_size,learning_rate = learning_rate, 
                       parallel = parallel,link=link,device = device, dtype = dtype, sampling = sampling)
+  out$family = family
   out$time = time
   out$data = list(X = env$X, Y = Y)
   out$sessionInfo = utils::sessionInfo()

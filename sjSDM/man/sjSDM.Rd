@@ -5,9 +5,10 @@
 \title{sjSDM}
 \usage{
 sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
-  iter = 100L, step_size = NULL, learning_rate = 0.01, se = FALSE,
-  link = c("probit", "logit", "linear"), sampling = 1000L, parallel = 0L,
-  control = sjSDMControl(), device = "cpu", dtype = "float32")
+  family = binomial("probit"), iter = 100L, step_size = NULL,
+  learning_rate = 0.01, se = FALSE, link = c("probit", "logit", "linear"),
+  sampling = 1000L, parallel = 0L, control = sjSDMControl(),
+  device = "cpu", dtype = "float32")
 }
 \arguments{
 \item{Y}{matrix of species occurences/responses in range [0,1]}
@@ -18,6 +19,8 @@ sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
 
 \item{spatial}{defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}}
 
+\item{family}{error distribution with link function, see details for supported family functions}
+
 \item{iter}{number of fitting iterations}
 
 \item{step_size}{batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}}
@@ -26,7 +29,7 @@ sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
 
 \item{se}{calculate standard errors for environmental coefficients}
 
-\item{link}{probit or logit}
+\item{link}{deprecated, will be removed in the future. Please use the family argument.}
 
 \item{sampling}{number of sampling steps for Monte Carlo integreation}
 
@@ -47,6 +50,16 @@ The function fits a multivariate probit model via Monte-Carlo integration (see C
 sjSDM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. 
 See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
 }
+\section{Family}{
+
+Currently supported distributions and link functions:
+\itemize{
+\item \code{\link{binomial}}: \code{"probit"} or \code{"logit"}
+\item \code{\link{poisson}}: \code{"log"} 
+\item \code{\link{gaussian}}: \code{"identity"} 
+}
+}
+
 \section{Installation}{
 
 \code{\link{install_sjSDM}} should be theoretically able to install conda and pytorch automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this in on your own with our trouble shooting guide \code{\link{installation_help}}.

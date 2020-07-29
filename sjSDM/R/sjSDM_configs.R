@@ -201,6 +201,43 @@ sjSDMControl = function(optimizer = RMSprop(),
 }
 
 
+
+
+
+
+
+
+check_family = function(family){
+  out = list()
+  if(!family$family %in% c("binomial", "poisson", "gaussian")) stop(paste0(family$family, " ->  not supported"), call. = FALSE)
+  
+  if(family$family == "binomial"){
+    if(!family$link %in% c("logit", "probit")){
+      stop(paste0(family$link, " ->  not supported"), call. = FALSE)
+    }
+    out$link = family$link
+  }
+  if(family$family == "poisson"){
+    if(!family$link %in% c("log")){
+      stop(paste0(family$link, " ->  not supported"), call. = FALSE)
+    }
+    out$link = "count"
+  }
+  
+  if(family$family == "gaussian"){
+    if(!family$link %in% c("identity")){
+      stop(paste0(family$link, " ->  not supported"), call. = FALSE)
+    }
+    out$link = "normal"
+  }
+  out$family = family
+  return(out)
+}
+
+
+
+
+
 #' Adamax
 #' 
 #' Adamax optimizer, see Kingma and Ba, 2014
