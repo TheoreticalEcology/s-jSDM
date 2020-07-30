@@ -5,7 +5,7 @@
 \title{sjSDM}
 \usage{
 sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
-  family = binomial("probit"), iter = 100L, step_size = NULL,
+  family = stats::binomial("probit"), iter = 100L, step_size = NULL,
   learning_rate = 0.01, se = FALSE, link = c("probit", "logit", "linear"),
   sampling = 1000L, parallel = 0L, control = sjSDMControl(),
   device = "cpu", dtype = "float32")
