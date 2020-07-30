@@ -302,9 +302,15 @@ summary.sjSDM = function(object, ...) {
   colnames(p_cor) = paste0("sp", 1:ncol(p_cor))
   rownames(p_cor) = colnames(p_cor)
   
-  if(dim(p_cor)[1] < 25) {
+
+  if(dim(p_cor)[1] < 50) {
     cat("Species-species correlation matrix: \n\n")
-    print(p_cor)
+    kk = format(p_cor,nsmall = 4)
+    kk[upper.tri(kk)] = ""
+    kk = cbind(colnames(p_cor), kk)
+    kk = (apply(kk, 1:2, function(i) paste0("\t", i)))
+    kk[, ncol(kk)] = paste0(kk[, ncol(kk)], "\n")
+    cat(paste0(t(kk), collapse = ""))
     cat("\n\n\n")
   }
   

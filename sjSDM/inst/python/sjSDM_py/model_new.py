@@ -572,13 +572,7 @@ class Model_sjSDM:
 
             elif self.link == "normal":
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
-                    #noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
-                    #E = torch.tensordot(noise, sigma.t(), dims = 1).add(mu)#.exp()
-                    #logprob = torch.distributions.Normal(loc=E, scale=1.0).log_prob(Ys).sum(dim = 2)
                     loss = torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0]))).log_prob(Ys).neg()
-                    #maxlogprob = logprob.max(dim = 0).values
-                    #Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
-                    #loss = Eprob.log().neg().sub(maxlogprob)
                     return loss
 
 
