@@ -78,14 +78,10 @@ sjSDM = function(Y = NULL,
   
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
   
-  #link = match.arg(link)
-  
-  
   out$formula = env$formula
   out$names = colnames(env$X)
   out$species = colnames(Y)
   out$cl = match.call()
-  link = match.arg(link)
   
   ### settings ##
   if(is.null(biotic$df)) {
@@ -166,7 +162,7 @@ sjSDM = function(Y = NULL,
   out$model = model
   out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
                       step_size = step_size,learning_rate = learning_rate, 
-                      parallel = parallel,link=link,device = device, dtype = dtype, sampling = sampling)
+                      parallel = parallel,device = device, dtype = dtype, sampling = sampling)
   out$family = family
   out$time = time
   out$data = list(X = env$X, Y = Y)
