@@ -6,9 +6,8 @@
 \usage{
 sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
   family = stats::binomial("probit"), iter = 100L, step_size = NULL,
-  learning_rate = 0.01, se = FALSE, link = c("probit", "logit", "linear"),
-  sampling = 1000L, parallel = 0L, control = sjSDMControl(),
-  device = "cpu", dtype = "float32")
+  learning_rate = 0.01, se = FALSE, sampling = 1000L, parallel = 0L,
+  control = sjSDMControl(), device = "cpu", dtype = "float32")
 }
 \arguments{
 \item{Y}{matrix of species occurences/responses in range [0,1]}
@@ -28,8 +27,6 @@ sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
 \item{learning_rate}{learning rate for Adamax optimizer}
 
 \item{se}{calculate standard errors for environmental coefficients}
-
-\item{link}{deprecated, will be removed in the future. Please use the family argument.}
 
 \item{sampling}{number of sampling steps for Monte Carlo integreation}
 

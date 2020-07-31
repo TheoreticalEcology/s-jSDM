@@ -12,7 +12,10 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           biotic = !!biotic,
                                           iter = !!iter, 
                                           step_size = !!step_size,
-                                          se = !!se,family=!!family, device = device)}, NA)
+                                          se = !!se,
+                                          family=!!family, 
+                                          device = device,
+                                          sampling = 10L)}, NA)
     testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(coef(model)) }, NA)
     testthat::expect_error({ .k = testthat::capture_output(summary(model)) }, NA)

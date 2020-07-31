@@ -11,7 +11,6 @@
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
 #' @param se calculate standard errors for environmental coefficients
-#' @param link deprecated, will be removed in the future. Please use the family argument.
 #' @param sampling number of sampling steps for Monte Carlo integreation
 #' @param parallel number of cpu cores for the data loader, only necessary for large datasets
 #' @param control control parameters for optimizer, see \code{\link{sjSDMControl}}
@@ -54,7 +53,6 @@ sjSDM = function(Y = NULL,
                  step_size = NULL,
                  learning_rate = 0.01, 
                  se = FALSE, 
-                 link = c("probit", "logit", "linear"),
                  sampling = 1000L,
                  parallel = 0L, 
                  control = sjSDMControl(),
@@ -80,7 +78,7 @@ sjSDM = function(Y = NULL,
   
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
   
-  link = match.arg(link)
+  #link = match.arg(link)
   
   
   out$formula = env$formula

@@ -108,7 +108,6 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
           
         myself = paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')
         
-                 
          dist = cbind(nodes,(n_gpu-1):0)
          device2 = as.integer(as.numeric(dist[which(dist[,1] %in% myself, arr.ind = TRUE), 2]))
          model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2,sampling=sampling, ...)
