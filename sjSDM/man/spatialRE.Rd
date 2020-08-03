@@ -30,7 +30,7 @@ p = getSe(model)
 summary(p)
 
 ## or turn on the option in the sjSDM function:
-model = sjSDM(Y = com$response, env = com$env_weights, se = TRUE)
+model = sjSDM(Y = com$response, env = com$env_weights, se = TRUE, family = binomial("probit"))
 summary(model)
 
 ## fit model with interactions:

@@ -331,7 +331,7 @@ turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, samplin
              spatial= spatial2,
              iter = model$settings$iter, 
              step_size = model$settings$step_size, 
-             link = model$settings$link, 
+             family = model$family$family, 
              learning_rate = model$settings$learning_rate,
              device = model$settings$device,
              sampling= sampling
