@@ -112,7 +112,7 @@ anova.sjSDM = function(object, cv = 5L,individual=FALSE, sampling = 5000L, ...) 
       res[,9,3] = results$empty$R2 + results$full$R2
       res[,,5] = res[,,1]
       res[,-1,5] = res[,-1,5] + res[,1,5]
-      res[,,5] = 1 - (res$LogLik[,,5] / res$LogLik[,1,5])
+      res[,,5] = 1 - (res[,,5] / res[,1,5])
       
     }
     

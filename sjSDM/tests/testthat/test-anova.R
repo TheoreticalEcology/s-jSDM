@@ -70,6 +70,17 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   })
   
   
+  spatial = list(
+    linear(data.frame(matrix(rnorm(100), 50 , 2)), ~0+X1:X2)
+  )
+  testthat::test_that("sjSDM anova env", {
+    skip_if_no_torch()
+    for(i in 1:length(spatial)) {
+      test_model(Y1, env = linear(X1), spatial = spatial[[1]])
+    }
+  })
+  
+  
   DNN = list(
     DNN(X1, hidden = c(3,3,3),lambda = 0.1, alpha=1.0)
   )
