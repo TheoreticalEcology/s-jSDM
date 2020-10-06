@@ -7,10 +7,10 @@
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
 #library(deepJSDM)
 library(BayesComm)
-load("data_sets2.RData")
+load("data_sets_full.RData")
 
 
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 10L)
+result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 5L)
 auc = diagnosis =vector("list", nrow(setup))
 
 
@@ -22,13 +22,11 @@ set.seed(42)
 
 counter = 1
 for(i in 1:nrow(setup)) {
-  sub_auc = vector("list", 10L)
-  post = vector("list", 10)
+  sub_auc = vector("list", 5L)
+  post = vector("list", 5L)
   
-  for(j in 1:10){
+  for(j in 1:5L){
     
-    X = data_sets[[counter]]$env_weights
-    Y = data_sets[[counter]]$response
     tmp = data_sets[[counter]]$setup
     
     ### split into train and test ###
@@ -51,28 +49,30 @@ for(i in 1:nrow(setup)) {
       covFill[upper.tri(covFill)] = cov
       correlation = t(covFill)
       
-      species_weights = matrix(NA, ncol(train_X), ncol(train_Y))
+      species_weights = matrix(NA, ncol(train_X)+1, ncol(train_Y))
       n = paste0("B$sp",1:ncol(train_Y) )
       for(v in 1:ncol(train_Y)){
         smm = BayesComm:::summary.bayescomm(model1, n[v])
-        species_weights[,v]= smm$statistics[-1,1]
+        species_weights[,v]= smm$statistics[,1]
       }
       
       m1 = lapply(model1$trace$B, function(mc) coda::as.mcmc(mc))
       m2 = lapply(model2$trace$B, function(mc) coda::as.mcmc(mc))
       beta.psrfs = lapply(1:length(model1$trace$B), function(i) coda::gelman.diag(coda::as.mcmc.list(list(m1[[i]], m2[[i]])),multivariate = FALSE)$psrf)
-      
+      beta.conv = abind::abind(beta.psrfs, along = 1L)[,1] > 1.2
       
       m1 = coda::as.mcmc(model1$trace$R)
       m2 = coda::as.mcmc(model2$trace$R)
       cov.psrf = coda::gelman.diag(coda::as.mcmc.list(list(m1, m2)),multivariate = FALSE)$psrf
+      cov.conv = cov.psrf[,1] > 1.2
       
-      diag = list(post = list(m1 = m1, m2 = m2), psrf.beta = beta.psrfs, psrf.gamma = cov.psrf)
+      diag = list(beta.conv = beta.conv , psrf.gamma = cov.conv, correlation = correlation)
       
+      true_species_weights = rbind(rep(0.0, ncol(train_Y)), sim$species_weights)
       
       result_corr_acc[i,j] =  sim$corr_acc(correlation)
-      result_env[i,j] = mean(as.vector(species_weights > 0) == as.vector(sim$species_weights > 0))
-      result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(sim$species_weights))^2))
+      result_env[i,j] = mean(as.vector(species_weights[-1,] > 0) == as.vector(sim$species_weights > 0))
+      result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(true_species_weights))^2))
       result_time[i,j] = time[3]
       
       pred = BayesComm:::predict.bayescomm(model1, test_X)
@@ -82,7 +82,7 @@ for(i in 1:nrow(setup)) {
       rm(model1)
       rm(model2)
       gc()
-    counter = counter + 1L
+      counter = counter + 1L
   }
   auc[[i]] = sub_auc
   diagnosis[[i]] = post
@@ -96,5 +96,5 @@ for(i in 1:nrow(setup)) {
     auc = auc,
     post = diagnosis
   )
-  saveRDS(bc, "results/BayesCommDiag.RDS")
+  saveRDS(bc, "results/1_BayesComm_full.RDS")
 }

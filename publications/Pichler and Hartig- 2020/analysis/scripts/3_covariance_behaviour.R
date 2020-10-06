@@ -31,7 +31,7 @@ for(i in 1:length(sites)) {
 
 
 #### gpu dmvp ####
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
+result_corr_acc = result_env = result_rmse_env =  matrix(NA, length(sites),ncol = 5L)
 for(i in 1:length(sites)) {
   for(j in 1:5){
     torch$cuda$empty_cache()
@@ -39,14 +39,14 @@ for(i in 1:length(sites)) {
     Y = data_set[[i]][[j]]$response
     sim = data_set[[i]][[j]]
     
-    model = sjSDM(Y, env=linear(X, formula = ~0+X1+X2+X3+X4+X5), learning_rate = 0.01, 
-                  iter = 50L, step_size = as.integer(nrow(X)*0.1),
-                  device = 0L, link = "logit")
-    time = model$time
+    model = sjSDM(Y, env=linear(X, formula = ~.), learning_rate = 0.01, 
+                  iter = 50L,
+                  device = 1L, link = "logit")
+    true_species_weights = rbind(rep(0.0, ncol(Y)), sim$species_weights)
     result_corr_acc[i,j] =  sim$corr_acc(getCov(model))
-    result_env[i,j] = mean(as.vector(t(coef(model)[[1]]) > 0) == as.vector(sim$species_weights > 0))
-    result_rmse_env[i,j] =  sqrt(mean((as.vector(t(coef(model)[[1]])) - as.vector(sim$species_weights))^2))
-    result_time[i,j] = time
+    ce = t(coef(model)[[1]])
+    result_env[i,j] = mean(as.vector(ce[-1,] > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(ce) - as.vector(true_species_weights))^2))
     rm(model)
     gc()
     torch$cuda$empty_cache()
@@ -57,8 +57,7 @@ for(i in 1:length(sites)) {
 gpu_behaviour = list(
   result_corr_acc = result_corr_acc,
   result_env = result_env,
-  result_rmse_env = result_rmse_env,
-  result_time= result_time
+  result_rmse_env = result_rmse_env
 )
 saveRDS(gpu_behaviour, "results/gpu_sjSDM_behaviour_sites.RDS")
 
@@ -66,7 +65,7 @@ saveRDS(gpu_behaviour, "results/gpu_sjSDM_behaviour_sites.RDS")
 
 
 #### gllvm ####
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
+result_corr_acc = result_env = result_rmse_env =  matrix(NA, length(sites),ncol = 5L)
 for(i in 1:length(sites)) {
   for(j in 1:5L){
     X = data_set[[i]][[j]]$env_weights
@@ -95,10 +94,12 @@ for(i in 1:length(sites)) {
         })},error = function(e) e)
     }
     try({
+      coefs = rbind(model$params$beta0, t(coef(model)$Xcoef))
+      true_species_weights = rbind(rep(0.0, ncol(Y)), sim$species_weights)
+      
       result_corr_acc[i,j] =  sim$corr_acc(gllvm::getResidualCov(model)$cov)
       result_env[i,j] = mean(as.vector(t(coef(model)$Xcoef) > 0) == as.vector(sim$species_weights > 0))
-      result_rmse_env[i,j] =  sqrt(mean((as.vector(t(coef(model)$Xcoef)) - as.vector(sim$species_weights))^2))
-      result_time[i,j] = time[3]
+      result_rmse_env[i,j] =  sqrt(mean((as.vector(coefs) - as.vector(true_species_weights))^2))
     rm(model)
     gc()
     })
@@ -108,15 +109,14 @@ for(i in 1:length(sites)) {
 gllvm_behaviour = list(
     result_corr_acc = result_corr_acc,
     result_env = result_env,
-    result_rmse_env = result_rmse_env,
-    result_time= result_time
+    result_rmse_env = result_rmse_env
   )
 saveRDS(gllvm_behaviour, "results/gllvm_behaviour_sites.RDS")
 
 
 
 #### bc ####
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
+result_corr_acc = result_env = result_rmse_env =  matrix(NA, length(sites),ncol = 5L)
 posterior = vector("list", length(sites))
 for(i in 1:length(sites)) {
   sub_posterior = vector("list", 5L)
@@ -136,11 +136,11 @@ for(i in 1:length(sites)) {
     covFill[upper.tri(covFill)] = cov
     correlation = t(covFill)
     
-    species_weights = matrix(NA, ncol(X), ncol(Y))
+    species_weights = matrix(NA, ncol(X)+1, ncol(Y))
     n = paste0("B$sp",1:ncol(Y) )
     for(v in 1:ncol(Y)){
       smm = BayesComm:::summary.bayescomm(model1, n[v])
-      species_weights[,v]= smm$statistics[-1,1]
+      species_weights[,v]= smm$statistics[,1]
     }
     
     m1 = lapply(model1$trace$B, function(mc) coda::as.mcmc(mc))
@@ -155,10 +155,11 @@ for(i in 1:length(sites)) {
     diag = list(post = list(m1 = m1, m2 = m2), psrf.beta = beta.psrfs, psrf.gamma = cov.psrf)
     
     try({
+      true_species_weights = rbind(rep(0.0, ncol(Y)), sim$species_weights)
+      
       result_corr_acc[i,j] =  sim$corr_acc(correlation)
-      result_env[i,j] = mean(as.vector(species_weights > 0) == as.vector(sim$species_weights > 0))
-      result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(sim$species_weights))^2))
-      result_time[i,j] = time[3]
+      result_env[i,j] = mean(as.vector(species_weights[-1,] > 0) == as.vector(sim$species_weights > 0))
+      result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(true_species_weights))^2))
       rm(m1,m2)
       gc()
       
@@ -175,7 +176,6 @@ bc_behaviour = list(
   result_corr_acc = result_corr_acc,
   result_env = result_env,
   result_rmse_env = result_rmse_env,
-  result_time= result_time,
   posterior = posterior
 )
 
@@ -184,7 +184,7 @@ saveRDS(bc_behaviour, "results/bc_behaviour_sites.RDS")
 
 
 #### hmsc ####
-result_corr_acc = result_env = result_rmse_env =  result_time =  matrix(NA, length(sites),ncol = 5L)
+result_corr_acc = result_env = result_rmse_env =  matrix(NA, length(sites),ncol = 5L)
 posterior = vector("list", length(sites))
 for(i in 1:length(sites)) {
   sub_posterior = vector("list", 5L)
@@ -197,31 +197,31 @@ for(i in 1:length(sites)) {
     # HMSC:
     studyDesign = data.frame(sample = as.factor(1:nrow(Y)))
     rL = HmscRandomLevel(units = studyDesign$sample)
-    model = Hmsc(Y = Y, XData = data.frame(X), XFormula = ~0 + .,
+    model = Hmsc(Y = Y, XData = data.frame(X), XFormula = ~1 + .,
                  studyDesign = studyDesign, ranLevels = list(sample = rL),distr = "probit")
     time =
       system.time({
-        model = sampleMcmc(model, thin = 50, samples = 1000, transient = 5000,verbose = 5000,
+        model = sampleMcmc(model, thin = 50, samples = 1000, transient = 5000, verbose = 5000,
                            nChains = 2L,nParallel = 2L)
       })
     posterior_tmp = convertToCodaObject(model)
-    ess.beta = effectiveSize(posterior_tmp$Beta)
-    psrf.beta = gelman.diag(posterior_tmp$Beta, multivariate=FALSE)$psrf
     
     ess.gamma = effectiveSize(posterior_tmp$Gamma)
     psrf.gamma = gelman.diag(posterior_tmp$Gamma, multivariate=FALSE)$psrf
     
-    diag = list(post = posterior_tmp, ess.beta = ess.beta, psrf.beta = psrf.beta, ess.gamma = ess.gamma, psrf.gamma = psrf.gamma)
+    diag = list(post = posterior_tmp)
     
     
     correlation = computeAssociations(model)[[1]]$mean
     species_weights = Hmsc::getPostEstimate(model,parName = "Beta")$mean
     
     
-      result_corr_acc[i,j] =  sim$corr_acc(correlation)
-      result_env[i,j] = mean(as.vector(species_weights > 0) == as.vector(sim$species_weights > 0))
-      result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(sim$species_weights))^2))
-      result_time[i,j] = time[3]
+    species_weights = Hmsc::getPostEstimate(model,parName = "Beta")$mean
+    
+    true_species_weights = rbind(rep(0.0, ncol(Y)), sim$species_weights)
+    result_corr_acc[i,j] =  sim$corr_acc(correlation)
+    result_env[i,j] = mean(as.vector(species_weights[-1,] > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(true_species_weights))^2))
       rm(model)
       gc()
       sub_posterior[[j]] = diag
@@ -234,7 +234,6 @@ hmsc_behaviour = list(
   result_corr_acc = result_corr_acc,
   result_env = result_env,
   result_rmse_env = result_rmse_env,
-  result_time= result_time,
   posterior = posterior
 )
 

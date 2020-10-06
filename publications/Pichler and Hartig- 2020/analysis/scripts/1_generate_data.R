@@ -1,5 +1,5 @@
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
-library(deepJSDM)
+library(sjSDM)
 sites = c(50, 70, 100, 140, 180, 260, 320, 400, 500)
 species = c(0.1, 0.3, 0.5)
 env = 5L
@@ -12,7 +12,7 @@ set.seed(42)
 data_sets = vector("list", nrow(setup))
 counter = 1L
 for(i in 1:nrow(setup)) {
-  for(j in 1:10){
+  for(j in 1:5){
 
     tmp = setup[i,]
     sim = simulate_SDM(env = tmp$env,sites = 2*tmp$sites,species = as.integer(tmp$species*tmp$sites))
@@ -31,4 +31,4 @@ for(i in 1:nrow(setup)) {
   }
   
 }
-save(data_sets, setup, file = "data_sets2.RData")
+save(data_sets, setup, file = "data_sets_full.RData")
