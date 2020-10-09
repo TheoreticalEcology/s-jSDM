@@ -202,14 +202,31 @@ sjSDMControl = function(optimizer = RMSprop(),
 
 
 
+softmax = function(x, dim = NULL) {
+  ff = function(x) exp(x)/sum(exp(x))
+  if(is.null(dim)) return(ff(x))
+  else return( apply(x, dim, ff) )
+}
 
-
-
+#' Multinomial
+#' 
+#' multinomial family
+#' @param invlink inverse link function, softmax is currently only supported
+#' 
+#' @export
+multinomial = function(invlink = "multinomial logit") {
+  out = list()
+  out$linkinv = softmax
+  out$family = "multinomial"
+  out$link = "multinomial"
+  class(out) = "multinomial"
+  return(out)
+}
 
 
 check_family = function(family){
   out = list()
-  if(!family$family %in% c("binomial", "poisson", "gaussian")) stop(paste0(family$family, " ->  not supported"), call. = FALSE)
+  if(!family$family %in% c("binomial", "poisson", "gaussian", "multinomial")) stop(paste0(family$family, " ->  not supported"), call. = FALSE)
   
   if(family$family == "binomial"){
     if(!family$link %in% c("logit", "probit")){
@@ -230,10 +247,12 @@ check_family = function(family){
     }
     out$link = "normal"
   }
+  if(family$family == "multinomial") {
+    out$link = family$link
+  }
   out$family = family
   return(out)
 }
-
 
 
 

@@ -175,7 +175,7 @@ class Model_sjSDM:
         return DataLoader
 
     def build(self, df=None,Re=None, optimizer=None, l1=0.0, l2=0.0,
-              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit", diag=False, scheduler=True,patience=2, factor = 0.05):
+              reg_on_Cov=True, reg_on_Diag=True, inverse=False, link="probit", diag=False, scheduler=True,patience=2, factor = 0.02):
         
         if self.device.type == 'cuda' and torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -569,6 +569,15 @@ class Model_sjSDM:
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     loss = Eprob.log().neg().sub(maxlogprob)
                     return loss
+            elif self.link == "multinomial":
+                def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
+                    noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
+                    E = torch.tensordot(noise, sigma.t(), dims = 1).add(mu).softmax(dim=2)
+                    logprob = torch.distributions.Multinomial(probs = E).log_prob(Ys)#.sum(dim = 2)
+                    maxlogprob = logprob.max(dim = 0).values
+                    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                    loss = Eprob.log().neg().sub(maxlogprob)
+                    return loss
 
             elif self.link == "normal":
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
@@ -587,6 +596,8 @@ class Model_sjSDM:
                 link_func = lambda value: value.exp()
             elif self.link == "normal":
                 link_func = lambda value: value
+            elif self.link == "multinomial":
+                link_func = lambda value: value.softmax(dim=2)
 
             if raw:
                 link_func = lambda value: value
