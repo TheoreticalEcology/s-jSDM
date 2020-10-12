@@ -12,7 +12,7 @@
 #' @export
 Rsquared2 = function(model, X = NULL, Y = NULL, SP = NULL,individual=TRUE,...) {
   
-  if(model$settings$link == "probit") varDist = 1
+  if(model$family$link == "probit") varDist = 1
   else varDist = pi^2/3
   
   sigma = model$model$get_sigma
@@ -63,8 +63,8 @@ Rsquared = function(model, X = NULL, Y = NULL, SP=NULL, adjust=FALSE, averageSP 
   nsp = ncol(Y)
   preds = lapply(1:100, function(i) predict.sjSDM(model, link ="raw"))#,newdata = X,SP=SP, link ="raw"))
   Ypred = apply(abind::abind(preds, along = 0L), 2:3, mean)
-  link = stats::binomial(link = model$settings$link)
-  if(model$settings$link == "probit") varDist = 1
+  link = model$family$family
+  if(model$family$link == "probit") varDist = 1
   else varDist = pi^2/3
   
   #if(sp) Xvar = c(Xvar, SPvar)

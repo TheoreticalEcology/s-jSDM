@@ -496,5 +496,3 @@ new_image = function(z, cols= (grDevices::colorRampPalette(c("white", "#24526E")
   graphics::axis(1, at = seq(0.0,1.0, length.out = 5), labels = round(unique(z[,2]),2)[seq(1, length(unique(x)), length.out = 5)], lwd = 0.0, lwd.ticks = 1.0)
   graphics::axis(2, at = seq(0.0,1.0, length.out = 5), labels = round(unique(z[,3]),2)[seq(1, length(unique(y)), length.out = 5)], las = 2, lwd = 0.0, lwd.ticks = 1.0)
 }
-
-

@@ -3,7 +3,7 @@ context("sjSDM")
 source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
-                      iter = 1L, step_size = 10L, se=FALSE, link = "logit", context = "") {
+                      iter = 1L, step_size = 10L, se=FALSE, family = stats::binomial(), context = "") {
   
     sjSDM:::check_module()
     if(torch$cuda$is_available()) device = "gpu"
@@ -14,8 +14,9 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           iter = !!iter, 
                                           step_size = !!step_size,
                                           se = !!se,
-                                          link = !!link,
-                                          device = device)}, NA)
+                                          family = !!family,
+                                          device = device,
+                                          sampling = 10L)}, NA)
     testthat::expect_error({res = anova(model, cv = 2L)}, NA)
     testthat::expect_error({plot(res)}, NA)
 }
@@ -33,14 +34,14 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
   # iter, batch_size, se, link
   Funcs = list(
-    list(5, 2, FALSE, "logit"),
-    list(5, 23, FALSE, "logit"),
-    list(5, 40, FALSE, "probit")
+    list(5, 2, FALSE, binomial("logit")),
+    list(5, 23, FALSE, poisson()),
+    list(5, 40, FALSE, gaussian())
   )
   testthat::test_that("sjSDM anova Func", {
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
-      test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], link =  Funcs[[i]][[4]])
+      test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], family =  Funcs[[i]][[4]])
     }
   })
   
@@ -65,6 +66,17 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     skip_if_no_torch()
     for(i in 1:length(envs)) {
       test_model(Y1, env = envs[[i]])
+    }
+  })
+  
+  
+  spatial = list(
+    linear(data.frame(matrix(rnorm(100), 50 , 2)), ~0+X1:X2)
+  )
+  testthat::test_that("sjSDM anova env", {
+    skip_if_no_torch()
+    for(i in 1:length(spatial)) {
+      test_model(Y1, env = linear(X1), spatial = spatial[[1]])
     }
   })
   

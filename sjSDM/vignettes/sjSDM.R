@@ -109,10 +109,18 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  Y = com$response
 
 ## ----eval=FALSE----------------------------------------------------------
+#  model = sjSDM(Y, env = linear(X, ~.), se = TRUE, iter = 50L, family = poisson("log"))
+#  summary(model)
+
+## ----eval=FALSE----------------------------------------------------------
+#  model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE, iter = 50L, family = gaussian("identity"))
+#  summary(model)
+
+## ----eval=FALSE----------------------------------------------------------
 #  Y_pa = scales::rescale(log(Y+0.001))
 
 ## ----eval=FALSE----------------------------------------------------------
 #  
-#  model = sjSDM(Y_pa, env = linear(X, ~X1+X2), se = TRUE, iter = 100L)
+#  model = sjSDM(Y_pa, env = linear(X, ~.), se = TRUE, iter = 50L, family = binomial("logit"))
 #  summary(model)
 

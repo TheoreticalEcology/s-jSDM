@@ -3,7 +3,7 @@ context("sjSDM")
 source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
-                      iter = 1L, step_size = 10L, se=FALSE, link = "logit", context = "") {
+                      iter = 1L, step_size = 10L, se=FALSE, family = stats::binomial("logit"), context = "") {
     sjSDM:::check_module()
     if(torch$cuda$is_available()) device = "gpu"
     else device = "cpu"
@@ -13,7 +13,9 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           iter = !!iter, 
                                           step_size = !!step_size,
                                           se = !!se,
-                                          link = !!link, device = device)}, NA)
+                                          family=!!family, 
+                                          device = device,
+                                          sampling = 10L)}, NA)
     testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(coef(model)) }, NA)
     testthat::expect_error({ .k = testthat::capture_output(summary(model)) }, NA)
@@ -46,18 +48,18 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
   # iter, batch_size, se, link
   Funcs = list(
-    list(5, 2, FALSE, "logit"),
-    list(5, 23, FALSE, "logit"),
-    list(5, 40, FALSE, "probit"),
-    list(5, 40, FALSE, "linear"),
-    list(5, 20, TRUE, "linear"),
-    list(5, 20, TRUE, "probit"),
-    list(5, 20, TRUE, "linear")
+    list(5, 2, FALSE, stats::binomial("logit")),
+    list(5, 23, FALSE, stats::binomial("probit")),
+    list(5, 40, FALSE, stats::poisson("log")),
+    list(5, 40, FALSE, stats::gaussian()),
+    list(5, 20, TRUE, stats::binomial()),
+    list(5, 20, TRUE, stats::poisson()),
+    list(5, 20, TRUE, stats::binomial("probit"))
   )
   testthat::test_that("sjSDM Func", {
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
-      test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], link =  Funcs[[i]][[4]])
+      test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], family =  Funcs[[i]][[4]])
     }
   })
   

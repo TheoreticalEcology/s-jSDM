@@ -64,13 +64,15 @@ sjSDM has a function to create test data. Here, we create a dataset with 3 envir
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 ```
 
+
 # Fitting a model
 
-The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrix. 
+The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrices. 
 
 ```{r,eval=FALSE}
 model = sjSDM(Y = com$response, env = com$env_weights, iter = 100L, se=TRUE)
 ```
+
 
 
 ## Interpreting model output
@@ -216,12 +218,28 @@ summary(model)
 
 
 # Fitting other distributions (e.g. species frequencies)
-sjSDM does not support directly other responses than presence-absence data, however, there are efficient workarounds which could be even more stable than the actual model. Let's have a look at observed species frequencies (count data):
+sjSDM supports other responses than presence-absence data:
+Simulate non-prescence-absence data:
 ```{r,eval=FALSE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L,link = "identical", response = "count") # samples from a Poisson distribution
 X = com$env_weights
 Y = com$response
 ```
+
+## Poisson 
+```{r,eval=FALSE}
+model = sjSDM(Y, env = linear(X, ~.), se = TRUE, iter = 50L, family = poisson("log"))
+summary(model)
+```
+
+## Normal (gaussian)
+```{r,eval=FALSE}
+model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE, iter = 50L, family = gaussian("identity"))
+summary(model)
+```
+
+
+## Workaround to use the default binomial with probit or logit link:
 The log-normalization is one way to transform species counts into quasi-probabilities in the range of [0,1]:
 ```{r,eval=FALSE}
 Y_pa = scales::rescale(log(Y+0.001))
@@ -230,7 +248,7 @@ Y_pa = scales::rescale(log(Y+0.001))
 We can use the quasi probabilities the same way as presence-absence data:
 ```{r,eval=FALSE}
 
-model = sjSDM(Y_pa, env = linear(X, ~X1+X2), se = TRUE, iter = 100L)
+model = sjSDM(Y_pa, env = linear(X, ~.), se = TRUE, iter = 50L, family = binomial("logit"))
 summary(model)
 ```
 
