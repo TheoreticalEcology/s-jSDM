@@ -2,144 +2,133 @@
 # binomial with probit link
 # with increasing number of species, nlatent -> 2 - 6
 
+
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
-library(deepJSDM)
+#library(deepJSDM)
 library(BayesComm)
-load("data_sets_sparse.RData")
-TMB::openmp(n = 6L)
+load("data_sets_sparse_95.RData")
+
+
+result_corr_acc = result_corr_acc2 = result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 5L)
+auc = diagnosis =vector("list", nrow(setup))
+
 
 OpenMPController::omp_set_num_threads(6L)
 RhpcBLASctl::omp_set_num_threads(6L)
 RhpcBLASctl::blas_set_num_threads(6L)
-
-
-
-result_corr_acc =result_corr_auc = result_corr_acc_min = result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
-auc = vector("list", nrow(setup))
-diagnosis =vector("list", nrow(setup))
-
-cf_function = function(pred, true, threshold = 0.0){
-  pred = pred[lower.tri(pred)]
-  true = true[lower.tri(true)]
-  pred = cut(pred, breaks = c(-1.0, -threshold- .Machine$double.eps, threshold+.Machine$double.eps, 1),labels = c("neg", "zero", "pos"))
-  true = cut(true, breaks = c(-1.0, -threshold- .Machine$double.eps, threshold+.Machine$double.eps, 1),labels = c("neg", "zero", "pos"))
-  return(list(cm = caret::confusionMatrix(pred, true), true = true, pred = pred))
-}
-
-macro_auc = function(true, pred) {
-  cf =  cf_function(pred, true)
-  zero = pos = neg =cf$true
-  
-  levels(zero) = c("1", "0", "1")
-  levels(pos) = c("0", "0", "1")
-  levels(neg) = c("1", "0", "0")
-  
-  pZ = abs(cov2cor(pred))[lower.tri(pred)]
-  pP = scales::rescale(cov2cor(pred),to = c(0,1))[lower.tri(pred)]
-  
-  zero = as.numeric(as.character(zero))
-  pos = as.numeric(as.character(pos))
-  neg = as.numeric(as.character(neg))
-  
-  Metrics::auc(zero, pZ)
-  Metrics::auc(pos, pP)
-  Metrics::auc(neg, 1-pP)
-  return(
-    sum(table(cf$true)/sum(table(cf$true))*c(Metrics::auc(zero, pZ), Metrics::auc(pos, pP)
-                                             , Metrics::auc(neg, 1-pP)))
-  )
-}
-
-
 set.seed(42)
 
-dict = as.list(2:6)
-names(dict) = as.character(unique(setup$species))
+accuracy = function(true, pred, t = 0.01) {
+  true = true[lower.tri(true)]
+  pred = pred[lower.tri(pred)]
+  zero_acc = mean((abs(true) < t) == (abs(pred) < t))
+  
+  if(any(true>t)) {
+    pos_acc = mean((true>t)[(true>t)] == (pred > t)[(true>t)])
+  } else {
+    pos_acc = NULL
+  }
+  
+  if(any(true< -t)){
+    neg_acc =  mean((true< -t)[(true< -t)] == (pred < -t)[(true< -t)])
+  } else {
+    neg_acc = NULL
+  }
+  return(mean(c( zero_acc, pos_acc, neg_acc)))
+}
+
+parse_cov = function(cov, t){
+  cov[abs(cov) < t] = 0
+  cov[cov > t] = 1
+  cov[cov < -t] = -1
+  return(cov)
+}
+
+accuracy2 = function(true, pred, t = 0.01){
+  true = parse_cov(true, t)
+  pred = parse_cov(pred, t)
+  return( mean(true[lower.tri(true)] == pred[lower.tri(pred)]) )
+}
+
+
 
 counter = 1
 for(i in 1:nrow(setup)) {
-  sub_auc = vector("list", 10L)
-  post = vector("list", 10)
+  sub_auc = vector("list", 5L)
+  post = vector("list", 5L)
   
-  for(j in 1:10){
+  for(j in 1:5L){
     
-    X = data_sets[[counter]]$env_weights
-    Y = data_sets[[counter]]$response
     tmp = data_sets[[counter]]$setup
+    
     ### split into train and test ###
     train_X = data_sets[[counter]]$train_X
     train_Y = data_sets[[counter]]$train_Y
     test_X = data_sets[[counter]]$test_X
     test_Y = data_sets[[counter]]$test_Y
     sim = data_sets[[counter]]$sim
-    counter = counter + 1L
     
-    error = tryCatch({
-    time = system.time({
-      model1 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 5000)
-      model2 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 5000)
-    })},error = function(e) e)
     
-    try({
-      
+    # BayesComm:
+    time =
+      system.time({
+        model1 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 5000)
+        model2 = BayesComm::BC(train_Y, train_X,model = "full", its = 50000, thin = 50, burn = 5000)
+      })
+    
     cov = summary(model1, "R")$statistics[,1]
     covFill = matrix(0,ncol(train_Y), ncol(train_Y))
     covFill[upper.tri(covFill)] = cov
     correlation = t(covFill)
     
-    species_weights = matrix(NA, ncol(train_X), ncol(train_Y))
+    species_weights = matrix(NA, ncol(train_X)+1, ncol(train_Y))
     n = paste0("B$sp",1:ncol(train_Y) )
     for(v in 1:ncol(train_Y)){
       smm = BayesComm:::summary.bayescomm(model1, n[v])
-      species_weights[,v]= smm$statistics[-1,1]
+      species_weights[,v]= smm$statistics[,1]
     }
     
     m1 = lapply(model1$trace$B, function(mc) coda::as.mcmc(mc))
     m2 = lapply(model2$trace$B, function(mc) coda::as.mcmc(mc))
     beta.psrfs = lapply(1:length(model1$trace$B), function(i) coda::gelman.diag(coda::as.mcmc.list(list(m1[[i]], m2[[i]])),multivariate = FALSE)$psrf)
-    
+    beta.conv = abind::abind(beta.psrfs, along = 1L)[,1] > 1.2
     
     m1 = coda::as.mcmc(model1$trace$R)
     m2 = coda::as.mcmc(model2$trace$R)
     cov.psrf = coda::gelman.diag(coda::as.mcmc.list(list(m1, m2)),multivariate = FALSE)$psrf
+    cov.conv = cov.psrf[,1] > 1.2
     
-    diag = list(post = list(m1 = m1, m2 = m2), psrf.beta = beta.psrfs, psrf.gamma = cov.psrf)
+    diag = list(beta.conv = beta.conv , psrf.gamma = cov.conv, correlation = correlation)
     
-    res = list(sigma = correlation, raw_weights = species_weights, 
-               pred = BayesComm:::predict.bayescomm(model1, test_X), 
-               confusion = cf_function(round(correlation, 4), sim$correlation))
-      
-    result_corr_acc[i,j] =  sim$corr_acc(correlation)
-    result_corr_auc[i,j] =  macro_auc(sim$correlation, round(correlation, 4))
+    true_species_weights = rbind(rep(0.0, ncol(train_Y)), sim$species_weights)
     
+    result_corr_acc[i,j] =  accuracy(sim$correlation, correlation)
+    result_corr_acc2[i,j] =  accuracy2(sim$correlation, correlation)
+    result_env[i,j] = mean(as.vector(species_weights[-1,] > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(species_weights) - as.vector(true_species_weights))^2))
     result_time[i,j] = time[3]
     
-    Sens = res$confusion$cm$byClass[,1]
-    Spec = res$confusion$cm$byClass[,2]
-    TSS = Sens+ Spec - 1
-    result_corr_tss[i,j] = sum(table(res$confusion$true)/sum(table(res$confusion$true))*TSS)
-    
-    sub_auc[[j]] = list(pred = res, true = test_Y)
+    pred = BayesComm:::predict.bayescomm(model1, test_X)
+    pred = apply(pred, 1:2, mean)
+    sub_auc[[j]] = list(pred = pred, true = test_Y)
     post[[j]] = diag
-    
-    rm(model1, model2)
+    rm(model1)
+    rm(model2)
     gc()
-    .torch$cuda$empty_cache()
-    },silent = TRUE)
+    counter = counter + 1L
   }
   auc[[i]] = sub_auc
   diagnosis[[i]] = post
   
-  
   bc = list(
     setup = setup[i,],
     result_corr_acc = result_corr_acc,
+    result_corr_acc2 = result_corr_acc2,
+    result_env = result_env,
+    result_rmse_env = result_rmse_env,
     result_time= result_time,
-    result_corr_tss = result_corr_tss,
-    result_corr_auc = result_corr_auc,
     auc = auc,
     post = diagnosis
   )
-  saveRDS(bc, "results/sparse_bc.RDS")
+  saveRDS(bc, "results/6_BayesComm_sparse.RDS")
 }
-

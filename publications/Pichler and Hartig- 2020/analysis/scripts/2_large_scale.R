@@ -20,15 +20,13 @@ for(i in 1:nrow(setup)){
     X = sim$env_weights
     Y = sim$response
     
-    
-    # model = deepJ(model, epochs = 50L,batch_size = as.integer(nrow(train_X)*0.1),corr = FALSE)
-    model = sjSDM(Y, env =linear(X, ~0+X1+X2+X3+X4+X5), learning_rate = 0.003, iter = 120L, step_size = 50L,parallel = 0L,
-                  device = 0L, link = "logit")
+    model = sjSDM(Y, env =linear(X, ~X1+X2+X3+X4+X5), learning_rate = 0.003, iter = 120L, step_size = 50L,parallel = 0L,
+                  device = 1L, link = "logit", sampling = 100L)
     time = model$time
     result_corr_acc[i,j] =  sim$corr_acc(getCov(model))
-    ce = t(coef(model)[[1]]) 
-    result_env[i,j] = mean(as.vector(ce > 0) == as.vector(sim$species_weights > 0))
-    result_rmse_env[i,j] =  sqrt(mean((as.vector(ce) - as.vector(sim$species_weights))^2))
+    ce = t(coef(model)[[1]])
+    result_env[i,j] = mean(as.vector(ce[-1,] > 0) == as.vector(sim$species_weights > 0))
+    result_rmse_env[i,j] =  sqrt(mean((as.vector(ce) - as.vector(rbind(matrix(0, 1L, ncol(sim$species_weights)), sim$species_weights ) ))^2))
     result_time[i,j] = time
     rm(model)
     torch$cuda$empty_cache()

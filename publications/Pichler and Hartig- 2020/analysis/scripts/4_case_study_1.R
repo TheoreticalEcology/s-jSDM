@@ -23,7 +23,7 @@ runtime_case = function(env, pa, batch_size = 200L, optimizer = "adamax"){
   
   model = sjSDM( pa, env = linear(env_scaled, formula = ~.), learning_rate = learning_rate, 
                 iter = epochs, step_size = batch_size, link="logit",
-                device = "cpu")
+                device = "cpu", sampling = 100L)
   time = model$time
   cpu = 
     list(

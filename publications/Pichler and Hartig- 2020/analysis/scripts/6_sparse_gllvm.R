@@ -3,60 +3,56 @@
 # with increasing number of species, nlatent -> 2 - 6
 
 if(version$minor > 5) RNGkind(sample.kind="Rounding")
-library(deepJSDM)
 library(gllvm)
-load("data_sets_sparse.RData")
+load("data_sets_sparse_95.RData")
 TMB::openmp(n = 6L)
 
-
-result_corr_acc =result_corr_auc = result_corr_acc_min = result_corr_tss = result_time =  matrix(NA, nrow(setup),ncol = 10L)
+result_corr_acc = result_corr_acc2= result_env = result_rmse_env =  result_time =  matrix(NA, nrow(setup),ncol = 5L)
 auc = vector("list", nrow(setup))
-
-cf_function = function(pred, true, threshold = 0.0){
-  pred = pred[lower.tri(pred)]
-  true = true[lower.tri(true)]
-  pred = cut(pred, breaks = c(-1.0, -threshold- .Machine$double.eps, threshold+.Machine$double.eps, 1),labels = c("neg", "zero", "pos"))
-  true = cut(true, breaks = c(-1.0, -threshold- .Machine$double.eps, threshold+.Machine$double.eps, 1),labels = c("neg", "zero", "pos"))
-  return(list(cm = caret::confusionMatrix(pred, true), true = true, pred = pred))
-}
-
-macro_auc = function(true, pred) {
-  cf =  cf_function(pred, true)
-  zero = pos = neg =cf$true
-  
-  levels(zero) = c("1", "0", "1")
-  levels(pos) = c("0", "0", "1")
-  levels(neg) = c("1", "0", "0")
-  
-  pZ = abs(cov2cor(pred))[lower.tri(pred)]
-  pP = scales::rescale(cov2cor(pred),to = c(0,1))[lower.tri(pred)]
-  
-  zero = as.numeric(as.character(zero))
-  pos = as.numeric(as.character(pos))
-  neg = as.numeric(as.character(neg))
-  
-  Metrics::auc(zero, pZ)
-  Metrics::auc(pos, pP)
-  Metrics::auc(neg, 1-pP)
-  return(
-    sum(table(cf$true)/sum(table(cf$true))*c(Metrics::auc(zero, pZ), Metrics::auc(pos, pP)
-                                             , Metrics::auc(neg, 1-pP)))
-  )
-}
-
+diagnosis = vector("list", nrow(setup))
 
 set.seed(42)
 
 dict = as.list(2:6)
 names(dict) = as.character(unique(setup$species))
 
+accuracy = function(true, pred, t = 0.01) {
+  true = true[lower.tri(true)]
+  pred = pred[lower.tri(pred)]
+  zero_acc = mean((abs(true) < t) == (abs(pred) < t))
+  
+  if(any(true>t)) {
+    pos_acc = mean((true>t)[(true>t)] == (pred > t)[(true>t)])
+  } else {
+    pos_acc = NULL
+  }
+  
+  if(any(true< -t)){
+    neg_acc =  mean((true< -t)[(true< -t)] == (pred < -t)[(true< -t)])
+  } else {
+    neg_acc = NULL
+  }
+  return(mean(c( zero_acc, pos_acc, neg_acc)))
+}
+
+parse_cov = function(cov, t){
+  cov[abs(cov) < t] = 0
+  cov[cov > t] = 1
+  cov[cov < -t] = -1
+  return(cov)
+}
+
+accuracy2 = function(true, pred, t = 0.01){
+  true = parse_cov(true, t)
+  pred = parse_cov(pred, t)
+  return( mean(true[lower.tri(true)] == pred[lower.tri(pred)]) )
+}
 counter = 1
 for(i in 1:nrow(setup)) {
-  sub_auc = vector("list", 10L)
-  for(j in 1:10){
+  sub_auc = vector("list", 5L)
+  post = vector("list", 5L)
+  for(j in 1:5L){
     
-    X = data_sets[[counter]]$env_weights
-    Y = data_sets[[counter]]$response
     tmp = data_sets[[counter]]$setup
     ### split into train and test ###
     train_X = data_sets[[counter]]$train_X
@@ -67,54 +63,53 @@ for(i in 1:nrow(setup)) {
     counter = counter + 1L
     
     error = tryCatch({
-    time = system.time({
-    model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], seed = 42)
-    })},error = function(e) e)
+      time = system.time({
+        model = gllvm::gllvm(y = train_Y, X = data.frame(train_X),formula = ~X1+X2+X3+X4+X5, family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], seed = 42)
+      })},error = function(e) e)
     if("error"  %in% class(error)) {
       rm(error)
       error = tryCatch({
         time = system.time({
-          model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], starting.val = "zero", seed = 42)
+          model = gllvm::gllvm(y = train_Y, X = data.frame(train_X),formula = ~X1+X2+X3+X4+X5, family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], starting.val = "zero", seed = 42)
         })},error = function(e) e)
     }
     if("error"  %in% class(error)) {
       rm(error)
       error = tryCatch({
         time = system.time({
-          model = gllvm::gllvm(y = train_Y, X = data.frame(train_X), family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], starting.val = "random", seed = 42)
+          model = gllvm::gllvm(y = train_Y, X = data.frame(train_X),formula = ~X1+X2+X3+X4+X5, family = binomial("probit"), num.lv = dict[[as.character(tmp$species)]], starting.val = "random", seed = 42)
         })},error = function(e) e)
     }
     try({
-    res = list(sigma = gllvm::getResidualCov(model)$cov, raw_weights = coef(model)$Xcoef, 
-               pred = predict.gllvm(model, newX = data.frame(test_X), type = "response"), 
-               confusion = cf_function(round(gllvm::getResidualCov(model)$cov, 4), sim$correlation))
+      coefs = rbind(model$params$beta0, t(coef(model)$Xcoef))
+      true_species_weights = rbind(rep(0.0, ncol(train_Y)), sim$species_weights)
       
-    result_corr_acc[i,j] =  sim$corr_acc(gllvm::getResidualCov(model)$cov)
-    result_corr_auc[i,j] =  macro_auc(sim$correlation, round(gllvm::getResidualCov(model)$cov, 4))
-    
-    result_time[i,j] = time[3]
-    
-    Sens = res$confusion$cm$byClass[,1]
-    Spec = res$confusion$cm$byClass[,2]
-    TSS = Sens+ Spec - 1
-    result_corr_tss[i,j] = sum(table(res$confusion$true)/sum(table(res$confusion$true))*TSS)
-    
-    sub_auc[[j]] = list(pred = res, true = test_Y)
-    rm(model)
-    gc()
-    .torch$cuda$empty_cache()
+      result_corr_acc[i,j] =  accuracy(sim$correlation, gllvm::getResidualCov(model)$cov)
+      result_corr_acc2[i,j] =  accuracy2(sim$correlation, gllvm::getResidualCov(model)$cov)
+      result_env[i,j] = mean(as.vector(t(coef(model)$Xcoef) > 0) == as.vector(sim$species_weights > 0))
+      result_rmse_env[i,j] =  sqrt(mean((as.vector(coefs) - as.vector(true_species_weights))^2))
+      result_time[i,j] = time[3]
+      pred = predict.gllvm(model, newX = data.frame(test_X), type = "response")
+      sub_auc[[j]] = list(pred = pred, true = test_Y)
+      post[[j]] = list(correlation=gllvm::getResidualCov(model)$cov)
+      rm(model)
+      gc()
+      .torch$cuda$empty_cache()
     },silent = TRUE)
   }
   auc[[i]] = sub_auc
+  diagnosis[[i]] = post
   
   gllvm = list(
     setup = setup[i,],
     result_corr_acc = result_corr_acc,
+    result_corr_acc2 = result_corr_acc2,
+    result_env = result_env,
+    result_rmse_env = result_rmse_env,
     result_time= result_time,
-    result_corr_tss = result_corr_tss,
-    result_corr_auc = result_corr_auc,
-    auc = auc
+    auc = auc,
+    post = diagnosis
   )
-  saveRDS(gllvm, "results/sparse_gllvm.RDS")
+  saveRDS(gllvm, "results/6_gllvm_sparse.RDS")
 }
 

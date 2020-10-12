@@ -17,6 +17,7 @@
 #' @param n_cores number of cores for parallelization 
 #' @param n_gpu number of gpus
 #' @param sampling number of sampling steps for Monte Carlo integreation
+#' @param blocks blocks of parallen tuning steps
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}
 #' 
 #' @example /inst/examples/sjSDM_cv-example.R
@@ -34,6 +35,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                     n_cores = NULL, 
                     n_gpu = NULL,
                     sampling = 5000L,
+                    blocks = 1L,
                     ...) {
   
   tune = match.arg(tune)
@@ -108,6 +110,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
           
         myself = paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')
         
+                 
          dist = cbind(nodes,(n_gpu-1):0)
          device2 = as.integer(as.numeric(dist[which(dist[,1] %in% myself, arr.ind = TRUE), 2]))
          model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2,sampling=sampling, ...)
@@ -145,6 +148,8 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                                  auc_train = auc_train,
                                  auc_macro_test = auc_macro_test,
                                  auc_macro_train = auc_macro_train)
+      rm(model)
+      torch$cuda$empty_cache()
     }
     return(cv_step_result)
   }
@@ -156,13 +161,24 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       result[[t]] = tune_func(t)
     }
   } else {
-    cl = snow::makeCluster(n_cores)
-    nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
-    #print(nodes)
-    control = snow::clusterEvalQ(cl, {library(sjSDM)})
-    snow::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
-    result = snow::parLapply(cl, 1:nrow(tune_samples), tune_func)
-    snow::stopCluster(cl)
+
+    blocks_run = cut(1:nrow(tune_samples), ceiling(nrow(tune_samples)/blocks))
+    result_list = vector("list", length(unique(blocks_run)))
+    
+    for(i in 1:length(unique(blocks_run))){
+      ind = blocks_run == unique(blocks_run)[i]
+      sub_tune_samples = tune_samples[ind, ]
+      
+      cl = snow::makeCluster(n_cores)
+      nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
+      #print(nodes)
+      control = snow::clusterEvalQ(cl, {library(sjSDM)})
+      snow::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
+      result_list[[i]] = snow::parLapply(cl, 1:nrow(sub_tune_samples), tune_func)
+      snow::stopCluster(cl)
+    }
+    result = do.call(rbind, result_list)
+    
   }
   summary_results = 
     data.frame(do.call(rbind, lapply(1:CV, function(i) tune_samples)), 
@@ -480,5 +496,3 @@ new_image = function(z, cols= (grDevices::colorRampPalette(c("white", "#24526E")
   graphics::axis(1, at = seq(0.0,1.0, length.out = 5), labels = round(unique(z[,2]),2)[seq(1, length(unique(x)), length.out = 5)], lwd = 0.0, lwd.ticks = 1.0)
   graphics::axis(2, at = seq(0.0,1.0, length.out = 5), labels = round(unique(z[,3]),2)[seq(1, length(unique(y)), length.out = 5)], las = 2, lwd = 0.0, lwd.ticks = 1.0)
 }
-
-
