@@ -35,7 +35,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                     n_cores = NULL, 
                     n_gpu = NULL,
                     sampling = 5000L,
-                    blocks = 5L,
+                    blocks = 1L,
                     ...) {
   
   tune = match.arg(tune)
