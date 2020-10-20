@@ -4,7 +4,7 @@
 \alias{simulate.sjSDM}
 \title{Generates simulations from sjSDM model}
 \usage{
-\method{simulate}{sjSDM}(object, nsim = 1, seed = NULL, ...)
+\method{simulate}{sjSDM}(object, nsim = 100, seed = NULL, ...)
 }
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}}

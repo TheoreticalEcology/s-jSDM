@@ -4,7 +4,7 @@
 \alias{multinomial}
 \title{Multinomial}
 \usage{
-multinomial(invlink = "softmax")
+multinomial(invlink = "multinomial logit")
 }
 \arguments{
 \item{invlink}{inverse link function, softmax is currently only supported}

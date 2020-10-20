@@ -394,15 +394,27 @@ summary.sjSDM = function(object, ...) {
 #'
 #' @importFrom stats simulate
 #' @export
-simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
+simulate.sjSDM = function(object, nsim = 100, seed = NULL, ...) {
   object = checkModel(object)
   if(!is.null(seed)) {
     set.seed(seed)
     torch$cuda$manual_seed(seed)
     torch$manual_seed(seed)
   }
-  preds = abind::abind(lapply(1:nsim, function(i) predict.sjSDM(object)), along = 0L)
-  simulation = apply(preds, 2:3, function(p) stats::rbinom(nsim, 1L,p))
+  preds = abind::abind(lapply(1:100, function(i) predict.sjSDM(object, type = "link")), along = 0L)
+  preds = apply(preds, 2:3, mean)
+  
+  fam = model$family$family$family
+  if(fam == "multinomial") {
+    simulation = abind::abind(lapply(1:nsim, function(i) { t(sapply(1:dim(preds)[1], function(j) stats::rmultinom(1, sum(object$data$Y[j,]),prob = preds[j,]))) }), along = 0L)
+  } else if(fam == "binomial") {
+    simulation = abind::abind(lapply(1:nsim, function(i) t(apply(preds, 1:2, function(p) stats::rbinom(1, 1L,p)))), along = 0L)
+  } else if(fam == "poisson") {
+    simulation = abind::abind(lapply(1:nsim, function(i) t(apply(preds, 1:2, function(p) stats::rpois(1, p)))), along = 0L)
+  } else if(fam == "normal") {
+    cat(fam, " not yet supported")
+    return(NULL)
+  }
   return(simulation)
 }
 
