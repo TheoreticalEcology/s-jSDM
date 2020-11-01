@@ -19,10 +19,10 @@ def data_sp():
 def model_base():
     def _get(inp=5,out=5,hidden=[], activation=['linear'], df=5, 
              optimizer=fa.optimizer_adamax(1), l1_d = 0.0, l2_d = 0.0, 
-             l1_cov=0.0, l2_cov=0.0, link="logit",reg_on_Cov=True, reg_on_Diag=True,inverse=False):
+             l1_cov=0.0, l2_cov=0.0, link="logit",reg_on_Cov=True, reg_on_Diag=True,inverse=False, dropout=-99):
         model = fa.Model_sjSDM()
         model.add_env(input_shape=inp, output_shape=out, 
-                      hidden=hidden, activation=activation, l1=l1_d, l2=l2_d)
+                      hidden=hidden, activation=activation, l1=l1_d, l2=l2_d, dropout=dropout)
         model.build(df=df, l1=l1_cov,l2=l2_cov,optimizer=optimizer,link=link,reg_on_Cov=reg_on_Cov, reg_on_Diag=reg_on_Diag, inverse=inverse)
         return model
     return _get
@@ -94,18 +94,18 @@ def test_regularization(data, model_base, l1_d, l2_d, l2_cov, l1_cov, reg_on_Cov
     model.se(X, Y)
     assert pred.shape[0] == X.shape[0]
 
-@pytest.mark.parametrize("inp,out,hidden,activation", 
+@pytest.mark.parametrize("inp,out,hidden,activation,dropout", 
                         [
-                            (5,5,[], ['linear']),
-                            (3,3,[5,5,5], ['linear']),
-                            (2,10,[3,3,3], ['relu']),
-                            (2,10,[3,3,3], ['sigmoid']),
-                            (2,10,[3,3,3], ['tanh']),
-                            (2,10,[3,3,3], ['relu', 'tanh', 'sigmoid'])
+                            (5,5,[], ['linear'], 0.1),
+                            (3,3,[5,5,5], ['linear'], 0.1),
+                            (2,10,[3,3,3], ['relu'], -1),
+                            (2,10,[3,3,3], ['sigmoid'], -1),
+                            (2,10,[3,3,3], ['tanh'], -1),
+                            (2,10,[3,3,3], ['relu', 'tanh', 'sigmoid'], 0.3)
                         ])
-def test_dnn(data, model_base, inp, out, hidden, activation):
+def test_dnn(data, model_base, inp, out, hidden, activation, dropout):
     X, Y = data(inp, out)
-    model = model_base(inp, out, hidden=hidden, activation=activation)
+    model = model_base(inp, out, hidden=hidden, activation=activation, dropout=dropout)
     model.fit(X, Y, epochs=1, batch_size=50)
     model.logLik(X, Y)
     pred = model.predict(X)

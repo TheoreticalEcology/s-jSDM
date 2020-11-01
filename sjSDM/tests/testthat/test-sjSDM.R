@@ -15,7 +15,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           se = !!se,
                                           family=!!family, 
                                           device = device,
-                                          sampling = 10L)}, NA)
+                                          sampling = 5L)}, NA)
     testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(coef(model)) }, NA)
     testthat::expect_error({ .k = testthat::capture_output(summary(model)) }, NA)
@@ -108,6 +108,12 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, hidden = c(3,3,3),lambda = 0.1, alpha=1.0),
     DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0),
     DNN(X1, hidden = c(4,3,6),activation = "relu", lambda = 0.1, alpha=1.0),
+    DNN(X1, lambda = 0.1, dropout = 0.3),
+    DNN(X1, lambda = 0.1, alpha=0.0 , dropout = 0.1),
+    DNN(X1, lambda = 0.1, alpha=1.0, dropout = 0.3),
+    DNN(X1, hidden = c(3,3,3),lambda = 0.1, alpha=1.0, dropout = 0.3),
+    DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0, dropout = 0.3),
+    DNN(X1, hidden = c(4,3,6),activation = "relu", lambda = 0.1, alpha=1.0, dropout = 0.3),
     DNN(X1, hidden = c(4,3,6),activation = "tanh", lambda = 0.1, alpha=1.0),
     DNN(X1, hidden = c(4,3,6),activation = "sigmoid", lambda = 0.1, alpha=1.0),
     DNN(X1, hidden = c(4,3,6),activation = c("relu", "tanh", "sigmoid"), lambda = 0.1, alpha=1.0)
@@ -126,7 +132,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(SP, ~.),
     linear(SP, lambda = 0.1, alpha=1.0),
     linear(SP, lambda = 0.1, alpha=0.0),
-    DNN(SP, hidden = c(3,3,3),lambda = 0.1, alpha=1.0),
+    DNN(SP, hidden = c(3,3,3),lambda = 0.1, alpha=1.0, dropout = 0.3),
     DNN(SP, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
   )
   testthat::test_that("sjSDM Spatial", {
@@ -140,7 +146,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   Spatial = list(
     linear(SP, ~0+.),
     linear(SP, lambda = 0.1, alpha=0.5),
-    DNN(SP, hidden = c(3,3,3),lambda = 0.1, alpha=1.0),
+    DNN(SP, hidden = c(3,3,3),lambda = 0.1, alpha=1.0, dropout = 0.3),
     DNN(SP, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
   )
   
@@ -148,7 +154,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(X1, ~0+.),
     linear(X1, lambda = 0.1, alpha=0.5),
     DNN(X1, hidden = c(3,3,3),lambda = 0.1, alpha=1.0),
-    DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
+    DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0, dropout = 0.3)
   )
   testthat::test_that("sjSDM Mix", {
     skip_if_no_torch()

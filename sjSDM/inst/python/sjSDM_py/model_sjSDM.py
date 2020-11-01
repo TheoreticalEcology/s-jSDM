@@ -70,8 +70,8 @@ class Model_sjSDM:
         return device, torch.float32
 
 
-    def add_env(self, input_shape, output_shape, hidden=[], activation=['linear'], l1=-99, l2=-99):
-        self.env = (self._build_NN(input_shape, output_shape, hidden, activation))
+    def add_env(self, input_shape, output_shape, hidden=[], activation=['linear'], l1=-99, l2=-99, dropout=-99):
+        self.env = (self._build_NN(input_shape, output_shape, hidden, activation, dropout))
         self.params.append(self.env.parameters())
         self.input_shape = input_shape
         self.output_shape = output_shape
@@ -81,9 +81,9 @@ class Model_sjSDM:
             if l2 > 0.0:
                 self.losses.append(lambda: self.l1_l2[1](p, l2))
 
-    def add_spatial(self, input_shape, output_shape, hidden = [], activation = ['linear'], l1=-99, l2=-99):
+    def add_spatial(self, input_shape, output_shape, hidden = [], activation = ['linear'], l1=-99, l2=-99, dropout=-99):
         #hidden.append(1)
-        self.spatial = (self._build_NN(input_shape, output_shape, hidden, activation))
+        self.spatial = (self._build_NN(input_shape, output_shape, hidden, activation, dropout))
         self.params.append(self.spatial.parameters())
         for p in self.spatial.parameters():
             if l1 > 0.0: 
@@ -91,7 +91,7 @@ class Model_sjSDM:
             if l2 > 0.0:
                 self.losses.append(lambda: self.l1_l2[1](p, l2))
                 
-    def _build_NN(self, input_shape, output_shape, hidden, activation):
+    def _build_NN(self, input_shape, output_shape, hidden, activation, dropout):
         model_list = nn.ModuleList()
         if len(hidden) != len(activation):
             activation = [activation[0] for _ in range(len(hidden))]
@@ -109,6 +109,9 @@ class Model_sjSDM:
                     model_list.append(nn.Tanh())
                 if activation[i] == "sigmoid":
                     model_list.append(nn.Sigmoid())
+                
+                if dropout > 0.0:
+                    model_list.append(nn.Dropout(p=dropout))
         
         if len(hidden) > 0:
             model_list.append(nn.Linear(hidden[-1], output_shape, bias=False))
@@ -260,7 +263,8 @@ class Model_sjSDM:
                 #sys.stdout.flush()
                 self.history[epoch] = bl
                 if self.useSched:
-                    self.scheduler.step(bl)                    
+                    self.scheduler.step(bl)
+            self.spatial.eval()             
         else:
             for epoch in ep_bar:  
                 for step, (x, y) in enumerate(dataLoader):
@@ -286,6 +290,8 @@ class Model_sjSDM:
                 if self.useSched:
                     self.scheduler.step(bl) 
         torch.cuda.empty_cache()
+        self.env.eval()
+
         
     def logLik(self,X, Y,SP=None,RE=None, batch_size=25, parallel=0, sampling=100,individual=False,train=True):
         """Returns log-likelihood of model
@@ -399,9 +405,13 @@ class Model_sjSDM:
         
         _ = sys.stdout.write("\nCalculating standard errors...\n")
         #(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
+
+        desc='loss: Inf'
+        sp_bar = tqdm(range(Y.shape[1]),bar_format= "Species: {n_fmt}/{total_fmt} {l_bar}{bar}| [{elapsed}, {rate_fmt}]", file=sys.stdout)
+
         if type(SP) is np.ndarray:
-            for i in range(Y.shape[1]):
-                _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
+            for i in sp_bar:
+                #_ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
                 sys.stdout.flush()
                 weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
                 if i == 0:
@@ -432,8 +442,8 @@ class Model_sjSDM:
                 se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
             return se                
         else:
-            for i in range(Y.shape[1]):
-                _ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
+            for i in sp_bar:
+                #_ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
                 sys.stdout.flush()
                 weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
                 if i == 0:
@@ -475,8 +485,9 @@ class Model_sjSDM:
                     identity = torch.eye(self.sigma.shape[0], dtype=self.sigma.dtype, device=self.sigma.device).to(self.sigma.device)
                     @torch.jit.script
                     def l1_l2_ll(sigma: torch.Tensor, l1: float, l2: float, diag: int, identity: torch.Tensor):
-                        sigma1 = sigma.matmul(sigma.t())
-                        ss = sigma1.add(identity).inverse()
+                        sigma1 = sigma.matmul(sigma.t()).add(identity)
+                        #ss = sigma1.add(identity).inverse()
+                        ss = identity.cholesky_solve(sigma1.cholesky())
                         return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1) + ss.triu(diag).pow(2.0).sum().mul(l2) + ss.tril(-1).pow(2.0).sum().mul(l2) #+ sigma1.pow(2.0).sum().mul(0.0001)
                     self.losses.append(lambda: l1_l2_ll(self.sigma, l1,l2, diag, identity))
                 else:
@@ -492,8 +503,9 @@ class Model_sjSDM:
                         identity = torch.eye(self.sigma.shape[0], dtype=self.sigma.dtype, device=self.sigma.device).to(self.sigma.device)
                         @torch.jit.script
                         def l1_ll(sigma: torch.Tensor, l1: float, diag: int, identity: torch.Tensor):
-                            sigma2= sigma.matmul(sigma.t())
-                            ss = sigma2.add(identity).inverse()
+                            sigma2= sigma.matmul(sigma.t()).add(identity)
+                            #ss = sigma2.add(identity).inverse()
+                            ss = identity.cholesky_solve(sigma2.cholesky())
                             return ss.triu(diag).abs().sum().mul(l1) + ss.tril(-1).abs().sum().mul(l1) #  + sigma2.pow(2.0).sum().mul(0.0001)
                         self.losses.append(lambda: l1_ll(self.sigma, l1, diag, identity))
                     else:
@@ -509,7 +521,8 @@ class Model_sjSDM:
                         @torch.jit.script
                         def l2_ll(sigma: torch.Tensor, l2: float, diag: int, identity: torch.Tensor):
                             sigma2 = sigma.matmul(sigma.t()).add(identity)
-                            ss = sigma2.inverse()
+                            #ss = sigma2.inverse()
+                            ss = identity.cholesky_solve(sigma2.cholesky())
                             return ss.triu(diag).pow(2.0).sum().mul(l2) + ss.tril(-1).pow(2.0).sum().mul(l2)
                         self.losses.append(lambda: l2_ll(self.sigma, l2, diag, identity))
                     else:
@@ -538,6 +551,7 @@ class Model_sjSDM:
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     loss = Eprob.log().neg().sub(maxlogprob)
+                    #loss = logprob.logsumexp(dim=0).neg()                    
                     return loss
             elif self.link == "linear":
                 @torch.jit.script
@@ -564,7 +578,7 @@ class Model_sjSDM:
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
                     E = torch.tensordot(noise, sigma.t(), dims = 1).add(mu).exp()
-                    logprob = torch.distributions.Poisson(rate=E).log_prob(Ys).sum(dim = 2)
+                    logprob = torch.distributions.Poisson(rate=E).log_prob(Ys).sum(2)
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     loss = Eprob.log().neg().sub(maxlogprob)

@@ -68,11 +68,12 @@ print.linear = function(x, ...) {
 #' @param activation activation functions, can be of length one, or a vector of activation functions for each layer. Currently supported: tanh, relu, or sigmoid
 #' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |weights| + \alpha ||weights||^2}
+#' @param dropout probability of dropout rate 
 #' 
 #' @seealso \code{\link{linear}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @export
-DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu",  lambda = 0.0, alpha = 0.5) {
+DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu",  lambda = 0.0, alpha = 0.5, dropout = 0.0) {
   if(is.data.frame(data)) {
     
     if(!is.null(formula)){
@@ -104,6 +105,7 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
   out$hidden = as.integer(hidden)
+  if(dropout > 0.0) out$dropout = dropout
   if(length(hidden) != length(activation)) activation = rep(activation, length(hidden))
   out$activation = activation
   class(out) = "DNN"
