@@ -70,7 +70,7 @@ tune_results = sjSDM_cv(Y = com$response,
                         lambda_cov = seq(0, 0.1, 0.001), 
                         lambda_coef = seq(0, 0.1, 0.001),
                         n_cores = 2L, # small models can be also run in parallel on the GPU
-                        iter = 2L # we can pass arguments to sjSDM via ...
+                        iter = 2L # we can pass arguments to sjSDM via... 
                         )
 
 # print overall results:
@@ -88,7 +88,8 @@ model = sjSDM(Y = com$response,
                               lambda = best[["lambda_coef"]],
                               alpha = best[["alpha_coef"]]),
               biotic = bioticStruct(lambda = best[["lambda_cov"]],
-                                    alpha = best[["alpha_cov"]])
+                                    alpha = best[["alpha_cov"]]),
+              iter = 2L # increase it for your own data 
               )
 
 summary(model)

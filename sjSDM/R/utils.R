@@ -98,15 +98,17 @@ parse_nn = function(nn) {
   wM = matrix(NA, nrow = length(layers), ncol= 2L)
   
   for(i in 1:length(layers)) {
+    type = strsplit(class(slices[[i]]), ".", fixed = TRUE)[[1]]
+    
     if(layers[i] == "Linear") {
       wM[i, 1] = slices[[i]]$in_features
       wM[i, 2] = slices[[i]]$out_features
-      txt = paste0(txt, 
-                   "Dense:\t\t (", slices[[i]]$in_features, ", ",slices[[i]]$out_features, ")\n"
+      txt = paste0(txt, paste0("Layer_", i),":",
+                   "\t (", slices[[i]]$in_features, ", ",slices[[i]]$out_features, ")\n"
                    )
     } else {
-      txt = paste0(txt,
-                   "Activation:\t ", layers[i], "\n"
+      txt = paste0(txt, paste0("Layer_", i),":",
+                   "\t ", layers[i], "\n"
                    )
     }
   }
