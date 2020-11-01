@@ -578,7 +578,7 @@ class Model_sjSDM:
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
                     E = torch.tensordot(noise, sigma.t(), dims = 1).add(mu).exp()
-                    logprob = torch.distributions.Poisson(rate=E).log_prob(Ys)
+                    logprob = torch.distributions.Poisson(rate=E).log_prob(Ys).sum(2)
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     loss = Eprob.log().neg().sub(maxlogprob)
