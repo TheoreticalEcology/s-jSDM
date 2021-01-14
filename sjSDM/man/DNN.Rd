@@ -5,7 +5,8 @@
 \title{Non-linear nodel (deep neural network) of environmental responses}
 \usage{
 DNN(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L),
-  activation = "relu", lambda = 0, alpha = 0.5, dropout = 0)
+  activation = "relu", bias = TRUE, lambda = 0, alpha = 0.5,
+  dropout = 0)
 }
 \arguments{
 \item{data}{matrix of environmental predictors}
@@ -16,7 +17,9 @@ DNN(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L),
 
 \item{activation}{activation functions, can be of length one, or a vector of activation functions for each layer. Currently supported: tanh, relu, or sigmoid}
 
-\item{lambda}{lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
+\item{bias}{whether use biases in the layers, can be of length one, or a vector (number of hidden layers + 1 (last layer)) of logicals for each layer.}
+
+\item{lambda}{lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
 
 \item{alpha}{weighting between lasso and ridge: \eqn{(1 - \alpha) * |weights| + \alpha ||weights||^2}}
 
