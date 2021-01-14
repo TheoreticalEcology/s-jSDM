@@ -66,14 +66,15 @@ print.linear = function(x, ...) {
 #' @param formula formula object for predictors
 #' @param hidden hidden units in layers, length of hidden corresponds to number of layers
 #' @param activation activation functions, can be of length one, or a vector of activation functions for each layer. Currently supported: tanh, relu, or sigmoid
-#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param bias whether use biases in the layers, can be of length one, or a vector (number of hidden layers + 1 (last layer)) of logicals for each layer.
+#' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |weights| + \alpha ||weights||^2}
 #' @param dropout probability of dropout rate 
 #' 
 #' @seealso \code{\link{linear}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @export
-DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu",  lambda = 0.0, alpha = 0.5, dropout = 0.0) {
+DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu", bias = TRUE, lambda = 0.0, alpha = 0.5, dropout = 0.0) {
   if(is.data.frame(data)) {
     
     if(!is.null(formula)){
@@ -107,7 +108,9 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
   out$hidden = as.integer(hidden)
   if(dropout > 0.0) out$dropout = dropout
   if(length(hidden) != length(activation)) activation = rep(activation, length(hidden))
+  #if(length(hidden) > length(bias)) bias = rep(activation, length(hidden)+1)
   out$activation = activation
+  out$bias = as.list(bias)
   class(out) = "DNN"
   return(out)
 }

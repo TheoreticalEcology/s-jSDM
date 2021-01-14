@@ -70,8 +70,8 @@ class Model_sjSDM:
         return device, torch.float32
 
 
-    def add_env(self, input_shape, output_shape, hidden=[], activation=['linear'], l1=-99, l2=-99, dropout=-99):
-        self.env = (self._build_NN(input_shape, output_shape, hidden, activation, dropout))
+    def add_env(self, input_shape, output_shape, hidden=[], activation=['linear'], bias = [False], l1=-99, l2=-99, dropout=-99):
+        self.env = (self._build_NN(input_shape, output_shape, hidden,bias, activation, dropout))
         self.params.append(self.env.parameters())
         self.input_shape = input_shape
         self.output_shape = output_shape
@@ -81,9 +81,9 @@ class Model_sjSDM:
             if l2 > 0.0:
                 self.losses.append(lambda: self.l1_l2[1](p, l2))
 
-    def add_spatial(self, input_shape, output_shape, hidden = [], activation = ['linear'], l1=-99, l2=-99, dropout=-99):
+    def add_spatial(self, input_shape, output_shape, hidden = [], activation = ['linear'], bias = [False], l1=-99, l2=-99, dropout=-99):
         #hidden.append(1)
-        self.spatial = (self._build_NN(input_shape, output_shape, hidden, activation, dropout))
+        self.spatial = (self._build_NN(input_shape, output_shape, hidden, bias, activation, dropout))
         self.params.append(self.spatial.parameters())
         for p in self.spatial.parameters():
             if l1 > 0.0: 
@@ -91,17 +91,20 @@ class Model_sjSDM:
             if l2 > 0.0:
                 self.losses.append(lambda: self.l1_l2[1](p, l2))
                 
-    def _build_NN(self, input_shape, output_shape, hidden, activation, dropout):
+    def _build_NN(self, input_shape, output_shape, hidden, bias, activation, dropout):
         model_list = nn.ModuleList()
         if len(hidden) != len(activation):
             activation = [activation[0] for _ in range(len(hidden))]
 
+        if len(bias) == 1:
+            bias = [bias[0] for _ in range(len(hidden)+1)]  
+
         if len(hidden) > 0:
             for i in range(len(hidden)):
                 if i == 0:
-                    model_list.append(nn.Linear(input_shape, hidden[i], bias=False))
+                    model_list.append(nn.Linear(input_shape, hidden[i], bias=bias[i]))
                 else:
-                    model_list.append(nn.Linear(hidden[i-1], hidden[i], bias=False))
+                    model_list.append(nn.Linear(hidden[i-1], hidden[i], bias=bias[i]))
 
                 if activation[i] == "relu":
                      model_list.append(nn.ReLU())
@@ -114,7 +117,7 @@ class Model_sjSDM:
                     model_list.append(nn.Dropout(p=dropout))
         
         if len(hidden) > 0:
-            model_list.append(nn.Linear(hidden[-1], output_shape, bias=False))
+            model_list.append(nn.Linear(hidden[-1], output_shape, bias=bias[-1]))
         else:
             model_list.append(nn.Linear(input_shape, output_shape, bias=False))
         model = nn.Sequential(*model_list)
@@ -642,6 +645,9 @@ class Model_sjSDM:
                 if type(self.env[i]) is torch.nn.modules.linear.Linear:
                     self.env[i].weight = torch.nn.Parameter(torch.tensor(w[counter], dtype=self.env[i].weight.dtype, device=self.env[i].weight.device))
                     counter+=1
+                    if self.env[i].bias is not None:
+                        self.env[i].bias = torch.nn.Parameter(torch.tensor(w[counter], dtype=self.env[i].bias.dtype, device=self.env[i].bias.device))
+                        counter+=1
 
     @property
     def spatial_weights(self):
@@ -658,6 +664,9 @@ class Model_sjSDM:
                     if type(self.spatial[i]) is torch.nn.modules.linear.Linear:
                         self.spatial[i].weight = torch.nn.Parameter(torch.tensor(w[counter], dtype=self.spatial[i].weight.dtype, device=self.spatial[i].weight.device))
                         counter+=1
+                        if self.spatial[i].bias is not None:
+                            self.spatial[i].bias = torch.nn.Parameter(torch.tensor(w[counter], dtype=self.spatial[i].bias.dtype, device=self.spatial[i].bias.device))
+                            counter+=1
         else:
             return None
 

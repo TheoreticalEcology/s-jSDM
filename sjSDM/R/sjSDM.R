@@ -102,15 +102,17 @@ sjSDM = function(Y = NULL,
     if(inherits(env, "DNN")) {
       activation=env$activation
       hidden = as.integer(env$hidden)
+      bias = env$bias
     } else {
       hidden = list()
       activation = c("linear")
+      bias = list(FALSE)
     }
     
     if(!is.null(env$dropout)) dropout_env = env$dropout
     else dropout_env = -99
     
-    model$add_env(input, output, hidden = hidden, activation = activation, l1 = env$l1, l2=env$l2, dropout=dropout_env)
+    model$add_env(input, output, hidden = hidden, activation = activation,bias = bias, l1 = env$l1, l2=env$l2, dropout=dropout_env)
     
     if(!is.null(spatial)) {
       
@@ -120,7 +122,8 @@ sjSDM = function(Y = NULL,
       if(inherits(spatial, "DNN")) {
         activation_spatial=spatial$activation
         hidden_spatial = spatial$hidden
-        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, hidden = hidden_spatial, activation = activation_spatial, l1 = spatial$l1, l2= spatial$l2, dropout=dropout_sp)
+        bias_spatial = spatial$bias
+        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, hidden = hidden_spatial, activation = activation_spatial, bias = bias_spatial, l1 = spatial$l1, l2= spatial$l2, dropout=dropout_sp)
       } 
       if(inherits(spatial, "linear")) {
         model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, l1 = spatial$l1, l2= spatial$l2)

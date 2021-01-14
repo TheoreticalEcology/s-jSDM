@@ -17,11 +17,11 @@ def data_sp():
 
 @pytest.fixture
 def model_base():
-    def _get(inp=5,out=5,hidden=[], activation=['linear'], df=5, 
+    def _get(inp=5,out=5,hidden=[], activation=['linear'],bias=[False], df=5, 
              optimizer=fa.optimizer_adamax(1), l1_d = 0.0, l2_d = 0.0, 
              l1_cov=0.0, l2_cov=0.0, link="logit",reg_on_Cov=True, reg_on_Diag=True,inverse=False, dropout=-99):
         model = fa.Model_sjSDM()
-        model.add_env(input_shape=inp, output_shape=out, 
+        model.add_env(input_shape=inp, output_shape=out, bias=bias,
                       hidden=hidden, activation=activation, l1=l1_d, l2=l2_d, dropout=dropout)
         model.build(df=df, l1=l1_cov,l2=l2_cov,optimizer=optimizer,link=link,reg_on_Cov=reg_on_Cov, reg_on_Diag=reg_on_Diag, inverse=inverse)
         return model
@@ -29,14 +29,14 @@ def model_base():
 
 @pytest.fixture
 def model_base_sp():
-    def _get(inp=5,out=5,hidden=[], activation=['linear'], df=5, 
-            hidden_sp=[],activation_sp=['linear'], sp_l1=0.0, sp_l2=0.0, 
+    def _get(inp=5,out=5,hidden=[], activation=['linear'],bias=[False], df=5, 
+            hidden_sp=[],activation_sp=['linear'],bias_sp=[False], sp_l1=0.0, sp_l2=0.0, 
              optimizer=fa.optimizer_adamax(1), l1_d = 0.0, l2_d = 0.0, 
              l1_cov=0.0, l2_cov=0.0, link="logit",reg_on_Cov=True, reg_on_Diag=True,inverse=False):
         model = fa.Model_sjSDM()
-        model.add_env(input_shape=inp, output_shape=out, 
+        model.add_env(input_shape=inp, output_shape=out, bias=bias,
                       hidden=hidden, activation=activation, l1=l1_d, l2=l2_d)
-        model.add_spatial(input_shape=2, output_shape=out, hidden=hidden_sp, activation=activation_sp,l1=sp_l1,l2=sp_l2)
+        model.add_spatial(input_shape=2, output_shape=out, hidden=hidden_sp,bias=bias_sp, activation=activation_sp,l1=sp_l1,l2=sp_l2)
         model.build(df=df, l1=l1_cov,l2=l2_cov,optimizer=optimizer,link=link,reg_on_Cov=reg_on_Cov, reg_on_Diag=reg_on_Diag, inverse=inverse)
         return model
     return _get
@@ -94,16 +94,16 @@ def test_regularization(data, model_base, l1_d, l2_d, l2_cov, l1_cov, reg_on_Cov
     model.se(X, Y)
     assert pred.shape[0] == X.shape[0]
 
-@pytest.mark.parametrize("inp,out,hidden,activation,dropout", 
+@pytest.mark.parametrize("inp,out,hidden,activation,bias,dropout", 
                         [
-                            (5,5,[], ['linear'], 0.1),
-                            (3,3,[5,5,5], ['linear'], 0.1),
-                            (2,10,[3,3,3], ['relu'], -1),
-                            (2,10,[3,3,3], ['sigmoid'], -1),
-                            (2,10,[3,3,3], ['tanh'], -1),
-                            (2,10,[3,3,3], ['relu', 'tanh', 'sigmoid'], 0.3)
+                            (5,5,[], ['linear'],[False], 0.1),
+                            (3,3,[5,5,5], ['linear'],[True], 0.1),
+                            (2,10,[3,3,3], ['relu'], [True,False,True,True], -1),
+                            (2,10,[3,3,3], ['sigmoid'],[True], -1),
+                            (2,10,[3,3,3], ['tanh'], [True], -1),
+                            (2,10,[3,3,3], ['relu', 'tanh', 'sigmoid'],[True, False, True, True], 0.3)
                         ])
-def test_dnn(data, model_base, inp, out, hidden, activation, dropout):
+def test_dnn(data, model_base, inp, out, hidden, activation,bias, dropout):
     X, Y = data(inp, out)
     model = model_base(inp, out, hidden=hidden, activation=activation, dropout=dropout)
     model.fit(X, Y, epochs=1, batch_size=50)

@@ -112,6 +112,9 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, lambda = 0.1, alpha=0.0 , dropout = 0.1),
     DNN(X1, lambda = 0.1, alpha=1.0, dropout = 0.3),
     DNN(X1, hidden = c(3,3,3),lambda = 0.1, alpha=1.0, dropout = 0.3),
+    DNN(X1, hidden = c(3,3,3),lambda = 0.1, bias = FALSE, alpha=1.0, dropout = 0.3),
+    DNN(X1, hidden = c(3,3,3),lambda = 0.1, bias = c(TRUE, FALSE, TRUE), alpha=1.0, dropout = 0.3),
+    DNN(X1, hidden = c(3,3,3),lambda = 0.1, bias = c(TRUE, FALSE, TRUE, FALSE), alpha=1.0, dropout = 0.3),
     DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0, dropout = 0.3),
     DNN(X1, hidden = c(4,3,6),activation = "relu", lambda = 0.1, alpha=1.0, dropout = 0.3),
     DNN(X1, hidden = c(4,3,6),activation = "tanh", lambda = 0.1, alpha=1.0),
@@ -192,11 +195,24 @@ testthat::test_that("sjSDM reload model", {
   testthat::expect_error(predict(model2, newdata = com$env_weights), NA)
   
   SP = matrix(rnorm(200), 100, 2)
-  model = sjSDM(Y = com$response,env = DNN(com$env_weights),spatial = DNN(SP), iter = 2L, device=device)
+  model = sjSDM(Y = com$response,env = DNN(com$env_weights, bias = TRUE),spatial = DNN(SP), iter = 2L, device=device)
   saveRDS(model, "test_model.RDS")
   model2 = readRDS("test_model.RDS")
   testthat::expect_error(predict(model2), NA)
   testthat::expect_error(predict(model2, newdata = com$env_weights, SP = SP), NA)
+  file.remove("test_model.RDS")
+  
+  
+  SP = matrix(rnorm(200), 100, 2)
+  model = sjSDM(Y = com$response,env = DNN(com$env_weights, bias = c(TRUE, FALSE, TRUE, FALSE)),spatial = DNN(SP), iter = 2L, device=device)
+  saveRDS(model, "test_model.RDS")
+  model2 = readRDS("test_model.RDS")
+  testthat::expect_error(predict(model2), NA)
+  testthat::expect_error(predict(model2, newdata = com$env_weights, SP = SP), NA)
+  model2 = sjSDM:::checkModel(model2)
+  dims1 = lapply(model2$model$env_weights, dim)
+  dims2 = lapply(model$model$env_weights, dim)
+  testthat::expect_equal(dims1, dims2, info = "dimensions of saved model does not match")
   file.remove("test_model.RDS")
 })
 
