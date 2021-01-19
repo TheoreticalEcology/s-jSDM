@@ -10,7 +10,7 @@
 #'   only occur within RStudio).
 #' @param conda_python_version python version to be installed in the env, default = 3.6
 #' @param pip use pip installer
-#' @param cuda which cuda version, 9.2 and 10.1 are supported
+#' @param cuda which cuda version, 9.2 and 10.2 are supported
 #' @param ... arguments passed to reticulate::conda_install()
 #'
 #' @export
@@ -20,9 +20,9 @@ install_sjSDM = function(method = "conda",
                            envname = "r-reticulate",
                            extra_packages = NULL,
                            restart_session = TRUE,
-                           conda_python_version = "3.6",
+                           conda_python_version = "3.8",
                            pip = FALSE,
-                           cuda = c("10.1", "9,2"), ...) {
+                           cuda = c("10.2", "9,2"), ...) {
   
   
   is_windows = function() {
@@ -59,14 +59,14 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision cpuonly",
-             gpu = "pytorch torchvision cudatoolkit=10.1")
+             cpu = "pytorch torchvision torchaudio cpuonly",
+             gpu = "pytorch torchvision torchaudio cudatoolkit=10.2")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch -c defaults -c numba/label/dev"
     
     package$pip = 
       switch(version,
-             cpu = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
-             gpu = "torch===1.4.0 torchvision===0.5.0 -f https://download.pytorch.org/whl/torch_stable.html")
+             cpu = "torch===1.7.1 torchvision===0.8.2 torchaudio===0.7.2 -f https://download.pytorch.org/whl/torch_stable.html",
+             gpu = "torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio===0.7.2 -f https://download.pytorch.org/whl/torch_stable.html")
     if(cuda == 9.2 && version == "gpu") package$conda = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
   }
   
@@ -74,13 +74,13 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision cpuonly",
-             gpu = "pytorch torchvision cudatoolkit=10.1")
+             cpu = "pytorch torchvision torchaudio cpuonly",
+             gpu = "pytorch torchvision torchaudio cudatoolkit=10.2")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch"
 
     package$pip =
       switch(version,
-             cpu = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
+             cpu = "torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html",
              gpu = "torch torchvision")
     if(cuda == 9.2 && version == "gpu") package$pip = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
   } 
@@ -88,13 +88,13 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision",
-             gpu = "pytorch torchvision")
+             cpu = "pytorch torchvision torchaudio",
+             gpu = "pytorch torchvision torchaudio")
     
     package$pip =
       switch(version,
-             cpu = "torch torchvision",
-             gpu = "torch torchvision")
+             cpu = "torch torchvision torchaudio",
+             gpu = "torch torchvision torchaudio")
     
     if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
   }
@@ -138,16 +138,43 @@ install_sjSDM = function(method = "conda",
       
       if(pip) packages$conda = packages$pip
       
-      if (method == "conda") {
-        reticulate::conda_install(
-          packages = packages$conda,
-          envname = envname,
-          conda = conda,
-          channel = channel,
-          python_version = conda_python_version,
-          pip = pip,
-          ...
-        )
+      if(!is_osx()) {
+      
+        if (method == "conda") {
+          reticulate::conda_install(
+            packages = packages$conda,
+            envname = envname,
+            conda = conda,
+            channel = channel,
+            python_version = conda_python_version,
+            pip = pip,
+            ...
+          )
+          reticulate::conda_install(
+            packages = "pyro-ppl",
+            envname = envname,
+            conda = conda,
+            pip = TRUE
+          )
+          
+          reticulate::conda_install(
+            packages = "torch_optimizer",
+            envname = envname,
+            conda = conda,
+            pip = TRUE
+          )
+        } else if (method == "virtualenv" || method == "auto") {
+          reticulate::virtualenv_install(
+            packages = packages$pip,
+            envname = envname,
+            ...
+          )
+        }
+      } else {
+        conda = reticulate::conda_binary()
+        system(paste0(conda, " create -y -n ", envname, " python=", conda_python_version))
+        system(paste0(conda, " install -y -n ", envname," pytorch torchvision torchaudio -c pytorch"))
+        
         reticulate::conda_install(
           packages = "pyro-ppl",
           envname = envname,
@@ -161,14 +188,8 @@ install_sjSDM = function(method = "conda",
           conda = conda,
           pip = TRUE
         )
-      } else if (method == "virtualenv" || method == "auto") {
-        reticulate::virtualenv_install(
-          packages = packages$pip,
-          envname = envname,
-          ...
-        )
       }
-      
+        
     } else if (is_windows()) {
       
       if (method == "virtualenv") {
