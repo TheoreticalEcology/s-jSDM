@@ -70,10 +70,8 @@ jobs:
           Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
-          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
-          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
       - name: tests ubuntu
-        if: matrix.os == 'ubuntu-16.04'
+        if: matrix.os == 'ubuntu-18.04'
         run: |
           cd sjSDM
           Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'));library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();try({testthat::test_dir('tests/testthat/')})"
