@@ -69,11 +69,6 @@ jobs:
           cd sjSDM
           Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
-      - name: Install PyTorch
-        run: |
-          cd sjSDM
-          Rscript -e "remotes::install_local()"
-          Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
       - name: tests ubuntu
         if: matrix.os == 'ubuntu-18.04-non'
         run: |
@@ -85,7 +80,7 @@ jobs:
           cd sjSDM
           Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();install_diagnostic();try({testthat::test_dir('tests/testthat/')})"
       - name: tests macos
-        if: matrix.os == 'macos-latest-non'
+        if: matrix.os == 'macos-latest'
         run: |
           cd sjSDM
           Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();install_diagnostic();try({testthat::test_dir('tests/testthat/')})"
