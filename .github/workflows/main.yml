@@ -55,6 +55,15 @@ jobs:
           cd sjSDM
           Rscript -e "remotes::install_github('rstudio/reticulate')" 
           Rscript -e "remotes::install_cran('devtools')"
+      - name: Install miniconda mac
+        if: matrix.os == 'macos-latest'
+        run: |
+          wget https://repo.continuum.io/miniconda/Miniconda3-py37_4.8.2-MacOSX-x86_64.sh -O miniconda.sh
+          bash miniconda.sh -b -p $HOME/miniconda
+          export PATH="$HOME/miniconda/bin:$PATH"
+          hash -r
+          rm miniconda.sh
+          conda config --set auto_update_conda false
       - name: Install PyTorch
         run: |
           cd sjSDM

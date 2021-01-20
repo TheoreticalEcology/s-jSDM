@@ -8,7 +8,7 @@
 #'   PyTorch
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
-#' @param conda_python_version python version to be installed in the env, default = 3.6
+#' @param conda_python_version python version to be installed in the env, default = 3.8
 #' @param pip use pip installer
 #' @param cuda which cuda version, 9.2 and 10.2 are supported
 #' @param ... arguments passed to reticulate::conda_install()
