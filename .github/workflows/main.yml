@@ -58,7 +58,7 @@ jobs:
       - name: Install miniconda mac
         if: matrix.os == 'macos-latest'
         run: |
-          wget https://repo.continuum.io/miniconda/Miniconda3-py37_4.8.2-MacOSX-x86_64.sh -O miniconda.sh
+          wget  https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
           bash miniconda.sh -b -p $HOME/miniconda
           export PATH="$HOME/miniconda/bin:$PATH"
           hash -r
@@ -68,6 +68,7 @@ jobs:
         run: |
           cd sjSDM
           Rscript -e "remotes::install_local()"
+          Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
