@@ -64,11 +64,14 @@ jobs:
           hash -r
           rm miniconda.sh
           conda config --set auto_update_conda false
+          sudo purge
       - name: Install PyTorch
         run: |
           cd sjSDM
           Rscript -e "remotes::install_local()"
           Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
+          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
+          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
       - name: free Mem mac
         if: matrix.os == 'macos-latest'
         run: |
