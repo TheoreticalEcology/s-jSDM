@@ -222,7 +222,7 @@ class Model_sjSDM:
         else:
             self.useSched = False
 
-    def fit(self, X, Y, SP=None, RE=None, batch_size=25, epochs=100, sampling=100, parallel=0):
+    def fit(self, X, Y, SP=None, RE=None, batch_size=25, epochs=100, sampling=100, parallel=0, early_stopping_training=-1):
         stepSize = np.floor(X.shape[0] / batch_size).astype(int)
         dataLoader = self._get_DataLoader(X, Y, SP, RE, batch_size, True, parallel)
         any_losses = len(self.losses) > 0
@@ -237,6 +237,14 @@ class Model_sjSDM:
             device = self.device.type+ ":" + str(self.device.index)
         else:
             device = 'cpu'
+
+        early_stopping_training_loss = np.inf
+        counter_early_stopping_training = 0
+
+        if early_stopping_training > 0:
+            early_stopping_training_boolean = True
+        else:
+            early_stopping_training_boolean = False
 
         re_loss = lambda value: -torch.distributions.Normal(0.0, 1.0).log_prob(value)
         desc='loss: Inf'
@@ -258,15 +266,23 @@ class Model_sjSDM:
                     loss.backward()
                     self.optimizer.step()
                     batch_loss[step] = loss.item()
-                #torch.cuda.empty_cache()
                 bl = np.mean(batch_loss)
                 bl = np.round(bl, 3)
-                #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
                 ep_bar.set_postfix(loss=f'{bl}')
-                #sys.stdout.flush()
+
                 self.history[epoch] = bl
                 if self.useSched:
                     self.scheduler.step(bl)
+                
+                if early_stopping_training_boolean:
+                    if bl < early_stopping_training_loss:
+                        early_stopping_training_loss = bl
+                        counter_early_stopping_training = 0
+                    else:
+                        counter_early_stopping_training+=1
+                    if counter_early_stopping_training == early_stopping_training:
+                        _ = sys.stdout.write("\nEarly stopping...")
+                        break
             self.spatial.eval()             
         else:
             for epoch in ep_bar:  
@@ -283,15 +299,22 @@ class Model_sjSDM:
                     loss.backward()
                     self.optimizer.step()
                     batch_loss[step] = loss.item()
-                #torch.cuda.empty_cache()
                 bl = np.mean(batch_loss)
                 bl = np.round(bl, 3)
-                #_ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
                 ep_bar.set_postfix(loss=f'{bl}')
-                #sys.stdout.flush()
                 self.history[epoch] = bl
                 if self.useSched:
-                    self.scheduler.step(bl) 
+                    self.scheduler.step(bl)
+                
+                if early_stopping_training_boolean:
+                    if bl < early_stopping_training_loss:
+                        early_stopping_training_loss = bl
+                        counter_early_stopping_training = 0
+                    else:
+                        counter_early_stopping_training+=1
+                    if counter_early_stopping_training == early_stopping_training:
+                        _ = sys.stdout.write("\nEarly stopping...")
+                        break
         torch.cuda.empty_cache()
         self.env.eval()
 

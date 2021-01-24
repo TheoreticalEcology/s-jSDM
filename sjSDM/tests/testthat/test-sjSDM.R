@@ -3,7 +3,10 @@ context("sjSDM")
 source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
-                      iter = 1L, step_size = 10L, se=FALSE, family = stats::binomial("logit"), context = "") {
+                      iter = 1L, step_size = 10L, se=FALSE, 
+                      family = stats::binomial("logit"), 
+                      control = sjSDMControl(),
+                      context = "") {
     sjSDM:::check_module()
     if(torch$cuda$is_available()) device = "gpu"
     else device = "cpu"
@@ -14,12 +17,14 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           step_size = !!step_size,
                                           se = !!se,
                                           family=!!family, 
+                                          control = control,
                                           device = device,
                                           sampling = 5L)}, NA)
     testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(coef(model)) }, NA)
+    testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(summary(model)) }, NA)
-    testthat::expect_error(logLik(model), NA)
+    testthat::expect_false(any(is.na(model$history)))
     testthat::expect_error({ .k= testthat::capture_output(predict(model, batch_size=step_size)) }, NA)
     if(inherits(env, "matrix"))testthat::expect_error({ .k= testthat::capture_output(predict(model, newdata = env, batch_size=step_size)) }, NA)
 }
@@ -63,6 +68,24 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     }
   })
   
+  
+  # sjSDM controls
+  controls = list(
+    sjSDMControl(optimizer = RMSprop()),
+    sjSDMControl(optimizer = Adamax()),
+    sjSDMControl(optimizer = AdaBound()),
+    sjSDMControl(optimizer = AccSGD()),
+    sjSDMControl(optimizer = AdaBound()),
+    sjSDMControl(optimizer = RMSprop(), scheduler = 2, lr_reduce_factor = 0.1),
+    sjSDMControl(optimizer = RMSprop(), scheduler = 2, lr_reduce_factor = 0.99),
+    sjSDMControl(optimizer = RMSprop(), early_stopping_training = 2L)
+  )
+  testthat::test_that("sjSDM Control", {
+    skip_if_no_torch()
+    for(i in 1:length(controls)) {
+      test_model(Y1, env = linear(X1), iter = 20L, control = controls[[i]])
+    }
+  })
   
   biotic = list(
     bioticStruct(4L),

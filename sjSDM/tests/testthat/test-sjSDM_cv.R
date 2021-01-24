@@ -7,7 +7,7 @@ testthat::test_that("sjSDM_cv", {
   
   library(sjSDM)
   
-  sim = simulate_SDM(sites = 50L, species = 11L)
+  sim = simulate_SDM(sites = 20L, species = 4L)
   X1 = sim$env_weights
   Y1 = sim$response
   

@@ -1,4 +1,4 @@
-context("sjSDM")
+context("sjSDM anova")
 
 source("utils.R")
 
@@ -17,6 +17,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           family = !!family,
                                           device = device,
                                           sampling = 10L)}, NA)
+    testthat::expect_false(any(is.na(model$history)))
     testthat::expect_error({res = anova(model, cv = 2L)}, NA)
     testthat::expect_error({plot(res)}, NA)
 }
@@ -34,9 +35,9 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
   # iter, batch_size, se, link
   Funcs = list(
-    list(5, 2, FALSE, binomial("logit")),
-    list(5, 23, FALSE, poisson()),
-    list(5, 40, FALSE, gaussian())
+    list(2, 2, FALSE, binomial("logit")),
+    list(2, 23, FALSE, poisson()),
+    list(2, 40, FALSE, gaussian())
   )
   testthat::test_that("sjSDM anova Func", {
     skip_if_no_torch()
