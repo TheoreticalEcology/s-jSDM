@@ -84,9 +84,9 @@ jobs:
       - name: Config of conda env
         run: |
           Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE)
-          try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'), silent=TRUE)
+          if(sjSDM:::is_linux()) try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'), silent=TRUE)
           library(reticulate)
-          use_condaenv(condaenv = 'r-reticulate')
+          try({tuse_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
           try({torch = import('torch')}, silent=TRUE)
           library(sjSDM)
           py_config()
