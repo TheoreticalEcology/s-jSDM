@@ -88,6 +88,10 @@ jobs:
           library(reticulate)
           use_condaenv(condaenv = 'r-reticulate')
           try({torch = import('torch')}, silent=TRUE)
+          library(sjSDM)
+          py_config()
+          install_diagnostic()
+          try({sjSDM::install_sjSDM(env = 'r-reticulate')}, silent=TRUE)
         shell: Rscript {0}
           
       - name: tests windows
