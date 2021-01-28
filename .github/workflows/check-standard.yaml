@@ -83,7 +83,8 @@ jobs:
       - if: runner.os == 'macOS'
         run: echo "options(reticulate.conda_binary = reticulate:::miniconda_conda())" >> .Rprofile
           
-      - name: Install PyTorch    
+      - name: Install PyTorch
+        run: |
           Rscript -e "sjSDM::install_sjSDM()"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
