@@ -65,6 +65,9 @@ jobs:
           rm miniconda.sh
           conda config --set auto_update_conda false
           sudo purge
+          cd sjSDM
+          Rscript -e "remotes::install_local()"
+          Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
       - name: Install PyTorch
         run: |
           cd sjSDM
