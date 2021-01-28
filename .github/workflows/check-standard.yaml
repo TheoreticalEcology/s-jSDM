@@ -73,11 +73,18 @@ jobs:
           remotes::install_cran("rcmdcheck")
         shell: Rscript {0}
         
-      - name: Install PyTorch
+      - name: Install Pkg
         run: |
           cd sjSDM
           Rscript -e "remotes::install_local()"
-          Rscript -e "sjSDM::install_sjSDM(env = 'r-reticulate')"
+          Rscript -e "remotes::install_github('rstudio/reticulate')"
+          Rscript -e "reticulate::install_miniconda()"
+          
+      - if: runner.os == 'macOS'
+        run: echo "options(reticulate.conda_binary = reticulate:::miniconda_conda())" >> .Rprofile
+          
+      - name: Install PyTorch    
+          Rscript -e "sjSDM::install_sjSDM()"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
           
@@ -91,7 +98,7 @@ jobs:
           library(sjSDM)
           py_config()
           install_diagnostic()
-          try({sjSDM::install_sjSDM(env = 'r-reticulate')}, silent=TRUE)
+          try({sjSDM::install_sjSDM()}, silent=TRUE)
         shell: Rscript {0}
           
       - name: tests windows
