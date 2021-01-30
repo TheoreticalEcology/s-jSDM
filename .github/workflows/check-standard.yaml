@@ -84,7 +84,7 @@ jobs:
         run: echo "options(reticulate.conda_binary = reticulate:::miniconda_conda())" >> .Rprofile
         
       - name: Set conda path
-        if: runner.os != "Windows"
+        if: runner.os != 'Windows'
         run: |
           conda_binary = reticulate:::miniconda_conda()
           export = paste0("echo \"export conda='", conda_binary, "'\" >> ~/.bashrc")
