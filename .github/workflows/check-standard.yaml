@@ -82,6 +82,14 @@ jobs:
           
       - if: runner.os == 'macOS'
         run: echo "options(reticulate.conda_binary = reticulate:::miniconda_conda())" >> .Rprofile
+        
+      - if: runner.os != "windows"
+        run: |
+          conda_binary = reticulate:::miniconda_conda()
+          export = paste0("echo \"export conda='", conda_binary, "'\" >> ~/.bashrc")
+          system(export)
+          system("source ~/.bashrc")
+        shell: Rscript {0}
           
       - name: Install PyTorch
         run: |
@@ -94,12 +102,15 @@ jobs:
           Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE)
           if(sjSDM:::is_linux()) try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'), silent=TRUE)
           library(reticulate)
-          try({tuse_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
-          try({torch = import('torch')}, silent=TRUE)
+          load_env = try({tuse_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
+          print(load_env)
+          load_torch = try({torch = import('torch')}, silent=TRUE)
+          print(load_torch)
           library(sjSDM)
           py_config()
           install_diagnostic()
-          try({sjSDM::install_sjSDM()}, silent=TRUE)
+          install = try({sjSDM::install_sjSDM()}, silent=TRUE)
+          print(install)
         shell: Rscript {0}
           
       - name: tests windows
