@@ -84,7 +84,7 @@ jobs:
         run: echo "options(reticulate.conda_binary = reticulate:::miniconda_conda())" >> .Rprofile
         
       - name: Set conda path
-        if: runner.os != 'Windows'
+        if: runner.os != 'WindowsXX'
         run: |
           conda_binary = reticulate:::miniconda_conda()
           export = paste0("echo \"export conda='", conda_binary, "'\" >> ~/.bashrc")
@@ -95,6 +95,7 @@ jobs:
       - name: Install PyTorch
         run: |
           Rscript -e "sjSDM::install_sjSDM()"
+          Rscript -e "reticulate::conda_install(envname='r-reticulate', package='pyro-ppl', pip=TRUE)"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
           
@@ -103,15 +104,13 @@ jobs:
           Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE)
           if(sjSDM:::is_linux()) try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'), silent=TRUE)
           library(reticulate)
-          load_env = try({tuse_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
+          load_env = try({use_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
           print(load_env)
           load_torch = try({torch = import('torch')}, silent=TRUE)
           print(load_torch)
           library(sjSDM)
           py_config()
           install_diagnostic()
-          install = try({sjSDM::install_sjSDM()}, silent=TRUE)
-          print(install)
         shell: Rscript {0}
           
       - name: tests windows
