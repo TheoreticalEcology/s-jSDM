@@ -106,11 +106,12 @@ install_sjSDM = function(method = "conda",
   
   error = tryCatch({
     conda_path =reticulate::conda_binary()
-    conda_python = reticulate::conda_python()
-    system2(conda_path, args=paste0(" create -y --force -n r-reticulate"))
-    system2(conda_path, args=paste0(" install -y python=", conda_python_version))
-    system2(conda_path, args=paste0(" install -y -n r-reticulate ", paste(packages$conda, collapse = " "), " -c pytorch"))
+    system2(conda_path, args=paste0(" create -y --force -n ", envname))
+    system2(conda_path, args=paste0(" install -y -n ",envname ," python=", conda_python_version))
+    system2(conda_path, args=paste0(" install -y -n ",envname, " ", paste(packages$conda, collapse = " "), " -c pytorch"))
+	conda_python = reticulate::conda_python(envname=envname)
     system2(conda_python, args=paste0(" -m pip install --upgrade pyro-ppl torch_optimizer"))
+
     
     # if (is_osx() || is_linux() || is_unix()) {
     #   
