@@ -49,6 +49,9 @@ install_sjSDM = function(method = "conda",
   if(inherits(conda, "error")) {
     reticulate::install_miniconda()
   }
+ # conda_binary = reticulate::conda_binary()
+ # system2(conda_binary, args=paste0("remove -y --all -n r-reticulate || true"))
+ 
   
   
   channel = "pytorch"
@@ -102,9 +105,12 @@ install_sjSDM = function(method = "conda",
   packages = strsplit(unlist(package), " ", fixed = TRUE)
   
   error = tryCatch({
-    system(paste0(reticulate::conda_binary(), " create -y -n r-reticulate python=", conda_python_version))
-    system(paste0(conda_path, " install -y -n r-reticulate ", paste(packages$conda, collapse = " "), " -c pytorch"))
-    system(paste0(conda_path, " activate r-reticulate | python -m pip install --upgrade pyro-ppl torch_optimizer"))
+    conda_path =reticulate::conda_binary()
+    conda_python = reticulate::conda_python()
+    system2(conda_path, args=paste0(" create -y --force -n r-reticulate"))
+    system2(conda_path, args=paste0(" install -y python=", conda_python_version))
+    system2(conda_path, args=paste0(" install -y -n r-reticulate ", paste(packages$conda, collapse = " "), " -c pytorch"))
+    system2(conda_python, args=paste0(" -m pip install --upgrade pyro-ppl torch_optimizer"))
     
     # if (is_osx() || is_linux() || is_unix()) {
     #   
