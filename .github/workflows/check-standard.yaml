@@ -32,7 +32,7 @@ jobs:
       RSPM: ${{ matrix.config.rspm }}
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       KMP_DUPLICATE_LIB_OK: TRUE
-      tests: false
+      tests: 'run'
     steps:
       - uses: actions/checkout@v2
 
@@ -117,7 +117,7 @@ jobs:
         shell: Rscript {0}
       
       - name: run tests
-        if env.tests
+        if env.tests == 'run'
         run: | 
           setwd('sjSDM')
           library(reticulate)
