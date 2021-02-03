@@ -169,13 +169,13 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       ind = blocks_run == unique(blocks_run)[i]
       sub_tune_samples = tune_samples[ind, ]
       
-      cl = snow::makeCluster(n_cores)
-      nodes = unlist(snow::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
+      cl = parallel::makeCluster(n_cores)
+      nodes = unlist(parallel::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
       #print(nodes)
-      control = snow::clusterEvalQ(cl, {library(sjSDM)})
-      snow::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
-      result_list[[i]] = snow::parLapply(cl, 1:nrow(sub_tune_samples), tune_func)
-      snow::stopCluster(cl)
+      control = parallel::clusterEvalQ(cl, {library(sjSDM)})
+      parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
+      result_list[[i]] = parallel::parLapply(cl, 1:nrow(sub_tune_samples), tune_func)
+      parallel::stopCluster(cl)
     }
     result = do.call(rbind, result_list)
     

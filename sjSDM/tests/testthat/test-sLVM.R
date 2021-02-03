@@ -62,6 +62,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
   )
   testthat::test_that("sLVM Func", {
     testthat::skip_on_cran()
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
       test_model(Y1, X1, step_size =  Funcs[[i]][[1]],  family=Funcs[[i]][[2]])
@@ -78,6 +79,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
   )
   testthat::test_that("sLVM env", {
     skip_if_no_torch()
+    testthat::skip_on_cran()
     for(i in 1:length(envs)) {
       test_model(Y1, X1, formula = envs[[i]])
     }
@@ -92,6 +94,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
     list("Delta", list(2.0, 3.0, 3.0), 2L)
   )
   testthat::test_that("sLVM env", {
+    testthat::skip_on_cran()
     testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(guide_df_prior)) {

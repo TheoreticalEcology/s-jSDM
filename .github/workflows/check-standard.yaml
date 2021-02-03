@@ -98,6 +98,7 @@ jobs:
           Rscript -e "reticulate::conda_install(envname='r-reticulate', package='pyro-ppl', pip=TRUE)"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
+          Rscript -e "sjSDM::install_sjSDM()"
           
       - name: Config of conda env
         run: |
@@ -112,13 +113,16 @@ jobs:
           py_config()
           install_diagnostic()
         shell: Rscript {0}
-          
-      - name: tests windows
-        if: runner.os == 'Windows'
-        run: |
-          cd sjSDM
-          Rscript -e "Sys.setenv(RETICULATE_AUTOCONFIGURE = TRUE);library(reticulate);try({torch = import('torch')});use_condaenv(condaenv = 'r-reticulate');library(sjSDM);py_config();install_diagnostic();try({testthat::test_dir('tests/testthat/')})"
-
+      
+      - name: run tests
+        run: | 
+          setwd('sjSDM')
+          library(reticulate)
+          load_env = try({use_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
+          library(sjSDM)
+          try({testthat::test_dir('tests/testthat/')})
+        shell: Rscript {0}
+        
       - name: Check
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false

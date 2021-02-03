@@ -2,7 +2,7 @@ Package: sjSDM
 Type: Package
 Title: Scalable Joint Species Distribution Modeling
 Version: 0.1.4.9000
-Date: 2020-02-20
+Date: 2021-02-03
 Authors@R: c(person("Maximilian",
                     "Pichler",
                     email = "maximilian.pichler@biologie.uni-regensburg.de",
@@ -26,7 +26,7 @@ Imports:
     graphics,
     grDevices,
     Metrics,
-    snow,
+    parallel,
     scales,
     mgcv,
     Ternary
