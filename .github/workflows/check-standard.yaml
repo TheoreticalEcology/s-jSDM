@@ -31,6 +31,7 @@ jobs:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
       RSPM: ${{ matrix.config.rspm }}
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      KMP_DUPLICATE_LIB_OK: TRUE
 
     steps:
       - uses: actions/checkout@v2
@@ -90,15 +91,16 @@ jobs:
           export = paste0("echo \"export conda='", conda_binary, "'\" >> ~/.bashrc")
           system(export)
           system("source ~/.bashrc")
+          Sys.setenv(KMP_DUPLICATE_LIB_OK=TRUE)
         shell: Rscript {0}
           
       - name: Install PyTorch
         run: |
           Rscript -e "sjSDM::install_sjSDM()"
+          Rscript -e "sjSDM::install_sjSDM()"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', package='pyro-ppl', pip=TRUE)"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
-          Rscript -e "sjSDM::install_sjSDM()"
           
       - name: Config of conda env
         run: |
