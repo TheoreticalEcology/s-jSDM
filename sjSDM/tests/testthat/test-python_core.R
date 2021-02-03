@@ -3,6 +3,7 @@ context("python core")
 source("utils.R")
 
 testthat::test_that("sjSDM python core", {
+  testthat::skip_on_cran()
   skip_if_no_torch()
   
   library(sjSDM)

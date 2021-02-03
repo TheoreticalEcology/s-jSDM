@@ -3,6 +3,7 @@ context("sjSDM_cv")
 source("utils.R")
 
 testthat::test_that("sjSDM_cv", {
+  testthat::skip_on_cran()
   skip_if_no_torch()
   
   library(sjSDM)

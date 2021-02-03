@@ -4,7 +4,6 @@ source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
                       iter = 1L, step_size = 10L, se=FALSE, family = stats::binomial(), context = "") {
-  
     sjSDM:::check_module()
     if(torch$cuda$is_available()) device = "gpu"
     else device = "cpu"
@@ -40,6 +39,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     list(5, 40, FALSE, gaussian())
   )
   testthat::test_that("sjSDM importance Func", {
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
       test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], family =  Funcs[[i]][[4]])
@@ -52,6 +52,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     bioticStruct(4L, lambda = 0.1, alpha = 1.0)
   )
   testthat::test_that("sjSDM importance Biotic", {
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(biotic)) {
       test_model(Y1, env=linear(X1), biotic = biotic[[i]])
@@ -64,6 +65,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(X1, lambda = 0.1)
   )
   testthat::test_that("sjSDM importance env", {
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(envs)) {
       test_model(Y1, env = envs[[i]])
@@ -78,6 +80,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(SP, lambda = 0.1, alpha=0.0)
   )
   testthat::test_that("sjSDM importance Spatial", {
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = linear(X1), spatial = Spatial[[i]])
@@ -93,6 +96,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(X1, lambda = 0.1, alpha=0.5)
   )
   testthat::test_that("sjSDM importance Mix", {
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = Env[[i]], spatial = Spatial[[i]])

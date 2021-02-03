@@ -4,6 +4,7 @@ source("utils.R")
 
 testthat::test_that("sjSDM examples", {
   skip_if_no_torch()
+  testthat::skip_on_cran()
   
   library(sjSDM)
   path = system.file("examples", package = "sjSDM")

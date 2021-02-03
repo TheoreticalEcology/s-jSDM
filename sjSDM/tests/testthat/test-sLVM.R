@@ -33,6 +33,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
   
   test_sims = matrix(c(4:15, 15:4), ncol = 2L)
   testthat::test_that("sLVM base", {
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:nrow(test_sims)) {
       sim = simulate_SDM(sites = 50L, species = test_sims[i, 1], env = test_sims[i, 2])
@@ -60,6 +61,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
 
   )
   testthat::test_that("sLVM Func", {
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
       test_model(Y1, X1, step_size =  Funcs[[i]][[1]],  family=Funcs[[i]][[2]])
@@ -90,6 +92,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
     list("Delta", list(2.0, 3.0, 3.0), 2L)
   )
   testthat::test_that("sLVM env", {
+    testthat::skip_on_cran()
     skip_if_no_torch()
     for(i in 1:length(guide_df_prior)) {
       test_model(Y1, X1, posterior=guide_df_prior[[i]][[1]], priors = guide_df_prior[[i]][[2]], lv = guide_df_prior[[i]][[3]])
@@ -98,6 +101,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
   
 
 testthat::test_that("sLVM reload model", {
+  testthat::skip_on_cran()
   skip_if_no_torch()
   com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
   model = sLVM(Y = com$response,X = com$env_weights, iter = 2L, family = binomial("probit"))

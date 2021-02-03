@@ -4,27 +4,21 @@
 #' @param conda path to conda
 #' @param version version = "cpu" for CPU version, or "gpu" for gpu version. (note MacOS users have to install cuda binaries by themselves)
 #' @param envname Name of python env, "r-pytorch" is default
-#' @param extra_packages Additional Python packages to install along with
-#'   PyTorch
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
-#' @param conda_python_version python version to be installed in the env, default = 3.8
-#' @param pip use pip installer
 #' @param cuda which cuda version, 9.2 and 10.2 are supported
-#' @param ... arguments passed to reticulate::conda_install()
+#' @param ... not supported
 #'
 #' @export
 install_sjSDM = function(method = "conda",
                          conda = "auto",
                          version = c("cpu", "gpu"),
                          envname = "r-reticulate",
-                         extra_packages = NULL,
                          restart_session = TRUE,
-                         conda_python_version = "3.8",
-                         pip = FALSE,
                          cuda = c("10.2", "9,2"), ...) {
   
-  
+  pip = FALSE
+  extra_packages = NULL
   is_windows = function() {
     identical(.Platform$OS.type, "windows")
   }
@@ -105,111 +99,26 @@ install_sjSDM = function(method = "conda",
   packages = strsplit(unlist(package), " ", fixed = TRUE)
   
   error = tryCatch({
-    conda_path =reticulate::conda_binary()
-    system2(conda_path, args=paste0(" create -y --force -n ", envname))
-    system2(conda_path, args=paste0(" install -y -n ",envname ," python=", conda_python_version))
-    system2(conda_path, args=paste0(" install -y -n ",envname, " ", paste(packages$conda, collapse = " "), " -c pytorch"))
-	conda_python = reticulate::conda_python(envname=envname)
-    system2(conda_python, args=paste0(" -m pip install --upgrade pyro-ppl torch_optimizer"))
+#     conda_path =reticulate::conda_binary()
+#     system2(conda_path, args=paste0(" create -y --force -n ", envname))
+#     system2(conda_path, args=paste0(" install -y -n ",envname ," python=", conda_python_version))
+#     system2(conda_path, args=paste0(" install -y -n ",envname, " ", paste(packages$conda, collapse = " "), " -c pytorch"))
+# 	  conda_python = reticulate::conda_python(envname=envname)
+# 	  system2(conda_python, args=" -m pip install --upgrade ssl")
+# 	  reticulate::conda_install(envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
+#     #system2(conda_python, args=paste0(" -m pip install pyro-ppl torch_optimizer"))
+    reticulate::conda_install(envname = envname, packages = packages$conda, channel = channel)
+    reticulate::conda_install(envname = envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
 
     
-    # if (is_osx() || is_linux() || is_unix()) {
-    #   
-    #   if(pip) packages$conda = packages$pip
-    #   
-    #   if(!is_osx()) {
-    #   
-    #     if (method == "conda") {
-    #       
-    #       reticulate::conda_install(
-    #         packages = packages$conda,
-    #         envname = envname,
-    #         conda = conda,
-    #         channel = channel,
-    #         python_version = conda_python_version,
-    #         pip = pip,
-    #         ...
-    #       )
-    #       reticulate::conda_install(
-    #         packages = "pyro-ppl",
-    #         envname = envname,
-    #         conda = conda,
-    #         pip = TRUE
-    #       )
-    #       
-    #       reticulate::conda_install(
-    #         packages = "torch_optimizer",
-    #         envname = envname,
-    #         conda = conda,
-    #         pip = TRUE
-    #       )
-    #     } else if (method == "virtualenv" || method == "auto") {
-    #       reticulate::virtualenv_install(
-    #         packages = packages$pip,
-    #         envname = envname,
-    #         ...
-    #       )
-    #     }
-    #   } else {
-    #     conda = reticulate::conda_binary()
-    #     system(paste0(conda, " create -y -n ", envname, " python=", conda_python_version))
-    #     system(paste0(conda, " install -y -n ", envname," pytorch torchvision torchaudio -c pytorch"))
-    #     
-    #     reticulate::conda_install(
-    #       packages = "pyro-ppl",
-    #       envname = envname,
-    #       conda = conda,
-    #       pip = TRUE
-    #     )
-    #     
-    #     reticulate::conda_install(
-    #       packages = "torch_optimizer",
-    #       envname = envname,
-    #       conda = conda,
-    #       pip = TRUE
-    #     )
-    #   }
-    #     
-    # } else if (is_windows()) {
-    #   
-    #   if (method == "virtualenv") {
-    #     stop("Installing PyTorch into a virtualenv is not supported on Windows",
-    #          call. = FALSE)
-    #   } else if (method == "conda" || method == "auto") {
-    #     if(pip) packages$conda = packages$pip
-    #     
-    #     conda_path = reticulate::conda_binary()
-    #     
-    #     # reticulate::conda_install(
-    #     #   packages = packages$conda,
-    #     #   envname = envname,
-    #     #   conda = conda,
-    #     #   channel = channel,
-    #     #   python_version = conda_python_version,
-    #     #   pip = pip,
-    #     #   ...
-    #     # )
-    #     # reticulate::conda_install(
-    #     #   packages = "pyro-ppl",
-    #     #   envname = envname,
-    #     #   conda = conda,
-    #     #   pip = TRUE
-    #     # )
-    #     # 
-    #     # reticulate::conda_install(
-    #     #   packages = "torch_optimizer",
-    #     #   envname = envname,
-    #     #   conda = conda,
-    #     #   pip = TRUE
-    #     # )
-    #     
-    #   }
-    #   
-    # } else {
-    #   stop("Unable to install PyTorch on this platform. ",
-    #        "Binary installation is available for Windows, OS X, and Linux")
-    # }
+  
   }, error = function(e) e)
+  
+  error = tryCatch({
+    reticulate::conda_install(envname = envname, packages = packages$conda, channel = channel)
+    reticulate::conda_install(envname = envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
+  }, error = function(e) e)
+  
   
   if(!inherits(error, "error")) {
     message("\nInstallation complete.\n\n")
