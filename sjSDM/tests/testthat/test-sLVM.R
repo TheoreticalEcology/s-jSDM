@@ -11,7 +11,7 @@ test_model = function(Y = NULL, X = NULL, formula = as.formula("~0+."), lv=2L,
     sjSDM:::check_module()
     if(torch$cuda$is_available()) device = "gpu"
     else device = "cpu"
-    testthat::expect_error({model <<- sLVM(Y=!!Y, X=!!X, formula=!!formula,
+    testthat::expect_error({model <<- sjSDM:::sLVM(Y=!!Y, X=!!X, formula=!!formula,
                                          family = !!family, priors=!!priors,
                                          posterior = !!posterior,iter=!!iter,
                                          step_size = !!step_size, lr=!!lr,
