@@ -32,7 +32,6 @@ jobs:
       RSPM: ${{ matrix.config.rspm }}
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       KMP_DUPLICATE_LIB_OK: TRUE
-      tests: 'run'
     steps:
       - uses: actions/checkout@v2
 
@@ -114,16 +113,6 @@ jobs:
           library(sjSDM)
           py_config()
           install_diagnostic()
-        shell: Rscript {0}
-      
-      - name: run tests
-        if env.tests == 'run'
-        run: | 
-          setwd('sjSDM')
-          library(reticulate)
-          load_env = try({use_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
-          library(sjSDM)
-          try({testthat::test_dir('tests/testthat/')})
         shell: Rscript {0}
         
       - name: Check
