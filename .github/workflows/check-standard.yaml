@@ -121,6 +121,13 @@ jobs:
         run: |
           rcmdcheck::rcmdcheck("sjSDM", args = c("--no-multiarch", "--no-manual"), error_on = "error", check_dir = "check")
         shell: Rscript {0}
+        
+      - name: Run tests
+        run : |
+          setwd("sjSDM/tests")
+          test_results = testthat::test_local()
+          saveRDS(test_results, "../../check/test_results.RDS")
+        shell: Rscript {0}
 
       - name: Upload check results
         if: failure()
