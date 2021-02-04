@@ -110,17 +110,16 @@ jobs:
           print(load_env)
           load_torch = try({torch = import('torch')}, silent=TRUE)
           print(load_torch)
-          library(sjSDM)
+          try({library(sjSDM)}, silent=TRUE)
           py_config()
-          install_diagnostic()
+          try({sjSDM::install_diagnostic()}, silent=TRUE)
         shell: Rscript {0}
         
       - name: Check
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
         run: |
-          setwd("sjSDM")
-          rcmdcheck::rcmdcheck(args = c("--no-manual"), error_on = "warning", check_dir = "check")
+          rcmdcheck::rcmdcheck("sjSDM", args = c("--no-multiarch", "--no-manual"), error_on = "error", check_dir = "check")
         shell: Rscript {0}
 
       - name: Upload check results
