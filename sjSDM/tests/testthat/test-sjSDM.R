@@ -38,6 +38,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   test_sims = matrix(c(4:15, 15:4), ncol = 2L)
   testthat::test_that("sjSDM base", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:nrow(test_sims)) {
       sim = simulate_SDM(sites = 50L, species = test_sims[i, 1], env = test_sims[i, 2])
@@ -64,6 +65,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM Func", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
       test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], family =  Funcs[[i]][[4]])
@@ -84,6 +86,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM Control", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(controls)) {
       test_model(Y1, env = linear(X1), iter = 20L, control = controls[[i]])
@@ -100,6 +103,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM Biotic", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(biotic)) {
       test_model(Y1, env=linear(X1), biotic = biotic[[i]])
@@ -118,6 +122,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM env", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(envs)) {
       test_model(Y1, env = envs[[i]])
@@ -151,6 +156,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM DNN", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(DNN)) {
       test_model(Y1, env = DNN[[i]])
@@ -169,6 +175,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM Spatial", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = linear(X1), spatial = Spatial[[i]])
@@ -191,6 +198,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM Mix", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = Env[[i]], spatial = Spatial[[i]])
@@ -200,6 +208,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
 
 testthat::test_that("sjSDM reload model", {
   testthat::skip_on_cran()
+  testthat::skip_on_ci()
   skip_if_no_torch()
   sjSDM:::check_module()
   if(torch$cuda$is_available()) device = "gpu"

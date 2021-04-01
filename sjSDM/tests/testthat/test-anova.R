@@ -41,6 +41,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM anova Func", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
       test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], family =  Funcs[[i]][[4]])
@@ -54,6 +55,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM anova Biotic", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(biotic)) {
       test_model(Y1, env=linear(X1), biotic = biotic[[i]])
@@ -67,6 +69,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM anova env", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(envs)) {
       test_model(Y1, env = envs[[i]])
@@ -79,6 +82,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM anova env", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(spatial)) {
       test_model(Y1, env = linear(X1), spatial = spatial[[1]])
@@ -91,6 +95,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM anova DNN", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(DNN)) {
       test_model(Y1, env = DNN[[i]])
@@ -105,6 +110,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM anova Spatial", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = linear(X1), spatial = Spatial[[i]])
@@ -123,6 +129,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   )
   testthat::test_that("sjSDM anova Mix", {
     testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = Env[[i]], spatial = Spatial[[i]])

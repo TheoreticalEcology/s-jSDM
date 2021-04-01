@@ -97,9 +97,9 @@ jobs:
         run: |
           Rscript -e "sjSDM::install_sjSDM()"
           Rscript -e "sjSDM::install_sjSDM()"
+          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', package='pyro-ppl', pip=TRUE)"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
-          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
           
       - name: Config of conda env
         run: |
@@ -118,11 +118,14 @@ jobs:
       - name: Check
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
+          CI: true
         run: |
           rcmdcheck::rcmdcheck("sjSDM", args = c("--no-multiarch", "--no-manual"), error_on = "error", check_dir = "check")
         shell: Rscript {0}
         
       - name: Run tests
+        env:
+          CI: false
         run : |
           setwd("sjSDM/tests")
           test_results = testthat::test_local()
