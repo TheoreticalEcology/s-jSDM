@@ -107,10 +107,9 @@ install_sjSDM = function(method = "conda",
 # 	  system2(conda_python, args=" -m pip install --upgrade ssl")
 # 	  reticulate::conda_install(envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
 #     #system2(conda_python, args=paste0(" -m pip install pyro-ppl torch_optimizer"))
+    
     reticulate::conda_install(envname = envname, packages = packages$conda, channel = channel)
     reticulate::conda_install(envname = envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
-
-    
   
   }, error = function(e) e)
   

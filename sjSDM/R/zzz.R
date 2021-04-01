@@ -25,6 +25,9 @@ missing_installation = function(miss_torch, miss_sjSDM) {
     #   device <<- torch$device("cpu")
     # }
     path = system.file("python", package = "sjSDM")
+    
+    if(is_osx()) Sys.setenv( KMP_DUPLICATE_LIB_OK=TRUE )
+    
     try({
       compile = reticulate::import("compileall")
       tmp = compile$compile_dir(paste0(path, "/sjSDM_py"),quiet = 2L,force=TRUE)
