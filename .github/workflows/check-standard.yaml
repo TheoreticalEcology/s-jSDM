@@ -84,13 +84,12 @@ jobs:
         run: echo "options(reticulate.conda_binary = reticulate:::miniconda_conda())" >> .Rprofile
         
       - name: Set conda path
-        if: runner.os != 'WindowsXX'
+        if: runner.os != 'Windows'
         run: |
           conda_binary = reticulate:::miniconda_conda()
           export = paste0("echo \"export conda='", conda_binary, "'\" >> ~/.bashrc")
           system(export)
           system("source ~/.bashrc")
-          Sys.setenv(KMP_DUPLICATE_LIB_OK=TRUE)
         shell: Rscript {0}
           
       - name: Install PyTorch
@@ -108,7 +107,6 @@ jobs:
           library(reticulate)
           load_env = try({use_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
           print(load_env)
-          try({sjSDM::install_diagnostic()}, silent=TRUE)
           load_torch = try({torch = import('torch')}, silent=TRUE)
           print(load_torch)
           py_config()
