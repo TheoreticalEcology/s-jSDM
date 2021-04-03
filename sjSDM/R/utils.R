@@ -132,3 +132,39 @@ unserialize_state = function(model, state) {
   writeBin(state, tmp)
   model$model$pyro$get_param_store()$load(tmp)
 }
+
+
+#' Generate spatial eigenvectors
+#' 
+#' function to generate spatial eigenvectors to account for spatial autocorrelation
+#' @param coords matrix or data.frame of coordinates
+#' @param threshold ignore distances greater than threshold
+#' 
+#' @export
+
+generateSpatialEV = function(coords = NULL, threshold = 0.0) {
+  ## create dist ##
+  dist = as.matrix(stats::dist(coords))
+  zero = diag(0.0, ncol(dist))
+  
+  ## create weights ##
+  if (threshold > 0) dist[dist < distance.threshold] = 0
+  
+  distW = 1/dist
+  distW[is.infinite(distW)] = 1
+  diag(distW) <- 0
+  rowSW =  rowSums(distW)
+  rowSW[rowSW == 0] = 1
+  distW <- distW/rowSW
+  
+  ## scale ##
+  rowM = zero + rowMeans(distW)
+  colM = t(zero + colMeans(distW))
+  distC = distW - rowM - colM + mean(distW)
+  
+  eigV = eigen(distC, symmetric = TRUE)
+  values = eigV$values / max(abs(eigV$values))
+  SV = eigV$vectors[, values>0]
+  colnames(SV) = paste0("SE_", 1:ncol(SV))
+  return(SV)
+}

@@ -12,8 +12,8 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "This document explains how to install dependencies for the sjSDM package. \n \n \n"
 editor_options: 
-  chunk_output_type: console
   
+  chunk_output_type: console
 ---
 
 ```{r, echo = F, message = F}
