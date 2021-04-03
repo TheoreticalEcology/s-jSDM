@@ -43,15 +43,7 @@ install_sjSDM = function(method = "conda",
   if(inherits(conda, "error")) {
     reticulate::install_miniconda()
   }
- # conda_binary = reticulate::conda_binary()
- # system2(conda_binary, args=paste0("remove -y --all -n r-reticulate || true"))
- 
-  
-  
   channel = "pytorch"
-  
-  
-  
   if(is_windows()) {
     package = list()
     package$conda =
@@ -62,8 +54,8 @@ install_sjSDM = function(method = "conda",
     
     package$pip = 
       switch(version,
-             cpu = "torch===1.7.1 torchvision===0.8.2 torchaudio===0.7.2 -f https://download.pytorch.org/whl/torch_stable.html",
-             gpu = "torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio===0.7.2 -f https://download.pytorch.org/whl/torch_stable.html")
+             cpu = "torch===1.8.1 torchvision===0.9.1 torchaudio===0.8.1 -f https://download.pytorch.org/whl/torch_stable.html",
+             gpu = "torch==1.8.1+cpu torchvision==0.9.1+cpu torchaudio===0.8.1 -f https://download.pytorch.org/whl/torch_stable.html")
     if(cuda == 9.2 && version == "gpu") package$conda = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
   }
   
@@ -77,7 +69,7 @@ install_sjSDM = function(method = "conda",
     
     package$pip =
       switch(version,
-             cpu = "torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html",
+             cpu = "torch==1.8.1+cpu torchvision==0.9.1+cpu torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html",
              gpu = "torch torchvision")
     if(cuda == 9.2 && version == "gpu") package$pip = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
   } 
