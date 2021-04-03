@@ -100,8 +100,8 @@ jobs:
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', package=c('pyro-ppl', 'torch-optimizer'), pip=TRUE)"
-          Rscript -e "sjSDM::install_sjSDM()"
-        
+          Rscript -e "try({ sjSDM::install_sjSDM() }, silent = TRUE)"
+          
       - name: Check
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
