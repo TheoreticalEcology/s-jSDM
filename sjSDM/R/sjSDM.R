@@ -142,19 +142,27 @@ sjSDM = function(Y = NULL,
                 optimizer = optimizer, 
                 link = family$link,
                 diag=biotic$diag,
-                scheduler=control$schedule)
+                scheduler=control$scheduler_boolean,
+                patience=control$scheduler_patience,
+                factor=control$lr_reduce_factor)
     
     return(model)
   }
   model = out$get_model()
   
   if(is.null(spatial)) {
-    time = system.time({model$fit(env$X, Y, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
+    time = system.time({model$fit(env$X, Y, batch_size = step_size, 
+                                  epochs = as.integer(iter), parallel = parallel, 
+                                  sampling = as.integer(sampling),
+                                  early_stopping_training=control$early_stopping_training)})[3]
     out$logLik = model$logLik(env$X, Y,batch_size = step_size,parallel = parallel)
     if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
   
   } else {
-    time = system.time({model$fit(env$X, Y=Y,SP=spatial$X, batch_size = step_size, epochs = as.integer(iter), parallel = parallel, sampling = as.integer(sampling))})[3]
+    time = system.time({model$fit(env$X, Y=Y,SP=spatial$X, batch_size = step_size, 
+                                  epochs = as.integer(iter), parallel = parallel, 
+                                  sampling = as.integer(sampling),
+                                  early_stopping_training=control$early_stopping_training)})[3]
     out$logLik = model$logLik(env$X, Y, SP=spatial$X, batch_size = step_size,parallel = parallel)
     if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, SP=spatial$X,batch_size = step_size, parallel = parallel),along=0L)) })
     

@@ -29,7 +29,6 @@
 #' @example /inst/examples/sLVM-example.R
 #' @seealso \code{\link{print.sLVM}}, \code{\link{predict.sLVM}}, \code{\link{coef.sLVM}}, \code{\link{summary.sLVM}}, \code{\link{getCov}}, \code{\link{getLF}}, \code{\link{getCI}}, \code{\link{getLF}}
 #' @author Maximilian Pichler
-#' @export
 sLVM = function(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
                 priors = list(3.0, 1.0, 1.0), posterior = c("DiagonalNormal", "LaplaceApproximation", "LowRankMultivariateNormal", "Delta"),
                 iter = 50L, step_size=20L, lr=list(0.1), device = "cpu", dtype = "float32") {
