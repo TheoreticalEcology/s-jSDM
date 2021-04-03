@@ -97,23 +97,10 @@ jobs:
           RETICULATE_AUTOCONFIGURE: true
         run: |
           Rscript -e "sjSDM::install_sjSDM()"
-          Rscript -e "sjSDM::install_sjSDM()"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
           Rscript -e "reticulate::conda_install(envname='r-reticulate', package=c('pyro-ppl', 'torch-optimizer'), pip=TRUE)"
-          
-      - name: Config of conda env
-        env:
-          RETICULATE_AUTOCONFIGURE: true
-        run: |
-          if(sjSDM:::is_linux()) try(Sys.setenv(RETICULATE_PYTHON = '/usr/share/miniconda/envs/r-reticulate/bin/python'), silent=TRUE)
-          library(reticulate)
-          load_env = try({use_condaenv(condaenv = 'r-reticulate')}, silent=TRUE)
-          print(load_env)
-          load_torch = try({torch = import('torch')}, silent=TRUE)
-          print(load_torch)
-          py_config()
-        shell: Rscript {0}
+          Rscript -e "sjSDM::install_sjSDM()"
         
       - name: Check
         env:
