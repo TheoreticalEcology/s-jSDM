@@ -4,12 +4,17 @@
 \alias{sjSDMControl}
 \title{sjSDM control object}
 \usage{
-sjSDMControl(optimizer = RMSprop(), scheduler = FALSE)
+sjSDMControl(optimizer = RMSprop(), scheduler = 0,
+  lr_reduce_factor = 0.99, early_stopping_training = 0)
 }
 \arguments{
 \item{optimizer}{object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, or \code{\link{AdaBound}}}
 
-\item{scheduler}{use scheduler or not}
+\item{scheduler}{reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)}
+
+\item{lr_reduce_factor}{factor to reduce learning rate in scheduler}
+
+\item{early_stopping_training}{number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping).}
 }
 \description{
 sjSDM control object

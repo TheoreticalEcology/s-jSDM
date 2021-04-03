@@ -3,7 +3,10 @@ context("sjSDM")
 source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
-                      iter = 1L, step_size = 10L, se=FALSE, family = stats::binomial("logit"), context = "") {
+                      iter = 1L, step_size = 10L, se=FALSE, 
+                      family = stats::binomial("logit"), 
+                      control = sjSDMControl(),
+                      context = "") {
     sjSDM:::check_module()
     if(torch$cuda$is_available()) device = "gpu"
     else device = "cpu"
@@ -14,12 +17,14 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           step_size = !!step_size,
                                           se = !!se,
                                           family=!!family, 
+                                          control = control,
                                           device = device,
                                           sampling = 5L)}, NA)
     testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(coef(model)) }, NA)
+    testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(summary(model)) }, NA)
-    testthat::expect_error(logLik(model), NA)
+    testthat::expect_false(any(is.na(model$history)))
     testthat::expect_error({ .k= testthat::capture_output(predict(model, batch_size=step_size)) }, NA)
     if(inherits(env, "matrix"))testthat::expect_error({ .k= testthat::capture_output(predict(model, newdata = env, batch_size=step_size)) }, NA)
 }
@@ -32,6 +37,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
   test_sims = matrix(c(4:15, 15:4), ncol = 2L)
   testthat::test_that("sjSDM base", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:nrow(test_sims)) {
       sim = simulate_SDM(sites = 50L, species = test_sims[i, 1], env = test_sims[i, 2])
@@ -57,12 +64,34 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     list(5, 20, TRUE, stats::binomial("probit"))
   )
   testthat::test_that("sjSDM Func", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
       test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], family =  Funcs[[i]][[4]])
     }
   })
   
+  
+  # sjSDM controls
+  controls = list(
+    sjSDMControl(optimizer = RMSprop()),
+    sjSDMControl(optimizer = Adamax()),
+    sjSDMControl(optimizer = AdaBound()),
+    sjSDMControl(optimizer = AccSGD()),
+    sjSDMControl(optimizer = AdaBound()),
+    sjSDMControl(optimizer = RMSprop(), scheduler = 2, lr_reduce_factor = 0.1),
+    sjSDMControl(optimizer = RMSprop(), scheduler = 2, lr_reduce_factor = 0.99),
+    sjSDMControl(optimizer = RMSprop(), early_stopping_training = 2L)
+  )
+  testthat::test_that("sjSDM Control", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
+    skip_if_no_torch()
+    for(i in 1:length(controls)) {
+      test_model(Y1, env = linear(X1), iter = 20L, control = controls[[i]])
+    }
+  })
   
   biotic = list(
     bioticStruct(4L),
@@ -73,6 +102,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     bioticStruct(4L, lambda = 0.1, inverse = TRUE)
   )
   testthat::test_that("sjSDM Biotic", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(biotic)) {
       test_model(Y1, env=linear(X1), biotic = biotic[[i]])
@@ -90,6 +121,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(X1, lambda = 0.1, alpha=1.0)
   )
   testthat::test_that("sjSDM env", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(envs)) {
       test_model(Y1, env = envs[[i]])
@@ -122,6 +155,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, hidden = c(4,3,6),activation = c("relu", "tanh", "sigmoid"), lambda = 0.1, alpha=1.0)
   )
   testthat::test_that("sjSDM DNN", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(DNN)) {
       test_model(Y1, env = DNN[[i]])
@@ -139,6 +174,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(SP, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
   )
   testthat::test_that("sjSDM Spatial", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = linear(X1), spatial = Spatial[[i]])
@@ -160,6 +197,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0, dropout = 0.3)
   )
   testthat::test_that("sjSDM Mix", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = Env[[i]], spatial = Spatial[[i]])
@@ -168,6 +207,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
 
 testthat::test_that("sjSDM reload model", {
+  testthat::skip_on_cran()
+  testthat::skip_on_ci()
   skip_if_no_torch()
   sjSDM:::check_module()
   if(torch$cuda$is_available()) device = "gpu"

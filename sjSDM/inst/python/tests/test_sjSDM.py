@@ -42,19 +42,19 @@ def model_base_sp():
     return _get
 
 
-@pytest.mark.parametrize("inp,out,epochs,batch", 
-                        [(5,5,1,10), 
-                         (3,10,2,2),
-                         (1,15,5,5),
-                         (20,11,1, 100),
-                         pytest.param(5,5,-1,1, marks=pytest.mark.xfail),
-                         pytest.param(5,5,2,-1, marks=pytest.mark.xfail),
-                         pytest.param(0,5,2,1, marks=pytest.mark.xfail),
-                         pytest.param(5,0,2,1, marks=pytest.mark.xfail)])
-def test_base(data, model_base, inp, out, epochs, batch):
+@pytest.mark.parametrize("inp,out,epochs,batch,early_stopping_training", 
+                        [(5,5,1,10,-1), 
+                         (3,10,2,2,-1),
+                         (1,15,5,5,2),
+                         (20,11,1, 100, 2),
+                         pytest.param(5,5,-1,1,-1, marks=pytest.mark.xfail),
+                         pytest.param(5,5,2,-1,-1, marks=pytest.mark.xfail),
+                         pytest.param(0,5,2,1,-1, marks=pytest.mark.xfail),
+                         pytest.param(5,0,2,1,-1, marks=pytest.mark.xfail)])
+def test_base(data, model_base, inp, out, epochs, batch, early_stopping_training):
     X, Y = data(inp, out)
     model = model_base(inp, out)
-    model.fit(X, Y, epochs=epochs, batch_size=batch)
+    model.fit(X, Y, epochs=epochs, batch_size=batch, early_stopping_training=early_stopping_training)
     model.logLik(X, Y, batch_size=batch)
     pred = model.predict(X, batch_size=batch)
     model.se(X, Y, batch_size=batch)

@@ -1,13 +1,10 @@
 Package: sjSDM
 Type: Package
 Title: Scalable Joint Species Distribution Modeling
-Version: 0.1.3.9000
-Date: 2020-02-20
-Authors@R: c(person("Maximilian",
-                    "Pichler",
-                    email = "maximilian.pichler@biologie.uni-regensburg.de",
-                    role = c("aut", "cre")),
-                    c(person("Florian", "Hartig", email = "florian.hartig@biologie.uni-regensburg.de", role = c("aut"), comment=c(ORCID="0000-0002-6255-9059"))))
+Version: 0.1.5
+Date: 2021-02-03
+Authors@R: c(person("Maximilian", "Pichler", email = "maximilian.pichler@biologie.uni-regensburg.de", role = c("aut", "cre")),
+             person("Florian", "Hartig", email = "florian.hartig@biologie.uni-regensburg.de", role = c("aut"), comment=c(ORCID="0000-0002-6255-9059")))
 Description: A scalable method to estimates joint Species Distribution Models (jSDMs) based on 
     the multivariate probit model through Monte-Carlo approximation of the joint likelihood. 
     The numerical approximation is based on PyTorch and reticulate, and can be calculated
@@ -22,11 +19,10 @@ Imports:
     utils,
     rstudioapi,
     abind,
-    magrittr,
     graphics,
     grDevices,
     Metrics,
-    snow,
+    parallel,
     scales,
     mgcv,
     Ternary

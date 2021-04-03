@@ -5,9 +5,8 @@
 \title{Install sjSDM and its dependencies}
 \usage{
 install_sjSDM(method = "conda", conda = "auto", version = c("cpu",
-  "gpu"), envname = "r-reticulate", extra_packages = NULL,
-  restart_session = TRUE, conda_python_version = "3.6", pip = FALSE,
-  cuda = c("10.1", "9,2"), ...)
+  "gpu"), envname = "r-reticulate", restart_session = TRUE,
+  cuda = c("10.2", "9,2"), ...)
 }
 \arguments{
 \item{method}{installation method, auto = automatically best (conda or virtualenv), or force conda with method = "conda" or virtualenv with method = "virtualenv"}
@@ -18,19 +17,12 @@ install_sjSDM(method = "conda", conda = "auto", version = c("cpu",
 
 \item{envname}{Name of python env, "r-pytorch" is default}
 
-\item{extra_packages}{Additional Python packages to install along with
-PyTorch}
-
 \item{restart_session}{Restart R session after installing (note this will
 only occur within RStudio).}
 
-\item{conda_python_version}{python version to be installed in the env, default = 3.6}
+\item{cuda}{which cuda version, 9.2 and 10.2 are supported}
 
-\item{pip}{use pip installer}
-
-\item{cuda}{which cuda version, 9.2 and 10.1 are supported}
-
-\item{...}{arguments passed to reticulate::conda_install()}
+\item{...}{not supported}
 }
 \description{
 Install sjSDM and its dependencies

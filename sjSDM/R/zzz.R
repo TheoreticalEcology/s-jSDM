@@ -16,8 +16,11 @@ missing_installation = function(miss_torch, miss_sjSDM) {
 .onLoad = function(libname, pkgname){
   if(is_torch_available()) {
     torch <<- reticulate::import("torch")
-
+    
     path = system.file("python", package = "sjSDM")
+    
+    Sys.setenv( KMP_DUPLICATE_LIB_OK=TRUE )
+    
     try({
       compile = reticulate::import("compileall")
       tmp = compile$compile_dir(paste0(path, "/sjSDM_py"),quiet = 2L,force=TRUE)

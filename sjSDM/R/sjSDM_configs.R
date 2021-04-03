@@ -15,6 +15,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
     if(!is.null(formula)){
       mf = match.call()
       m = match("formula", names(mf))
+      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       X = stats::model.matrix(formula, data)
     } else {
@@ -27,6 +28,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
     if(!is.null(formula)) {
       mf = match.call()
       m = match("formula", names(mf))
+      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       X = data.frame(data)
       X = stats::model.matrix(formula, X)
@@ -80,6 +82,7 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
     if(!is.null(formula)){
       mf = match.call()
       m = match("formula", names(mf))
+      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       X = stats::model.matrix(formula, data)
     } else {
@@ -92,6 +95,7 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
     if(!is.null(formula)) {
       mf = match.call()
       m = match("formula", names(mf))
+      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       X = data.frame(data)
       X = stats::model.matrix(formula, X)
@@ -193,15 +197,27 @@ print.spatialRE = function(x, ...) {
 #' sjSDM control object
 #' 
 #' @param optimizer object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, or \code{\link{AdaBound}}
-#' @param scheduler use scheduler or not
+#' @param scheduler reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)
+#' @param lr_reduce_factor factor to reduce learning rate in scheduler
+#' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
 #' 
 #' @export
 sjSDMControl = function(optimizer = RMSprop(),
-                        scheduler = FALSE) {
+                        scheduler = 0,
+                        lr_reduce_factor = 0.99,
+                        early_stopping_training = 0) {
   
   control = list()
   control$optimizer = optimizer
-  control$scheduler = scheduler
+  if(scheduler < 1) scheduler_boolean=FALSE
+  else scheduler_boolean= TRUE
+  control$scheduler_boolean = scheduler_boolean
+  control$scheduler_patience = as.integer(scheduler)
+  control$lr_reduce_factor = lr_reduce_factor
+  
+  if(early_stopping_training == 0) early_stopping_training = -1.
+  else early_stopping_training = as.integer(early_stopping_training)
+  control$early_stopping_training = early_stopping_training
   return(control)
 }
 

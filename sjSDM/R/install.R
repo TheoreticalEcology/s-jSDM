@@ -4,27 +4,21 @@
 #' @param conda path to conda
 #' @param version version = "cpu" for CPU version, or "gpu" for gpu version. (note MacOS users have to install cuda binaries by themselves)
 #' @param envname Name of python env, "r-pytorch" is default
-#' @param extra_packages Additional Python packages to install along with
-#'   PyTorch
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
-#' @param conda_python_version python version to be installed in the env, default = 3.6
-#' @param pip use pip installer
-#' @param cuda which cuda version, 9.2 and 10.1 are supported
-#' @param ... arguments passed to reticulate::conda_install()
+#' @param cuda which cuda version, 9.2 and 10.2 are supported
+#' @param ... not supported
 #'
 #' @export
 install_sjSDM = function(method = "conda",
-                           conda = "auto",
-                           version = c("cpu", "gpu"),
-                           envname = "r-reticulate",
-                           extra_packages = NULL,
-                           restart_session = TRUE,
-                           conda_python_version = "3.6",
-                           pip = FALSE,
-                           cuda = c("10.1", "9,2"), ...) {
+                         conda = "auto",
+                         version = c("cpu", "gpu"),
+                         envname = "r-reticulate",
+                         restart_session = TRUE,
+                         cuda = c("10.2", "9,2"), ...) {
   
-  
+  pip = FALSE
+  extra_packages = NULL
   is_windows = function() {
     identical(.Platform$OS.type, "windows")
   }
@@ -49,38 +43,33 @@ install_sjSDM = function(method = "conda",
   if(inherits(conda, "error")) {
     reticulate::install_miniconda()
   }
-  
-  
   channel = "pytorch"
-  
-  
-
   if(is_windows()) {
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision cpuonly",
-             gpu = "pytorch torchvision cudatoolkit=10.1")
+             cpu = "pytorch torchvision torchaudio cpuonly",
+             gpu = "pytorch torchvision torchaudio cudatoolkit=10.2")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch -c defaults -c numba/label/dev"
     
     package$pip = 
       switch(version,
-             cpu = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
-             gpu = "torch===1.4.0 torchvision===0.5.0 -f https://download.pytorch.org/whl/torch_stable.html")
+             cpu = "torch===1.8.1 torchvision===0.9.1 torchaudio===0.8.1 -f https://download.pytorch.org/whl/torch_stable.html",
+             gpu = "torch==1.8.1+cpu torchvision==0.9.1+cpu torchaudio===0.8.1 -f https://download.pytorch.org/whl/torch_stable.html")
     if(cuda == 9.2 && version == "gpu") package$conda = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
   }
   
- if(is_linux() || is_unix()) {
+  if(is_linux() || is_unix()) {
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision cpuonly",
-             gpu = "pytorch torchvision cudatoolkit=10.1")
+             cpu = "pytorch torchvision torchaudio cpuonly",
+             gpu = "pytorch torchvision torchaudio cudatoolkit=10.2")
     if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch"
-
+    
     package$pip =
       switch(version,
-             cpu = "torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html",
+             cpu = "torch==1.8.1+cpu torchvision==0.9.1+cpu torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html",
              gpu = "torch torchvision")
     if(cuda == 9.2 && version == "gpu") package$pip = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
   } 
@@ -88,125 +77,39 @@ install_sjSDM = function(method = "conda",
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision",
-             gpu = "pytorch torchvision")
+             cpu = "pytorch torchvision torchaudio",
+             gpu = "pytorch torchvision torchaudio")
     
     package$pip =
       switch(version,
-             cpu = "torch torchvision",
-             gpu = "torch torchvision")
+             cpu = "torch torchvision torchaudio",
+             gpu = "torch torchvision torchaudio")
     
     if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
   }
-  ### pytorch  Windows ###
-  # pip cpu:
-  # pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-  # pip cuda 10.1
-  # pip install torch===1.4.0 torchvision===0.5.0 -f https://download.pytorch.org/whl/torch_stable.html
-  # pip cuda 9.2
-  # pip install torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html
-  # conda cpu:
-  # conda install pytorch torchvision cpuonly -c pytorch
-  # conda cuda 10.1
-  # conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
-  # conda cuda 9.2
-  # conda install pytorch torchvision cudatoolkit=9.2 -c pytorch -c defaults -c numba/label/dev
-  ### pytorch  linux ###
-  # pip cpu:
-  # pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-  # pip cuda 10.1
-  # pip install torch torchvision
-  # pip cuda 9.2
-  # pip install torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html
-  # conda cpu:
-  # conda install pytorch torchvision cpuonly -c pytorch
-  # conda cuda 10.1
-  # conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
-  # conda cuda 9.2
-  # conda install pytorch torchvision cudatoolkit=9.2 -c pytorch
-  ### pytorch  macOS ###
-  # pip cpu:
-  #pip install torch torchvision
-  # conda
-  # conda install pytorch torchvision -c pytorch
   
   packages = strsplit(unlist(package), " ", fixed = TRUE)
   
+  error = tryCatch({
+#     conda_path =reticulate::conda_binary()
+#     system2(conda_path, args=paste0(" create -y --force -n ", envname))
+#     system2(conda_path, args=paste0(" install -y -n ",envname ," python=", conda_python_version))
+#     system2(conda_path, args=paste0(" install -y -n ",envname, " ", paste(packages$conda, collapse = " "), " -c pytorch"))
+# 	  conda_python = reticulate::conda_python(envname=envname)
+# 	  system2(conda_python, args=" -m pip install --upgrade ssl")
+# 	  reticulate::conda_install(envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
+#     #system2(conda_python, args=paste0(" -m pip install pyro-ppl torch_optimizer"))
+    
+    reticulate::conda_install(envname = envname, packages = packages$conda, channel = channel)
+    reticulate::conda_install(envname = envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
+  
+  }, error = function(e) e)
   
   error = tryCatch({
-    if (is_osx() || is_linux() || is_unix()) {
-      
-      if(pip) packages$conda = packages$pip
-      
-      if (method == "conda") {
-        reticulate::conda_install(
-          packages = packages$conda,
-          envname = envname,
-          conda = conda,
-          channel = channel,
-          python_version = conda_python_version,
-          pip = pip,
-          ...
-        )
-        reticulate::conda_install(
-          packages = "pyro-ppl",
-          envname = envname,
-          conda = conda,
-          pip = TRUE
-        )
-        
-        reticulate::conda_install(
-          packages = "torch_optimizer",
-          envname = envname,
-          conda = conda,
-          pip = TRUE
-        )
-      } else if (method == "virtualenv" || method == "auto") {
-        reticulate::virtualenv_install(
-          packages = packages$pip,
-          envname = envname,
-          ...
-        )
-      }
-      
-    } else if (is_windows()) {
-      
-      if (method == "virtualenv") {
-        stop("Installing PyTorch into a virtualenv is not supported on Windows",
-             call. = FALSE)
-      } else if (method == "conda" || method == "auto") {
-        if(pip) packages$conda = packages$pip
-        
-        reticulate::conda_install(
-          packages = packages$conda,
-          envname = envname,
-          conda = conda,
-          channel = channel,
-          python_version = conda_python_version,
-          pip = pip,
-          ...
-        )
-        reticulate::conda_install(
-          packages = "pyro-ppl",
-          envname = envname,
-          conda = conda,
-          pip = TRUE
-        )
-        
-        reticulate::conda_install(
-          packages = "torch_optimizer",
-          envname = envname,
-          conda = conda,
-          pip = TRUE
-        )
-        
-      }
-      
-    } else {
-      stop("Unable to install PyTorch on this platform. ",
-           "Binary installation is available for Windows, OS X, and Linux")
-    }
+    reticulate::conda_install(envname = envname, packages = packages$conda, channel = channel)
+    reticulate::conda_install(envname = envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
   }, error = function(e) e)
+  
   
   if(!inherits(error, "error")) {
     message("\nInstallation complete.\n\n")
@@ -232,20 +135,20 @@ install_sjSDM = function(method = "conda",
 #' @export
 install_diagnostic = function() {
   conda_envs = reticulate::conda_list()
-
+  
   conda = reticulate::conda_binary()
-
+  
   configs = ""
   conda_info = ""
   suppressWarnings({
-  try({
-  for(n in conda_envs$name) {
-    configs = paste0(configs, "\n\n\nENV: ", n)
-    configs = paste0(configs, "\n\n\ntorch:\n", paste0(system(paste0(conda, " list -n" ,n, " torch*"), intern = TRUE) ,collapse = "\n" ))
-    configs = paste0(configs, "\n\n\nnumpy:\n", paste0(system(paste0(conda, " list -n" ,n, " numpy*"),  intern = TRUE)  ,collapse = "\n" )   )
-  }
-    conda_info = paste0(system(paste0(conda, " info"), intern=TRUE), collapse = "\n")
-  }, silent = TRUE)})
+    try({
+      for(n in conda_envs$name) {
+        configs = paste0(configs, "\n\n\nENV: ", n)
+        configs = paste0(configs, "\n\n\ntorch:\n", paste0(system(paste0(conda, " list -n" ,n, " torch*"), intern = TRUE) ,collapse = "\n" ))
+        configs = paste0(configs, "\n\n\nnumpy:\n", paste0(system(paste0(conda, " list -n" ,n, " numpy*"),  intern = TRUE)  ,collapse = "\n" )   )
+      }
+      conda_info = paste0(system(paste0(conda, " info"), intern=TRUE), collapse = "\n")
+    }, silent = TRUE)})
   
   print(conda_envs)
   cat(configs)

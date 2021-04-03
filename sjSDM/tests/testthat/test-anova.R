@@ -1,10 +1,10 @@
-context("sjSDM")
+context("sjSDM anova")
 
 source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
                       iter = 1L, step_size = 10L, se=FALSE, family = stats::binomial(), context = "") {
-  
+    
     sjSDM:::check_module()
     if(torch$cuda$is_available()) device = "gpu"
     else device = "cpu"
@@ -17,6 +17,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           family = !!family,
                                           device = device,
                                           sampling = 10L)}, NA)
+    testthat::expect_false(any(is.na(model$history)))
     testthat::expect_error({res = anova(model, cv = 2L)}, NA)
     testthat::expect_error({plot(res)}, NA)
 }
@@ -34,11 +35,13 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
   # iter, batch_size, se, link
   Funcs = list(
-    list(5, 2, FALSE, binomial("logit")),
-    list(5, 23, FALSE, poisson()),
-    list(5, 40, FALSE, gaussian())
+    list(2, 2, FALSE, binomial("logit")),
+    list(2, 23, FALSE, poisson()),
+    list(2, 40, FALSE, gaussian())
   )
   testthat::test_that("sjSDM anova Func", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Funcs)) {
       test_model(Y1, env = linear(X1), iter = Funcs[[i]][[1]], step_size =  Funcs[[i]][[2]],  se = Funcs[[i]][[3]], family =  Funcs[[i]][[4]])
@@ -51,6 +54,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     bioticStruct(4L, lambda = 0.1, alpha = 1.0)
   )
   testthat::test_that("sjSDM anova Biotic", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(biotic)) {
       test_model(Y1, env=linear(X1), biotic = biotic[[i]])
@@ -63,6 +68,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(X1, lambda = 0.1)
   )
   testthat::test_that("sjSDM anova env", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(envs)) {
       test_model(Y1, env = envs[[i]])
@@ -74,6 +81,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(data.frame(matrix(rnorm(100), 50 , 2)), ~0+X1:X2)
   )
   testthat::test_that("sjSDM anova env", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(spatial)) {
       test_model(Y1, env = linear(X1), spatial = spatial[[1]])
@@ -85,6 +94,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, hidden = c(3,3,3),lambda = 0.1, alpha=1.0)
   )
   testthat::test_that("sjSDM anova DNN", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(DNN)) {
       test_model(Y1, env = DNN[[i]])
@@ -98,6 +109,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(SP, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
   )
   testthat::test_that("sjSDM anova Spatial", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = linear(X1), spatial = Spatial[[i]])
@@ -115,6 +128,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
   )
   testthat::test_that("sjSDM anova Mix", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
     skip_if_no_torch()
     for(i in 1:length(Spatial)) {
       test_model(Y1, env = Env[[i]], spatial = Spatial[[i]])
