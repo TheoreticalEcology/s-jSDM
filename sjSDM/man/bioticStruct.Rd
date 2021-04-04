@@ -74,12 +74,22 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
 summary(model)
 predict(model, newdata = com$env_weights, SP = XY)
 
-## non-linear(deep neural network) model
+## Using spatial eigenvectors as predictors to account for spatial autocorrelation is a common approach:
+SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
-              spatial = DNN(XY,hidden = c(5L, 5L), ~0+.),
+              spatial = linear(SPV, ~0+., lambda = 0.1),
               iter = 2L) # increase iter for your own data 
 summary(model)
-predict(model, newdata = com$env_weights, SP = XY)
+predict(model, newdata = com$env_weights, SP = SPV)
+
+
+
+## non-linear(deep neural network) model
+model = sjSDM(Y = com$response, env = linear(com$env_weights), 
+              spatial = DNN(SPV,hidden = c(5L, 5L), ~0+.),
+              iter = 2L) # increase iter for your own data 
+summary(model)
+predict(model, newdata = com$env_weights, SP = SPV)
 
 
 # Regularization
@@ -99,14 +109,13 @@ getCov(model)
 
 
 
-
-
 # Anova 
 com = simulate_SDM(env = 3L, species = 15L, sites = 200L)
 
 XY = matrix(rnorm(400), 200, 2)
+SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
-              spatial = linear(XY, ~0+X1:X2), 
+              spatial = linear(SPV, ~0+.), 
               iter = 2L) # increase iter for your own data 
 result = anova(model, cv = 2L)
 print(result)

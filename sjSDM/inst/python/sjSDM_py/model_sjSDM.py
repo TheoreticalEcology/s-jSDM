@@ -692,10 +692,3 @@ class Model_sjSDM:
                             counter+=1
         else:
             return None
-
-
-
-  # def fill_lower_tril(self, sigma):
-   #     xc = torch.cat([sigma[self.r_dim:], sigma.flip(dims=[0])])
-   #     y = xc.view(self.r_dim, self.r_dim)
-   #     return torch.tril(y)

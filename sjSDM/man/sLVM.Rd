@@ -5,14 +5,14 @@
 \title{sLVM}
 \usage{
 sLVM(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
-  priors = list(3, 1, 1), posterior = c("DiagonalNormal",
-  "LaplaceApproximation", "LowRankMultivariateNormal", "Delta"), iter = 50L,
-  step_size = 20L, lr = list(0.1), device = "cpu", dtype = "float32")
+  priors = list(1, 1, 1), posterior = c("DiagonalNormal",
+  "LaplaceApproximation", "LowRankMultivariateNormal", "Delta"), iter = 100L,
+  step_size = 10L, lr = list(0.1), device = "cpu", dtype = "float32")
 }
 \arguments{
 \item{Y}{species occurrences}
 
-\item{X}{environmental (abiotic) covariates}
+\item{X}{environmental (abiotic) covariates (matrix or data.frame)}
 
 \item{formula}{formula for environment}
 
@@ -52,38 +52,35 @@ Guide is the distribution that is assumed for the posterior distribution
 \examples{
 \donttest{
   
-# # Basic workflow:
-# ## simulate community:
-# com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
-# 
-# ## fit model:
-# model = sLVM(Y = com$response,X = com$env_weights, 
-#              iter = 50L, family = binomial("probit"))
-# coef(model)
-# summary(model)
-# getCov(model)
-# 
-# # get latent variables and factors
-# getLF(model)
-# getLV(model)
-# 
-# ## get credible intervals:
-# getCI(model)
-# 
-# ## fit model with interactions:
-# model = sLVM(Y = com$response,
-#              X = com$env_weights, formula = ~X1:X2 + X3, 
-#              family = binomial("probit"))
-# summary(model)
-# 
-# ## without intercept:
-# 
-# ## predict with model:
-# preds = predict(model, newdata = com$env_weights)
-# 
-# ## predictions over parameter distribution:
-# preds = predict(model, newdata = com$env_weights, mean_field = FALSE)
-# dim(preds)
+# Basic workflow:
+## simulate community:
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+
+## fit model:
+model = sLVM(Y = com$response,X = com$env_weights,
+             family = binomial("probit"))
+coef(model)
+summary(model)
+getCov(model)
+
+# get latent variables and factors
+getLF(model)
+getLV(model)
+
+## fit model with interactions:
+model = sLVM(Y = com$response,
+             X = com$env_weights, formula = ~X1:X2 + X3,
+             family = binomial("probit"))
+summary(model)
+
+## without intercept:
+
+## predict with model:
+preds = predict(model, newdata = com$env_weights)
+
+## predictions over parameter distribution:
+preds = predict(model, newdata = com$env_weights, mean_field = FALSE)
+dim(preds)
 }
 }
 \references{

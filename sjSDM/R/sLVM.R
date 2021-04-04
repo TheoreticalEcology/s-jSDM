@@ -2,7 +2,7 @@
 #' @description Latent-variable model
 #' 
 #' @param Y species occurrences
-#' @param X environmental (abiotic) covariates
+#' @param X environmental (abiotic) covariates (matrix or data.frame)
 #' @param formula formula for environment
 #' @param lv number of latent variables
 #' @param family supported distributions: \code{binomial(link=c("logit", "probit"))}, \code{poisson(link=c("log", "identity"))}
@@ -29,9 +29,10 @@
 #' @example /inst/examples/sLVM-example.R
 #' @seealso \code{\link{print.sLVM}}, \code{\link{predict.sLVM}}, \code{\link{coef.sLVM}}, \code{\link{summary.sLVM}}, \code{\link{getCov}}, \code{\link{getLF}}, \code{\link{getCI}}, \code{\link{getLF}}
 #' @author Maximilian Pichler
+#' @export
 sLVM = function(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
-                priors = list(3.0, 1.0, 1.0), posterior = c("DiagonalNormal", "LaplaceApproximation", "LowRankMultivariateNormal", "Delta"),
-                iter = 50L, step_size=20L, lr=list(0.1), device = "cpu", dtype = "float32") {
+                priors = list(1.0, 1.0, 1.0), posterior = c("DiagonalNormal", "LaplaceApproximation", "LowRankMultivariateNormal", "Delta"),
+                iter = 100L, step_size=10L, lr=list(0.1), device = "cpu", dtype = "float32") {
   
   check_module()
   
@@ -109,15 +110,6 @@ sLVM = function(Y = NULL, X = NULL, formula = NULL, lv = 2L, family,
   class(out) = "sLVM"
   return(out)
 }
-# com = simulate_SDM(env = 3L, species = 5L, sites = 400L)
-# 
-# m = sLVM(com$response, com$env_weights,
-#          family = binomial("probit"), formula = ~0+.,posterior = "DiagonalNormal", lr = list(0.03), iter=100L, priors = list(2.0,1.0,1.0))
-# plot(density(m$posterior_samples$mu[,3,2]))
-# abline(v = quantile(m$posterior_samples$mu[,3,2], probs = c(0.025, 0.975)))
-# abline(v = mean((m$posterior_samples$mu[,3,2])), col="red")
-# abline(v = median((m$posterior_samples$mu[,3,2])), col="red")
-
 
 
 
@@ -180,7 +172,8 @@ coef.sLVM = function(object, ...) {
 #' @export
 getCI = function(object, lower=0.025, upper=0.975){
   stopifnot(inherits(object, "sLVM"))
-  apply(object$posterior_samples$mu,2:3, function(q) stats::quantile(q,probs=c(lower, upper)))
+  # apply(object$posterior_samples$mu,2:3, function(q) stats::quantile(q,probs=c(lower, upper)))
+  cat('not implemented yet')
 }
 
 
@@ -239,19 +232,19 @@ summary.sLVM = function(object, ...) {
     else colnames(env) = object$species
     rownames(env) = object$names
     
-    CIs = getCI(object)
+    #CIs = getCI(object)
     
-    within = ((round(as.vector(CIs[1,,]),3) > 0) ==  (round(as.vector(CIs[2,,]),3) > 0))
-    ifelse(within,"*"," " )
+    #within = ((round(as.vector(CIs[1,,]),3) > 0) ==  (round(as.vector(CIs[2,,]),3) > 0))
+    #ifelse(within,"*"," " )
     
     parse = function(cc) ifelse(cc > 0, paste0(" ",cc), as.character(cc))
     
     sp_env = apply(expand.grid( rownames(env), colnames(env)), 1, function(n) paste0("",n[2]," ", n[1]))
     ee = parse(round(as.vector(as.matrix(env)), 3))
-    lc = parse(round(as.vector(CIs[1,,]),3))
-    hc = parse(round(as.vector(CIs[2,,]),3))
-    s = ifelse(within,"*"," " )
-    cols = c(" ", "Estimate(mean)", "Lower CI", "Higher CI", "")
+    #lc = parse(round(as.vector(CIs[1,,]),3))
+    #hc = parse(round(as.vector(CIs[2,,]),3))
+    #s = ifelse(within,"*"," " )
+    cols = c(" ", "Estimate(mean)")
     
     
     lambda = function(x)gsub("\\s", " ", format(x, width=max(nchar(sp_env), nchar(cols))))
@@ -259,20 +252,20 @@ summary.sLVM = function(object, ...) {
     coefmat = 
       cbind(
         paste0(lambda(sp_env), "\t"),
-        paste0(lambda(ee), "\t"),
-        paste0(lambda(lc), "\t"),
-        paste0(lambda(hc), "\t"),
-        paste0(lambda(s),"\t")
+        paste0(lambda(ee), "\t")
+        #paste0(lambda(lc), "\t"),
+        #paste0(lambda(hc), "\t"),
+        #paste0(lambda(s),"\t")
       )
     coefmat = rbind(paste0(lambda(cols), "\t"),coefmat)
   
   cat("Coefficients:\n")  
   cat(paste0(apply(coefmat, 1, function(k) paste0(k, collapse = "")), collapse = "\n"))
     
-  cat("\n---\n")
-  cat("'*': 0.0 not in CI")
+  # cat("\n---\n")
+  # cat("'*': 0.0 not in CI")
 
-  out$CI = CIs
+  #out$CI = CIs
   out$coefs = env
   out$logLik = object$logLik
   out$sigma = object$covariance

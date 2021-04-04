@@ -208,7 +208,9 @@ class Model_LVM():
         dataLoader = self._get_DataLoader(X, Y, batch_size = batch_size, shuffle=True, parallel=parallel)
         batch_loss = np.zeros(stepSize)
         self.history = np.zeros(epochs)
-        for epoch in range(epochs):
+        desc='loss: Inf'
+        ep_bar = tqdm(range(epochs),bar_format= "Iter: {n_fmt}/{total_fmt} {l_bar}{bar}| [{elapsed}, {rate_fmt}{postfix}]", file=sys.stdout)
+        for epoch in ep_bar:
             for step, (x, y, ind) in enumerate(dataLoader):
                 x = x.to(self.device, non_blocking=True)
                 y = y.to(self.device, non_blocking=True)
@@ -216,8 +218,8 @@ class Model_LVM():
                 loss = self.svi.step(x, y, ind)
                 batch_loss[step] = loss
             bl = np.mean(batch_loss)
-            _ = sys.stdout.write("\rEpoch: {}/{} loss: {} ".format(epoch+1,epochs, np.round(bl, 3).astype(str)))
-            sys.stdout.flush()
+            bl = np.round(bl, 3)
+            ep_bar.set_postfix(loss=f'{bl}')
         self.posterior_samples = pyro.infer.Predictive(self.model, guide=self.guide, num_samples=num_samples)(torch.tensor(X.copy(), dtype=torch.float32), 
                                                                                                               torch.tensor(Y.copy(), dtype=torch.float32),
                                                                                                               torch.tensor(np.arange(0, X.shape[0]), dtype=torch.long))
@@ -245,7 +247,7 @@ class Model_LVM():
         if mean_field:
             for step, (x, ind) in enumerate(dataLoader):
                 x = x.to(self.device, non_blocking=True)
-                lin = self.link(x.matmul(self.mu))
+                lin = self.link(x.matmul(self.mu).add( self.lv.index_select(0, ind).matmul(self.lf) ))
                 pred.append(lin)
             return torch.cat(pred, dim=0).data.cpu().numpy()
         else:

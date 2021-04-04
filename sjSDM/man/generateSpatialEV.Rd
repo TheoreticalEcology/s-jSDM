@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{generateSpatialEV}
 \alias{generateSpatialEV}
-\title{Generate spatial eigenvalues}
+\title{Generate spatial eigenvectors}
 \usage{
 generateSpatialEV(coords = NULL, threshold = 0)
 }
@@ -12,5 +12,5 @@ generateSpatialEV(coords = NULL, threshold = 0)
 \item{threshold}{ignore distances greater than threshold}
 }
 \description{
-function to generate spatial eigenvalues to account for spatial autocorrelation
+function to generate spatial eigenvectors to account for spatial autocorrelation
 }

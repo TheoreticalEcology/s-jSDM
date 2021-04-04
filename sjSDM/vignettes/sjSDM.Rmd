@@ -126,7 +126,7 @@ Y = com$response
 ```
 
 2) add spatial residuals (create coordinates and use spatial distance matrix to draw autocorrelated residuals for each species)
-```{r}
+```{r,eval=FALSE}
 XYcoords = matrix(rnorm(200), 100, 2)+2
 WW = as.matrix(dist(XYcoords))
 spatialResiduals = mvtnorm::rmvnorm( 5L, sigma = exp(-WW))
@@ -134,7 +134,7 @@ spatialResiduals = mvtnorm::rmvnorm( 5L, sigma = exp(-WW))
 
 3) Finish test data
 
-```{r}
+```{r,eval=FALSE}
 Ysp = Y + t(spatialResiduals)
 Y = ifelse(Ysp < 0, 0, 1) # multivariate probit model
 
@@ -143,7 +143,7 @@ Y = ifelse(Ysp < 0, 0, 1) # multivariate probit model
 ## Fitting spatial JSDM
 Using spatial eigenvectors as additional predictors is a common approach:
 
-```{r}
+```{r,eval=FALSE}
 SPeigen = generateSpatialEV(XYcoords)
 
 model = sjSDM(Y, env = linear(X, ~.), spatial = linear(SPeigen, ~0+.), iter = 100L)
