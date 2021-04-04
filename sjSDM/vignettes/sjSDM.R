@@ -10,6 +10,9 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 ## ---- eval = F----------------------------------------------------------------
 #  install_sjSDM()
 
+## ---- eval = F----------------------------------------------------------------
+#  install_sjSDM(method = "gpu")
+
 ## ----eval = F-----------------------------------------------------------------
 #  vignette("Dependencies", package = "sjSDM")
 
@@ -28,22 +31,37 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  getCov(model)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~ X1*X2,), iter = 50L, se = TRUE)
+#  model = sjSDM(Y = com$response,
+#                env = linear(data = com$env_weights, formula = ~ X1*X2,), iter = 50L, se = TRUE)
 #  summary(model)
 #  
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  model = sjSDM(Y = com$response, env = linear(data = com$env_weights, formula = ~0+ I(X1^2)), iter = 50L, se = TRUE)
+#  model = sjSDM(Y = com$response,
+#                env = linear(data = com$env_weights, formula = ~0+ I(X1^2)), iter = 50L, se = TRUE)
 #  summary(model)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+#  
+#  com = simulate_SDM(env = 3L, species = 5L, sites = 100L,
+#                     link = "identical", response = "identical")
 #  X = com$env_weights
 #  Y = com$response
+
+## ----eval=FALSE---------------------------------------------------------------
+#  XYcoords = matrix(rnorm(200), 100, 2)+2
+#  WW = as.matrix(dist(XYcoords))
+#  spatialResiduals = mvtnorm::rmvnorm( 5L, sigma = exp(-WW))
+
+## ----eval=FALSE---------------------------------------------------------------
+#  Ysp = Y + t(spatialResiduals)
+#  Y = ifelse(Ysp < 0, 0, 1) # multivariate probit model
 #  
-#  XYcoords = matrix(rnorm(200), 100, 2)
+
+## ----eval=FALSE---------------------------------------------------------------
+#  SPeigen = generateSpatialEV(XYcoords)
 #  
-#  model = sjSDM(Y, env = linear(X, ~X1+X2), spatial = linear(XYcoords, ~0+X1:X2), iter = 100L)
+#  model = sjSDM(Y, env = linear(X, ~.), spatial = linear(SPeigen, ~0+.), iter = 100L)
 #  summary(model)
 
 ## ----eval=FALSE---------------------------------------------------------------

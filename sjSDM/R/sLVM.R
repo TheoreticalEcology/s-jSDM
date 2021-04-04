@@ -262,10 +262,8 @@ summary.sLVM = function(object, ...) {
   cat("Coefficients:\n")  
   cat(paste0(apply(coefmat, 1, function(k) paste0(k, collapse = "")), collapse = "\n"))
     
-  # cat("\n---\n")
-  # cat("'*': 0.0 not in CI")
 
-  #out$CI = CIs
+  
   out$coefs = env
   out$logLik = object$logLik
   out$sigma = object$covariance

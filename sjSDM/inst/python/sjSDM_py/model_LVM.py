@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import pyro
 import sys
+from tqdm import tqdm
 
 class Model_LVM():
     def __init__(self, device="cpu", dtype="float32"):
@@ -247,7 +248,7 @@ class Model_LVM():
         if mean_field:
             for step, (x, ind) in enumerate(dataLoader):
                 x = x.to(self.device, non_blocking=True)
-                lin = self.link(x.matmul(self.mu).add( self.lv.index_select(0, ind).matmul(self.lf) ))
+                lin = self.link(x.matmul(self.mu))
                 pred.append(lin)
             return torch.cat(pred, dim=0).data.cpu().numpy()
         else:
@@ -256,7 +257,7 @@ class Model_LVM():
                 x = x.to(self.device, non_blocking=True)
                 lin = self.link( x.expand([mu.shape[0],batch_size,newdata.shape[1]]).matmul(mu) )
                 pred.append(lin)
-            return torch.cat(pred,dim=1).data.cpu().numpy()
+            return torch.cat(pred,dim=1).data.cpu().numpy()    
 
     def predictPosterior(self, X, batch_size = 25, parallel=0, num_samples=10):
         dataLoader = self._get_DataLoader(X = X, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
@@ -270,6 +271,59 @@ class Model_LVM():
             lin = self.link( x.expand([mu.shape[0],batch_size,X.shape[1]]).matmul(mu).add( lv.index_select(1, ind).matmul(lf) ) )
             pred.append(lin)
         return torch.cat(pred,dim=1).data.cpu().numpy()
+
+    def se(self, X, Y, batch_size=25, parallel=0):
+        dataLoader = self._get_DataLoader(X = X, Y = Y, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
+        se = []
+        lf = self.lf
+        lv = self.lv
+        weights_base = self.mu.cpu().data.numpy()
+        y_dim = Y.shape[1]
+
+        if self.device.type == 'cuda':
+            device = self.device.type+ ":" + str(self.device.index)
+        else:
+            device = 'cpu'
+        
+        _ = sys.stdout.write("\nCalculating standard errors...\n")
+
+        desc='loss: Inf'
+        sp_bar = tqdm(range(Y.shape[1]),bar_format= "Species: {n_fmt}/{total_fmt} {l_bar}{bar}| [{elapsed}, {rate_fmt}]", file=sys.stdout)
+
+        for i in sp_bar:
+            #_ = sys.stdout.write("\rSpecies: {}/{} ".format(i+1, y_dim))
+            sys.stdout.flush()
+            weights = torch.tensor(weights_base[:,i].reshape([-1,1]), device=self.device, dtype=self.dtype, requires_grad=True).to(self.device)
+            if i == 0:
+                constants = torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)
+                w = torch.cat([weights, constants], dim=1)
+            elif i < y_dim:
+                w = torch.cat([torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device), 
+                               weights, 
+                               torch.tensor(weights_base[:,(i+1):], device=self.device, dtype=self.dtype).to(self.device)],dim=1)
+            else:
+                constants = torch.tensor(weights_base[:,0:i], device=self.device, dtype=self.dtype).to(self.device)
+                w = torch.cat([constants, weights], dim=1)
+            for step, (x, y, ind) in enumerate(dataLoader):
+                x = x.to(self.device, non_blocking=True)
+                y = y.to(self.device, non_blocking=True)
+                ind = ind.to(self.device, non_blocking=True).view([-1])
+
+                pred = x.matmul(w).add(lv.index_select(0, ind).matmul(lf))
+                loss = self.logLik(self.link(pred), y).sum().neg()
+
+                first_gradients = torch.autograd.grad(loss, weights, retain_graph=True, create_graph=True, allow_unused=True)
+                second = []
+                for j in range(x.shape[1]):
+                    second.append(torch.autograd.grad(first_gradients[0][j,0], inputs = weights, retain_graph = True, create_graph = False, allow_unused = False)[0])
+                    hessian = torch.cat(second,dim=1)
+
+                if step < 1:
+                    hessian_out = hessian
+                else:
+                    hessian_out += hessian
+            se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out))).data.cpu().numpy())
+        return se
 
     @property
     def covariance(self):
