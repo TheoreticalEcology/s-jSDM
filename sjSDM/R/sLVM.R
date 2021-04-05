@@ -145,10 +145,9 @@ predict.sLVM = function(object, newdata = NULL, mean_field=FALSE, ...) {
         newdata = stats::model.matrix(object$formula, data.frame(newdata))
       }
     }
-    if(!inherits(newdata, "matrix")) newdata = matrix(newdata, ncol = 1L)
+    if(!inherits(newdata, "matrix")) newdata = as.matrix(newdata)
     pred = object$model$predict(newdata = newdata, mean_field=mean_field, ...)
     return(pred)
-    
 }
 
 
@@ -284,5 +283,18 @@ logLik.sLVM <- function(object, ...){
   return(object$logLik)
 }
 
+#' sLVM ordinations plot
+#' 
+#' This S3 function creates the ordination plot for the LVM model
+#' @param x an object of class \code{\link{sLVM}}
+#' @param ... optional arguments for compatibility with the generic function, passed to the plot function
+#' @import graphics
+#' @import utils
+#' @export
 
+plot.sLVM = function(x, ...) {
+  lvs = x$lv
+  plot(lvs[,1], lvs[,2], xlab = 'First LV', 
+       ylab = "Second LV", pch = as.character(1:nrow(lvs)), las = 1, ...)
+}
 

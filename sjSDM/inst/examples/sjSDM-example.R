@@ -17,19 +17,22 @@ p = getSe(model)
 summary(p)
 
 ## or turn on the option in the sjSDM function:
-model = sjSDM(Y = com$response, env = com$env_weights, se = TRUE, family = binomial("probit"), 
+model = sjSDM(Y = com$response, env = com$env_weights, se = TRUE, 
+              family = binomial("probit"), 
               iter = 2L)
 summary(model)
 
 ## fit model with interactions:
 model = sjSDM(Y = com$response,
-              env = linear(data = com$env_weights, formula = ~X1:X2 + X3), se = TRUE,
+              env = linear(data = com$env_weights, formula = ~X1:X2 + X3), 
+              se = TRUE,
               iter = 2L) # increase iter for your own data 
 summary(model)
 
 ## without intercept:
 model = sjSDM(Y = com$response,
-              env = linear(data = com$env_weights, formula = ~0+X1:X2 + X3), se = TRUE,
+              env = linear(data = com$env_weights, formula = ~0+X1:X2 + X3), 
+              se = TRUE,
               iter = 2L) # increase iter for your own data 
 summary(model)
 
@@ -46,7 +49,8 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
 summary(model)
 predict(model, newdata = com$env_weights, SP = XY)
 
-## Using spatial eigenvectors as predictors to account for spatial autocorrelation is a common approach:
+## Using spatial eigenvectors as predictors to account 
+## for spatial autocorrelation is a common approach:
 SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(SPV, ~0+., lambda = 0.1),

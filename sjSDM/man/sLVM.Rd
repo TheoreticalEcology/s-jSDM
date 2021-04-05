@@ -67,6 +67,9 @@ getCov(model)
 getLF(model)
 getLV(model)
 
+# plot LV ordination
+plot(model)
+
 ## fit model with interactions:
 model = sLVM(Y = com$response,
              X = com$env_weights, formula = ~X1:X2 + X3,
@@ -74,7 +77,9 @@ model = sLVM(Y = com$response,
 summary(model)
 
 ## without intercept:
-
+model = sLVM(Y = com$response,
+             X = com$env_weights, formula = ~0+X1:X2 + X3,
+             family = binomial("probit"))
 ## predict with model:
 preds = predict(model, newdata = com$env_weights)
 

@@ -152,7 +152,7 @@ generateSpatialEV = function(coords = NULL, threshold = 0.0) {
   zero = diag(0.0, ncol(dist))
   
   ## create weights ##
-  if (threshold > 0) dist[dist < distance.threshold] = 0
+  if (threshold > 0) dist[dist < threshold] = 0
   
   distW = 1/dist
   distW[is.infinite(distW)] = 1
