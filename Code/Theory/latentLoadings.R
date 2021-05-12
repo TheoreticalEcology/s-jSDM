@@ -3,16 +3,12 @@ set.seed(42)
 community <- simulate_SDM(sites = 100, species = 10, env = 3)
 Env <- community$env_weights
 Occ <- community$response
-SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates (no effect on species occurences)
 
+# Full model 
 model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), 
                se = TRUE, family=binomial("probit"), sampling = 100L)
-summary(model)
 
-
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), 
-               se = TRUE, family=binomial("probit"), sampling = 100L)
-# covariance
+# covariance of the full model
 model$sigma
 
 # Open question: how do we get from this to a low-ran approximation of Sigma?
