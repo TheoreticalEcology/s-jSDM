@@ -1,5 +1,6 @@
 import torch
 import torch_optimizer as optim
+import madgrad
 
 def optimizer_adamax(lr = 0.002,betas = [0.9, 0.999], eps = 1e-08 , weight_decay = 0.0):
     """
@@ -67,3 +68,6 @@ def optimizer_DiffGrad(lr= 1e-3,
     eps=1e-8,
     weight_decay=0):
     return lambda params: optim.DiffGrad(params=params,lr=lr, betas=betas,eps=eps,weight_decay=weight_decay)
+
+def optimizer_madgrad(lr=1e-2, momentum=0, weight_decay=0, eps=1e-6):
+    return lambda params: madgrad.MADGRAD(params = params, lr = lr, momentum=momentum, weight_decay=weight_decay, eps=eps)

@@ -67,7 +67,7 @@ print.linear = function(x, ...) {
 #' @param data matrix of environmental predictors
 #' @param formula formula object for predictors
 #' @param hidden hidden units in layers, length of hidden corresponds to number of layers
-#' @param activation activation functions, can be of length one, or a vector of activation functions for each layer. Currently supported: tanh, relu, or sigmoid
+#' @param activation activation functions, can be of length one, or a vector of activation functions for each layer. Currently supported: tanh, relu, leakyrelu, selu, or sigmoid
 #' @param bias whether use biases in the layers, can be of length one, or a vector (number of hidden layers + 1 (last layer)) of logicals for each layer.
 #' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |weights| + \alpha ||weights||^2}
@@ -196,7 +196,7 @@ print.spatialRE = function(x, ...) {
 
 #' sjSDM control object
 #' 
-#' @param optimizer object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, or \code{\link{AdaBound}}
+#' @param optimizer object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, \code{\link{madgrad}}, or \code{\link{AdaBound}}
 #' @param scheduler reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)
 #' @param lr_reduce_factor factor to reduce learning rate in scheduler
 #' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
@@ -220,12 +220,6 @@ sjSDMControl = function(optimizer = RMSprop(),
   control$early_stopping_training = early_stopping_training
   return(control)
 }
-
-
-
-
-
-
 
 
 check_family = function(family){
@@ -320,6 +314,28 @@ SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
   out$ff = function() fa$optimizer_SGD
   return(out)
 }
+
+
+#' madgrad
+#' 
+#' stochastic gradient descent optimizer
+#' @param momentum strength of momentum
+#' @param weight_decay l2 penalty on weights
+#' @param eps epsilon
+#' 
+#' @references 
+#' Defazio, A., & Jelassi, S. (2021). Adaptivity without Compromise: A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic Optimization. arXiv preprint arXiv:2101.11075.
+#' @export
+madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
+  out = list()
+  out$params = list()
+  out$params$momentum = momentum
+  out$params$weight_decay = weight_decay
+  out$params$eps = eps
+  out$ff = function() fa$optimizer_madgrad
+  return(out)
+}
+
 
 
 #' AccSGD

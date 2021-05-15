@@ -8,7 +8,7 @@ sjSDMControl(optimizer = RMSprop(), scheduler = 0,
   lr_reduce_factor = 0.99, early_stopping_training = 0)
 }
 \arguments{
-\item{optimizer}{object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, or \code{\link{AdaBound}}}
+\item{optimizer}{object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, \code{\link{madgrad}}, or \code{\link{AdaBound}}}
 
 \item{scheduler}{reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)}
 

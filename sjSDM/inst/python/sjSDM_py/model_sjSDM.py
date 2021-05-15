@@ -108,6 +108,10 @@ class Model_sjSDM:
 
                 if activation[i] == "relu":
                      model_list.append(nn.ReLU())
+                if activation[i] == "selu":
+                     model_list.append(nn.SELU())
+                if activation[i] == "leakyrelu":
+                     model_list.append(nn.LeakyReLU())
                 if activation[i] == "tanh": 
                     model_list.append(nn.Tanh())
                 if activation[i] == "sigmoid":

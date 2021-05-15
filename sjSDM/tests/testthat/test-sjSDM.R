@@ -150,6 +150,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     DNN(X1, hidden = c(3,3,3),lambda = 0.1, bias = c(TRUE, FALSE, TRUE, FALSE), alpha=1.0, dropout = 0.3),
     DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0, dropout = 0.3),
     DNN(X1, hidden = c(4,3,6),activation = "relu", lambda = 0.1, alpha=1.0, dropout = 0.3),
+    DNN(X1, hidden = c(4,3,6),activation = "selu", lambda = 0.1, alpha=1.0, dropout = 0.3),
+    DNN(X1, hidden = c(4,3,6),activation = "leakyrelu", lambda = 0.1, alpha=1.0, dropout = 0.3),
     DNN(X1, hidden = c(4,3,6),activation = "tanh", lambda = 0.1, alpha=1.0),
     DNN(X1, hidden = c(4,3,6),activation = "sigmoid", lambda = 0.1, alpha=1.0),
     DNN(X1, hidden = c(4,3,6),activation = c("relu", "tanh", "sigmoid"), lambda = 0.1, alpha=1.0)
