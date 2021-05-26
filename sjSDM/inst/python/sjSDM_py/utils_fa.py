@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from typing import Optional, List
 
 
 @staticmethod
@@ -42,7 +43,25 @@ def covariance(X):
     X = X - mean
     return 1/(D-1) * X @ X.transpose(-1, -2)  
 
-def importance(beta, covX, sigma, precision = torch.float32, covSP=None, betaSP=None):
+def importance(beta: np.ndarray, 
+               covX: np.ndarray, 
+               sigma: np.ndarray, 
+               precision: torch.dtype = torch.float32, 
+               covSP: Optional[np.ndarray] = None, 
+               betaSP: Optional[np.ndarray] = None) -> dict:
+    """Variation partitioning
+
+    Args:
+        beta (np.ndarray): environmental coefficients
+        covX (np.ndarray): covariance matrix of predictors
+        sigma (np.ndarray): square-root matrix of species associations
+        precision (torch.dtype, optional): Float or doubles. Defaults to torch.float32.
+        covSP (Optional[np.ndarray], optional): covariance matrix of spatial predictors. Defaults to None.
+        betaSP (Optional[np.ndarray], optional): spatial coefficients. Defaults to None.
+
+    Returns:
+        dict: importances for each functional group
+    """               
     beta = torch.tensor(beta.copy(), dtype=precision, device=torch.device("cpu"))
     sigma = torch.tensor(sigma.copy(), dtype=precision, device=torch.device("cpu"))
     sigmaBeta = torch.tensor(covX.copy(), dtype=precision, device=torch.device("cpu"))

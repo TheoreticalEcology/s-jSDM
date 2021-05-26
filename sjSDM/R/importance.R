@@ -4,11 +4,12 @@
 #' 
 #' @param x object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below
 #' @param save_memory use torch backend to calculate importance with single precision floats
+#' @param ... additional arguments
 #' 
 #' @example /inst/examples/importance-example.R
 #' @author Maximilian Pichler
 #' @export
-importance = function(x, save_memory = TRUE) {
+importance = function(x, save_memory = TRUE, ...) {
   model = x
   stopifnot(
     inherits(model, "sjSDM"),
@@ -61,13 +62,13 @@ importance = function(x, save_memory = TRUE) {
       sp = t(coef.sjSDM(model)[[2]][[1]])
       covSP = stats::cov(model$settings$spatial$X)
       
-      vp = fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP)
+      vp = fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...)
       colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), spatial = rowSums(vp$spatial), biotic = vp$biotic))
     } else {
-      vp = fa$importance(beta = beta,  sigma = model$sigma, covX = covX)
+      vp = fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...)
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), biotic = vp$biotic))

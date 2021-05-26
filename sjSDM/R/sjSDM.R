@@ -41,7 +41,7 @@
 #' 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
+#' @seealso \code{\link{generateSpatialEV}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(Y = NULL, 
@@ -95,7 +95,6 @@ sjSDM = function(Y = NULL,
   output = as.integer(ncol(Y))
   input = as.integer(ncol(env$X))
   
-  
   out$get_model = function(){
     model = fa$Model_sjSDM( device = device, dtype = dtype)
     
@@ -132,6 +131,9 @@ sjSDM = function(Y = NULL,
     
     control$optimizer$params$lr = learning_rate
     optimizer = do.call(control$optimizer$ff(), control$optimizer$params)
+    alpha = 1.0
+    link = family$link
+    if(link == "probit") alpha = 1.70169
     
     model$build(df = biotic$df, 
                 l1 = biotic$l1_cov, 
@@ -140,10 +142,12 @@ sjSDM = function(Y = NULL,
                 inverse = biotic$inverse,
                 reg_on_Cov = biotic$reg_on_Cov,
                 optimizer = optimizer, 
-                link = family$link,
+                link = link,
+                alpha = alpha,
                 diag=biotic$diag,
                 scheduler=control$scheduler_boolean,
                 patience=control$scheduler_patience,
+                mixed = control$mixed,
                 factor=control$lr_reduce_factor)
     
     return(model)

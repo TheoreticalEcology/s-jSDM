@@ -33,7 +33,8 @@ simulate_SDM = function(
   sparse = NULL,
   tolerance = 0.05,
   iter = 20L,
-  seed = NULL
+  seed = NULL,
+  wishart = TRUE
 ){
 
 
@@ -43,18 +44,21 @@ simulate_SDM = function(
   out = list()
 
   if(is.null(sparse)){
-    species_covariance =
+    
       if(correlation){
-        tmp = matrix(0, species, species)
-        tmp[lower.tri(tmp)] = stats::runif((species* (species + 1) / 2 ) - species, -1, 1)
-        diag(tmp) = 1
-
-        # positive definite matrix
-        tmp = tmp %*% t(tmp)
-        tmp = stats::cov2cor(tmp)
+      if(!wishart) {
+          tmp = matrix(0, species, species)
+          tmp[lower.tri(tmp)] = stats::runif((species* (species + 1) / 2 ) - species, -1, 1)
+          diag(tmp) = 1
+          # positive definite matrix
+          tmp = tmp %*% t(tmp)
+          species_covariance = stats::cov2cor(tmp)
+      } else {
+        species_covariance =cov2cor(rWishart(n = 1L, df = species, Sigma = diag(1.0, species))[,,1])
+      }
 
       } else {
-        diag(1, species, species)
+        species_covariance = diag(1, species, species)
       }
   } else {
 

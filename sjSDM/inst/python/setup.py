@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="sjSDM_py", 
-    version="0.0.3",
+    version="0.1.1",
     author="Maximilian Pichler",
     author_email="Maximilian.Pichler@ur.de",
     description="jSDM package",

@@ -200,12 +200,14 @@ print.spatialRE = function(x, ...) {
 #' @param scheduler reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)
 #' @param lr_reduce_factor factor to reduce learning rate in scheduler
 #' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
+#' @param mixed mixed (half-precision) training or not. Only recommended for GPUs > 2000 series
 #' 
 #' @export
 sjSDMControl = function(optimizer = RMSprop(),
                         scheduler = 0,
                         lr_reduce_factor = 0.99,
-                        early_stopping_training = 0) {
+                        early_stopping_training = 0,
+                        mixed = FALSE) {
   
   control = list()
   control$optimizer = optimizer
@@ -214,6 +216,7 @@ sjSDMControl = function(optimizer = RMSprop(),
   control$scheduler_boolean = scheduler_boolean
   control$scheduler_patience = as.integer(scheduler)
   control$lr_reduce_factor = lr_reduce_factor
+  control$mixed = mixed
   
   if(early_stopping_training == 0) early_stopping_training = -1.
   else early_stopping_training = as.integer(early_stopping_training)
