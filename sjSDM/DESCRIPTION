@@ -4,7 +4,8 @@ Title: Scalable Joint Species Distribution Modeling
 Version: 0.1.7
 Date: 2021-06-04
 Authors@R: c(person("Maximilian", "Pichler", email = "maximilian.pichler@biologie.uni-regensburg.de", role = c("aut", "cre")),
-             person("Florian", "Hartig", email = "florian.hartig@biologie.uni-regensburg.de", role = c("aut"), comment=c(ORCID="0000-0002-6255-9059")))
+             person("Florian", "Hartig", email = "florian.hartig@biologie.uni-regensburg.de", role = c("aut"), comment=c(ORCID="0000-0002-6255-9059")),
+             person("Wang", "Cai", email = "caiwang0503@163.com", role = c("aut")))
 Description: A scalable method to estimates joint Species Distribution Models (jSDMs) based on 
     the multivariate probit model through Monte-Carlo approximation of the joint likelihood. 
     The numerical approximation is based on PyTorch and reticulate, and can be calculated

@@ -1,7 +1,29 @@
 #' Coeffect plot
 #' 
-#' Plotting coeffects return by sjSDM model
+#' Plotting coeffects return by sjSDM model.
 #' This function only for model fitted by linear, fitted by DNN is not yet supported.
+#' 
+#' @import tidyr
+#' @import dplyr
+#' @import ggplot2
+#' @importFrom magrittr `%>%`
+#' @param object a model fitted by \code{\link{sjSDM}} 
+#' @param ... Additional arguments to pass to \code{\link{plot.sjSDM.coef}}. 
+#' @seealso \code{\link{plot.sjSDM.coef}}
+#' @example /inst/examples/plot.sjSDM-emample.R
+#
+#' @author CAI Wang
+#' @export
+#' 
+plot.sjSDM = function(object, ...) {
+  plot.sjSDM.coef(object, ...)
+}
+
+#' Coeffect plot
+#' 
+#' Plotting coeffects return by sjSDM model.
+#' This function only for model fitted by linear, fitted by DNN is not yet supported.
+#' 
 #' @import tidyr
 #' @import dplyr
 #' @import ggplot2
@@ -10,18 +32,18 @@
 #' @param wrap_col Scales argument passed to wrap_col
 #' @param group Define the taxonomic characteristics of a species, you need to provide a dataframe with column1 named “species” and column2 named “group”, default is NULL. For example, group[1,1]== "sp1", group[1,2]== "Mammal".
 #' @param col Define colors for groups, default is NULL.
-
-#' @example /inst/examples/Coeffect_plot-emample.R
+#' @param slist Select the species you want to plot, default is all, parameter is not supported yet.
+#' @example /inst/examples/plot.sjSDM-emample.R
 #
 #' @author CAI Wang
 #' @export
 
-plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL) {
+plot.sjSDM.coef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
   stopifnot(
     inherits(object, "sjSDM"),
     inherits(object$settings$env, "linear")
   )
-  Estimate=NULL; Std.Err=NULL; coef=NULL; species=NULL; star=NULL
+  
   if(is.null(object$se)) object=getSe(object)
   summary.se=summary(object)
   #create dataset for plot 
@@ -33,7 +55,7 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL) {
                                cutpoints = c(0, .001, .01, .05, .1, 1),
                                symbols = c("***","**","*","."," ")) 
   
- 
+  
   if(is.null(group)) group=NULL
   else if ( (colnames(data.frame(group)) != c("species","group"))[1]=="TRUE" |(colnames(data.frame(group)) != c("species","group"))[2]=="TRUE") {
     print ("group column's name should be 'species' and 'group'")
@@ -45,9 +67,12 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL) {
     group= dplyr::arrange(group,desc(group))
     effect$species=factor(effect$species,levels= group$species)
   }
+  
   if(is.null(col))  
     col <- RColorBrewer::brewer.pal(10, "Paired") 
   else col=col
+  
+  #if(!is.null(slist)) #effect = effect %>% dplyr::filter(species!=slist)
   
   maxy=max(effect$Estimate+effect$Std.Err)
   miny=min(effect$Estimate-effect$Std.Err)
