@@ -4,12 +4,12 @@
 \alias{plot.sjSDM}
 \title{Coeffect plot}
 \usage{
-\method{plot}{sjSDM}(object, ...)
+\method{plot}{sjSDM}(x, ...)
 }
 \arguments{
-\item{object}{a model fitted by \code{\link{sjSDM}}}
+\item{x}{a model fitted by \code{\link{sjSDM}}}
 
-\item{...}{Additional arguments to pass to \code{\link{plot.sjSDM.coef}}.}
+\item{...}{Additional arguments to pass to \code{\link{plotsjSDMcoef}}.}
 }
 \description{
 Plotting coeffects return by sjSDM model.
@@ -33,7 +33,7 @@ plot(model,group=group)
 }
 }
 \seealso{
-\code{\link{plot.sjSDM.coef}}
+\code{\link{plotsjSDMcoef}}
 }
 \author{
 CAI Wang
