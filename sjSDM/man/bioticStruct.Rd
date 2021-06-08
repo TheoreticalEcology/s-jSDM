@@ -30,7 +30,7 @@ define biotic (species-species) assocation (interaction) structur
   
 # Basic workflow:
 ## simulate community:
-com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+com = simulate_SDM(env = 3L, species = 7L, sites = 100L)
 
 ## fit model:
 model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L) 
@@ -39,6 +39,12 @@ model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L)
 coef(model)
 summary(model)
 getCov(model)
+
+## plot results
+species=c("sp1","sp2","sp3","sp4","sp5","sp6","sp7")
+group=c("mammal","bird","fish","fish","mammal","amphibian","amphibian")
+group = data.frame(species=species,group=group)
+plot(model,group=group)
 
 ## calculate post-hoc p-values:
 p = getSe(model)
