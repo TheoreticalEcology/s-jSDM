@@ -5,7 +5,7 @@
 \title{sjSDM control object}
 \usage{
 sjSDMControl(optimizer = RMSprop(), scheduler = 0,
-  lr_reduce_factor = 0.99, early_stopping_training = 0)
+  lr_reduce_factor = 0.99, early_stopping_training = 0, mixed = FALSE)
 }
 \arguments{
 \item{optimizer}{object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, \code{\link{madgrad}}, or \code{\link{AdaBound}}}
@@ -15,6 +15,8 @@ sjSDMControl(optimizer = RMSprop(), scheduler = 0,
 \item{lr_reduce_factor}{factor to reduce learning rate in scheduler}
 
 \item{early_stopping_training}{number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping).}
+
+\item{mixed}{mixed (half-precision) training or not. Only recommended for GPUs > 2000 series}
 }
 \description{
 sjSDM control object
