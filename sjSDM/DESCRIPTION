@@ -28,7 +28,7 @@ Imports:
     mgcv,
     Ternary,
     cli,
-    crayon
+    crayon,
     tidyr,
     dplyr,
     magrittr,
