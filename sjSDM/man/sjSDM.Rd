@@ -68,7 +68,7 @@ If the trouble shooting guide did not help, please create an issue on \href{http
   
 # Basic workflow:
 ## simulate community:
-com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+com = simulate_SDM(env = 3L, species = 7L, sites = 100L)
 
 ## fit model:
 model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L) 
@@ -77,6 +77,12 @@ model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L)
 coef(model)
 summary(model)
 getCov(model)
+
+## plot results
+species=c("sp1","sp2","sp3","sp4","sp5","sp6","sp7")
+group=c("mammal","bird","fish","fish","mammal","amphibian","amphibian")
+group = data.frame(species=species,group=group)
+plot(model,group=group)
 
 ## calculate post-hoc p-values:
 p = getSe(model)
@@ -196,7 +202,7 @@ Chen, D., Xue, Y., & Gomes, C. P. (2018). End-to-end learning for the deep multi
 Pichler, M., and Hartig, F. (2020). A new method for faster and more accurate inference of species associations from novel community data. arXiv preprint arXiv:2003.05331.
 }
 \seealso{
-\code{\link{generateSpatialEV}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
+\code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 }
 \author{
 Maximilian Pichler

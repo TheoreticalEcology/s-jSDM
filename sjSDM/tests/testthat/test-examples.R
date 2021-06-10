@@ -11,17 +11,9 @@ testthat::test_that("sjSDM examples", {
   path = system.file("examples", package = "sjSDM")
   to_do = list.files(path, full.names = TRUE)
   run_raw = function(rr) suppressWarnings(eval(str2expression(rr[c(-1, -length(rr))])))
-  
-  raw = readLines(to_do[1], warn = FALSE)
-  testthat::expect_error(run_raw(raw), NA, info = paste0(raw, collapse = "\n"))
-  
-  raw = readLines(to_do[2], warn = FALSE)
-  testthat::expect_error(run_raw(raw), NA, info = paste0(raw, collapse = "\n"))
-  
-  raw = readLines(to_do[3], warn = FALSE)
-  testthat::expect_error(run_raw(raw), NA, info = paste0(raw, collapse = "\n"))
-  
-  raw = readLines(to_do[4], warn = FALSE)
-  testthat::expect_error(run_raw(raw), NA, info = paste0(raw, collapse = "\n"))
+  for(i in 1:5) {
+    raw = readLines(to_do[i])
+    testthat::expect_error(run_raw(raw), NA, info = paste0(raw, collapse = "\n"))
+  }
 })
 
