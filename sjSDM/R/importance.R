@@ -3,33 +3,26 @@
 #' importance of abiotic, biotic, and spatial effects
 #' 
 #' @param x object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below
+#' @param save_memory use torch backend to calculate importance with single precision floats
+#' @param ... additional arguments
 #' 
 #' @example /inst/examples/importance-example.R
 #' @author Maximilian Pichler
 #' @export
-importance = function(x) {
+importance = function(x, save_memory = TRUE, ...) {
   model = x
   stopifnot(
-    #inherits(model, "sjSDM"),
-    #inherits(model$settings$env, "linear"),
+    inherits(model, "sjSDM"),
     is.null(model$settings$spatial) || inherits(model$settings$spatial, "linear")
     )
-  #method = match.arg(method)
-    
-    if(inherits(model, "sjSDM")) {
+  if(!save_memory) {    
       sp_names = colnames(model$data$Y)
-    
       coefs = coef.sjSDM(model)[[1]]
       if(inherits(coefs, "list")) coefs = coefs[[1]]
       env = t(coefs)
-      
       beta = env
       sigma = getCov(model)
-      #sigma = cov2cor(sigma)
-      #diag(sigma) = 0 # remove identity matrix
-      
       covX = stats::cov(model$data$X)
-      
       if(!is.null(model$settings$spatial)) {
         spatial = TRUE
         sp = t(coef.sjSDM(model)[[2]][[1]])
@@ -47,21 +40,42 @@ importance = function(x) {
                    total = list(env = rowSums(vp$env), biotic = vp$biotic))
         spatial=FALSE
       }
+      # sp_names = NULL
+      # beta = model[[1]]
+      # sigma = model[[2]]
+      # covX = model[[3]]
+      # vp = getImportance(beta = beta,  association = sigma, covX = covX)
+      # colnames(vp$env) = model$names
+      # res = list(split = vp, 
+      #            total = list(env = rowSums(vp$env), biotic = vp$biotic))
+  } else {
+    check_module()
+    sp_names = colnames(model$data$Y)
+    coefs = coef.sjSDM(model)[[1]]
+    if(inherits(coefs, "list")) coefs = coefs[[1]]
+    env = t(coefs)
+    beta = env
+    #sigma = getCov(model)
+    covX = stats::cov(model$data$X)
+    if(!is.null(model$settings$spatial)) {
+      spatial = TRUE
+      sp = t(coef.sjSDM(model)[[2]][[1]])
+      covSP = stats::cov(model$settings$spatial$X)
       
-      #return(res)
+      vp = fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...)
+      colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
+      colnames(vp$env) = model$names
+      res = list(split = vp, 
+                 total = list(env = rowSums(vp$env), spatial = rowSums(vp$spatial), biotic = vp$biotic))
     } else {
-      sp_names = NULL
-      
-      beta = model[[1]]
-      sigma = model[[2]]
-      covX = model[[3]]
-      
-      vp = getImportance(beta = beta,  association = sigma, covX = covX)
+      vp = fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...)
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), biotic = vp$biotic))
-      #return(res)
+      spatial=FALSE
     }
+    
+  }
   out = list()
   out$names = sp_names
   out$res = res

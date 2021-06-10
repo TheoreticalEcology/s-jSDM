@@ -3,9 +3,9 @@
 #' @export
 is_torch_available = function() {
   #implementation_module <- resolve_implementation_module()
-  conda = try({ reticulate::conda_binary() }, silent=TRUE)
+  # conda = try({ reticulate::conda_binary() }, silent=TRUE)
 
-  if(inherits(conda, "try-error")) return(FALSE)
+  # if(inherits(conda, "try-error")) return(FALSE)
 
   if (reticulate::py_module_available("torch")) {
     return(TRUE)

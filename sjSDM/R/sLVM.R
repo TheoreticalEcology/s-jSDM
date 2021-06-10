@@ -295,6 +295,7 @@ logLik.sLVM <- function(object, ...){
 plot.sLVM = function(x, ...) {
   lvs = x$lv
   plot(lvs[,1], lvs[,2], xlab = 'First LV', 
-       ylab = "Second LV", pch = as.character(1:nrow(lvs)), las = 1, ...)
+       ylab = "Second LV", type = "n", las = 1, ...)
+  text(lvs[,1], lvs[,2], labels = as.character(1:nrow(lvs)))
 }
 

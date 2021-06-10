@@ -101,6 +101,8 @@ def test_regularization(data, model_base, l1_d, l2_d, l2_cov, l1_cov, reg_on_Cov
                             (2,10,[3,3,3], ['relu'], [True,False,True,True], -1),
                             (2,10,[3,3,3], ['sigmoid'],[True], -1),
                             (2,10,[3,3,3], ['tanh'], [True], -1),
+                            (2,10,[3,3,3], ['selu'], [True], -1),
+                            (2,10,[3,3,3], ['leakyrelu'], [True], -1),
                             (2,10,[3,3,3], ['relu', 'tanh', 'sigmoid'],[True, False, True, True], 0.3)
                         ])
 def test_dnn(data, model_base, inp, out, hidden, activation,bias, dropout):

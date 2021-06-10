@@ -1,20 +1,21 @@
-
-#' missing_installation 
-#' @param miss_torch torch missing, logical 
-#' @param miss_sjSDM sjSDM_py missing, logical
-missing_installation = function(miss_torch, miss_sjSDM) {
-  if(miss_torch) miss_one = "PyTorch not found\n"
-  else miss_one = ""
+check_installation = function() {
   
-  if(miss_sjSDM) miss_two = "sjSDM_py not found\n"
-  else miss_two = ""
+  torch_ = pyro_ = torch_optimizer_ = madgrad_ = c(crayon::red(cli::symbol$cross), 0)
   
-  out = paste0(miss_one, miss_two, "1) Use install_sjSDM() to install Pytorch and conda automatically\n2) Installation trouble shooting guide: ?installation_help\n3) If 1) and 2) did not help, please create an issue on github (see ?install_diagnostic) ")
-  packageStartupMessage(out)
+  if(reticulate::py_module_available("torch")) torch_ =  c(crayon::green(cli::symbol$tick), 1)
+  if(reticulate::py_module_available("pyro")) pyro_ =  c(crayon::green(cli::symbol$tick), 1)
+  if(reticulate::py_module_available("torch_optimizer")) torch_optimizer_ =  c(crayon::green(cli::symbol$tick), 1)
+  if(reticulate::py_module_available("madgrad")) madgrad_ =  c(crayon::green(cli::symbol$tick), 1)
+  
+  return(rbind("torch" = torch_,  "torch_optimizer" = torch_optimizer_, "pyro" = pyro_, "madgrad" = madgrad_))
 }
 
 .onLoad = function(libname, pkgname){
-  if(is_torch_available()) {
+  msg( text_col( cli::rule(left = "Attaching sjSDM", right = packageVersion("sjSDM")) ), startup = TRUE)
+  check = check_installation()
+  
+  modules_available = any(check[,2] == "0")
+  if(!modules_available) {
     torch <<- reticulate::import("torch")
     
     path = system.file("python", package = "sjSDM")
@@ -26,9 +27,49 @@ missing_installation = function(miss_torch, miss_sjSDM) {
       tmp = compile$compile_dir(paste0(path, "/sjSDM_py"),quiet = 2L,force=TRUE)
     }, silent = TRUE)
     fa <<- reticulate::import_from_path("sjSDM_py", path)
-    miss_torch = FALSE
-  } else {
-    miss_torch = TRUE
+    
+    check= cbind(check, crayon::black( c(torch$`__version__`, rep("", 3))) )
+  } 
+  
+  check[,2] = crayon::black( rownames(check) )
+  check = cbind(check, "\n")
+  
+  msg(paste0(apply(check, 1, function(d) paste0(d,collapse = " "))), startup = TRUE)
+  
+  if(modules_available) {
+    msg( crayon::red( "Torch or other dependencies not found:" ), startup = TRUE)
+    info = 
+      c(
+      "\t1. Use install_sjSDM() to install Pytorch and conda automatically \n",
+      "\t2. Installation trouble shooting guide: ?installation_help \n",
+      paste0("\t3. If 1) and 2) did not help, please create an issue on ", crayon::italic(crayon::blue("<https://github.com/TheoreticalEcology/s-jSDM/issues>"))," (see ?install_diagnostic) "))
+    msg( info, startup = TRUE )
   }
-  if(miss_torch) missing_installation(miss_torch, FALSE)
+  invisible()
+}
+
+# copied from the tidyverse package
+msg <- function(..., startup = FALSE) {
+  if (startup) {
+    if (!isTRUE(getOption("tidyverse.quiet"))) {
+      packageStartupMessage(text_col(...))
+    }
+  } else {
+    message(text_col(...))
+  }
+}
+
+# copied from the tidyverse package
+text_col <- function(x) {
+  # If RStudio not available, messages already printed in black
+  if (!rstudioapi::isAvailable()) {
+    return(x)
+  }
+  if (!rstudioapi::hasFun("getThemeInfo")) {
+    return(x)
+  }
+  theme <- rstudioapi::getThemeInfo()
+  
+  if (isTRUE(theme$dark)) crayon::white(x) else crayon::black(x)
+  
 }

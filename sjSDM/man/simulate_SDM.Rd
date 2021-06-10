@@ -18,7 +18,7 @@ simulate_SDM(env = 5L, sites = 100L, species = 5L, Re = NULL,
 
 \item{Re}{random effects (intercepts)}
 
-\item{correlation}{correlated species TRUE or FALSE}
+\item{correlation}{correlated species TRUE or FALSE, can be also a function or a matrix}
 
 \item{weight_range}{sample true weights from uniform range, default -1,1}
 

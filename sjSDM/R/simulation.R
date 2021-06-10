@@ -4,7 +4,7 @@
 #' @param sites number of sites
 #' @param species number of species
 #' @param Re random effects (intercepts)
-#' @param correlation correlated species TRUE or FALSE
+#' @param correlation correlated species TRUE or FALSE, can be also a function or a matrix
 #' @param weight_range sample true weights from uniform range, default -1,1
 #' @param link probit, logit or idential
 #' @param response pa (presence-absence) or count
@@ -43,18 +43,23 @@ simulate_SDM = function(
   out = list()
 
   if(is.null(sparse)){
-    species_covariance =
-      if(correlation){
-        tmp = matrix(0, species, species)
-        tmp[lower.tri(tmp)] = stats::runif((species* (species + 1) / 2 ) - species, -1, 1)
-        diag(tmp) = 1
-
-        # positive definite matrix
-        tmp = tmp %*% t(tmp)
-        tmp = stats::cov2cor(tmp)
-
-      } else {
-        diag(1, species, species)
+      if(is.function(correlation)) species_covariance = correlation()
+      
+      if(is.matrix(correlation)) species_covariance = correlation
+      
+      if(is.logical(correlation)) {
+    
+        if(correlation){
+            tmp = matrix(0, species, species)
+            tmp[lower.tri(tmp)] = stats::runif((species* (species + 1) / 2 ) - species, -1, 1)
+            diag(tmp) = 1
+            # positive definite matrix
+            tmp = tmp %*% t(tmp)
+            species_covariance = stats::cov2cor(tmp)
+        } else {
+          species_covariance = diag(1, species, species)
+        }
+        
       }
   } else {
 

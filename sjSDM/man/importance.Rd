@@ -4,10 +4,14 @@
 \alias{importance}
 \title{importance}
 \usage{
-importance(x)
+importance(x, save_memory = TRUE, ...)
 }
 \arguments{
 \item{x}{object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below}
+
+\item{save_memory}{use torch backend to calculate importance with single precision floats}
+
+\item{...}{additional arguments}
 }
 \description{
 importance of abiotic, biotic, and spatial effects
