@@ -744,7 +744,7 @@ class Model_sjSDM:
                 @torch.jit.script
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
-                    E = torch.sigmoid(   torch.tensordot(noise, sigma.t(), [2], [0]).add(mu).mul(alpha)   ).mul(0.999999).add(0.0000005)
+                    E = torch.sigmoid(   torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha)   ).mul(0.999999).add(0.0000005)
                     logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
@@ -754,7 +754,7 @@ class Model_sjSDM:
                 @torch.jit.script
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
-                    E = torch.clamp(torch.tensordot(noise, sigma.t(), [2], [0]).add(mu).mul(alpha), 0.0, 1.0).mul(0.999999).add(0.0000005)
+                    E = torch.clamp(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha), 0.0, 1.0).mul(0.999999).add(0.0000005)
                     logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
@@ -763,7 +763,7 @@ class Model_sjSDM:
             elif self.link == "count":
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
-                    E = torch.tensordot(noise, sigma.t(), dims = 1).add(mu).exp()
+                    E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).exp()
                     logprob = torch.distributions.Poisson(rate=E).log_prob(Ys).sum(2)
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
@@ -791,9 +791,9 @@ class Model_sjSDM:
             def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
                 noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
                 if self.link == "logit": 
-                    E = link_func(torch.tensordot(noise, sigma.t(), 1).add(mu).mul(alpha)).mul(0.999999).add(0.0000005)
+                    E = link_func(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha)).mul(0.999999).add(0.0000005)
                 else:
-                    E = link_func(torch.tensordot(noise, sigma.t(), 1).add(mu)).mul(0.999999).add(0.0000005)
+                    E = link_func(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu)).mul(0.999999).add(0.0000005)
                 return E.mean(dim = 0)
 
         return tmp
