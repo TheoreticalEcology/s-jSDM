@@ -236,6 +236,7 @@ class Model_sjSDM:
 
         DataLoader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=shuffle, num_workers=int(parallel), pin_memory=pin_memory, drop_last=drop_last)
         torch.cuda.empty_cache()
+                
         return DataLoader
 
     def build(self, 
@@ -274,7 +275,7 @@ class Model_sjSDM:
         """              
         
         if self.device.type == 'cuda' and torch.cuda.is_available():
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            #torch.set_default_tensor_type('torch.cuda.FloatTensor')
             self.env.cuda(self.device)
             if self.spatial is not None:
                 self.spatial.cuda(self.device)
