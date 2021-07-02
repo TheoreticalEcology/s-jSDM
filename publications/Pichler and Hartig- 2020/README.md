@@ -10,6 +10,7 @@ source("./analysis/scripts/1_generate_data.R")
 ```
 Benchmark models:
 ```{r}
+# dense associations
 source("analysis/scripts/1_cpu_sjSDM.R") # for s-jSDM on the CPU
 source("analysis/scripts/1_gpu_sjSDM.R") # for s-jSDM on the GPU
 source("analysis/scripts/1_gllvm.R) # GLLVM package
@@ -54,4 +55,23 @@ source("analysis/scripts/6_sparse_hmsc.R") # Hmsc package
 ### eDNA Fungi Dataset
 ```{r}
 source("analysis/scripts/5_Fungi_eDNA_analysis.R")
+```
+
+## Process-based simulation
+We used the process-based simulation model from [Leibold et al., 2020](https://www.biorxiv.org/content/10.1101/2020.07.04.187955v1). See supplementary information for more details.
+
+1. clone the corresponding github repo into the working directory:
+```
+# git clone https://github.com/javirudolph/testingHMSC
+```
+
+2. Simulate
+```{r}
+source("analysis/scripts/7_simulate_from_process_based_model.R")
+```
+
+3. Fit JSDM
+```{r}
+source("analysis/scripts/7_process_based_models_A.R")
+source("analysis/scripts/7_process_based_models_B.R")
 ```

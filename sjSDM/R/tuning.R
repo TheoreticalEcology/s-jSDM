@@ -111,7 +111,8 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
         myself = paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')
         
                  
-         dist = cbind(nodes,(n_gpu-1):0)
+         if(length(n_gpu) == 1) dist = cbind(nodes,(n_gpu-1):0)
+         else dist = cbind(nodes,n_gpu)
          device2 = as.integer(as.numeric(dist[which(dist[,1] %in% myself, arr.ind = TRUE), 2]))
          model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2,sampling=sampling, ...)
       } else {
@@ -165,19 +166,20 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
     blocks_run = cut(1:nrow(tune_samples), ceiling(nrow(tune_samples)/blocks))
     result_list = vector("list", length(unique(blocks_run)))
     
+    cl = parallel::makeCluster(n_cores)
+    nodes = unlist(parallel::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
+    #print(nodes)
+    control = parallel::clusterEvalQ(cl, {library(sjSDM)})
+    parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
+    
     for(i in 1:length(unique(blocks_run))){
       ind = blocks_run == unique(blocks_run)[i]
       sub_tune_samples = tune_samples[ind, ]
       
-      cl = parallel::makeCluster(n_cores)
-      nodes = unlist(parallel::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
-      #print(nodes)
-      control = parallel::clusterEvalQ(cl, {library(sjSDM)})
-      parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
       result_list[[i]] = parallel::parLapply(cl, 1:nrow(sub_tune_samples), tune_func)
-      parallel::stopCluster(cl)
     }
     result = do.call(rbind, result_list)
+    parallel::stopCluster(cl)
     
   }
   summary_results = 

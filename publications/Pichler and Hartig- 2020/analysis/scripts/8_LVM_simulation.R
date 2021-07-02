@@ -1,18 +1,9 @@
----
-title: "LVM simulation"
-author: "Maximilian Pichler"
-date: "3/18/2020"
-output: html_document
----
-
-## Simulation based on LVM
-```{r}
-set.seed(42)
 library(sjSDM)
 library(Hmsc)
 library(gllvm)
 library(snow)
 torch$cuda$manual_seed(42L)
+set.seed(42)
 
 create = function(env = 5L, n = 100L, sp = 50L, l = 5L, SPW_range = c(-1, 1), SPL_range = c(-1, 1)) {
   E = matrix(runif(env*n,-1,1), n, env) # environment
@@ -22,7 +13,7 @@ create = function(env = 5L, n = 100L, sp = 50L, l = 5L, SPW_range = c(-1, 1), SP
   SPL = matrix(runif(l*sp, SPL_range[1], SPL_range[2]), l, sp) # Factor loadings
   
   Y = E %*% SPW + L %*% SPL
-  Occ = ifelse(Y > 0, 1, 0)
+  Occ = apply(Y, 1:2, function(p) rbinom(1, 1, pnorm(p)))
   
   sigma =  t(SPL) %*% SPL + diag(1.0, sp)
   
@@ -39,10 +30,7 @@ create = function(env = 5L, n = 100L, sp = 50L, l = 5L, SPW_range = c(-1, 1), SP
 }
 rmse = function(true, obs) sqrt(mean(( true - obs) ^2))
 
-```
 
-```{r}
-set.seed(42)
 data = list(
   data_10_E =     lapply(1:5, function(l) list(create(env = 2L, n = 200L, sp = 10L, l = 0L  ))),
   data_10_EL =    lapply(1:5, function(l) lapply(1:5, function(s) create(env = 2L, n = 200L, sp = 10L, l = l, SPL_range = c(-1, 1) ))),
@@ -60,14 +48,12 @@ data = list(
   data_100_EL_15 = lapply(1:5, function(l) lapply(1:5, function(s) create(env = 2L, n = 200L, sp = 100L, l = l, SPL_range = c(-1, 1)*5   )))
 )
 
-```
 
 ## sjSDM, Hmsc, and GLLVM
-```{r}
 sjSDM_res = Hmsc_res = gllvm_res = list()
 
 cl = snow::makeCluster(6L)
-snow::clusterExport(cl, list("data", "rmse"))
+snow::clusterExport(cl, list("data", "rmse"), envir = environment())
 ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
   library(gllvm)
@@ -82,7 +68,7 @@ sjSDM_res =
     for(i in 1:5) {
       for(j in 1:length(data[[d]][[i]])) {
       sjSDM = sjSDM(data[[d]][[i]][[j]]$Y, env = linear(data[[d]][[i]][[j]]$X, ~0+.), step_size = 10L, 
-                    iter = 100L, device = 1, learning_rate = 0.005, family = binomial("logit"))
+                    iter = 100L, device = 2, learning_rate = 0.005, family = binomial("probit"))
       sp_sjSDM = cov2cor(getCov(sjSDM))
       
       sjSDM_cov[i,j] = data[[d]][[i]][[j]]$corr_acc(sp_sjSDM)
@@ -93,12 +79,12 @@ sjSDM_res =
     return(list(cov = sjSDM_cov,cov_rmse = sjSDM_cov_rmse, rmse = sjSDM_rmse))
 })
 
-save(sjSDM_res, Hmsc_res, gllvm_res,  file = "./results/LVMsimulation_scenarios.RData")
+save(sjSDM_res, Hmsc_res, gllvm_res,  file = "results/LVMsimulation_scenarios.RData")
 
 snow::stopCluster(cl)
 
 cl = snow::makeCluster(12L)
-snow::clusterExport(cl, list("data", "rmse"))
+snow::clusterExport(cl, list("data", "rmse"), envir = environment())
 ev = snow::clusterEvalQ(cl, {
   library(Hmsc)
   library(gllvm)
@@ -143,7 +129,7 @@ gllvm_res =
    return(list(cov = gllvm_cov,cov_rmse = gllvm_cov_rmse, rmse = gllvm_rmse))
 })
 
-save(sjSDM_res, Hmsc_res, gllvm_res,  file = "./results/LVMsimulation_scenarios.RData")
+save(sjSDM_res, Hmsc_res, gllvm_res,  file = "results/LVMsimulation_scenarios.RData")
 
 Hmsc_res = 
   snow::parLapply(cl, 1:12, function(d) {
@@ -168,9 +154,5 @@ Hmsc_res =
    return(list(cov = Hmsc_cov,cov_rmse = Hmsc_cov_rmse, rmse = Hmsc_rmse))
 })
 
-
-
-save(sjSDM_res, Hmsc_res, gllvm_res,  file = "./results/LVMsimulation_scenarios.RData")
-```
-
+save(sjSDM_res, Hmsc_res, gllvm_res,  file = "results/LVMsimulation_scenarios.RData")
 
