@@ -2,7 +2,7 @@ Package: sjSDM
 Type: Package
 Title: Scalable Joint Species Distribution Modeling
 Version: 0.1.8
-Date: 2021-06-10
+Date: 2021-07-03
 Authors@R: c(person("Maximilian", "Pichler", email = "maximilian.pichler@biologie.uni-regensburg.de", role = c("aut", "cre")),
              person("Florian", "Hartig", email = "florian.hartig@biologie.uni-regensburg.de", role = c("aut"), comment=c(ORCID="0000-0002-6255-9059")),
              person("Wang", "Cai", email = "caiwang0503@163.com", role = c("ctb")))
@@ -33,7 +33,8 @@ Imports:
     dplyr,
     magrittr,
     ggplot2,
-    RColorBrewer
+    RColorBrewer,
+    checkmate
 Suggests:
     testthat,
     knitr,

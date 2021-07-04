@@ -22,6 +22,7 @@
 #' 
 #' @example /inst/examples/sjSDM_cv-example.R
 #' @seealso \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}
+#' @import checkmate
 #' @export
 
 sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
@@ -37,6 +38,25 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
                     sampling = 5000L,
                     blocks = 1L,
                     ...) {
+  
+  assertMatrix(Y)
+  assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
+  assert(checkClass(spatial, "DNN"), checkClass(spatial, "linear"), checkNull(spatial))
+  assert_class(biotic, "bioticStruct")
+  qassert(CV, "X1[1,)")
+  qassert(tune_steps, "X1[1,)")
+  qassert(alpha_cov, "R+[0,)")
+  qassert(alpha_coef, "R+[0,)")
+  qassert(alpha_spatial, "R+[0,)")
+  qassert(lambda_cov, "R+[0,)")
+  qassert(lambda_coef, "R+[0,)")
+  qassert(lambda_spatial, "R+[0,)")
+  qassert(device, c("S1", "X1[0,)", "I1[0,)"))
+  qassert(n_cores, c("X1[1,)", "0"))
+  qassert(n_gpu, c("X+[0,)", "0"))
+  qassert(sampling, "X1[0,)")
+  qassert(blocks, "X1[1,)")
+  
   
   tune = match.arg(tune)
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)

@@ -42,6 +42,7 @@
 #' 
 #' @example /inst/examples/sjSDM-example.R
 #' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
+#' @import checkmate
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(Y = NULL, 
@@ -58,13 +59,21 @@ sjSDM = function(Y = NULL,
                  control = sjSDMControl(),
                  device = "cpu", 
                  dtype = "float32") {
-  stopifnot(
-    !is.null(Y),
-    iter >= 0,
-    learning_rate >= 0#,
-    #!max(Y) > 1.0,
-    #!min(Y) < 0.0
-  )
+  
+  assertMatrix(Y)
+  assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
+  assert(checkClass(spatial, "DNN"), checkClass(spatial, "linear"), checkNull(spatial))
+  assert_class(biotic, "bioticStruct")
+  assert_class(family, "family")
+  qassert(iter, c("X1[1,)"))
+  qassert(step_size, c("X1[1,)", "0"))
+  qassert(learning_rate, c("R1(0,)"))
+  qassert(sampling, c("X1(1,)"))
+  qassert(parallel, c("X1[0,)"))
+  qassert(control, c("L"))
+  qassert(device, c("S1", "X1[0,)", "I1[0,)"))
+  qassert(dtype, "S1")
+  
   
   family = check_family(family)
   
@@ -217,9 +226,15 @@ print.sjSDM = function(x, ...) {
 #' @param SP spatial predictors (e.g. X and Y coordinates)
 #' @param type raw or link
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @import checkmate
 #' @export
 predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "raw"),...) {
   object = checkModel(object)
+  
+  assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata) )
+  assert( checkNull(SP), checkMatrix(newdata), checkDataFrame(newdata) )
+  
+  if(inherits(object, "spatial")) assert_class(object, "spatial")
   
   type = match.arg(type)
   

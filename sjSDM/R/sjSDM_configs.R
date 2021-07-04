@@ -8,8 +8,14 @@
 #' 
 #' @seealso \code{\link{DNN}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
+#' @import checkmate
 #' @export
 linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
+  
+  assert(checkMatrix(data), checkDataFrame(data))
+  qassert(lambda, "R1[0,)")
+  qassert(alpha, "R1[0,)")
+  
   if(is.data.frame(data)) {
     
     if(!is.null(formula)){
@@ -75,8 +81,19 @@ print.linear = function(x, ...) {
 #' 
 #' @seealso \code{\link{linear}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
+#' @import checkmate
 #' @export
 DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu", bias = TRUE, lambda = 0.0, alpha = 0.5, dropout = 0.0) {
+  
+  assert(checkMatrix(data), checkDataFrame(data))
+  qassert(hidden, "X+[1,)")
+  qassert(activation, "S+[1,)")
+  qassert(bias, "B+")
+  qassert(lambda, "R1[0,)")
+  qassert(alpha, "R1[0,)")
+  qassert(dropout, "R1[0,)")
+  
+  
   if(is.data.frame(data)) {
     
     if(!is.null(formula)){
@@ -143,8 +160,18 @@ print.DNN = function(x, ...) {
 #' 
 #' @seealso \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
+#' @import checkmate
 #' @export
 bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = FALSE,reg_on_Cov=TRUE, inverse=FALSE, diag = FALSE) {
+  
+  qassert(df, c("X1[1,)", "0"))
+  qassert(lambda, "R1[0,)")
+  qassert(alpha, "R1[0,)")
+  qassert(on_diag, "B1")
+  qassert(reg_on_Cov, "B1")
+  qassert(inverse, "B1")
+  qassert(diag, "B1")
+  
   out = list()
   out$l1_cov = (1-alpha)*lambda
   out$l2_cov = alpha*lambda
@@ -201,13 +228,19 @@ print.spatialRE = function(x, ...) {
 #' @param lr_reduce_factor factor to reduce learning rate in scheduler
 #' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
 #' @param mixed mixed (half-precision) training or not. Only recommended for GPUs > 2000 series
-#' 
+#' @import checkmate
 #' @export
 sjSDMControl = function(optimizer = RMSprop(),
                         scheduler = 0,
                         lr_reduce_factor = 0.99,
                         early_stopping_training = 0,
                         mixed = FALSE) {
+  
+  qassert(optimizer, "L")
+  qassert(scheduler, "X1[0,)")
+  qassert(lr_reduce_factor, "R1(0,1)")
+  qassert(early_stopping_training, "X1[0,)")
+  qassert(mixed, "B1")
   
   control = list()
   control$optimizer = optimizer
@@ -265,8 +298,14 @@ check_family = function(family){
 #' 
 #' @references 
 #' Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
+#' @import checkmate
 #' @export
 Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.002) {
+  
+  qassert(betas, "R2(0,1)")
+  qassert(eps, "R1(0,)")
+  qassert(weight_decay, "R1[0,)")
+  
   out = list()
   out$params = list()
   out$params$betas = betas
@@ -285,8 +324,15 @@ Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.002) {
 #' @param weight_decay l2 penalty on weights
 #' @param momentum momentum
 #' @param centered centered or not
+#' @import checkmate
 #' @export
 RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.01, momentum=0.1, centered=FALSE) {
+  
+  qassert(alpha, "R1(0,)")
+  qassert(weight_decay, "R1[0,)")
+  qassert(momentum, "R1[0,)")
+  qassert(centered, "B1")
+  
   out = list()
   out$params = list()
   out$params$alpha = alpha
@@ -306,8 +352,15 @@ RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.01, momentum=0.1, cente
 #' @param dampening decay
 #' @param weight_decay l2 penalty on weights
 #' @param nesterov Nesterov momentum or not
+#' @import checkmate
 #' @export
 SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
+  
+  qassert(momentum, "R1(0,)")
+  qassert(dampening, "R1[0,)")
+  qassert(weight_decay, "R1[0,)")
+  qassert(nesterov, "B1")
+  
   out = list()
   out$params = list()
   out$params$momentum = momentum
@@ -328,8 +381,14 @@ SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
 #' 
 #' @references 
 #' Defazio, A., & Jelassi, S. (2021). Adaptivity without Compromise: A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic Optimization. arXiv preprint arXiv:2101.11075.
+#' @import checkmate
 #' @export
 madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
+  
+  qassert(momentum, "R1(0,)")
+  qassert(weight_decay, "R1[0,)")
+  qassert(eps, "R1(0,)")
+  
   out = list()
   out$params = list()
   out$params$momentum = momentum
@@ -351,11 +410,18 @@ madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
 #' 
 #' @references 
 #' Kidambi, R., Netrapalli, P., Jain, P., & Kakade, S. (2018, February). On the insufficiency of existing momentum schemes for stochastic optimization. In 2018 Information Theory and Applications Workshop (ITA) (pp. 1-9). IEEE.
+#' @import checkmate
 #' @export
 AccSGD = function(     kappa=1000.0,
                        xi=10.0,
                        small_const=0.7,
                        weight_decay=0) {
+  
+  qassert(kappa, "R1(0,)")
+  qassert(xi, "R1[0,)")
+  qassert(weight_decay, "R1[0,)")
+  qassert(small_const, "R1[0,)")
+  
   out = list()
   out$params = list(kappa=kappa,xi=xi,small_const=small_const,weight_decay=weight_decay)
   out$ff = function() fa$optimizer_AccSGD
@@ -375,7 +441,7 @@ AccSGD = function(     kappa=1000.0,
 #' 
 #' @references 
 #' Luo, L., Xiong, Y., Liu, Y., & Sun, X. (2019). Adaptive gradient methods with dynamic bound of learning rate. arXiv preprint arXiv:1902.09843.
-#' 
+#' @import checkmate
 #' @export
 AdaBound = function(    betas= c(0.9, 0.999),
                         final_lr = 0.1,
@@ -383,6 +449,14 @@ AdaBound = function(    betas= c(0.9, 0.999),
                         eps= 1e-8,
                         weight_decay=0,
                         amsbound=TRUE) {
+  
+  qassert(betas, "R2(0,1)")
+  qassert(final_lr, "R1(0,)")
+  qassert(gamma, "R1(0,)")
+  qassert(eps, "R1(0,)")
+  qassert(weight_decay, "R1[0,)")
+  qassert(amsbound, "B1")
+  
   out = list()
   out$params = list(betas=betas,final_lr=final_lr,gamma=gamma,eps= eps,weight_decay=weight_decay,amsbound=amsbound)
   out$ff = function() fa$optimizer_AdaBound
@@ -394,9 +468,15 @@ AdaBound = function(    betas= c(0.9, 0.999),
 #' @param betas betas
 #' @param eps eps
 #' @param weight_decay weight_decay
+#' @import checkmate
 DiffGrad = function(    betas=c(0.9, 0.999),
                         eps=1e-8,
                         weight_decay=0) {
+  
+  qassert(betas, "R2(0,1)")
+  qassert(eps, "R1(0,)")
+  qassert(weight_decay, "R1[0,)")
+  
   out = list()
   out$params = list(betas=betas,eps=eps,weight_decay=weight_decay)
   out$ff = function() fa$optimizer_DiffGrad
