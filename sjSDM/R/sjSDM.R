@@ -225,14 +225,16 @@ print.sjSDM = function(x, ...) {
 #' @param newdata newdata for predictions
 #' @param SP spatial predictors (e.g. X and Y coordinates)
 #' @param type raw or link
+#' @param dropout use dropout for predictions or not, only supported for DNNs
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' @import checkmate
 #' @export
-predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "raw"),...) {
+predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "raw"), dropout = FALSE,...) {
   object = checkModel(object)
   
   assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata) )
   assert( checkNull(SP), checkMatrix(newdata), checkDataFrame(newdata) )
+  qassert( dropout, "B1")
   
   if(inherits(object, "spatial")) assert_class(object, "spatial")
   
@@ -245,7 +247,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
     
     
     if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link))
+      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link, dropout = dropout, ...))
     } else {
       
       if(is.data.frame(newdata)) {
@@ -261,7 +263,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
       }
       
     }
-    pred = object$model$predict(newdata = newdata, SP = sp, link=link, ...)
+    pred = object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, ...)
     return(pred)
     
     
@@ -276,7 +278,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
         newdata = stats::model.matrix(object$formula, data.frame(newdata))
       }
     }
-    pred = object$model$predict(newdata = newdata, link=link, ...)
+    pred = object$model$predict(newdata = newdata, link=link, dropout = dropout, ...)
     return(pred)
     
   }

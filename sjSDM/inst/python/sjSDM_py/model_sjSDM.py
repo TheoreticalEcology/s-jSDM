@@ -19,7 +19,7 @@ class Model_sjSDM:
         self.losses = []
         self.env = None
         self.spatial = None
-        device, dtype = self._device_and_dtype(device, dtype)
+        device, dtype = self._device_and_dtype(device, dtype) # type: ignore
         self.device = device
         self.dtype = dtype
         torch.set_default_dtype(self.dtype)
@@ -61,13 +61,13 @@ class Model_sjSDM:
             device = torch.device(device)
 
         if type(dtype) is not str:
-            return device, dtype
+            return device, dtype # type: ignore
 
         if dtype == "float32":
-            return device, torch.float32
+            return device, torch.float32 # type: ignore
         if dtype == "float64":
-            return device, torch.float64
-        return device, torch.float32
+            return device, torch.float64 # type: ignore
+        return device, torch.float32 # type: ignore
 
 
     def add_env(self, 
@@ -276,9 +276,9 @@ class Model_sjSDM:
         
         if self.device.type == 'cuda' and torch.cuda.is_available():
             #torch.set_default_tensor_type('torch.cuda.FloatTensor')
-            self.env.cuda(self.device)
+            self.env.cuda(self.device) # type: ignore
             if self.spatial is not None:
-                self.spatial.cuda(self.device)
+                self.spatial.cuda(self.device) # type: ignore
         else:
             torch.set_default_tensor_type('torch.FloatTensor')
         
@@ -290,14 +290,14 @@ class Model_sjSDM:
         self.mixed = mixed
         r_dim = self.output_shape
         if not diag:
-            low = -np.sqrt(6.0/(r_dim+df))
-            high = np.sqrt(6.0/(r_dim+df))               
-            self.sigma = torch.tensor(np.random.uniform(low, high, [r_dim, df]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
+            low = -np.sqrt(6.0/(r_dim+df)) # type: ignore
+            high = np.sqrt(6.0/(r_dim+df)) # type: ignore      
+            self.sigma = torch.tensor(np.random.uniform(low, high, [r_dim, df]), requires_grad = True, dtype = self.dtype, device = self.device).to(self.device) # type: ignore
             self._loss_function = self._build_loss_function()
             self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
             self.params.append([self.sigma])
         else:
-            self.sigma = torch.zeros([r_dim, r_dim], dtype = self.dtype, device = self.device).to(self.device)
+            self.sigma = torch.zeros([r_dim, r_dim], dtype = self.dtype, device = self.device).to(self.device) # type: ignore
             self.df = r_dim
             self._loss_function = self._build_loss_function()
             self._build_cov_constrain_function(l1 = l1, l2 = l2, reg_on_Cov = reg_on_Cov, reg_on_Diag = reg_on_Diag, inverse = inverse)
@@ -332,7 +332,7 @@ class Model_sjSDM:
             parallel (int, optional): Use parallelization for DataLoader. Defaults to 0.
             early_stopping_training (int, optional): Use early stopping or not. Defaults to -1.
         """            
-        stepSize = np.floor(X.shape[0] / batch_size).astype(int)
+        stepSize = np.floor(X.shape[0] / batch_size).astype(int) # type: ignore
         dataLoader = self._get_DataLoader(X, Y, SP, batch_size, True, parallel)
         any_losses = len(self.losses) > 0
         batch_loss = np.zeros(stepSize)
@@ -341,8 +341,8 @@ class Model_sjSDM:
         df = self.df
         alpha = self.alpha
         
-        if self.device.type == 'cuda':
-            device = self.device.type+ ":" + str(self.device.index)
+        if self.device.type == 'cuda': # type: ignore
+            device = self.device.type+ ":" + str(self.device.index) # type: ignore
         else:
             device = 'cpu'
 
@@ -377,7 +377,7 @@ class Model_sjSDM:
                     sp = sp.to(self.device, non_blocking=True)
                     self.optimizer.zero_grad()
                     with torch.cuda.amp.autocast(enabled=mixed):
-                        mu = self.env(x) + self.spatial(sp)
+                        mu = self.env(x) + self.spatial(sp) # type: ignore
                         #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
                         loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device, self.dtype)
                         loss = loss.mean()
@@ -403,7 +403,7 @@ class Model_sjSDM:
                     if counter_early_stopping_training == early_stopping_training:
                         _ = sys.stdout.write("\nEarly stopping...")
                         break
-            self.spatial.eval()             
+            self.spatial.eval() # type: ignore      
         else:
             for epoch in ep_bar:  
                 for step, (x, y) in enumerate(dataLoader):
@@ -411,7 +411,7 @@ class Model_sjSDM:
                     y = y.to(self.device, non_blocking=True)
                     self.optimizer.zero_grad()
                     with torch.cuda.amp.autocast(enabled=mixed):
-                        mu = self.env(x)
+                        mu = self.env(x) # type: ignore
                         loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device, self.dtype)
                         loss = loss.mean()
                         if any_losses:
@@ -468,8 +468,8 @@ class Model_sjSDM:
         torch.cuda.empty_cache()
         any_losses = len(self.losses) > 0
 
-        if self.device.type == 'cuda':
-            device = self.device.type+ ":" + str(self.device.index)
+        if self.device.type == 'cuda': # type: ignore
+            device = self.device.type+ ":" + str(self.device.index) # type: ignore
         else:
             device = 'cpu'
 
@@ -481,18 +481,18 @@ class Model_sjSDM:
                 x = x.to(self.device, non_blocking=True)
                 y = y.to(self.device, non_blocking=True)
                 sp = sp.to(self.device, non_blocking=True)
-                mu = self.env(x) + self.spatial(sp)
+                mu = self.env(x) + self.spatial(sp) # type: ignore
                 loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device, self.dtype)
                 logLik.append(loss.data)
         else:
             for step, (x, y) in enumerate(dataLoader):
                 x = x.to(self.device, non_blocking=True)
                 y = y.to(self.device, non_blocking=True)
-                mu = self.env(x)
+                mu = self.env(x) # type: ignore
                 loss = loss_function(mu, y, self.sigma, x.shape[0], sampling, self.df, self.alpha, device, self.dtype)
                 logLik.append(loss.data)
 
-        loss_reg = torch.tensor(0.0, device=self.device, dtype=self.dtype).to(self.device)
+        loss_reg = torch.tensor(0.0, device=self.device, dtype=self.dtype).to(self.device) # type: ignore
         for k in range(len(self.losses)):
                 loss_reg = loss_reg.add(self.losses[k]())
 
@@ -511,7 +511,8 @@ class Model_sjSDM:
                 batch_size: int = 25, 
                 parallel: int = 0, 
                 sampling: int = 100, 
-                link: bool = True) -> np.ndarray:
+                link: bool = True,
+                dropout: bool = False) -> np.ndarray:
         """Predict with sjSDM
 
         Args:
@@ -522,6 +523,7 @@ class Model_sjSDM:
             parallel (int, optional): Parallelization of DataLoader. Defaults to 0.
             sampling (int, optional): Number of MC-samples for each species. Defaults to 100.
             link (bool, optional): Linear or response scale. Defaults to True.
+            dropout (bool, optional): Use dropout during predictions or not. Defaults to False.
 
         Returns:
             np.ndarray: Predictions
@@ -531,26 +533,39 @@ class Model_sjSDM:
         loss_function = self._build_loss_function(train = False, raw=not link)
 
         pred = []
-        if self.device.type == 'cuda':
-            device = self.device.type+ ":" + str(self.device.index)
+        if self.device.type == 'cuda': # type: ignore
+            device = self.device.type+ ":" + str(self.device.index) # type: ignore
         else:
             device = 'cpu'
+
+        self.env.eval()
+        if type(SP) is np.ndarray:
+            self.spatial.eval()
+        
+        # TODO: export to method
+        if dropout:
+            self.env.train()
+            if type(SP) is np.ndarray:
+                self.spatial.train()
         
         if type(SP) is np.ndarray:
             for step, (x, sp) in enumerate(dataLoader):
                 x = x.to(self.device, non_blocking=True)
                 sp = sp.to(self.device, non_blocking=True)
-                mu = self.env(x) + self.spatial(sp)
+                mu = self.env(x) + self.spatial(sp) # type: ignore
                 # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
                 loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
                 pred.append(loss)
+            self.spatial.eval()
         else:
             for step, (x) in enumerate(dataLoader):
                 x = x[0].to(self.device, non_blocking=True)
-                mu = self.env(x)
+                mu = self.env(x) # type: ignore
                 # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
                 loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
                 pred.append(loss)
+
+        self.env.eval()
         return torch.cat(pred, dim = 0).data.cpu().numpy()
 
     def se(self, 

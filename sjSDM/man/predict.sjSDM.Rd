@@ -4,7 +4,8 @@
 \alias{predict.sjSDM}
 \title{Predict from a fitted sjSDM model}
 \usage{
-\method{predict}{sjSDM}(object, newdata = NULL, SP = NULL, type = c("link", "raw"), ...)
+\method{predict}{sjSDM}(object, newdata = NULL, SP = NULL,
+  type = c("link", "raw"), dropout = FALSE, ...)
 }
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}}
@@ -14,6 +15,8 @@
 \item{SP}{spatial predictors (e.g. X and Y coordinates)}
 
 \item{type}{raw or link}
+
+\item{dropout}{use dropout for predictions or not, only supported for DNNs}
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
