@@ -56,7 +56,7 @@ Replace the link argument in *sjSDM(...,link="logit")* by *sjSDM(...,family=bino
 
 
 ## Data availability <a name="ava"></a>
-The compiled datasets for runtime benchmarking (case study 1) are available as supporting information for Wilkinson et al. 2019. The eDNA dataset is available at (https://github.com/tobiasgf/man_vs_machine)[https://github.com/tobiasgf/man_vs_machine]. The analysis and the R package sjSDM is available at (https://github.com/TheoreticalEcology/s-jSDM)[https://github.com/TheoreticalEcology/s-jSDM]. 
+The compiled datasets for runtime benchmarking (case study 1) are available as supporting information for Wilkinson et al. 2019. The eDNA dataset is available at [https://github.com/tobiasgf/man_vs_machine](https://github.com/tobiasgf/man_vs_machine). The analysis and the R package sjSDM is available at [https://github.com/TheoreticalEcology/s-jSDM](https://github.com/TheoreticalEcology/s-jSDM). 
 
 
 
