@@ -43,7 +43,7 @@ install.packages("<path_to/>sjSDM_0.0.7.9000.tar.gz", repos = NULL, type="source
 
 Don't use the install_sjSDM() function since it may install the newest pytorch version which is **not compatible** with sjSDM version 0.0.7.9000 which works only at most with PyTorch 1.8. Manual install instructions for pytorch 1.8:
 
-```bash
+```
 conda create -n r-reticulate python=3.6
 conda activate r-reticulate
 conda install -n r-reticulate  pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=10.2 -c pytorch
@@ -136,7 +136,7 @@ We used the process-based simulation model from [Leibold et al., 2020](https://w
 
 1.  clone the corresponding github repo into the working directory:
 
-```bash
+```
 git clone https://github.com/javirudolph/testingHMSC
 ```
 
