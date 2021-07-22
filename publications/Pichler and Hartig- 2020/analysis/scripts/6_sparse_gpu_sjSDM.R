@@ -64,7 +64,7 @@ for(i in 1:nrow(setup)) {
     sim = data_sets[[counter]]$sim
     counter = counter + 1L
     
-    tune = sjSDM_cv(train_Y, train_X, n_cores = 9L, n_gpu = 3, tune_steps = 40L, sampling = 2000L, 
+    tune = sjSDM_cv(train_Y, train_X, n_cores = 9L, n_gpu = 3, tune_steps = 40L, sampling = 2000L, blocks = 20L,
                     iter = 50L, alpha_spatial=0, lambda_spatial=0, alpha_coef = 0.0, lambda_coef = 0.0, learning_rate=0.01, CV = 5L, 
                     lambda_cov = 2^seq(-10, -4, length.out = 20), alpha_cov = scales::rescale( 2^seq(-10, -4, length.out = 20) ), link="logit")
     best = head(tune$short_summary[order(tune$short_summary$logLik),])[1,]
