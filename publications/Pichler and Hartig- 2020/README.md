@@ -37,7 +37,7 @@ This subfolder contains the code to reproduce the results in Pichler and Hartig,
 
 Most of the results are based on sjSDM version 0.0.7.9000 which can be downloaded from [here](https://github.com/TheoreticalEcology/s-jSDM/releases/tag/v0.0.7.9000).
 
-```r
+```
 install.packages("<path_to/>sjSDM_0.0.7.9000.tar.gz", repos = NULL, type="source")
 ```
 
@@ -66,13 +66,13 @@ The compiled datasets for runtime benchmarking (case study 1) are available as s
 
 Generate data:
 
-```r
+```
 source("./analysis/scripts/1_generate_data.R")
 ```
 
 Benchmark models:
 
-```r
+```
 # dense associations
 source("analysis/scripts/1_cpu_sjSDM.R") # for s-jSDM on the CPU
 source("analysis/scripts/1_gpu_sjSDM.R") # for s-jSDM on the GPU
@@ -88,13 +88,13 @@ For each model and scenario, the following is calculated:
 
 ### s-jSDM on large scale data
 
-```r
+```
 source("analysis/scripts/2_large_scale.R")
 ```
 
 ### s-jSDM on Wilkinson et al 2019 datasets:
 
-```r
+```
 source("analysis/scripts/4_case_study_1.R")
 ```
 
@@ -106,7 +106,7 @@ Results are taken from the runtime benchmark (see above)
 
 ### Covariance behaviour (for Appendix)
 
-```r
+```
 source("analysis/scripts/3_covariance_behaviour.R")
 ```
 
@@ -114,12 +114,12 @@ source("analysis/scripts/3_covariance_behaviour.R")
 
 Generate data:
 
-```r
+```
 source("analysis/scripts/6_generate_data.R")
 ```
 
 Run models:
-```r
+```
 source("analysis/scripts/6_sparse_gpu_sjSDM.R") # for s-jSDM on the GPU
 source("analysis/scripts/6_sparse_gllvm.R) # GLLVM package
 source("analysis/scripts/6_sparse_bc.R") # BayesComm package
@@ -130,7 +130,7 @@ source("analysis/scripts/6_sparse_hmsc.R") # Hmsc package
 
 Tune covariance regularization
 
-```r
+```
 source("analysis/scripts/5_Fungi_eDNA_tuning.R")
 source("analysis/scripts/5_Fungi_models.R")
 ```
@@ -149,13 +149,13 @@ git clone https://github.com/javirudolph/testingHMSC
 
 2.  Simulate
 
-```r
+```
 source("analysis/scripts/7_simulate_from_process_based_model.R")
 ```
 
 3.  Fit JSDM
 
-```r
+```
 source("analysis/scripts/7_process_based_models_A.R")
 source("analysis/scripts/7_process_based_models_B.R")
 ```
@@ -166,7 +166,7 @@ source("analysis/scripts/7_process_based_models_B.R")
 
 Simulate from LVM and fit sjSDM, Hmsc and gllvm to simulated data:
 
-```r
+```
 source("analysis/scripts/8_LVM_simulation.R")
 ```
 
