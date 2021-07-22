@@ -112,6 +112,7 @@ Generate data:
 source("analysis/scripts/6_generate_data.R")
 ```
 
+Run models:
 ```r
 source("analysis/scripts/6_sparse_gpu_sjSDM.R") # for s-jSDM on the GPU
 source("analysis/scripts/6_sparse_gllvm.R) # GLLVM package
