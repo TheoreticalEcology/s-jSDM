@@ -35,7 +35,7 @@ This subfolder contains the code to reproduce the results in Pichler and Hartig,
     
 ## Prerequisites <a name="pre"></a>
 
-Analyses #bench, #inf, #eDNA are based on sjSDM version 0.0.7.9000, #process and #lvm are based on sjSDM version 0.1.8. The package versions are within the 'sjSDM_packages' sub folder and can be installed in the following way:
+Analyses [Runtime benchmark](#bench), [Inference](#inf), [Case Study - eDNA](#eDNA) are based on sjSDM version 0.0.7.9000, [Simulation from a process-based model](#process) and [Simulation from LVM-JSDMs](#lvm) are based on sjSDM version 0.1.8. The package versions are within the 'sjSDM_packages' sub folder and can be installed in the following way:
 
 ```
 install.packages("sjSDM_packages/sjSDM_0.<version>.tar.gz", repos = NULL, type="source")
