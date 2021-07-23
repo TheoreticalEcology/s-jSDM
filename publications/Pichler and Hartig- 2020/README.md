@@ -35,13 +35,14 @@ This subfolder contains the code to reproduce the results in Pichler and Hartig,
     
 ## Prerequisites <a name="pre"></a>
 
-Most of the results are based on sjSDM version 0.0.7.9000 which can be downloaded from [here](https://github.com/TheoreticalEcology/s-jSDM/releases/tag/v0.0.7.9000).
+Analyses #bench, #inf, #eDNA are based on sjSDM version 0.0.7.9000, #process and #lvm are based on sjSDM version 0.1.8. The package versions are within the 'sjSDM_packages' sub folder and can be installed in the following way:
 
 ```
-install.packages("<path_to/>sjSDM_0.0.7.9000.tar.gz", repos = NULL, type="source")
+install.packages("sjSDM_packages/sjSDM_0.<version>.tar.gz", repos = NULL, type="source")
 ```
 
-Don't use the install_sjSDM() function since it may install the newest pytorch version which is **not compatible** with sjSDM version 0.0.7.9000 which works only at most with PyTorch 1.8. Manual install instructions for pytorch 1.8:
+**0.0.7.9000:**
+Don't use the install_sjSDM() function since it may install the newest pytorch version which is **not compatible** with sjSDM version 0.0.7.9000 (which works only at most with PyTorch 1.8). Manual install instructions for pytorch 1.8:
 
 ```
 conda create -n r-reticulate python=3.6
@@ -52,7 +53,7 @@ python -m pip install tqdm torch_optimizer pyro-ppl==1.6.0
 
 ### How to run sjSDM scripts with latest sjSDM version:
 
-Replace the link argument in *sjSDM(...,link="logit")* by *sjSDM(...,family=binomial("probit"))*. The old 'logit' link approximates a probit link (the old naming was confusing).
+Replace the link argument in *sjSDM(...,link="logit")* by *sjSDM(...,family=binomial("probit"))*. The old 'logit' link approximates a probit link (old naming was confusing).
 
 
 ## Data availability <a name="ava"></a>
@@ -137,7 +138,7 @@ source("analysis/scripts/5_Fungi_models.R")
 
 ## Process-based simulation <a name="process"></a>
 
-*Requires actual sjSDM version*
+Requires sjSDM version 0.1.8 which can be found in the sjSDM_packages subfolder.
 
 We used the process-based simulation model from [Leibold et al., 2020](https://www.biorxiv.org/content/10.1101/2020.07.04.187955v1). See supplementary information for more details.
 
@@ -162,7 +163,7 @@ source("analysis/scripts/7_process_based_models_B.R")
 
 ## Simulate from LVM-sjSDM <a name="lvm"></a>
 
-*Requires actual sjSDM version*
+Requires sjSDM version 0.1.8 which can be found in the sjSDM_packages subfolder.
 
 Simulate from LVM and fit sjSDM, Hmsc and gllvm to simulated data:
 
