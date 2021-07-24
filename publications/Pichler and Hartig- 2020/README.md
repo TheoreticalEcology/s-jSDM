@@ -105,18 +105,13 @@ source("analysis/scripts/4_case_study_1.R")
 
 Results are taken from the runtime benchmark (see above)
 
-### Covariance behaviour (for Appendix)
-
-```
-source("analysis/scripts/3_covariance_behaviour.R")
-```
 
 ### Sparse species-species assocations
 
 Generate data:
 
 ```
-source("analysis/scripts/6_generate_data.R")
+source("analysis/scripts/6_generate_sparse_data.R")
 ```
 
 Run models:
@@ -125,6 +120,12 @@ source("analysis/scripts/6_sparse_gpu_sjSDM.R") # for s-jSDM on the GPU
 source("analysis/scripts/6_sparse_gllvm.R) # GLLVM package
 source("analysis/scripts/6_sparse_bc.R") # BayesComm package
 source("analysis/scripts/6_sparse_hmsc.R") # Hmsc package
+```
+
+### Covariance behaviour
+
+```
+source("analysis/scripts/3_covariance_behaviour.R")
 ```
 
 ## Case study - eDNA Fungi Dataset <a name="eDNA"></a>
