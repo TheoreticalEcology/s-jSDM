@@ -1,4 +1,4 @@
-# Pichler and Hartig, A new method for faster and more accurate inference of species associations from novel community data
+# Pichler and Hartig, A new joint species distribution model for faster and more accurate inference of species associations from big community data 
 
 This subfolder contains the code to reproduce the results in Pichler and Hartig, A new method for faster and more accurate inference of species associations from novel community data
 
