@@ -1,0 +1,15 @@
+bibentry(bibtype = "Article",
+  title        = "A new joint species distribution model for faster and more accurate inference of species associations from big community data",
+  author       = c(person(given = "Maximilian",
+                          family = "Pichler",
+                          email = "Maximilian.Pichler@biologie.uni-regensburg.de"),
+                   person(given = "Florian",
+                          family = "Hartig")),
+  journal      = "Methods in Ecology and Evolution",
+  year         = "2021",
+  doi          = "10.1111/2041-210X.13687",
+
+  header       = "To cite sjSDM in publications use:",
+  textVersion  = "Pichler, M. and Hartig, F. (2021), A new joint species distribution model for faster and more accurate inference of species associations from big community data. Methods in Ecology and Evolution. Accepted Author Manuscript. https://doi.org/10.1111/2041-210X.13687"
+
+)
