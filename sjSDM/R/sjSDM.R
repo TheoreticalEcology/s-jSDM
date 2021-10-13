@@ -251,7 +251,7 @@ print.sjSDM = function(x, ...) {
 predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "raw"), dropout = FALSE,...) {
   object = checkModel(object)
   
-  assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata) )
+  assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata), checkArray(newdata) )
   assert( checkNull(SP), checkMatrix(newdata), checkDataFrame(newdata) )
   qassert( dropout, "B1")
   
@@ -262,44 +262,47 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
   if(type == "raw") link = FALSE
   else link = TRUE
   
-  if(inherits(object, "spatial")) {
-    
-    
-    if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link, dropout = dropout, ...))
+  if(!object$temporal) {
+    if(inherits(object, "spatial")) {
+      
+      if(is.null(newdata)) {
+        return(object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link, dropout = dropout, ...))
+      } else {
+        
+        if(is.data.frame(newdata)) {
+          newdata = stats::model.matrix(object$formula, newdata)
+        } else {
+          newdata = stats::model.matrix(object$formula, data.frame(newdata))
+        }
+        if(is.data.frame(SP)) {
+          sp = stats::model.matrix(object$spatial$formula, SP)
+        } else {
+          sp = stats::model.matrix(object$spatial$formula, data.frame(SP))
+        }
+        
+      }
+      pred = object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, ...)
+      return(pred)
+      
+      
     } else {
       
-      if(is.data.frame(newdata)) {
-        newdata = stats::model.matrix(object$formula, newdata)
+      if(is.null(newdata)) {
+        return(object$model$predict(newdata = object$data$X, link=link))
       } else {
-        newdata = stats::model.matrix(object$formula, data.frame(newdata))
+        if(is.data.frame(newdata)) {
+          newdata = stats::model.matrix(object$formula, newdata)
+        } else {
+          newdata = stats::model.matrix(object$formula, data.frame(newdata))
+        }
       }
-      
-      if(is.data.frame(SP)) {
-        sp = stats::model.matrix(object$spatial$formula, SP)
-      } else {
-        sp = stats::model.matrix(object$spatial$formula, data.frame(SP))
-      }
+      pred = object$model$predict(newdata = newdata, link=link, dropout = dropout, ...)
+      return(pred)
       
     }
-    pred = object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, ...)
-    return(pred)
-    
-    
   } else {
-    
-    if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X, link=link))
-    } else {
-      if(is.data.frame(newdata)) {
-        newdata = stats::model.matrix(object$formula, newdata)
-      } else {
-        newdata = stats::model.matrix(object$formula, data.frame(newdata))
-      }
-    }
-    pred = object$model$predict(newdata = newdata, link=link, dropout = dropout, ...)
-    return(pred)
-    
+    if(is.null(newdata)) newdata = object$data$X
+    pred = object$model$predict(newdata = newdata)
   }
 }
 

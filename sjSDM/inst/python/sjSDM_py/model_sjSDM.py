@@ -19,6 +19,7 @@ class Model_sjSDM:
         self.losses = []
         self.env = None
         self.spatial = None
+        self.temporal = False
         device, dtype = self._device_and_dtype(device, dtype) # type: ignore
         self.device = device
         self.dtype = dtype
@@ -619,25 +620,30 @@ class Model_sjSDM:
             if type(SP) is np.ndarray:
                 self.spatial.train()
         
-        if type(SP) is np.ndarray:
-            for step, (x, sp) in enumerate(dataLoader):
-                x = x.to(self.device, non_blocking=True)
-                sp = sp.to(self.device, non_blocking=True)
-                mu = self.env(x) + self.spatial(sp) # type: ignore
-                # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                pred.append(loss)
-            self.spatial.eval()
-        else:
-            for step, (x) in enumerate(dataLoader):
-                x = x[0].to(self.device, non_blocking=True)
-                mu = self.env(x) # type: ignore
-                # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
-                pred.append(loss)
+        if self.temporal is False:
+            if type(SP) is np.ndarray:
+                for step, (x, sp) in enumerate(dataLoader):
+                    x = x.to(self.device, non_blocking=True)
+                    sp = sp.to(self.device, non_blocking=True)
+                    mu = self.env(x) + self.spatial(sp) # type: ignore
+                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                    pred.append(loss)
+                self.spatial.eval()
+            else:
+                for step, (x) in enumerate(dataLoader):
+                    x = x[0].to(self.device, non_blocking=True)
+                    mu = self.env(x) # type: ignore
+                    # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
+                    loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                    pred.append(loss)
 
-        self.env.eval()
-        return torch.cat(pred, dim = 0).data.cpu().numpy()
+            self.env.eval()
+            return torch.cat(pred, dim = 0).data.cpu().numpy()
+        else:
+            mu = self.env(torch.tensor(newdata, dtype=self.dtype).to(self.device)) # type: ignore
+            self.env.eval()
+            return mu[0].data.cpu().numpy()
 
     def se(self, 
            X: np.ndarray, 
