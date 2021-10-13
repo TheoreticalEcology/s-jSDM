@@ -78,7 +78,8 @@ class Model_sjSDM:
                 bias: List[bool] = [False], 
                 l1: float = -99, 
                 l2: float = -99, 
-                dropout: float = -99) -> None:
+                dropout: float = -99,
+                temporal: bool = False) -> None:
         """Add environmental model
 
         Args:
@@ -91,8 +92,7 @@ class Model_sjSDM:
             l2 (float, optional): Ridge regularization. Defaults to -99.
             dropout (float, optional): [Dropoutrate. Defaults to -99.
         """                
-        
-        self.env = (self._build_NN(input_shape, output_shape, hidden,bias, activation, dropout))
+        self.env = (self._build_NN(input_shape, output_shape, hidden,bias, activation, dropout, temporal))
         self.params.append(self.env.parameters())
         self.input_shape = input_shape
         self.output_shape = output_shape
@@ -110,7 +110,8 @@ class Model_sjSDM:
                     bias: List[bool] = [False], 
                     l1: float = -99, 
                     l2: float = -99, 
-                    dropout: float = -99) -> None:
+                    dropout: float = -99,
+                    temporal: bool = False) -> None:
         """Add spatial model
 
         Args:
@@ -123,7 +124,7 @@ class Model_sjSDM:
             l2 (float, optional): Ridge regularization. Defaults to -99.
             dropout (float, optional): [Dropoutrate. Defaults to -99.
         """                    
-        self.spatial = (self._build_NN(input_shape, output_shape, hidden, bias, activation, dropout))
+        self.spatial = (self._build_NN(input_shape, output_shape, hidden, bias, activation, dropout, temporal))
         self.params.append(self.spatial.parameters())
         for p in self.spatial.parameters():
             if l1 > 0.0: 
@@ -137,7 +138,8 @@ class Model_sjSDM:
                   hidden: List, 
                   bias: List[bool], 
                   activation: List[str], 
-                  dropout: float) -> torch.nn.modules.container.Sequential:
+                  dropout: float, 
+                  temporal: bool) -> torch.nn.modules.container.Sequential:
         """Build neural network
 
         Args:
@@ -157,31 +159,34 @@ class Model_sjSDM:
 
         if len(bias) == 1:
             bias = [bias[0] for _ in range(len(hidden)+1)]  
+        
+        if temporal is False:
+            if len(hidden) > 0:
+                for i in range(len(hidden)):
+                    if i == 0:
+                        model_list.append(nn.Linear(input_shape, hidden[i], bias=bias[i]).type(self.dtype))
+                    else:
+                        model_list.append(nn.Linear(hidden[i-1], hidden[i], bias=bias[i]).type(self.dtype))
 
-        if len(hidden) > 0:
-            for i in range(len(hidden)):
-                if i == 0:
-                    model_list.append(nn.Linear(input_shape, hidden[i], bias=bias[i]).type(self.dtype))
-                else:
-                    model_list.append(nn.Linear(hidden[i-1], hidden[i], bias=bias[i]).type(self.dtype))
+                    if activation[i] == "relu":
+                        model_list.append(nn.ReLU())
+                    if activation[i] == "selu":
+                        model_list.append(nn.SELU())
+                    if activation[i] == "leakyrelu":
+                        model_list.append(nn.LeakyReLU())
+                    if activation[i] == "tanh": 
+                        model_list.append(nn.Tanh())
+                    if activation[i] == "sigmoid":
+                        model_list.append(nn.Sigmoid())
+                    if dropout > 0.0:
+                        model_list.append(nn.Dropout(p=dropout))
 
-                if activation[i] == "relu":
-                     model_list.append(nn.ReLU())
-                if activation[i] == "selu":
-                     model_list.append(nn.SELU())
-                if activation[i] == "leakyrelu":
-                     model_list.append(nn.LeakyReLU())
-                if activation[i] == "tanh": 
-                    model_list.append(nn.Tanh())
-                if activation[i] == "sigmoid":
-                    model_list.append(nn.Sigmoid())
-                if dropout > 0.0:
-                    model_list.append(nn.Dropout(p=dropout))
-
-        if len(hidden) > 0:
-            model_list.append(nn.Linear(hidden[-1], output_shape, bias=bias[-1]).type(self.dtype))
+            if len(hidden) > 0:
+                model_list.append(nn.Linear(hidden[-1], output_shape, bias=bias[-1]).type(self.dtype))
+            else:
+                model_list.append(nn.Linear(input_shape, output_shape, bias=False).type(self.dtype))
         else:
-            model_list.append(nn.Linear(input_shape, output_shape, bias=False).type(self.dtype))
+            model_list.append(nn.RNN(input_shape, output_shape, bias=False, num_layers=1).type(self.dtype))
         return nn.Sequential(*model_list)
     
     def _get_DataLoader(self, 
@@ -207,11 +212,11 @@ class Model_sjSDM:
             torch.utils.data.DataLoader: DataLoader object
         """                        
         # reticulate creates non writeable arrays
-        X = X.copy()
+        X = X
         if type(Y) is np.ndarray:
-            Y = Y.copy()
+            Y = Y
         if type(SP) is np.ndarray:
-            SP = SP.copy()
+            SP = SP
 
         if self.device.type == 'cuda':
             torch.cuda.set_device(self.device)
@@ -319,7 +324,8 @@ class Model_sjSDM:
             epochs: int = 100, 
             sampling: int = 100, 
             parallel: int = 0,
-            early_stopping_training: int = -1) -> None:
+            early_stopping_training: int = -1,
+            temporal: bool = False) -> None:
         """Fit sjSDM model
 
         Args:
@@ -337,6 +343,7 @@ class Model_sjSDM:
         any_losses = len(self.losses) > 0
         batch_loss = np.zeros(stepSize)
         self.history = np.zeros(epochs)
+        self.temporal = temporal
 
         df = self.df
         alpha = self.alpha
@@ -375,15 +382,38 @@ class Model_sjSDM:
                     x = x.to(self.device, non_blocking=True)
                     y = y.to(self.device, non_blocking=True)
                     sp = sp.to(self.device, non_blocking=True)
-                    self.optimizer.zero_grad()
-                    with torch.cuda.amp.autocast(enabled=mixed):
-                        mu = self.env(x) + self.spatial(sp) # type: ignore
-                        #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
-                        loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device, self.dtype)
-                        loss = loss.mean()
-                        if any_losses:
-                            for k in range(len(self.losses)):
-                                loss+= self.losses[k]()
+
+                    if temporal is True:
+                        x.transpose_(2, 1)
+                        y.transpose_(2, 1)
+                        sp.transpose_(2, 1)
+
+
+                    if temporal is False:
+                        self.optimizer.zero_grad()
+                        with torch.cuda.amp.autocast(enabled=mixed):
+                            mu = self.env(x) + self.spatial(sp) # type: ignore
+                            #tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float
+                            loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device, self.dtype)
+                            loss = loss.mean()
+                            if any_losses:
+                                for k in range(len(self.losses)):
+                                    loss+= self.losses[k]()
+                    if temporal is True:
+                        self.optimizer.zero_grad()
+                        with torch.cuda.amp.autocast(enabled=mixed):
+                            mu = self.env(x)[0] + self.spatial(sp)[0] # type: ignore
+                            mu_sub = torch.chunk( mu, mu.shape[0], dim = 0)
+                            print(mu_sub)
+                            sub_res = []
+                            for sub in mu.shape[0]:
+                                sub_res.append( self._loss_function(mu_sub[sub].squeeze(), y.squeeze(), self.sigma, batch_size, sampling, df, alpha, device, self.dtype).mean().reshape(1))
+                            loss = torch.cat(sub_res).mean()
+
+                            if any_losses:
+                                for k in range(len(self.losses)):
+                                    loss+= self.losses[k]()
+                        
                     update_func(loss)
                     batch_loss[step] = loss.item()
                 bl = np.mean(batch_loss)
@@ -405,38 +435,79 @@ class Model_sjSDM:
                         break
             self.spatial.eval() # type: ignore      
         else:
-            for epoch in ep_bar:  
-                for step, (x, y) in enumerate(dataLoader):
-                    x = x.to(self.device, non_blocking=True)
-                    y = y.to(self.device, non_blocking=True)
-                    self.optimizer.zero_grad()
-                    with torch.cuda.amp.autocast(enabled=mixed):
-                        mu = self.env(x) # type: ignore
-                        loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device, self.dtype)
-                        loss = loss.mean()
-                        if any_losses:
-                            for k in range(len(self.losses)):
-                                loss += self.losses[k]()
-                    update_func(loss)
-                    batch_loss[step] = loss.item()
-                bl = np.mean(batch_loss)
-                bl = np.round(bl, 3)
-                ep_bar.set_postfix(loss=f'{bl}')
-                self.history[epoch] = bl
-                if self.useSched:
-                    self.scheduler.step(bl)
-                
-                if early_stopping_training_boolean:
-                    if bl < early_stopping_training_loss:
-                        early_stopping_training_loss = bl
-                        counter_early_stopping_training = 0
-                    else:
-                        counter_early_stopping_training+=1
-                    if counter_early_stopping_training == early_stopping_training:
-                        _ = sys.stdout.write("\nEarly stopping...")
-                        break
-        torch.cuda.empty_cache()
-        self.env.eval()
+            if temporal is False:
+                for epoch in ep_bar:  
+                    for step, (x, y) in enumerate(dataLoader):
+                        x = x.to(self.device, non_blocking=True)
+                        y = y.to(self.device, non_blocking=True)
+                        self.optimizer.zero_grad()
+                        with torch.cuda.amp.autocast(enabled=mixed):
+                            mu = self.env(x) # type: ignore
+                            loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device, self.dtype)
+                            loss = loss.mean()
+                            if any_losses:
+                                for k in range(len(self.losses)):
+                                    loss += self.losses[k]()
+                        update_func(loss)
+                        batch_loss[step] = loss.item()
+                    bl = np.mean(batch_loss)
+                    bl = np.round(bl, 3)
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    self.history[epoch] = bl
+                    if self.useSched:
+                        self.scheduler.step(bl)
+                    
+                    if early_stopping_training_boolean:
+                        if bl < early_stopping_training_loss:
+                            early_stopping_training_loss = bl
+                            counter_early_stopping_training = 0
+                        else:
+                            counter_early_stopping_training+=1
+                        if counter_early_stopping_training == early_stopping_training:
+                            _ = sys.stdout.write("\nEarly stopping...")
+                            break
+                torch.cuda.empty_cache()
+                self.env.eval()
+            else:
+                for epoch in ep_bar:
+                    steps = int(np.round(X.shape[1]/batch_size))
+                    batch_loss = np.zeros(steps)
+                    for step in range(steps):
+                        index = np.random.choice(X.shape[1], batch_size, replace=False) 
+                        x = torch.tensor(X[:,index,:], dtype=self.dtype).to(self.device, non_blocking=True)
+                        y = torch.tensor(Y[:,index,:], dtype=self.dtype).to(self.device, non_blocking=True)
+                        self.optimizer.zero_grad()
+                        with torch.cuda.amp.autocast(enabled=mixed):
+                            mu = self.env(x)[0] # type: ignore
+                            mu_sub = torch.chunk( mu, mu.shape[0], dim = 0)
+                            y_sub = torch.chunk( y, y.shape[0], dim = 0)
+                            sub_res = []
+                            for sub in range(mu.shape[0]):
+                                sub_res.append( self._loss_function(mu_sub[sub].squeeze(), y_sub[sub].squeeze(), self.sigma, batch_size, sampling, df, alpha, device, self.dtype).mean().reshape(1))
+                            loss = torch.cat(sub_res).mean()
+                            if any_losses:
+                                for k in range(len(self.losses)):
+                                    loss += self.losses[k]()
+                        update_func(loss)
+                        batch_loss[step] = loss.item()
+                    bl = np.mean(batch_loss)
+                    bl = np.round(bl, 3)
+                    ep_bar.set_postfix(loss=f'{bl}')
+                    self.history[epoch] = bl
+                    if self.useSched:
+                        self.scheduler.step(bl)
+                    
+                    if early_stopping_training_boolean:
+                        if bl < early_stopping_training_loss:
+                            early_stopping_training_loss = bl
+                            counter_early_stopping_training = 0
+                        else:
+                            counter_early_stopping_training+=1
+                        if counter_early_stopping_training == early_stopping_training:
+                            _ = sys.stdout.write("\nEarly stopping...")
+                            break
+            torch.cuda.empty_cache()
+            self.env.eval()
 
         
     def logLik(self,

@@ -60,8 +60,8 @@ sjSDM = function(Y = NULL,
                  device = "cpu", 
                  dtype = "float32") {
   
-  assertMatrix(Y)
-  assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
+  assertArray(Y)
+  assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"), checkClass(env, "temporal"))
   assert(checkClass(spatial, "DNN"), checkClass(spatial, "linear"), checkNull(spatial))
   assert_class(biotic, "bioticStruct")
   assert_class(family, "family")
@@ -92,17 +92,30 @@ sjSDM = function(Y = NULL,
   out$species = colnames(Y)
   out$cl = match.call()
   
+  if(inherits(env, "temporal")) temporal = TRUE
+  else temporal = FALSE
+  
   ### settings ##
   if(is.null(biotic$df)) {
     
     biotic$df = max(5L, as.integer(floor(ncol(Y) / 2)))
     
   }
-  if(is.null(step_size)) step_size = as.integer(floor(nrow(env$X) * 0.1))
-  else step_size = as.integer(step_size)
+  if(!temporal) {
+    if(is.null(step_size)) step_size = as.integer(floor(nrow(env$X) * 0.1))
+    else step_size = as.integer(step_size)
+  } else {
+    if(is.null(step_size)) step_size = as.integer(floor(dim(env$X)[2] * 0.1))
+    else step_size = as.integer(step_size)
+  }
   
-  output = as.integer(ncol(Y))
-  input = as.integer(ncol(env$X))
+  if(!temporal) {
+    output = as.integer(ncol(Y))
+    input = as.integer(ncol(env$X))
+  } else {
+    output = dim(Y)[3]
+    input = dim(env$X)[3]
+  }
   
   out$get_model = function(){
     model = fa$Model_sjSDM( device = device, dtype = dtype)
@@ -120,7 +133,10 @@ sjSDM = function(Y = NULL,
     if(!is.null(env$dropout)) dropout_env = env$dropout
     else dropout_env = -99
     
-    model$add_env(input, output, hidden = hidden, activation = activation,bias = bias, l1 = env$l1, l2=env$l2, dropout=dropout_env)
+    model$add_env(input, output, hidden = hidden, activation = activation,
+                  bias = bias, l1 = env$l1, l2=env$l2, 
+                  dropout=dropout_env,
+                  temporal = temporal)
     
     if(!is.null(spatial)) {
       
@@ -167,8 +183,9 @@ sjSDM = function(Y = NULL,
     time = system.time({model$fit(env$X, Y, batch_size = step_size, 
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
-                                  early_stopping_training=control$early_stopping_training)})[3]
-    out$logLik = model$logLik(env$X, Y,batch_size = step_size,parallel = parallel)
+                                  early_stopping_training=control$early_stopping_training,
+                                  temporal = temporal)})[3]
+    if(!temporal) out$logLik = model$logLik(env$X, Y,batch_size = step_size,parallel = parallel)
     if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
   
   } else {
@@ -182,6 +199,7 @@ sjSDM = function(Y = NULL,
   }
 
   if(inherits(env, "linear")) class(out) = c("sjSDM", "linear")
+  if(inherits(env, "temporal")) class(out) = c("sjSDM", "temporal")
   if(inherits(env, "DNN")) {
     out$env_architecture = parse_nn(model$env)
     class(out) = c("sjSDM", "DNN")
@@ -204,6 +222,7 @@ sjSDM = function(Y = NULL,
   out$history = model$history
   out$spatial_weights = model$spatial_weights
   out$spatial = spatial
+  out$temporal = temporal
   torch$cuda$empty_cache()
   return(out)
 }

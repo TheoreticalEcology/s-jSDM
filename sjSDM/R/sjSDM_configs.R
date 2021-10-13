@@ -57,6 +57,41 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   return(out)
 }
 
+
+#' Temporal model
+#' 
+#' specify the model to be fitted
+#' @param data array of environmental predictors
+#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}
+#' 
+#' @seealso \code{\link{DNN}}, \code{\link{sjSDM}}
+#' @example /inst/examples/sjSDM-example.R
+#' @import checkmate
+#' @export
+temporal = function(data = NULL, lambda = 0.0, alpha = 0.5) {
+  
+  assert(checkArray(data))
+  qassert(lambda, "R1[0,)")
+  qassert(alpha, "R1[0,)")
+  
+  
+  if(lambda == 0.0) {
+    lambda = -99.9
+  }
+  
+  out = list()
+  out$formula = NULL
+  out$X = data
+  out$l1_coef = (1-alpha)*lambda
+  out$l2_coef = alpha*lambda
+  class(out) = "temporal"
+  return(out)
+}
+
+
+
+
 #' Print a linear object
 #' 
 #' @param x object created by \code{\link{linear}}
