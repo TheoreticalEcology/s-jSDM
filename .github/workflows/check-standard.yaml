@@ -23,6 +23,7 @@ jobs:
       matrix:
         config:
           - {os: macOS-latest, r: 'release'}
+          - {os: windows-latest, r: 'release'}
           - {os: ubuntu-20.04, r: 'release', rspm: "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"}
           - {os: ubuntu-20.04, r: 'devel', rspm: "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"}
 
@@ -77,36 +78,22 @@ jobs:
           cd sjSDM
           Rscript -e "remotes::install_local()"
           Rscript -e "remotes::install_github('rstudio/reticulate')"
-          Rscript -e "reticulate::install_miniconda()"
+          Rscript -e "sjSDM::install_sjSDM(version='cpu')"
           
-      - if: runner.os == 'macOS'
-        run: echo "options(reticulate.conda_binary = reticulate:::miniconda_conda())" >> .Rprofile
-        
-      - name: Set conda path
-        if: runner.os != 'Windows'
-        run: |
-          conda_binary = reticulate:::miniconda_conda()
-          export = paste0("echo \"export conda='", conda_binary, "'\" >> ~/.bashrc")
-          system(export)
-          system("source ~/.bashrc")
-        shell: Rscript {0}
-          
-      - name: Install PyTorch
-        env:
-          RETICULATE_AUTOCONFIGURE: true
-        run: |
-          Rscript -e "sjSDM::install_sjSDM()"
-          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='tqdm')"
-          Rscript -e "reticulate::conda_install(envname='r-reticulate', packages='pytest')"
-          Rscript -e "reticulate::conda_install(envname='r-reticulate', package=c('pyro-ppl', 'torch-optimizer'), pip=TRUE)"
-          Rscript -e "try({ sjSDM::install_sjSDM() }, silent = TRUE)"
-          
-      - name: Check
+      - name: Check I
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
           CI: true
         run: |
           rcmdcheck::rcmdcheck("sjSDM", args = c("--no-multiarch", "--no-manual"), error_on = "error", check_dir = "check")
+        shell: Rscript {0}
+        
+      - name: Check I
+        env:
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
+          CI: true
+        run: |
+          rcmdcheck::rcmdcheck("sjSDM", args = c("--no-manual", "--as-cran"), error_on = "error", check_dir = "check")
         shell: Rscript {0}
 
       - name: Upload check results

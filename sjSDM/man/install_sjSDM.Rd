@@ -5,8 +5,7 @@
 \title{Install sjSDM and its dependencies}
 \usage{
 install_sjSDM(method = "conda", conda = "auto", version = c("cpu",
-  "gpu"), envname = "r-reticulate", restart_session = TRUE,
-  cuda = c("10.2", "9,2"), ...)
+  "gpu"), envname = "r-sjsdm", restart_session = TRUE, ...)
 }
 \arguments{
 \item{method}{installation method, auto = automatically best (conda or virtualenv), or force conda with method = "conda" or virtualenv with method = "virtualenv"}
@@ -19,8 +18,6 @@ install_sjSDM(method = "conda", conda = "auto", version = c("cpu",
 
 \item{restart_session}{Restart R session after installing (note this will
 only occur within RStudio).}
-
-\item{cuda}{which cuda version, 9.2 and 10.2 are supported}
 
 \item{...}{not supported}
 }

@@ -2,7 +2,7 @@
 #'
 #' @description fast and accurate joint species model
 #' 
-#' @param Y matrix of species occurences/responses in range [0,1]
+#' @param Y matrix of species occurences/responses in range
 #' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
 #' @param spatial defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}

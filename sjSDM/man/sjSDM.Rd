@@ -10,7 +10,7 @@ sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
   control = sjSDMControl(), device = "cpu", dtype = "float32")
 }
 \arguments{
-\item{Y}{matrix of species occurences/responses in range [0,1]}
+\item{Y}{matrix of species occurences/responses in range}
 
 \item{env}{matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}}
 
