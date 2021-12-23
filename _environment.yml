@@ -5,11 +5,9 @@ channels:
   - defaults
   - pytorch
 dependencies:
-  - pytorch 
-  - torchvision 
-  - torchaudio
   - pip
   - pip:
-    - pyrp-ppl
+    - pyro-ppl
     - madgrad
     - torch_optimizer
+    - torch
