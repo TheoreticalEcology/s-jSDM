@@ -65,6 +65,13 @@ jobs:
           do
             eval sudo $cmd
           done < <(Rscript -e 'writeLines(remotes::system_requirements("ubuntu", "20.04"))')
+          
+      - name: Install miniconda r-sjsdm env # taken from gluonts R package
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: r-sjsdm
+          python-version: 3.7.1
+          environment-file: _environment.yml
 
       - name: Install dependencies
         run: |
