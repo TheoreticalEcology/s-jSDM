@@ -1,4 +1,4 @@
-\donttest{
+\dontrun{
   
 # Basic workflow:
 ## simulate community:

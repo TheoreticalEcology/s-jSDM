@@ -17,7 +17,7 @@ importance(x, save_memory = TRUE, ...)
 importance of abiotic, biotic, and spatial effects
 }
 \examples{
-\donttest{
+\dontrun{
 library(sjSDM)
 com = simulate_SDM(sites = 300L, species = 12L, 
                    link = "identical", response = "identical")

@@ -3,14 +3,11 @@
 \name{getCov}
 \alias{getCov}
 \alias{getCov.sjSDM}
-\alias{getCov.sLVM}
 \title{getCov}
 \usage{
 getCov(object)
 
 \method{getCov}{sjSDM}(object)
-
-\method{getCov}{sLVM}(object)
 }
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}, \code{\link{sLVM}}  or \code{\link{sjSDM}} with \code{\link{DNN}} object}

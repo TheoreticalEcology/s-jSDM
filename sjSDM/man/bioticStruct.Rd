@@ -26,7 +26,7 @@ bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
 define biotic (species-species) assocation (interaction) structur
 }
 \examples{
-\donttest{
+\dontrun{
   
 # Basic workflow:
 ## simulate community:

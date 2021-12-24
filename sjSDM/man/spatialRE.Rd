@@ -13,7 +13,7 @@ spatialRE(re = NULL)
 define spatial random effects (random intercepts for sites)
 }
 \examples{
-\donttest{
+\dontrun{
   
 # Basic workflow:
 ## simulate community:

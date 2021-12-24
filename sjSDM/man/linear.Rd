@@ -19,7 +19,7 @@ linear(data = NULL, formula = NULL, lambda = 0, alpha = 0.5)
 specify the model to be fitted
 }
 \examples{
-\donttest{
+\dontrun{
   
 # Basic workflow:
 ## simulate community:

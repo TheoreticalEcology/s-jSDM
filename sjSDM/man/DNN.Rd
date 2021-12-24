@@ -29,7 +29,7 @@ DNN(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L),
 specify the model to be fitted
 }
 \examples{
-\donttest{
+\dontrun{
   
 # Basic workflow:
 ## simulate community:

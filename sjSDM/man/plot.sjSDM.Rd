@@ -16,7 +16,7 @@ Plotting coeffects return by sjSDM model.
 This function only for model fitted by linear, fitted by DNN is not yet supported.
 }
 \examples{
-\donttest{
+\dontrun{
 library(sjSDM)
 # simulate community:
 com = simulate_SDM(env = 6L, species = 7L, sites = 100L)

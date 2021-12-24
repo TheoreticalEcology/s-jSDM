@@ -16,13 +16,6 @@ getCov.sjSDM = function(object){
 }
 
 
-#' @rdname getCov
-#' @export
-getCov.sLVM= function(object){
-  return(object$covariance+diag(1.0, ncol(object$covariance)))
-}
-
-
 #' Get weights
 #' 
 #' return weights of each layer

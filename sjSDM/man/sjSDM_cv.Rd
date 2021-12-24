@@ -55,7 +55,7 @@ sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
 Cross validation of elastic net tuning
 }
 \examples{
-\donttest{
+\dontrun{
 # simulate sparse community:
 com = simulate_SDM(env = 5L, species = 25L, sites = 100L, sparse = 0.5)
 

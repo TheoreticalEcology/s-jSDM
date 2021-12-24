@@ -64,7 +64,7 @@ If the trouble shooting guide did not help, please create an issue on \href{http
 }
 
 \examples{
-\donttest{
+\dontrun{
   
 # Basic workflow:
 ## simulate community:
