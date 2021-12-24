@@ -158,7 +158,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
       ll_train = logLik.sjSDM(model)
       bs =  as.integer(model$settings$step_size)
       if(bs > nrow(X_test)) bs = 1L
-      ll_test =  mean(sapply(1:20, function(i) model$model$logLik(X_test, Y_test, SP = SP_test, batch_size =bs, sampling=sampling)[[1]] ))
+      ll_test =  mean(sapply(1:20, function(i) force_r( model$model$logLik(X_test, Y_test, SP = SP_test, batch_size =bs, sampling=sampling) )[[1]] ))
       cv_step_result[[i]] = list(indices = test_indices[[i]], 
                                  pars = tune_samples[t,],
                                  pred_test = pred_test,

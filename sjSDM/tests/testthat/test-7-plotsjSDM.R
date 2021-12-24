@@ -1,12 +1,9 @@
-context("plot sjSDM")
-
 source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
                       iter = 1L, step_size = 10L, se=FALSE, family = stats::binomial(), context = "") {
   sjSDM:::check_module()
-  if(torch$cuda$is_available()) device = "gpu"
-  else device = "cpu"
+  device = is_gpu_available()
   testthat::expect_error({model = sjSDM(!!occ, env=!!env, 
                                         spatial = !!spatial, 
                                         biotic = !!biotic,

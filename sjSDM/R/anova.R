@@ -342,11 +342,11 @@ turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, samplin
     
   if(is.null(test)) {
     if(is.null(spatial)) {
-      return(list(ll = mean_func( function() m2$model$logLik(X=m2$data$X,Y=m2$data$Y,individual=individual, sampling= sampling)[[1]] ),  
+      return(list(ll = mean_func( function() force_r( m2$model$logLik(X=m2$data$X,Y=m2$data$Y,individual=individual, sampling= sampling) )[[1]] ),  
                   R=Rsquared(model=m2,averageSite=!individual,...),
                   R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
     } else {
-      return(list(ll = mean_func( function() m2$model$logLik(X=m2$data$X,Y=m2$data$Y, SP=m2$settings$spatial$X,individual=individual, sampling = sampling )[[1]] ),  
+      return(list(ll = mean_func( function() force_r( m2$model$logLik(X=m2$data$X,Y=m2$data$Y, SP=m2$settings$spatial$X,individual=individual, sampling = sampling ) )[[1]] ),  
                   R=Rsquared(model=m2,averageSite=!individual,...),
                   R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
     }
@@ -359,12 +359,12 @@ turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, samplin
       
       m2$spatial$X = test_sp
       
-      return(list(ll= mean_func( function() m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE], SP=test_sp,individual=individual, sampling = sampling )[[1]] ), 
+      return(list(ll= mean_func( function() force_r( m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE], SP=test_sp,individual=individual, sampling = sampling ) )[[1]] ), 
                   R=Rsquared(model=m2,averageSite=!individual,...), 
                   R2 = Rsquared2(model=m2,individual=individual,...)$marginal ))
     } else {
 
-      return(list(ll= mean_func( function() m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE],individual=individual, sampling = sampling)[[1]] ), 
+      return(list(ll= mean_func( function() force_r( m2$model$logLik(X=test_env,Y=model$data$Y[test,,drop=FALSE],individual=individual, sampling = sampling) )[[1]] ), 
                   R=Rsquared(m2,averageSite=!individual,...), 
                   R2 = Rsquared2(model=m2,individual=individual,...)$marginal))      
       
@@ -372,5 +372,4 @@ turnOn = function(model, modules = c("AB"), test= NULL,individual=FALSE, samplin
     }
   }
 }
-
 

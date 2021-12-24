@@ -1,13 +1,9 @@
-context("sjSDM anova")
-
 source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
                       iter = 1L, step_size = 10L, se=FALSE, family = stats::binomial(), context = "") {
-    
     sjSDM:::check_module()
-    if(torch$cuda$is_available()) device = "gpu"
-    else device = "cpu"
+    device = is_gpu_available()
     testthat::expect_error({model = sjSDM(!!occ, env=!!env, 
                                           spatial = !!spatial, 
                                           biotic = !!biotic,
@@ -15,11 +11,10 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           step_size = !!step_size,
                                           se = !!se,
                                           family = !!family,
-                                          device = device,
-                                          sampling = 10L)}, NA)
-    testthat::expect_false(any(is.na(model$history)))
-    testthat::expect_error({res = anova(model, cv = 2L)}, NA)
-    testthat::expect_error({plot(res)}, NA)
+                                          device=device,
+                                          sampling=10L)}, NA)
+    testthat::expect_error({imp = importance(model)}, NA)
+    testthat::expect_error({plot(imp)}, NA)
 }
 
 # 
@@ -34,12 +29,13 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
   
   # iter, batch_size, se, link
+  # iter, batch_size, se, link
   Funcs = list(
-    list(2, 2, FALSE, binomial("logit")),
-    list(2, 23, FALSE, poisson()),
-    list(2, 40, FALSE, gaussian())
+    list(5, 2, FALSE, binomial("logit")),
+    list(5, 23, FALSE, poisson()),
+    list(5, 40, FALSE, gaussian())
   )
-  testthat::test_that("sjSDM anova Func", {
+  testthat::test_that("sjSDM importance Func", {
     testthat::skip_on_cran()
     testthat::skip_on_ci()
     skip_if_no_torch()
@@ -53,7 +49,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     bioticStruct(4L),
     bioticStruct(4L, lambda = 0.1, alpha = 1.0)
   )
-  testthat::test_that("sjSDM anova Biotic", {
+  testthat::test_that("sjSDM importance Biotic", {
     testthat::skip_on_cran()
     testthat::skip_on_ci()
     skip_if_no_torch()
@@ -67,7 +63,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     linear(X1, ~0+X1:X2),
     linear(X1, lambda = 0.1)
   )
-  testthat::test_that("sjSDM anova env", {
+  testthat::test_that("sjSDM importance env", {
     testthat::skip_on_cran()
     testthat::skip_on_ci()
     skip_if_no_torch()
@@ -77,38 +73,13 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   })
   
   
-  spatial = list(
-    linear(data.frame(matrix(rnorm(100), 50 , 2)), ~0+X1:X2)
-  )
-  testthat::test_that("sjSDM anova env", {
-    testthat::skip_on_cran()
-    testthat::skip_on_ci()
-    skip_if_no_torch()
-    for(i in 1:length(spatial)) {
-      test_model(Y1, env = linear(X1), spatial = spatial[[1]])
-    }
-  })
-  
-  
-  DNN = list(
-    DNN(X1, hidden = c(3,3,3),lambda = 0.1, alpha=1.0)
-  )
-  testthat::test_that("sjSDM anova DNN", {
-    testthat::skip_on_cran()
-    testthat::skip_on_ci()
-    skip_if_no_torch()
-    for(i in 1:length(DNN)) {
-      test_model(Y1, env = DNN[[i]])
-    }
-  })
   
   SP = matrix(rnorm(100), 50, 2)
   Spatial = list(
     linear(SP, ~0+X1:X2),
-    linear(SP, lambda = 0.1, alpha=0.0),
-    DNN(SP, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
+    linear(SP, lambda = 0.1, alpha=0.0)
   )
-  testthat::test_that("sjSDM anova Spatial", {
+  testthat::test_that("sjSDM importance Spatial", {
     testthat::skip_on_cran()
     testthat::skip_on_ci()
     skip_if_no_torch()
@@ -119,15 +90,13 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   
   
   Spatial = list(
-    linear(SP, ~0+.),
-    DNN(SP, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
+    linear(SP, ~0+.)
   )
   
   Env = list(
-    linear(X1, lambda = 0.1, alpha=0.5),
-    DNN(X1, hidden = c(4,3,6),lambda = 0.1, alpha=0.0)
+    linear(X1, lambda = 0.1, alpha=0.5)
   )
-  testthat::test_that("sjSDM anova Mix", {
+  testthat::test_that("sjSDM importance Mix", {
     testthat::skip_on_cran()
     testthat::skip_on_ci()
     skip_if_no_torch()

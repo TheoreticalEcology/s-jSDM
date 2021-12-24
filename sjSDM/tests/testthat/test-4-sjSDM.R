@@ -1,5 +1,3 @@
-context("sjSDM")
-
 source("utils.R")
 
 test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(), 
@@ -8,8 +6,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                       control = sjSDMControl(),
                       context = "") {
     sjSDM:::check_module()
-    if(torch$cuda$is_available()) device = "gpu"
-    else device = "cpu"
+    device = is_gpu_available()
     testthat::expect_error({model = sjSDM(!!occ, env=!!env, 
                                           spatial = !!spatial, 
                                           biotic = !!biotic,
@@ -213,8 +210,7 @@ testthat::test_that("sjSDM reload model", {
   testthat::skip_on_ci()
   skip_if_no_torch()
   sjSDM:::check_module()
-  if(torch$cuda$is_available()) device = "gpu"
-  else device = "cpu"
+  device = is_gpu_available()
   
   com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
   model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L, device=device)
@@ -253,8 +249,8 @@ testthat::test_that("sjSDM reload model", {
   testthat::expect_error(predict(model2), NA)
   testthat::expect_error(predict(model2, newdata = com$env_weights, SP = SP), NA)
   model2 = sjSDM:::checkModel(model2)
-  dims1 = lapply(model2$model$env_weights, dim)
-  dims2 = lapply(model$model$env_weights, dim)
+  dims1 = lapply(sjSDM:::force_r(model2$model$env_weights), dim)
+  dims2 = lapply(sjSDM:::force_r(model$model$env_weights ), dim)
   testthat::expect_equal(dims1, dims2, info = "dimensions of saved model does not match")
   file.remove("test_model.RDS")
 })

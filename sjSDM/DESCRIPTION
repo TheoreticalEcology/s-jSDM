@@ -44,3 +44,5 @@ URL: https://theoreticalecology.github.io/s-jSDM/
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
 Roxygen: list(old_usage = TRUE)
 VignetteBuilder: knitr
+Config/testthat/parallel: true
+Config/testthat/edition: 3

@@ -168,16 +168,16 @@ sjSDM = function(Y = NULL,
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
                                   early_stopping_training=control$early_stopping_training)})[3]
-    out$logLik = model$logLik(env$X, Y,batch_size = step_size,parallel = parallel)
-    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, batch_size = step_size, parallel = parallel),along=0L)) })
+    out$logLik = force_r( model$logLik(env$X, Y,batch_size = step_size,parallel = parallel) )
+    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(env$X, Y, batch_size = step_size, parallel = parallel)),along=0L)) })
   
   } else {
     time = system.time({model$fit(env$X, Y=Y,SP=spatial$X, batch_size = step_size, 
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
                                   early_stopping_training=control$early_stopping_training)})[3]
-    out$logLik = model$logLik(env$X, Y, SP=spatial$X, batch_size = step_size,parallel = parallel)
-    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(model$se(env$X, Y, SP=spatial$X,batch_size = step_size, parallel = parallel),along=0L)) })
+    out$logLik = force_r( model$logLik(env$X, Y, SP=spatial$X, batch_size = step_size,parallel = parallel) )
+    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(env$X, Y, SP=spatial$X,batch_size = step_size, parallel = parallel)),along=0L)) })
     
   }
 
@@ -199,12 +199,12 @@ sjSDM = function(Y = NULL,
   out$time = time
   out$data = list(X = env$X, Y = Y)
   out$sessionInfo = utils::sessionInfo()
-  out$weights = model$env_weights
-  out$sigma = model$get_sigma
-  out$history = model$history
-  out$spatial_weights = model$spatial_weights
+  out$weights = force_r(model$env_weights)
+  out$sigma = force_r(model$get_sigma)
+  out$history = force_r(model$history)
+  out$spatial_weights = force_r(model$spatial_weights)
   out$spatial = spatial
-  torch$cuda$empty_cache()
+  .n = torch$cuda$empty_cache()
   return(out)
 }
 
@@ -247,7 +247,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
     
     
     if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link, dropout = dropout, ...))
+      return(force_r( object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link, dropout = dropout, ...)))
     } else {
       
       if(is.data.frame(newdata)) {
@@ -263,14 +263,14 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
       }
       
     }
-    pred = object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, ...)
+    pred = force_r(object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, ...))
     return(pred)
     
     
   } else {
     
     if(is.null(newdata)) {
-      return(object$model$predict(newdata = object$data$X, link=link))
+      return(force_r(object$model$predict(newdata = object$data$X, link=link)))
     } else {
       if(is.data.frame(newdata)) {
         newdata = stats::model.matrix(object$formula, newdata)
@@ -278,7 +278,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
         newdata = stats::model.matrix(object$formula, data.frame(newdata))
       }
     }
-    pred = object$model$predict(newdata = newdata, link=link, dropout = dropout, ...)
+    pred = force_r(object$model$predict(newdata = newdata, link=link, dropout = dropout, ...))
     return(pred)
     
   }
@@ -310,8 +310,8 @@ getSe = function(object, step_size = NULL, parallel = 0L){
   object = checkModel(object)
   if(is.null(step_size)) step_size = object$settings$step_size
   else step_size = as.integer(step_size)
-  if(!inherits(object, "spatialRE")) try({ object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel),along=0L)) })
-  else try({ object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, object$spatial$re, batch_size = step_size, parallel = parallel),along=0L)) })
+  if(!inherits(object, "spatialRE")) try({ object$se = t(abind::abind(force_r(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel)),along=0L)) })
+  else try({ object$se = t(abind::abind(force_r(object$model$se(object$data$X, object$data$Y, object$spatial$re, batch_size = step_size, parallel = parallel)),along=0L)) })
   return(object)
 }
 

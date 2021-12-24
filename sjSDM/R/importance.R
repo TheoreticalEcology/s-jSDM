@@ -62,13 +62,13 @@ importance = function(x, save_memory = TRUE, ...) {
       sp = t(coef.sjSDM(model)[[2]][[1]])
       covSP = stats::cov(model$settings$spatial$X)
       
-      vp = fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...)
+      vp = force_r( fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...) )
       colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), spatial = rowSums(vp$spatial), biotic = vp$biotic))
     } else {
-      vp = fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...)
+      vp = force_r( fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...) )
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), biotic = vp$biotic))

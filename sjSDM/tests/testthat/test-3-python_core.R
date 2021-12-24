@@ -1,5 +1,3 @@
-context("python core")
-
 source("utils.R")
 
 testthat::test_that("sjSDM python core", {

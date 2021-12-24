@@ -1,5 +1,3 @@
-context("sjSDM_cv")
-
 source("utils.R")
 
 testthat::test_that("sjSDM_cv", {
@@ -14,8 +12,7 @@ testthat::test_that("sjSDM_cv", {
   Y1 = sim$response
   
   sjSDM:::check_module()
-  if(torch$cuda$is_available()) device = "gpu"
-  else device = "cpu"
+  device = is_gpu_available()
   
   testthat::expect_error(sjSDM_cv(Y1, X1, iter = 1L, CV = 2L, tune_steps = 3L, device=device, sampling=10L), NA)
   testthat::expect_error(sjSDM_cv(Y1, X1, iter = 1L, CV = 2L, tune_steps = 3L, lambda_coef = 0.0, device=device, sampling=10L), NA)

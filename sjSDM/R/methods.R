@@ -11,7 +11,7 @@ getCov = function(object) UseMethod("getCov")
 #' @export
 getCov.sjSDM = function(object){
   object = checkModel(object)
-  return(object$model$covariance)
+  return(force_r(object$model$covariance))
   #return(object$sigma %*% t(object$sigma))
 }
 
@@ -40,7 +40,9 @@ getWeights = function(object) UseMethod("getWeights")
 #' @rdname getWeights
 #' @export
 getWeights.sjSDM= function(object) {
-  return(list(env=object$model$env_weights, spatial=object$model$spatial_weights, sigma = object$model$get_sigma))
+  return(list(env=force_r(object$model$env_weights), 
+              spatial=force_r(object$model$spatial_weights), 
+              sigma = force_r(object$model$get_sigma)))
 }
 
 

@@ -104,11 +104,11 @@ parse_nn = function(nn) {
   for(i in 1:length(layers)) {
     type = strsplit(class(slices[[i]]), ".", fixed = TRUE)[[1]]
     
-    if(layers[i] == "Linear") {
-      wM[i, 1] = slices[[i]]$in_features
-      wM[i, 2] = slices[[i]]$out_features
+    if(layers[i] %in% "Linear") {
+      wM[i, 1] = force_r( slices[[i]]$in_features )
+      wM[i, 2] = force_r( slices[[i]]$out_features )
       txt = paste0(txt, paste0("Layer_", i),":",
-                   "\t (", slices[[i]]$in_features, ", ",slices[[i]]$out_features, ")\n"
+                   "\t (", force_r( slices[[i]]$in_features ), ", ",force_r( slices[[i]]$out_features ), ")\n"
                    )
     } else {
       txt = paste0(txt, paste0("Layer_", i),":",
@@ -171,4 +171,9 @@ generateSpatialEV = function(coords = NULL, threshold = 0.0) {
   SV = eigV$vectors[, values>0]
   colnames(SV) = paste0("SE_", 1:ncol(SV))
   return(SV)
+}
+
+force_r = function(x) {
+  if(inherits(x, "python.builtin.object")) return(reticulate::py_to_r( x ))
+  else return(x)
 }
