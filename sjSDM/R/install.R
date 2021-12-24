@@ -96,11 +96,11 @@ get_pkgs = function(version="cpu") {
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision torchaudio cpuonly -c pytorch",
-             gpu = "pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch")
+             cpu = "pytorch torchvision torchaudio cpuonly",
+             gpu = "pytorch torchvision torchaudio cudatoolkit=11.3")
    }
 
-  if(is_osx() || is_unix()) {
+  if(is_osx()) {
     package = list()
     package$conda = "torch torchvision torchaudio"
     if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
