@@ -24,7 +24,7 @@ install_sjSDM = function(method = "conda",
   }
   
   # get python dependencies
-  pkgs = get_pkgs()
+  pkgs = get_pkgs(version = version)
   
   # torch will be installed via pip on macOS because of mkl dependencies
   pip = FALSE

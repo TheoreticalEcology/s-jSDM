@@ -9,7 +9,7 @@ check_installation = function() {
 }
 
 .onLoad = function(libname, pkgname){
-  msg( text_col( cli::rule(left = "Attaching sjSDM", right = packageVersion("sjSDM")) ), startup = TRUE)
+  msg( text_col( cli::rule(left = "Attaching sjSDM", right = utils::packageVersion("sjSDM")) ), startup = TRUE)
   
   # causes problems on macOS systems
   if( is_osx() ) Sys.setenv( KMP_DUPLICATE_LIB_OK=TRUE ) 
