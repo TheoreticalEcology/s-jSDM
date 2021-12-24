@@ -96,8 +96,8 @@ get_pkgs = function(version="cpu") {
     package = list()
     package$conda =
       switch(version,
-             cpu = "pytorch torchvision torchaudio cpuonly",
-             gpu = "pytorch torchvision torchaudio cudatoolkit=11.3")
+             cpu = "pytorch torchvision torchaudio cpuonly -c pytorch",
+             gpu = "pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch")
    }
 
   if(is_osx() || is_unix()) {
