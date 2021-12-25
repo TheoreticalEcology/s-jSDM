@@ -1,6 +1,8 @@
 # For help debugging build failures open an issue on the RStudio community with the 'github-actions' tag.
 # https://community.rstudio.com/new-topic?category=Package%20development&tags=github-actions
 on:
+  schedule:
+  - cron: '0 0 1 * *'
   push:
     branches:
       - main
@@ -44,9 +46,8 @@ jobs:
       - name: Query dependencies
         run: |
           setwd("sjSDM")
-          install.packages('remotes')
-          saveRDS(remotes::dev_package_deps(dependencies = TRUE), "../.github/depends.Rds", version = 2)
-          writeLines(sprintf("R-%i.%i", getRversion()$major, getRversion()$minor), "../.github/R-version")
+          install.packages("pak", repos = "https://r-lib.github.io/p/pak/dev/")
+          saveRDS(pak::pkg_deps("local::.", dependencies = TRUE), ".github/r-depends.rds")
         shell: Rscript {0}
 
       - name: Cache R packages
@@ -54,22 +55,20 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-${{ hashFiles('.github/depends.Rds') }}
-          restore-keys: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-
+          key: ${{ matrix.config.os }}-${{ steps.install-r.outputs.installed-r-version }}-1-${{ hashFiles('.github/r-depends.rds') }}
+          restore-keys: ${{ matrix.config.os }}-${{ steps.install-r.outputs.installed-r-version }}-1-
+
+      - name: Install curl vor r-devel version
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y curl
 
       - name: Install system dependencies
         if: runner.os == 'Linux'
         run: |
           cd sjSDM
-          while read -r cmd
-          do
-            eval sudo $cmd
-          done < <(Rscript -e 'writeLines(remotes::system_requirements("ubuntu", "20.04"))')
-          
-      - name: Install curl vor r-devel version
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y curl
+          pak::local_system_requirements(execute = TRUE)
+          pak::pkg_system_requirements("rcmdcheck", execute = TRUE)
           
       - name: Install miniconda r-sjsdm env # taken from gluonts R package
         uses: conda-incubator/setup-miniconda@v2
@@ -81,15 +80,15 @@ jobs:
       - name: Install dependencies
         run: |
           setwd("sjSDM")
-          remotes::install_deps(dependencies = TRUE)
-          remotes::install_cran("rcmdcheck")
+          pak::local_install_dev_deps(upgrade = TRUE)
+          pak::pkg_install("rcmdcheck")
         shell: Rscript {0}
         
       - name: Install Pkg
         run: |
           cd sjSDM
-          Rscript -e "remotes::install_local()"
-          Rscript -e "remotes::install_github('rstudio/reticulate')"
+          Rscript -e "pak::local_install()"
+          Rscript -e "pak::pkg_install('rstudio/reticulate')"
           Rscript -e "sjSDM::install_sjSDM(version='cpu')"
           
       - name: Check I
@@ -97,6 +96,7 @@ jobs:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
           CI: true
         run: |
+          options(crayon.enabled = TRUE)
           rcmdcheck::rcmdcheck("sjSDM", args = c("--no-multiarch", "--no-manual"), error_on = "error", check_dir = "check")
         shell: Rscript {0}
         
@@ -105,6 +105,7 @@ jobs:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
           CI: true
         run: |
+          options(crayon.enabled = TRUE)
           rcmdcheck::rcmdcheck("sjSDM", args = c("--no-manual", "--as-cran"), error_on = "error", check_dir = "check")
         shell: Rscript {0}
         
