@@ -66,9 +66,10 @@ jobs:
       - name: Install system dependencies
         if: runner.os == 'Linux'
         run: |
-          cd sjSDM
+          setwd("sjSDM")
           pak::local_system_requirements(execute = TRUE)
           pak::pkg_system_requirements("rcmdcheck", execute = TRUE)
+        shell: Rscript {0}
           
       - name: Install miniconda r-sjsdm env # taken from gluonts R package
         uses: conda-incubator/setup-miniconda@v2
