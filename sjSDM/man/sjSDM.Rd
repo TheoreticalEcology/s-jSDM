@@ -28,7 +28,7 @@ sjSDM(Y = NULL, env = NULL, biotic = bioticStruct(), spatial = NULL,
 
 \item{se}{calculate standard errors for environmental coefficients}
 
-\item{sampling}{number of sampling steps for Monte Carlo integreation}
+\item{sampling}{number of sampling steps for Monte Carlo integration}
 
 \item{parallel}{number of cpu cores for the data loader, only necessary for large datasets}
 

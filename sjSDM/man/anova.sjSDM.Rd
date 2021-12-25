@@ -13,7 +13,7 @@
 
 \item{individual}{compute analysis of variance on species and site level}
 
-\item{sampling}{number of sampling steps for Monte Carlo integreation}
+\item{sampling}{number of sampling steps for Monte Carlo integration}
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }

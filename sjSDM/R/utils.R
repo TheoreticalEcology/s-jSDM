@@ -14,17 +14,6 @@ is_torch_available = function() {
   }
 }
 
-#' is_sjSDM_py_available
-#' check whetcher torch is available
-is_sjSDM_py_available = function() {
-  #implementation_module <- resolve_implementation_module()
-  if (reticulate::py_module_available("sjSDM_py")) {
-    TRUE
-  } else {
-    FALSE
-  }
-}
-
 createSplit = function(n=NULL,CV=5) {
   set = cut(sample.int(n), breaks = CV, labels = FALSE)
   test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
@@ -122,20 +111,6 @@ parse_nn = function(nn) {
   return(txt)
 }
 
-
-serialize_state = function(model) {
-  tmp = tempfile(pattern = "svi state")
-  on.exit(unlink(tmp), add = TRUE)
-  model$pyro$get_param_store()$save(tmp)
-  return(readBin(tmp, what = "raw", n = file.size(tmp), size=1))
-}
-
-unserialize_state = function(model, state) {
-  tmp = tempfile(pattern = "svi state")
-  on.exit(unlink(tmp), add = TRUE)
-  writeBin(state, tmp)
-  model$model$pyro$get_param_store()$load(tmp)
-}
 
 
 #' Generate spatial eigenvectors

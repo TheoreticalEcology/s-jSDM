@@ -1,6 +1,6 @@
-#' Coeffect plot
+#' Coefficients plot
 #' 
-#' Plotting coeffects return by sjSDM model.
+#' Plotting coefficients returned by sjSDM model.
 #' This function only for model fitted by linear, fitted by DNN is not yet supported.
 #' 
 #' @param x a model fitted by \code{\link{sjSDM}} 
@@ -16,9 +16,9 @@ plot.sjSDM = function(x, ...) {
   plotsjSDMcoef(x, ...)
 }
 
-#' Coeffect plot
+#' Coefficients plot
 #' 
-#' Plotting coeffects return by sjSDM model.
+#' Plotting coefficients returned by sjSDM model.
 #' This function only for model fitted by linear, fitted by DNN is not yet supported.
 #' 
 #' @import tidyr
@@ -248,7 +248,7 @@ add_species_arrows = function(radius = 5.0, label = "Species", reverse = TRUE, s
 #' @param main title
 #' @param circleBreak circle break or not
 #' @param top top negative and positive associations
-#' @param occ species occurence data
+#' @param occ species occurrence data
 #' @param cols_association col gradient for association lines
 #' @param cols_occurrence col gradient for species 
 #' @param lwd_occurrence lwd for occurrence lines

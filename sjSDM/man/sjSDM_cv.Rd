@@ -45,9 +45,9 @@ sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
 
 \item{n_gpu}{number of gpus}
 
-\item{sampling}{number of sampling steps for Monte Carlo integreation}
+\item{sampling}{number of sampling steps for Monte Carlo integration}
 
-\item{blocks}{blocks of parallen tuning steps}
+\item{blocks}{blocks of parallel tuning steps}
 
 \item{...}{arguments passed to sjSDM, see \code{\link{sjSDM}}}
 }

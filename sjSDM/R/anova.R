@@ -5,7 +5,7 @@
 #' @param object model of object \code{\link{sjSDM}}
 #' @param cv number of cross-validation splits
 #' @param individual compute analysis of variance on species and site level
-#' @param sampling number of sampling steps for Monte Carlo integreation
+#' @param sampling number of sampling steps for Monte Carlo integration
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #'  
 #' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}

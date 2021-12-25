@@ -299,3 +299,18 @@ plot.sLVM = function(x, ...) {
   text(lvs[,1], lvs[,2], labels = as.character(1:nrow(lvs)))
 }
 
+
+
+serialize_state = function(model) {
+  tmp = tempfile(pattern = "svi state")
+  on.exit(unlink(tmp), add = TRUE)
+  model$pyro$get_param_store()$save(tmp)
+  return(readBin(tmp, what = "raw", n = file.size(tmp), size=1))
+}
+
+unserialize_state = function(model, state) {
+  tmp = tempfile(pattern = "svi state")
+  on.exit(unlink(tmp), add = TRUE)
+  writeBin(state, tmp)
+  model$model$pyro$get_param_store()$load(tmp)
+}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{plotsjSDMcoef}
 \alias{plotsjSDMcoef}
-\title{Coeffect plot}
+\title{Coefficients plot}
 \usage{
 plotsjSDMcoef(object, wrap_col = NULL, group = NULL, col = NULL, slist = NULL)
 }
@@ -18,7 +18,7 @@ plotsjSDMcoef(object, wrap_col = NULL, group = NULL, col = NULL, slist = NULL)
 \item{slist}{Select the species you want to plot, default is all, parameter is not supported yet.}
 }
 \description{
-Plotting coeffects return by sjSDM model.
+Plotting coefficients returned by sjSDM model.
 This function only for model fitted by linear, fitted by DNN is not yet supported.
 }
 \examples{

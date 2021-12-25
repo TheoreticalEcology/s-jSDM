@@ -20,7 +20,7 @@ Rsquared2(model, X = NULL, Y = NULL, SP = NULL, individual = TRUE, ...)
 \item{...}{additional parameters}
 }
 \description{
-claculate Rsquared following Nakagawa
+calculate Rsquared following Nakagawa
 }
 \author{
 Maximilian Pichler

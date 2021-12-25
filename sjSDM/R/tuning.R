@@ -16,8 +16,8 @@
 #' @param device device, default cpu
 #' @param n_cores number of cores for parallelization 
 #' @param n_gpu number of gpus
-#' @param sampling number of sampling steps for Monte Carlo integreation
-#' @param blocks blocks of parallen tuning steps
+#' @param sampling number of sampling steps for Monte Carlo integration
+#' @param blocks blocks of parallel tuning steps
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}
 #' 
 #' @example /inst/examples/sjSDM_cv-example.R

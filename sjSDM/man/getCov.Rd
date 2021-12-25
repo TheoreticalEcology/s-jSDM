@@ -10,10 +10,10 @@ getCov(object)
 \method{getCov}{sjSDM}(object)
 }
 \arguments{
-\item{object}{a model fitted by \code{\link{sjSDM}}, \code{\link{sLVM}}  or \code{\link{sjSDM}} with \code{\link{DNN}} object}
+\item{object}{a model fitted by \code{\link{sjSDM}}, or \code{\link{sjSDM}} with \code{\link{DNN}} object}
 }
 \description{
-get species-species assocation (covariance) matrix
+get species-species association (covariance) matrix
 }
 \seealso{
 \code{\link{sjSDM}},\code{\link{DNN}}

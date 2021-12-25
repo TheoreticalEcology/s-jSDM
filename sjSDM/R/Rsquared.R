@@ -1,6 +1,6 @@
 #' Rsquared2
 #' 
-#' claculate Rsquared following Nakagawa 
+#' calculate Rsquared following Nakagawa 
 #' @param model model
 #' @param X new environmental covariates
 #' @param Y new species occurences
@@ -36,10 +36,10 @@ Rsquared2 = function(model, X = NULL, Y = NULL, SP = NULL,individual=TRUE,...) {
 
 #' Rsquared
 #' 
-#' claculate Rsquared following Nakagawa 
+#' calculate Rsquared following Nakagawa 
 #' @param model model
 #' @param X new environmental covariates
-#' @param Y new species occurences
+#' @param Y new species occurrences
 #' @param SP new spatial covariates
 #' @param adjust adjust R squared or not
 #' @param averageSP average R squared over species

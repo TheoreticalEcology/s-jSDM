@@ -48,7 +48,7 @@ install_sjSDM(method = "gpu")
 ```
 
 
-More details on and trouble-shooting for installing the neccessary dependencies is explained in the vignette dependencies, call 
+More details on and trouble-shooting for installing the necessary dependencies is explained in the vignette dependencies, call 
 
 ```{r,eval = F}
 vignette("Dependencies", package = "sjSDM")
@@ -74,7 +74,7 @@ com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 
 # Fitting a model
 
-The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrices. 
+The model is then fit with the function sjSDM(). You have to provide predictors (can be also a data.frame) and response as matrices. 
 
 ```{r,eval=FALSE}
 model = sjSDM(Y = com$response, env = com$env_weights, iter = 100L, se=TRUE)
@@ -153,7 +153,7 @@ summary(model)
 
 # Further analyses
 ## Anova
-Analysis of variance for the two/three different compenents (environment, biotic associations, and space (optional)). sjSDM supports cross-validation in the anova to correct for the complexity of the model, which is somehow difficult to estimate:
+Analysis of variance for the two/three different components (environment, biotic associations, and space (optional)). sjSDM supports cross-validation in the anova to correct for the complexity of the model, which is somehow difficult to estimate:
 ```{r,eval=FALSE}
 an = anova(model, cv = FALSE)
 plot(an)
@@ -254,7 +254,7 @@ summary(model)
 
 # Fitting other distributions (e.g. species frequencies)
 sjSDM supports other responses than presence-absence data:
-Simulate non-prescence-absence data:
+Simulate non-presence-absence data:
 ```{r,eval=FALSE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L,link = "identical", response = "count") # samples from a Poisson distribution
 X = com$env_weights

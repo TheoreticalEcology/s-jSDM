@@ -10,7 +10,7 @@ bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
 \arguments{
 \item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}}
 
-\item{lambda}{lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
+\item{lambda}{lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
 
 \item{alpha}{weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}}
 
@@ -20,10 +20,10 @@ bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
 
 \item{inverse}{regularization on the inverse covariance matrix}
 
-\item{diag}{use diagonal marix with zeros (internal usage)}
+\item{diag}{use diagonal matrix with zeros (internal usage)}
 }
 \description{
-define biotic (species-species) assocation (interaction) structur
+define biotic (species-species) association (interaction) structure
 }
 \examples{
 \dontrun{

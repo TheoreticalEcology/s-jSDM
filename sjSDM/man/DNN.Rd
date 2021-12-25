@@ -2,7 +2,7 @@
 % Please edit documentation in R/sjSDM_configs.R
 \name{DNN}
 \alias{DNN}
-\title{Non-linear nodel (deep neural network) of environmental responses}
+\title{Non-linear model (deep neural network) of environmental responses}
 \usage{
 DNN(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L),
   activation = "relu", bias = TRUE, lambda = 0, alpha = 0.5,

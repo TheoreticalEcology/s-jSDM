@@ -3,7 +3,7 @@
 #' specify the model to be fitted
 #' @param data matrix of environmental predictors
 #' @param formula formula object for predictors
-#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}
 #' 
 #' @seealso \code{\link{DNN}}, \code{\link{sjSDM}}
@@ -67,7 +67,7 @@ print.linear = function(x, ...) {
 }
 
 
-#' Non-linear nodel (deep neural network) of environmental responses
+#' Non-linear model (deep neural network) of environmental responses
 #' 
 #' specify the model to be fitted
 #' @param data matrix of environmental predictors
@@ -149,14 +149,14 @@ print.DNN = function(x, ...) {
 
 #' biotic structure
 #' 
-#' define biotic (species-species) assocation (interaction) structur
+#' define biotic (species-species) association (interaction) structure
 #' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}
-#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}
 #' @param on_diag regularization on diagonals 
 #' @param reg_on_Cov regularization on covariance matrix 
 #' @param inverse regularization on the inverse covariance matrix
-#' @param diag use diagonal marix with zeros (internal usage)
+#' @param diag use diagonal matrix with zeros (internal usage)
 #' 
 #' @seealso \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R

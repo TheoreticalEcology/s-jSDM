@@ -11,7 +11,7 @@ linear(data = NULL, formula = NULL, lambda = 0, alpha = 0.5)
 
 \item{formula}{formula object for predictors}
 
-\item{lambda}{lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
+\item{lambda}{lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
 
 \item{alpha}{weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}}
 }

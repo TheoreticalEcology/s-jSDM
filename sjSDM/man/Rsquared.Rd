@@ -12,7 +12,7 @@ Rsquared(model, X = NULL, Y = NULL, SP = NULL, adjust = FALSE,
 
 \item{X}{new environmental covariates}
 
-\item{Y}{new species occurences}
+\item{Y}{new species occurrences}
 
 \item{SP}{new spatial covariates}
 
@@ -23,7 +23,7 @@ Rsquared(model, X = NULL, Y = NULL, SP = NULL, adjust = FALSE,
 \item{averageSite}{average R squared over sites}
 }
 \description{
-claculate Rsquared following Nakagawa
+calculate Rsquared following Nakagawa
 }
 \author{
 Maximilian Pichler

@@ -22,7 +22,7 @@ plotAssociations(sigma, radius = 5, main = NULL, circleBreak = FALSE,
 
 \item{top}{top negative and positive associations}
 
-\item{occ}{species occurence data}
+\item{occ}{species occurrence data}
 
 \item{cols_association}{col gradient for association lines}
 
