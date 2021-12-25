@@ -42,10 +42,10 @@ checkModel = function(object) {
     object$model$set_sigma(reticulate::r_to_py(object$sigma)$copy())
   }
   
-  if(inherits(object, "sLVM")) {
-    unserialize_state(object, object$state)
-    object$model$set_posterior_samples(lapply(object$posterior_samples, function(p) torch$tensor(p, dtype=object$model$dtype, device=object$model$device)))
-  }
+  # if(inherits(object, "sLVM")) {
+  #   unserialize_state(object, object$state)
+  #   object$model$set_posterior_samples(lapply(object$posterior_samples, function(p) torch$tensor(p, dtype=object$model$dtype, device=object$model$device)))
+  # }
   return(object)
 }
 

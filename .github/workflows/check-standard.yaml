@@ -102,6 +102,11 @@ jobs:
           rcmdcheck::rcmdcheck("sjSDM", args = c("--no-multiarch", "--no-manual"), error_on = "error", check_dir = "check")
         shell: Rscript {0}
         
+      - name: testthat output
+        if: always()
+        run: find check -name 'testthat.Rout*' -exec cat '{}' \; || true
+        shell: bash
+        
       - name: Check II
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
@@ -111,11 +116,6 @@ jobs:
           rcmdcheck::rcmdcheck("sjSDM", args = c("--no-manual", "--as-cran"), error_on = "error", check_dir = "check")
         shell: Rscript {0}
         
-      - name: testthat output
-        if: always()
-        run: find check -name 'testthat.Rout*' -exec cat '{}' \; || true
-        shell: bash
-
       - name: Upload check results
         if: failure()
         uses: actions/upload-artifact@main

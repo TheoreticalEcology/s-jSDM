@@ -28,7 +28,7 @@ check_installation = function() {
   modules_available = any(check[,2] == "0")
   if(!modules_available) {
     # load torch
-    torch <<- reticulate::import("torch", delay_load = TRUE, convert = FALSE )  
+    torch <<- reticulate::import("torch", delay_load = list(environment = "r-torch"), convert = FALSE )  
     
     # 'compile' and load sjSDM python package
     path = system.file("python", package = "sjSDM")
@@ -36,7 +36,7 @@ check_installation = function() {
       compile = reticulate::import("compileall", delay_load = TRUE)
       tmp = compile$compile_dir(paste0(path, "/sjSDM_py"),quiet = 2L,force=TRUE)
     }, silent = TRUE)
-    fa <<- reticulate::import_from_path("sjSDM_py", path, delay_load = TRUE, convert = FALSE)
+    fa <<- reticulate::import_from_path("sjSDM_py", path, delay_load = list(environment = "r-fa"), convert = FALSE)
     check= cbind(check, crayon::black( c(torch$`__version__`, rep("", 3))))
   } 
   

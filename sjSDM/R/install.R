@@ -1,21 +1,20 @@
 #' Install sjSDM and its dependencies
 #'
-#' @param method installation method, auto = automatically best (conda or virtualenv), or force conda with method = "conda" or virtualenv with method = "virtualenv"
 #' @param conda path to conda
-#' @param version version = "cpu" for CPU version, or "gpu" for gpu version. (note MacOS users have to install cuda binaries by themselves)
-#' @param envname Name of python env, "r-pytorch" is default
+#' @param version version = "cpu" for CPU version, or "gpu" for gpu version. (note MacOS users have to install 'cuda' binaries by themselves)
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
 #' @param ... not supported
 #'
 #' @export
-install_sjSDM = function(method = "conda",
-                         conda = "auto",
+install_sjSDM = function(conda = "auto",
                          version = c("cpu", "gpu"),
-                         envname = "r-sjsdm",
                          restart_session = TRUE, ...) {
   
   version = match.arg(version)
+  
+  method = "conda"
+  envname = "r-sjsdm"
   
   # install conda if not installed 
   conda = tryCatch(reticulate::conda_binary(), error = function(e) e)

@@ -8,15 +8,15 @@
 #' individual system settings or if other python/conda installations get into 
 #' the way. 
 #' 
-#' @section PyTorch Installation - Before you start:
+#' @section 'PyTorch' Installation - Before you start:
 #' 
 #' A few notes before you start with the installation (skip this point if you 
-#' do not know conda):
+#' do not know 'conda'):
 #'\itemize{
-#'  \item existing conda installations:
+#'  \item existing 'conda' installations:
 #'   make sure you have the latest conda3/miniconda3 version and 
-#'   remove unnecessary conda installations.
-#'  \item existing conda/virtualenv (skip this point if you do not know conda): 
+#'   remove unnecessary 'conda' installations.
+#'  \item existing 'conda'/'virtualenv' environments (skip this point if you do not know 'conda'): 
 #'  we currently enforce the usage of a specific environment called 'r-sjsdm', 
 #'  so if you want use a custom environment it should be named 'r-sjsdm'
 #' }
@@ -24,13 +24,13 @@
 #' 
 #' @section Windows - automatic installation:
 #' 
-#' Sometimes the automatic miniconda installation 
+#' Sometimes the automatic 'miniconda' installation 
 #' (via \code{\link{install_sjSDM}}) doesn't work because of white
-#' spaces in the user's name. But you can easily download and install conda on
+#' spaces in the user's name. But you can easily download and install 'conda' on
 #' your own:
 #' 
 #' Download and install the latest 
-#' \href{https://www.anaconda.com/distribution/}{conda version}
+#' \href{https://www.anaconda.com/products/individual}{'conda' version}
 #' 
 #' Afterwards run:\cr
 #' \code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
@@ -38,16 +38,16 @@
 #' Reload the package and run the example , if this doesn't work:
 #' \itemize{
 #' \item Restart RStudio
-#' \item Install manually pytorch, see the following section
+#' \item Install manually 'pytorch', see the following section
 #' }
 #' 
 #'  
 #' @section Windows - manual installation:
 #' 
-#' Download and install the latest conda version:
+#' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/distribution/}{conda version}
+#' \href{https://www.anaconda.com/products/individual}{'conda' version}
 #' \item Open the command window (cmd.exe - hit windows key + r and write cmd)
 #' }
 #' Run in cmd.exe:\cr
@@ -70,25 +70,25 @@
 #' 
 #' Run in R:\cr
 #' \code{install_sjSDM(version = c("gpu")) # or "cpu" if 
-#' you do not have a proper gpu device }
+#' you do not have a proper 'gpu' device }
 #' 
 #' Restart R try to run the example, if this doesn't work:
 #' \itemize{
 #' \item Restart RStudio
-#' \item Install manually pytorch, see the following section
+#' \item Install manually 'PyTorch', see the following section
 #' }
 #'  
 #'  
 #' @section Linux - manual installation:
 #' 
-#' We strongly advise to use a conda environment but a virtual env should also 
+#' We strongly advise to use a 'conda' environment but a virtual env should also 
 #' work. The only requirement is that it is named 'r-sjsdm'
 #' 
 #' 
-#' Download and install the latest conda version:
+#' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/distribution/}{conda version}
+#' \href{https://www.anaconda.com/products/individual}{'conda' version}
 #' \item Open your terminal 
 #' }
 #' 
@@ -116,16 +116,16 @@
 #' Restart R try to run the example, if this doesn't work:
 #' \itemize{
 #' \item Restart RStudio
-#' \item Install manually pytorch, see the following section
+#' \item Install manually 'PyTorch', see the following section
 #' }
 #' 
 #' 
 #' @section MacOS - manual installation:
 #' 
-#' Download and install the latest conda version:
+#' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/distribution/}{conda version}
+#' \href{https://www.anaconda.com/products/individual}{'conda' version}
 #' \item Open your terminal 
 #' }
 #' 
@@ -145,7 +145,7 @@
 #' @section Help and bugs:
 #' 
 #' To report bugs or ask for help, post a 
-#' \href{http://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example}{reproducible example} 
+#' \href{https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example}{reproducible example} 
 #' via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} 
 #' with a copy of the \code{\link{install_diagnostic}} output as a quote. 
 NULL
