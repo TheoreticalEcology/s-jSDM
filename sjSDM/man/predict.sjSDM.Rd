@@ -4,8 +4,14 @@
 \alias{predict.sjSDM}
 \title{Predict from a fitted sjSDM model}
 \usage{
-\method{predict}{sjSDM}(object, newdata = NULL, SP = NULL,
-  type = c("link", "raw"), dropout = FALSE, ...)
+\method{predict}{sjSDM}(
+  object,
+  newdata = NULL,
+  SP = NULL,
+  type = c("link", "raw"),
+  dropout = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}}

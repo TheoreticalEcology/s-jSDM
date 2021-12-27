@@ -3,9 +3,21 @@ Type: Package
 Title: Scalable Joint Species Distribution Modeling
 Version: 0.1.9
 Date: 2021-12-23
-Authors@R: c(person("Maximilian", "Pichler", email = "maximilian.pichler@biologie.uni-regensburg.de", role = c("aut", "cre"), comment=c(ORCID="0000-0003-2252-8327")),
-             person("Florian", "Hartig", email = "florian.hartig@biologie.uni-regensburg.de", role = c("aut"), comment=c(ORCID="0000-0002-6255-9059")),
-             person("Wang", "Cai", email = "caiwang0503@163.com", role = c("ctb")))
+Authors@R: 
+    c(person(given = "Maximilian",
+             family = "Pichler",
+             role = c("aut", "cre"),
+             email = "maximilian.pichler@biologie.uni-regensburg.de",
+             comment = c(ORCID = "0000-0003-2252-8327")),
+      person(given = "Florian",
+             family = "Hartig",
+             role = "aut",
+             email = "florian.hartig@biologie.uni-regensburg.de",
+             comment = c(ORCID = "0000-0002-6255-9059")),
+      person(given = "Wang",
+             family = "Cai",
+             role = "ctb",
+             email = "caiwang0503@163.com"))
 Description: A scalable method to estimates joint Species Distribution Models (jSDMs) based on 
     the multivariate probit model through Monte-Carlo approximation of the joint likelihood. 
     The numerical approximation is based on PyTorch and reticulate, and can be calculated
@@ -34,13 +46,15 @@ Imports:
     magrittr,
     ggplot2,
     RColorBrewer,
-    checkmate
+    checkmate,
+    mathjaxr
 Suggests:
     testthat,
     knitr,
     rmarkdown
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 URL: https://theoreticalecology.github.io/s-jSDM/
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
-Roxygen: list(old_usage = TRUE)
+Roxygen: list(old_usage = FALSE)
 VignetteBuilder: knitr
+RdMacros: mathjaxr

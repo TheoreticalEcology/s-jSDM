@@ -4,8 +4,15 @@
 \alias{bioticStruct}
 \title{biotic structure}
 \usage{
-bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
-  reg_on_Cov = TRUE, inverse = FALSE, diag = FALSE)
+bioticStruct(
+  df = NULL,
+  lambda = 0,
+  alpha = 0.5,
+  on_diag = FALSE,
+  reg_on_Cov = TRUE,
+  inverse = FALSE,
+  diag = FALSE
+)
 }
 \arguments{
 \item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}}

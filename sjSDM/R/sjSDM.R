@@ -1,6 +1,10 @@
-#' @title sjSDM
+#' @title Fitting scalable joint Species Distribution Models (sjSDM)
 #'
-#' @description fast and accurate joint species model
+#' @description 
+#' 
+#' \code{sjSDM} is used to fit joint Species Distribution models (jSDMs) using the central processing unit (CPU) or the graphical processing unit (GPU). 
+#' The default is a multivariate probit model based on a Monte-Carlo approximation of the joint likelihood. 
+#' \code{sjSDM} can be used to fit linear but also deep neural networks and supports the well known formula syntax. 
 #' 
 #' @param Y matrix of species occurences/responses in range
 #' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
@@ -17,22 +21,90 @@
 #' @param device which device to be used, "cpu" or "gpu"
 #' @param dtype which data type, most GPUs support only 32 bit floats.
 #' 
-#' @details The function fits a multivariate probit model via Monte-Carlo integration (see Chen et al., 2018) of the joint likelihood for all species. See Pichler and Hartig, 2020 for benchmark results.
+#' @details 
+#' \loadmathjax
+#' The function fits per default a multivariate probit model via Monte-Carlo integration (see Chen et al., 2018) of the joint likelihood for all species.
 #' 
-#' sjSDM depends on the anaconda python distribution and pytorch, which need to be installed before being able to use the sjSDM function. 
+#' \subsection{Model description}{
+#' The most common jSDM structure describes the site (\mjseqn{i = 1, ..., I})  by species (\mjseqn{j = 1, ..., J}) matrix \mjseqn{Y_{ij}} as a function of
+#' environmental covariates \mjseqn{X_{in}}(\mjseqn{n=1,...,N} covariates), and the species-species covariance matrix
+#' \mjseqn{\Sigma} accounts for correlations in \mjseqn{e_{ij}}:
+#' 
+#' \mjsdeqn{g(Z_{ij}) = \beta_{j0} + \Sigma^{N}_{n=1}X_{in}\beta_{nj} + e_{ij}}
+#' 
+#' \mjseqn{g(.)} is a link function. For the multivariate probit model, the link function is:
+#' 
+#' \mjsdeqn{Y_{ij}=1(Z_{ij} > 0)}
+#' 
+#' The probability to observe the occurrence vector \mjseqn{\bf{Y_i}} is:
+#' 
+#' \mjsdeqn{Pr(\bf{Y}_i|\bf{X}_i\beta, \Sigma) = \int_{A_{iJ}}...\int_{A_{i1}} \phi_J(\bf{Y}_i^{\ast};\bf{X}_i\beta, \Sigma)  dY_{i1}^{\ast}... dY_{iJ}^{\ast}}
+#' 
+#' in the interval \mjseqn{A_{ij}} with \mjseqn{(-\inf, 0]} if \mjseqn{Y_{ij}=0} and \mjseqn{ [0, +\inf) }  if \mjseqn{Y_{ij}=1}.
+#' 
+#' and \mjseqn{\phi} being the density function of the multivariate normal distribution. 
+#' 
+#' The probability of \mjseqn{\bf{Y_i}} requires to integrate over \mjseqn{\bf{Y_i^{\ast}}} which has no closed analytical expression for more than two species
+#' which makes the evaluation of the likelihood computationally costly and needs a numerical approximation.
+#' The previous equation can be expressed more generally as:
+#' 
+#' \mjsdeqn{ \mathcal{L}(\beta, \Sigma; \bf{Y}_i, \bf{X}_i) = \int_{\Omega} \prod_{j=1}^J Pr(Y_{ij}|\bf{X}_i\beta+\zeta) Pr(\zeta|\Sigma) d\zeta  }
+#' 
+#' \code{sjSDM} approximates this integral by \mjseqn{M} Monte-Carlo samples from the multivariate normal species-species covariance. 
+#' After integrating out the covariance term, the remaining part of the likelihood can be calculated as in an univariate case and the average 
+#' of the \mjseqn{M} samples are used to get an approximation of the integral:
+#' 
+#' \mjsdeqn{ \mathcal{L}(\beta, \Sigma; \bf{Y}_i, \bf{X}_i) \approx \frac{1}{M} \Sigma_{m=1}^M \prod_{j=1}^J Pr(Y_{ij}|\bf{X}_i\beta+\zeta_m)}
+#' 
+#' with \mjseqn{ \zeta_m \sim MVN(0, \Sigma)}. 
+#' 
+#' \code{sjSDM} uses 'PyTorch' to run optionally the model on the graphical processing unit (GPU). Python dependencies needs to be  
+#' installed before being able to use the \code{sjSDM} function. We provide a function which installs automatically python and the python dependencies.
 #' See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
 #' 
-#' @section Family:
+#' See Pichler and Hartig, 2020 for benchmark results.
+#' }
+#' 
+#' \subsection{Supported distributions}{
 #' Currently supported distributions and link functions:
 #' \itemize{
 #' \item \code{\link{binomial}}: \code{"probit"} or \code{"logit"}
 #' \item \code{\link{poisson}}: \code{"log"} 
 #' \item \code{\link{gaussian}}: \code{"identity"} 
 #' }
+#' }
 #' 
-#' @section Installation:
-#' \code{\link{install_sjSDM}} should be theoretically able to install conda and pytorch automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this in on your own with our trouble shooting guide \code{\link{installation_help}}.
-#' If the trouble shooting guide did not help, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with a copy of the \code{\link{install_diagnostic}} output as a quote. 
+#' \subsection{Space}{
+#' We can extend the model to account for spatial auto-correlation between the sites by:
+#' 
+#' \mjsdeqn{g(Z_{ij}) = \beta_{j0} + \Sigma^{N}_{n=1}X_{in}\beta_{nj} + \Sigma^{M}_{m=1}S_{im}\alpha_{mj} + e_{ij}}
+#' 
+#' There are two ways to generate spatial predictors \mjseqn{S}:
+#' 
+#' \itemize{
+#' \item trend surface model - using spatial coordinates in a polynomial: \code{linear(data=Coords, ~0+poly(X, Y, degree = 2))} 
+#' \item eigenvector spatial filtering - using spatial eigenvectors. 
+#'   Spatial eigenvectors can be generated by the \code{\link{generateSpatialEV}} function:
+#'   
+#'   \code{SPV = generateSpatialEV(Coords)}
+#'   
+#'   Then we use, for example, the first 20 spatial eigenvectors:
+#' 
+#'   \code{linear(data=SPV[ ,1:20], ~0+.)}
+#' }
+#' 
+#' It is important to set the intercept to 0 in the spatial term (e.g. via \code{~0+.}) because the intercept is already set in the environmental object.
+#' 
+#' }
+#' 
+#' \subsection{Installation}{
+#' \code{\link{install_sjSDM}} should be theoretically able to install conda and 'PyTorch' automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this on your following our trouble shooting guide \code{\link{installation_help}}.
+#' If the problem remains, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with a copy of the \code{\link{install_diagnostic}} output as a quote. 
+#' }
+#' 
+#' @return 
+#' An S3 class of type 'sjSDM'. Implemented S3 methods include \code{\link{summary.sjSDM}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, and \code{\link{coef.sjSDM}}. For other methods, see section 'See Also'.
+#' 
 #' 
 #' @references 
 #' Chen, D., Xue, Y., & Gomes, C. P. (2018). End-to-end learning for the deep multivariate probit model. arXiv preprint arXiv:1803.08591.
@@ -41,7 +113,8 @@
 #' 
 #' @example /inst/examples/sjSDM-example.R
 #' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
-#' @import checkmate
+#' 
+#' @import checkmate mathjaxr
 #' @author Maximilian Pichler
 #' @export
 sjSDM = function(Y = NULL, 

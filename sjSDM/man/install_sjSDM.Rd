@@ -4,8 +4,12 @@
 \alias{install_sjSDM}
 \title{Install sjSDM and its dependencies}
 \usage{
-install_sjSDM(conda = "auto", version = c("cpu", "gpu"),
-  restart_session = TRUE, ...)
+install_sjSDM(
+  conda = "auto",
+  version = c("cpu", "gpu"),
+  restart_session = TRUE,
+  ...
+)
 }
 \arguments{
 \item{conda}{path to conda}

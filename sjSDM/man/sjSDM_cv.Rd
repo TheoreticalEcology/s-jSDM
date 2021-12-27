@@ -4,13 +4,27 @@
 \alias{sjSDM_cv}
 \title{Cross validation of elastic net tuning}
 \usage{
-sjSDM_cv(Y, env = NULL, biotic = bioticStruct(), spatial = NULL,
-  tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
-  alpha_cov = seq(0, 1, 0.1), alpha_coef = seq(0, 1, 0.1),
-  alpha_spatial = seq(0, 1, 0.1), lambda_cov = 2^seq(-10, -1, length.out =
-  20), lambda_coef = 2^seq(-10, -0.5, length.out = 20),
-  lambda_spatial = 2^seq(-10, -0.5, length.out = 20), device = "cpu",
-  n_cores = NULL, n_gpu = NULL, sampling = 5000L, blocks = 1L, ...)
+sjSDM_cv(
+  Y,
+  env = NULL,
+  biotic = bioticStruct(),
+  spatial = NULL,
+  tune = c("random", "grid"),
+  CV = 5L,
+  tune_steps = 20L,
+  alpha_cov = seq(0, 1, 0.1),
+  alpha_coef = seq(0, 1, 0.1),
+  alpha_spatial = seq(0, 1, 0.1),
+  lambda_cov = 2^seq(-10, -1, length.out = 20),
+  lambda_coef = 2^seq(-10, -0.5, length.out = 20),
+  lambda_spatial = 2^seq(-10, -0.5, length.out = 20),
+  device = "cpu",
+  n_cores = NULL,
+  n_gpu = NULL,
+  sampling = 5000L,
+  blocks = 1L,
+  ...
+)
 }
 \arguments{
 \item{Y}{species occurrence matrix}

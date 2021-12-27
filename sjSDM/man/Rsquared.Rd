@@ -4,8 +4,15 @@
 \alias{Rsquared}
 \title{Rsquared}
 \usage{
-Rsquared(model, X = NULL, Y = NULL, SP = NULL, adjust = FALSE,
-  averageSP = TRUE, averageSite = TRUE)
+Rsquared(
+  model,
+  X = NULL,
+  Y = NULL,
+  SP = NULL,
+  adjust = FALSE,
+  averageSP = TRUE,
+  averageSite = TRUE
+)
 }
 \arguments{
 \item{model}{model}

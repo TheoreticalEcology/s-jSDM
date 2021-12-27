@@ -4,9 +4,15 @@
 \alias{plot.sjSDManova}
 \title{Plot anova}
 \usage{
-\method{plot}{sjSDManova}(x, y, perf = c("LogLik", "R2"),
-  cols = c("#7FC97F", "#BEAED4", "#FDC086"), alpha = 0.15,
-  percent = TRUE, ...)
+\method{plot}{sjSDManova}(
+  x,
+  y,
+  perf = c("LogLik", "R2"),
+  cols = c("#7FC97F", "#BEAED4", "#FDC086"),
+  alpha = 0.15,
+  percent = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{anova object from \code{\link{anova.sjSDM}}}

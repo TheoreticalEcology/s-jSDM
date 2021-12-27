@@ -4,8 +4,15 @@
 \alias{plot.sjSDManovaIndividual}
 \title{Plot anova}
 \usage{
-\method{plot}{sjSDManovaIndividual}(x, y, contour = FALSE,
-  col.points = "#24526e", cex.points = 1.2, pch = 19, ...)
+\method{plot}{sjSDManovaIndividual}(
+  x,
+  y,
+  contour = FALSE,
+  col.points = "#24526e",
+  cex.points = 1.2,
+  pch = 19,
+  ...
+)
 }
 \arguments{
 \item{x}{anova object from \code{\link{anova.sjSDM}}}

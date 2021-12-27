@@ -4,8 +4,11 @@
 \alias{new_image}
 \title{new_image function}
 \usage{
-new_image(z, cols = (grDevices::colorRampPalette(c("white", "#24526E"), bias
-  = 1.5))(10), range = c(0.5, 1))
+new_image(
+  z,
+  cols = (grDevices::colorRampPalette(c("white", "#24526E"), bias = 1.5))(10),
+  range = c(0.5, 1)
+)
 }
 \arguments{
 \item{z}{z matrix}

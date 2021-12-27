@@ -4,8 +4,13 @@
 \alias{sjSDMControl}
 \title{sjSDM control object}
 \usage{
-sjSDMControl(optimizer = RMSprop(), scheduler = 0,
-  lr_reduce_factor = 0.99, early_stopping_training = 0, mixed = FALSE)
+sjSDMControl(
+  optimizer = RMSprop(),
+  scheduler = 0,
+  lr_reduce_factor = 0.99,
+  early_stopping_training = 0,
+  mixed = FALSE
+)
 }
 \arguments{
 \item{optimizer}{object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, \code{\link{madgrad}}, or \code{\link{AdaBound}}}

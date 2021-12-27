@@ -4,8 +4,14 @@
 \alias{AdaBound}
 \title{AdaBound}
 \usage{
-AdaBound(betas = c(0.9, 0.999), final_lr = 0.1, gamma = 0.001,
-  eps = 1e-08, weight_decay = 0, amsbound = TRUE)
+AdaBound(
+  betas = c(0.9, 0.999),
+  final_lr = 0.1,
+  gamma = 0.001,
+  eps = 1e-08,
+  weight_decay = 0,
+  amsbound = TRUE
+)
 }
 \arguments{
 \item{betas}{betas}

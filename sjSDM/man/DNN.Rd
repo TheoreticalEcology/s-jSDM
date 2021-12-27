@@ -4,9 +4,16 @@
 \alias{DNN}
 \title{Non-linear model (deep neural network) of environmental responses}
 \usage{
-DNN(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L),
-  activation = "relu", bias = TRUE, lambda = 0, alpha = 0.5,
-  dropout = 0)
+DNN(
+  data = NULL,
+  formula = NULL,
+  hidden = c(10L, 10L, 10L),
+  activation = "relu",
+  bias = TRUE,
+  lambda = 0,
+  alpha = 0.5,
+  dropout = 0
+)
 }
 \arguments{
 \item{data}{matrix of environmental predictors}
