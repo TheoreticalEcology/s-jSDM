@@ -43,8 +43,6 @@ jobs:
           r-version: ${{ matrix.config.r }}
 
       - uses: r-lib/actions/setup-pandoc@v1
-      
-      - uses: xu-cheng/texlive-action/full@v1
 
       - name: Query dependencies
         run: |
@@ -61,10 +59,11 @@ jobs:
           key: ${{ matrix.config.os }}-${{ steps.install-r.outputs.installed-r-version }}-1-${{ hashFiles('.github/r-depends.rds') }}
           restore-keys: ${{ matrix.config.os }}-${{ steps.install-r.outputs.installed-r-version }}-1-
 
-      - name: Install curl vor r-devel version
+      - name: Install curl for r-devel version
         if: runner.os == 'Linux'
         run: |
           sudo apt-get install -y curl
+          sudo apt-get install -y texlive texlive-fonts-extra
 
       - name: Install system dependencies
         if: runner.os == 'Linux'
