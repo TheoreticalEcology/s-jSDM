@@ -6,7 +6,7 @@ output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Vignette for the sjSDM package}
+  %\VignetteIndexEntry{sjSDM: a scalable joint Species Distribution Model}
   \usepackage[utf8]{inputenc}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood. \n \n \n"
@@ -277,7 +277,8 @@ summary(model)
 ## Workaround to use the default binomial with probit or logit link:
 The log-normalization is one way to transform species counts into quasi-probabilities in the range of [0,1]:
 ```{r,eval=FALSE}
-Y_pa = scales::rescale(log(Y+0.001))
+zero_one = function(x) function(x) (x-min(x))/(max(x) -min(x))
+Y_pa = zero_one(log(Y+0.001))
 ```
 
 We can use the quasi probabilities the same way as presence-absence data:

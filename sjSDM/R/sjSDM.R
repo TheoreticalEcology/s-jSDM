@@ -272,7 +272,7 @@ sjSDM = function(Y = NULL,
     
   out$model = model
   out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
-                      step_size = step_size,learning_rate = learning_rate, 
+                      step_size = step_size,learning_rate = learning_rate, control = control, 
                       parallel = parallel,device = device, dtype = dtype, sampling = sampling)
   out$family = family
   out$time = time

@@ -252,6 +252,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
   return(out)
 }
 
+zero_one = function(x) (x-min(x))/(max(x) - min(x))
 
 #' Print a fitted sjSDM_cv model
 #' 
@@ -301,7 +302,6 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
   yn1 = seq(min(x$lambda_cov), max(x$lambda_cov), length.out = resolution)
   xn2 = seq(min(x$alpha_coef), max(x$alpha_coef), length.out = resolution)
   yn2 = seq(min(x$lambda_coef), max(x$lambda_coef), length.out = resolution)
-  
   if(spatial) {
     
     xn3 = seq(min(x$alpha_spatial), max(x$alpha_spatial), length.out = resolution)
@@ -347,7 +347,7 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
     res_spatial = apply(res_spatial, 2:3, mean)
     
     x_scaled = x[,1:6]
-    x_scaled = sapply(x_scaled, function(s) scales::rescale(s, c(0,1)))
+    x_scaled = sapply(x_scaled, function(s) zero_one(s))
   } else {
     
     d = data.frame(expand.grid(xn1, yn1, xn2, yn2))
@@ -373,7 +373,7 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
     res_cov = apply(res_cov, 2:3, mean)
     
     x_scaled = x[,1:4]
-    x_scaled = sapply(x_scaled, function(s) scales::rescale(s, c(0,1)))
+    x_scaled = sapply(x_scaled, function(s) zero_one(s))
   
   }
   
@@ -506,8 +506,8 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
 #' @param range rescale to range
 new_image = function(z, cols= (grDevices::colorRampPalette(c("white", "#24526E"), bias = 1.5))(10), range = c(0.5, 1.0)) {
   graphics::plot(NULL, NULL , axes = FALSE, xlab = "", ylab = "", xlim = c(0,1), ylim = c(0,1))
-  x = scales::rescale(z[,2], c(0,1))
-  y = scales::rescale(z[,3], c(0,1))
+  x = zero_one(z[,2])
+  y = zero_one(z[,3])
   zz =cut(z[,1], breaks = seq(range[1], range[2], length.out = length(cols) + 1))
   levels(zz) = cols
   zz = as.character(zz)

@@ -135,7 +135,8 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  summary(model)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  Y_pa = scales::rescale(log(Y+0.001))
+#  zero_one = function(x) function(x) (x-min(x))/(max(x) -min(x))
+#  Y_pa = zero_one(log(Y+0.001))
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  

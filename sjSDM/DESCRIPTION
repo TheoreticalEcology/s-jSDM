@@ -20,7 +20,7 @@ Authors@R:
              email = "caiwang0503@163.com"))
 Description: A scalable method to estimates joint Species Distribution Models (jSDMs) based on 
     the multivariate probit model through Monte-Carlo approximation of the joint likelihood. 
-    The numerical approximation is based on PyTorch and reticulate, and can be calculated
+    The numerical approximation is based on 'PyTorch' and 'reticulate', and can be calculated
     on CPUs and GPUs alike <https://github.com/TheoreticalEcology/s-jSDM>. 
 License: GPL-3
 Encoding: UTF-8
@@ -36,16 +36,11 @@ Imports:
     grDevices,
     Metrics,
     parallel,
-    scales,
     mgcv,
     Ternary,
     cli,
     crayon,
-    tidyr,
-    dplyr,
-    magrittr,
     ggplot2,
-    RColorBrewer,
     checkmate,
     mathjaxr
 Suggests:
