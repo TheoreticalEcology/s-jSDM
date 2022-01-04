@@ -4,21 +4,25 @@
 \alias{anova.sjSDM}
 \title{Anova}
 \usage{
-\method{anova}{sjSDM}(object, cv = 5L, individual = FALSE, sampling = 5000L, ...)
+\method{anova}{sjSDM}(object, ...)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
 
-\item{cv}{number of cross-validation splits}
-
-\item{individual}{compute analysis of variance on species and site level}
-
-\item{sampling}{number of sampling steps for Monte Carlo integration}
-
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
+\value{
+An S3 class of type 'sjSDManova'. Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
+}
 \description{
-Compute analysis of variance via cross-validation for environmental, associations, and spatial effects
+Calculate type I anova in the following order:
+
+Null, biotic, abiotic (environment), and spatial (if present).
+
+Deviance for interactions (e.g. between space and environment) are also calculated and can be visualized via \code{\link{plot.sjSDManova}}.
+}
+\details{
+Compute analysis of variance
 }
 \seealso{
 \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}

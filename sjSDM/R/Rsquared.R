@@ -1,102 +1,48 @@
-#' Rsquared2
+#' R-squared
 #' 
-#' calculate Rsquared following Nakagawa 
+#' calculate R-squared following Nagelkerke or McFadden
 #' @param model model
-#' @param X new environmental covariates
-#' @param Y new species occurences
-#' @param SP new spatial covariates
-#' @param individual R squared for each site
-#' @param ... additional parameters
+#' @param method Nagelkerke or McFadden
 #' 
-#' @author Maximilian Pichler
-#' @export
-Rsquared2 = function(model, X = NULL, Y = NULL, SP = NULL,individual=TRUE,...) {
-  
-  if(model$family$link == "probit") varDist = 1
-  else varDist = pi^2/3
-  
-  sigma = model$model$get_sigma
-  df = model$settings$biotic$df
-  #model$model$set_sigma(copyRP(matrix(0.0, nrow(sigma), ncol(sigma))))
-  preds = apply(abind::abind(lapply(1:50, function(i) predict.sjSDM(model, link ="raw") ), along = -1L), 2:3, mean)#,newdata = X,SP=SP, link ="raw"))
-  #model$model$set_sigma(copyRP(sigma))
-  if(!individual) vv = stats::var(as.vector(preds))
-  else vv = apply(preds,1,stats::var)
-  Assocation = getCov(model)
-  
-  re = sum(diag(diag(1, nrow(Assocation), ncol(Assocation)) %*% Assocation))/(ncol(Assocation))
-  return(list(
-    marginal = vv/(vv+  re +varDist),
-    conditional = (vv + re)/(vv+  re +varDist)
-  ))
-}
-
-
-
-
-#' Rsquared
+#' @details
+#' \loadmathjax 
 #' 
-#' calculate Rsquared following Nakagawa 
-#' @param model model
-#' @param X new environmental covariates
-#' @param Y new species occurrences
-#' @param SP new spatial covariates
-#' @param adjust adjust R squared or not
-#' @param averageSP average R squared over species
-#' @param averageSite average R squared over sites
+#' Calculate R-squared following Nagelkerke or McFadden:
+#' 
+#' \itemize{
+#' \item Nagelkerke: \mjeqn{R^2 = 1 - \exp(2/N \cdot (log\mathcal{L}_0 - log\mathcal{L}_1 ) )}{}
+#' \item McFadden: \mjeqn{R^2 = 1 - log\mathcal{L}_1 / log\mathcal{L}_0  }{}
+#'} 
+#'
+#' @return 
+#' 
+#' R-squared as numeric value
 #' 
 #' @author Maximilian Pichler
 #' @export
 
-Rsquared = function(model, X = NULL, Y = NULL, SP=NULL, adjust=FALSE, averageSP = TRUE, averageSite=TRUE){
+Rsquared = function(model, method = c("Nagelkerke", "McFadden")) {
   
-  if(!is.null(model$spatial_weights)) sp = TRUE
-  else sp = FALSE
+  method = match.arg(method)
   
-  if(is.null(X)){
-    X = model$data$X
-    if(sp) SP = model$settings$spatial$X
-    Y = model$data$Y
-  } 
-
-  nsite = nrow(Y)
-  nsp = ncol(Y)
-  preds = lapply(1:100, function(i) predict.sjSDM(model, link ="raw"))#,newdata = X,SP=SP, link ="raw"))
-  Ypred = apply(abind::abind(preds, along = 0L), 2:3, mean)
-  link = model$family$family
-  if(model$family$link == "probit") varDist = 1
-  else varDist = pi^2/3
-  
-  #if(sp) Xvar = c(Xvar, SPvar)
-  
-  YMeans = matrix(colMeans(Ypred), nrow = nsite, ncol = nsp, byrow = TRUE)
-  varModelSite = (Ypred - YMeans)^2/(nsite - 1)
-  varModel = colSums(varModelSite)
-  varAdd = diag(stats::var(Y - link$linkinv(Ypred)))
-  varTot = matrix(varModel + varAdd + varDist, nrow = nsite, ncol = nsp, byrow = TRUE)#+ colSums(getCov(model)^2)
-  R2 = (varModelSite)/varTot
-  if(averageSite) {
-    R2 = colSums(varModelSite)/varTot[1, ]
-    if(averageSP) R2 = mean(R2)
-  }
-  else {
-    if(averageSP) R2 = rowMeans(R2)
-  }
-  if (adjust) {
-    nexp = ncol(X)
-    if(sp) nexp=nexp+ncol(SP)
-    if (!averageSite) {
-      if(!averageSP) R2Cum = colSums(R2)
-      else R2Cum = R2
-      R2CumAdj = 1 - ((nsite - 3)/(nsite - nexp - 2)) * (1 - R2Cum)
-      Corr = R2Cum - R2CumAdj
-      R2 = R2 - Corr/nsite
+  if(is.null(model$Null)) {
+    if(inherits(model, "spatial")) {
+      spatial_formula=as.formula(~0)
+    } else {
+      spatial_formula=NULL
     }
-    else {
-      R2 = 1 - ((nsite - 3)/(nsite - nexp - 2)) * (1 - R2)
-    }
+    model$Null = update(model, env_formula=~1, spatial_formula=spatial_formula)
   }
-  return(R2)
+  N0 = -logLik(model$Null)[[1]]
+  N1 = -logLik(model)[[1]]
+  
+  if(method == "McFadden") {
+    R2 = 1 - (N1/N0)
+  } else {
+    R2 = 1-exp(2/(nrow(model$data$Y))*(-N1+N0))
+  }
+  print(R2)
+  return(invisible(R2))
 }
 
 

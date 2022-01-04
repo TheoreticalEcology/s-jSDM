@@ -36,11 +36,12 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
       m = match("formula", names(mf))
       if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
-      X = data.frame(data)
-      X = stats::model.matrix(formula, X)
+      data = data.frame(data)
+      X = stats::model.matrix(formula, data)
     } else {
       formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula,data.frame(data))
+      data = data.frame(data)
+      X = stats::model.matrix(formula,data)
     }
   }
   
@@ -51,6 +52,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   out = list()
   out$formula = formula
   out$X = X
+  out$data = data
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
   class(out) = "linear"
@@ -114,16 +116,18 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
       m = match("formula", names(mf))
       if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
-      X = data.frame(data)
-      X = stats::model.matrix(formula, X)
+      data = data.frame(data)
+      X = stats::model.matrix(formula, data)
     } else {
       formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula,data.frame(data))
+      data = data.frame(data)
+      X = stats::model.matrix(formula, data)
     }
   }
   out = list()
   out$formula = formula
   out$X = X
+  out$data = data
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
   out$hidden = as.integer(hidden)

@@ -153,9 +153,9 @@ summary(model)
 
 # Further analyses
 ## Anova
-Analysis of variance for the two/three different components (environment, biotic associations, and space (optional)). sjSDM supports cross-validation in the anova to correct for the complexity of the model, which is somehow difficult to estimate:
+Type I analysis of variance for the two/three different components (environment, biotic associations, and space (optional)).
 ```{r,eval=FALSE}
-an = anova(model, cv = FALSE)
+an = anova(model)
 plot(an)
 ```
 

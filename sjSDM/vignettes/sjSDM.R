@@ -65,7 +65,7 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  summary(model)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  an = anova(model, cv = FALSE)
+#  an = anova(model)
 #  plot(an)
 
 ## ----eval=FALSE---------------------------------------------------------------

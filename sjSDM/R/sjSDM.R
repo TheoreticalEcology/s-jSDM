@@ -133,7 +133,7 @@ sjSDM = function(Y = NULL,
                  step_size = NULL,
                  learning_rate = 0.01, 
                  se = FALSE, 
-                 sampling = 1000L,
+                 sampling = 100L,
                  parallel = 0L, 
                  control = sjSDMControl(),
                  device = "cpu", 
@@ -283,6 +283,7 @@ sjSDM = function(Y = NULL,
   out$history = force_r(model$history)
   out$spatial_weights = force_r(model$spatial_weights)
   out$spatial = spatial
+  out$Null = NULL
   .n = torch$cuda$empty_cache()
   return(out)
 }
@@ -456,14 +457,6 @@ summary.sjSDM = function(object, ...) {
       else colnames(env) = object$species
       rownames(env) = object$names
     
-      
-      # if(inherits(object, "spatialRE")) {
-      #   cat("Spatial random effects (Intercept): \n")
-      #   cat("\tVar: ", round(stats::var(object$re), 3), "\n\tStd. Dev.: ", round(stats::sd(object$re), 3), "")
-      #   cat("\n\n\n")
-      # }
-      # 
-      
       # TO DO: p-value parsing:
       if(!is.null(object$se)) {
         out$z = env2 / object$se
@@ -536,4 +529,68 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
 #' @export
 logLik.sjSDM <- function(object, ...){
   return(object$logLik[[1]])
+}
+
+
+
+
+#' Update and Re-fit a Model Call
+#' 
+#' @param object of class 'sjSDM'
+#' @param env_formula new environmental formula
+#' @param spatial_formula new spatial formula
+#' @param biotic new biotic config
+#' @param ... additional arguments
+#' 
+#' @return An S3 class of type 'sjSDM'.
+#' @export
+update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biotic = NULL, ...) {
+  
+  mf = match.call()
+  if(!is.null(env_formula)){
+    m = match("env_formula", names(mf))
+    if(class(mf[3]$env_formula) == "name") mf[3]$env_formula = eval(mf[3]$env_formula, envir = parent.env(environment()))
+    env_formula = stats::as.formula(mf[m]$env_formula)
+  } else {
+    env_formula = object$settings$env$formula
+  }
+  
+  if(!is.null(spatial_formula)){
+    m = match("spatial_formula", names(mf))
+    if(class(mf[4]$spatial_formula) == "name") mf[4]$spatial_formula = eval(mf[4]$spatial_formula, envir = parent.env(environment()))
+    spatial_formula = stats::as.formula(mf[m]$spatial_formula)
+  } else {
+    spatial_formula = object$settings$spatial$formula
+  }
+  
+  if(is.null(biotic)) {
+    biotic = object$settings$biotic
+  } 
+  
+  env = object$settings$env
+  env$formula = env_formula
+  env$X = stats::model.matrix(env_formula, env$data)
+  
+  if(inherits(object, "spatial")) {
+    spatial = object$settings$spatial
+    spatial$formula = spatial_formula
+    spatial$X = stats::model.matrix(spatial_formula, spatial$data)
+  } else {
+    spatial = NULL
+  }
+  
+  new_model = sjSDM(object$data$Y, 
+                    env = env, 
+                    spatial = spatial,
+                    biotic = biotic,
+                    family = object$family$family, 
+                    iter = object$settings$iter, 
+                    step_size = object$settings$step_size, 
+                    learning_rate = object$settings$learning_rate,
+                    sampling = object$settings$sampling,
+                    control = object$settings$control,
+                    device = object$settings$device, 
+                    dtype = object$settings$dtype
+  )
+  return(new_model)
 }

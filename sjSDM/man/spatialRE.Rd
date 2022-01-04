@@ -20,7 +20,7 @@ define spatial random effects (random intercepts for sites)
 com = simulate_SDM(env = 3L, species = 7L, sites = 100L)
 
 ## fit model:
-model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L) 
+model = sjSDM(Y = com$response,env = com$env_weights, iter = 50L) 
 # increase iter for your own data 
 
 coef(model)
@@ -51,22 +51,23 @@ model = sjSDM(Y = com$response,
 summary(model)
 
 ## without intercept:
-model = sjSDM(Y = com$response,
-              env = linear(data = com$env_weights, formula = ~0+X1:X2 + X3), 
-              se = TRUE,
-              iter = 2L) # increase iter for your own data 
+model = update(model, env_formula = ~0+X1:X2 + X3)
+
 summary(model)
 
 ## predict with model:
 preds = predict(model, newdata = com$env_weights)
 
+## calculate R-squared:
+R2 = Rsquared(model)
+print(R2)
 
 # With spatial terms:
 ## linear spatial model
 XY = matrix(rnorm(200), 100, 2)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(XY, ~0+X1:X2),
-              iter = 2L) # increase iter for your own data 
+              iter = 50L) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = XY)
 
@@ -75,7 +76,7 @@ predict(model, newdata = com$env_weights, SP = XY)
 SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(SPV, ~0+., lambda = 0.1),
-              iter = 2L) # increase iter for your own data 
+              iter = 50L) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = SPV)
 
@@ -107,14 +108,14 @@ getCov(model)
 
 
 # Anova 
-com = simulate_SDM(env = 3L, species = 15L, sites = 200L)
+com = simulate_SDM(env = 3L, species = 15L, sites = 200L, correlation = TRUE)
 
 XY = matrix(rnorm(400), 200, 2)
 SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(SPV, ~0+.), 
-              iter = 2L) # increase iter for your own data 
-result = anova(model, cv = 2L)
+              iter = 50L) # increase iter for your own data 
+result = anova(model)
 print(result)
 plot(result)
 

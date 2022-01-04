@@ -6,7 +6,7 @@
 #' @param x a model fitted by \code{\link{sjSDM}} 
 #' @param ... Additional arguments to pass to \code{\link{plotsjSDMcoef}}. 
 #' @seealso \code{\link{plotsjSDMcoef}}
-#' @example /inst/examples/plot.sjSDM-emample.R
+#' @example /inst/examples/plot.sjSDM-example.R
 #' 
 #' @import graphics
 #' @author CAI Wang
@@ -21,16 +21,13 @@ plot.sjSDM = function(x, ...) {
 #' Plotting coefficients returned by sjSDM model.
 #' This function only for model fitted by linear, fitted by DNN is not yet supported.
 #' 
-#' @import tidyr
-#' @import dplyr
 #' @import ggplot2
-#' @importFrom magrittr `%>%`
 #' @param object a model fitted by \code{\link{sjSDM}} 
 #' @param wrap_col Scales argument passed to wrap_col
 #' @param group Define the taxonomic characteristics of a species, you need to provide a dataframe with column1 named “species” and column2 named “group”, default is NULL. For example, group[1,1]== "sp1", group[1,2]== "Mammal".
 #' @param col Define colors for groups, default is NULL.
 #' @param slist Select the species you want to plot, default is all, parameter is not supported yet.
-#' @example /inst/examples/plot.sjSDM-emample.R
+#' @example /inst/examples/plot.sjSDM-example.R
 #
 #' @author CAI Wang
 #' @export
@@ -42,14 +39,19 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
   )
   
   if(is.null(object$se)) object=getSe(object)
-  summary.se=summary(object)
+  summary.se = summary(object)
   #create dataset for plot 
   effect = data.frame( Estimate=summary.se$coefmat[,1],Std.Err=summary.se$coefmat[,2],P=summary.se$coefmat[,4],rownames=rownames(summary.se$coefmat))
   
   coef = NULL
   rownames = NULL
-  effect= effect %>% tidyr::separate(col = rownames, into = c("species", "coef"), sep = " ") %>% dplyr::filter(coef != "(Intercept)") %>% dplyr::mutate(coef=as.factor(coef),star=NA)
-  effect$star <- stats::symnum(effect$P, corr = FALSE,
+  sep_df = do.call(rbind, strsplit(effect$rownames, split = " ", fixed = TRUE))
+  colnames(sep_df) = c("species", "coef")
+  effect = cbind(effect[,-4], sep_df)
+  effect = effect[effect$coef!= "(Intercept)",]
+  effect$coef = as.factor(effect$coef)
+  effect$star = NA
+  effect$star = stats::symnum(effect$P, corr = FALSE,
                                cutpoints = c(0, .001, .01, .05, .1, 1),
                                symbols = c("***","**","*","."," ")) 
   
@@ -58,17 +60,19 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
   else if ( (colnames(data.frame(group)) != c("species","group"))[1]=="TRUE" |(colnames(data.frame(group)) != c("species","group"))[2]=="TRUE") {
     print ("group column's name should be 'species' and 'group'")
     group=NULL
-  }
-  else {
-    effect=dplyr::left_join(effect,data.frame(group),by="species")
+  } else {
+    effect = merge(effect, data.frame(group), by = "species", all.x = TRUE)
     if(anyNA(effect$group)) stop("There are no groups or with NAs")
-    group= dplyr::arrange(group,desc(group))
+    group = group[order(group$group, decreasing = TRUE), ]
     effect$species=factor(effect$species,levels= group$species)
   }
   
-  if(is.null(col))  
-    col <- RColorBrewer::brewer.pal(10, "Paired") 
-  else col=col
+  # colors
+  if(is.null(group) && is.null(col)) col = "grey"
+  if(!is.null(group) && is.null(col)) {
+    col = grDevices::palette.colors(length(unique(group$group))+1)[-1]
+    names(col) = NULL
+  }
   
   #if(!is.null(slist)) #effect = effect %>% dplyr::filter(species!=slist)
   
@@ -80,7 +84,7 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
       scale_fill_manual(values=col)+
       guides(fill = guide_legend(reverse=F))+
       xlab("species") + 
-      ylab("coef") + 
+      ylab("coefficients") + 
       labs(fill="Group") + 
       coord_flip(expand=F) + 
       geom_hline(aes(yintercept = 0),linetype="dashed",size=1) +

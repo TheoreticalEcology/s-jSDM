@@ -15,7 +15,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           device = device,
                                           sampling = 10L)}, NA)
     testthat::expect_false(any(is.na(model$history)))
-    testthat::expect_error({res = anova(model, cv = 2L)}, NA)
+    testthat::expect_error({res = anova(model)}, NA)
     testthat::expect_error({plot(res)}, NA)
 }
 
