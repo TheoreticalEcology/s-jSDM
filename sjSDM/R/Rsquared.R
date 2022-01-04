@@ -19,6 +19,7 @@
 #' R-squared as numeric value
 #' 
 #' @author Maximilian Pichler
+#' @import stats
 #' @export
 
 Rsquared = function(model, method = c("Nagelkerke", "McFadden")) {
@@ -27,7 +28,7 @@ Rsquared = function(model, method = c("Nagelkerke", "McFadden")) {
   
   if(is.null(model$Null)) {
     if(inherits(model, "spatial")) {
-      spatial_formula=as.formula(~0)
+      spatial_formula=stats::as.formula(~0)
     } else {
       spatial_formula=NULL
     }

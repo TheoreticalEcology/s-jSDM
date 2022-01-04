@@ -95,7 +95,7 @@ print(an)
 plot(an)
 ```
 
-The anova shows the relative changes in the logLik of the groups and their intersections.
+The anova shows the relative changes in the deviance of the groups and their intersections.
 
 
 

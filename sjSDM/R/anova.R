@@ -17,6 +17,7 @@
 #' An S3 class of type 'sjSDManova'. Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 #'  
 #' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}
+#' @import stats
 #' @export
 
 anova.sjSDM = function(object, ...) {

@@ -20,12 +20,21 @@
 #' @param blocks blocks of parallel tuning steps
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}
 #' 
+#' @return 
+#' An S3 class of type 'sjSDM_cv'. Implemented S3 methods include \code{\link{sjSDM.sjSDM_cv}}, \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, and \code{\link{summary.sjSDM_cv}}
+#' 
 #' @example /inst/examples/sjSDM_cv-example.R
 #' @seealso \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}
 #' @import checkmate
 #' @export
 
-sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune = c("random", "grid"), CV = 5L, tune_steps = 20L,
+sjSDM_cv = function(Y, 
+                    env = NULL, 
+                    biotic = bioticStruct(), 
+                    spatial = NULL, 
+                    tune = c("random", "grid"), 
+                    CV = 5L, 
+                    tune_steps = 20L,
                     alpha_cov = seq(0.0, 1.0, 0.1), 
                     alpha_coef = seq(0.0, 1.0, 0.1),
                     alpha_spatial = seq(0.0, 1.0, 0.1), 
@@ -57,6 +66,7 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
   qassert(sampling, "X1[0,)")
   qassert(blocks, "X1[1,)")
   
+  ellip = list(...)
   
   tune = match.arg(tune)
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
@@ -66,19 +76,29 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
   test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
   
   if(is.null(spatial)) {
-    tune_grid = expand.grid(alpha_cov, alpha_coef, lambda_cov, lambda_coef)
-    colnames(tune_grid) = c("alpha_cov", "alpha_coef", "lambda_cov", "lambda_coef")
+    if(tune == "random") { 
+      tune_samples = data.frame(t(sapply(1:tune_steps, function(i) c(sample(alpha_cov, 1), 
+                                                                  sample(alpha_coef, 1),
+                                                                  sample(lambda_cov, 1),
+                                                                  sample(lambda_coef, 1)))))
+    } else {
+      tune_samples = expand.grid(alpha_cov, alpha_coef, lambda_cov, lambda_coef)
+    }
+    colnames(tune_samples) = c("alpha_cov", "alpha_coef", "lambda_cov", "lambda_coef")
   } else {
-    tune_grid = expand.grid(alpha_cov, alpha_coef,alpha_spatial, lambda_cov, lambda_coef, lambda_spatial)
-    colnames(tune_grid) = c("alpha_cov", "alpha_coef", "alpha_spatial","lambda_cov", "lambda_coef", "lambda_spatial")
+    if(tune == "random") { 
+      tune_samples = data.frame(t(sapply(1:tune_steps, function(i) c(sample(alpha_cov, 1), 
+                                                                  sample(alpha_coef, 1),
+                                                                  sample(alpha_spatial, 1),
+                                                                  sample(lambda_cov, 1),
+                                                                  sample(lambda_coef, 1),
+                                                                  sample(lambda_spatial, 1)))))
+    } else {
+      tune_samples = expand.grid(alpha_cov, alpha_coef,alpha_spatial, lambda_cov, lambda_coef, lambda_spatial)
+    }
+    colnames(tune_samples) = c("alpha_cov", "alpha_coef", "alpha_spatial","lambda_cov", "lambda_coef", "lambda_spatial")
   }
-  
-  if(tune == "random") {
-    tune_samples = tune_grid[sample.int(nrow(tune_grid), tune_steps),]
-  } else {
-    tune_samples = tune_grid
-  }
-  
+
   
   tune_func = function(t){
 
@@ -139,7 +159,6 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
         model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device, sampling=sampling,...)
       }
       
-      #model$model$set_sigma(matrix(0.0, ncol(Y_train), model$model$df))
       mean_func = function(f) apply(abind::abind(lapply(1:50, function(i) f() ),along = -1), 2:3, mean)
       
       pred_test = mean_func(function() predict.sjSDM(model, newdata = X_test, SP = SP_test) )
@@ -190,7 +209,8 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
     nodes = unlist(parallel::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
     #print(nodes)
     control = parallel::clusterEvalQ(cl, {library(sjSDM)})
-    parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
+    if(length(ellip) > 0 ) parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
+    else parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling"), envir = environment())
     
     for(i in 1:length(unique(blocks_run))){
       ind = blocks_run == unique(blocks_run)[i]
@@ -246,13 +266,80 @@ sjSDM_cv = function(Y, env = NULL, biotic = bioticStruct(), spatial = NULL, tune
     short_summary$l1_sp = (1-short_summary$alpha_sp)*short_summary$lambda_sp
     short_summary$l2_sp = short_summary$alpha_sp*short_summary$lambda_sp
   }
-  
-  out = list(tune_results = result, short_summary = short_summary, summary = summary_results, settings = list(tune_samples = tune_samples, CV = CV, tune = tune))
+  out = list(tune_results = result, 
+             short_summary = short_summary, 
+             summary = summary_results, 
+             settings = list(tune_samples = tune_samples, CV = CV, tune = tune),
+             data = list(Y = Y, env = env, biotic = biotic, spatial = spatial),
+             config = c(list(device=device, sampling=sampling), as.list(unlist(ellip))),
+             spatial = !is.null(spatial))
   class(out) = c("sjSDM_cv")
   return(out)
 }
 
 zero_one = function(x) (x-min(x))/(max(x) - min(x))
+
+#' @rdname sjSDM
+#' @param object object of type \code{\link{sjSDM_cv}}
+#' @author Maximilian Pichler
+#' @export
+sjSDM.sjSDM_cv = function(object) {
+  if(!inherits(object, "sjSDM_cv")) stop("Object must be of type sjSDM_cv, see function ?sjSDM_cv")
+  x = object$short_summary
+  maxP = which.min(x[["logLik"]])
+  
+  if(object$spatial) {
+    best_values = 
+      c(lambda_cov = x[maxP,]$lambda_cov,
+        alpha_cov = x[maxP,]$alpha_cov,
+        lambda_coef =  x[maxP,]$lambda_coef,
+        alpha_coef = x[maxP,]$alpha_coef,
+        lambda_spatial =  x[maxP,]$lambda_spatial,
+        alpha_spatial = x[maxP,]$alpha_spatial)
+  } else {
+    best_values = 
+      c(lambda_cov = x[maxP,]$lambda_cov,
+        alpha_cov = x[maxP,]$alpha_cov,
+        lambda_coef =  x[maxP,]$lambda_coef,
+        alpha_coef = x[maxP,]$alpha_coef)
+  }
+  spatial = object$data$spatial
+  env = object$data$env
+  biotic = object$data$biotic
+  settings = object$config
+  
+  ## update env regularization ##
+  lambda_coef = best_values[["lambda_coef"]]
+  if(lambda_coef == 0.0) {
+    lambda_coef = -99.9
+  }
+  env$l1_coef = (1-best_values[["alpha_coef"]])*lambda_coef
+  env$l2_coef = best_values[["alpha_coef"]]*lambda_coef
+  
+  ## update biotic regularization ##
+  biotic$l1_cov = (1-best_values[["alpha_cov"]])*best_values[["lambda_cov"]]
+  biotic$l2_cov = best_values[["alpha_cov"]]*best_values[["lambda_cov"]]
+  
+  ## update space ##
+  if(object$spatial) {
+    lambda_spatial = best_values[["lambda_spatial"]]
+    if(lambda_spatial == 0.0) {
+      lambda_spatial = -99.9
+    }
+    spatial$l1_coef = (1-best_values[["alpha_spatial"]])*lambda_spatial
+    spatial$l2_coef = best_values[["alpha_spatial"]]*lambda_spatial
+  }
+  
+  settings = c(list(Y = object$data$Y,
+                    env = env,
+                    spatial = spatial,
+                    biotic = biotic),
+               settings
+               )
+  model = do.call(sjSDM, settings)
+  return(model)
+}
+
 
 #' Print a fitted sjSDM_cv model
 #' 

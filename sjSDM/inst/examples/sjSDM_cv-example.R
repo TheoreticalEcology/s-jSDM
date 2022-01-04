@@ -26,15 +26,8 @@ summary(tune_results)
 # visualize tuning and best points:
 best = plot(tune_results, perf = "logLik")
 
-# fit model with new regularization paramter:
-model = sjSDM(Y = com$response,
-              env = linear(com$env_weights, 
-                              lambda = best[["lambda_coef"]],
-                              alpha = best[["alpha_coef"]]),
-              biotic = bioticStruct(lambda = best[["lambda_cov"]],
-                                    alpha = best[["alpha_cov"]]),
-              iter = 2L # increase it for your own data 
-              )
+# fit model with best regularization paramter:
+model = sjSDM(tune_results)
 
 summary(model)
 }

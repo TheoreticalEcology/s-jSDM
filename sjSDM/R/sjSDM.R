@@ -138,6 +138,25 @@ sjSDM = function(Y = NULL,
                  control = sjSDMControl(),
                  device = "cpu", 
                  dtype = "float32") {
+  UseMethod("sjSDM")
+}
+
+#' @author Maximilian Pichler
+#' @export
+sjSDM.default = function(Y = NULL, 
+                 env = NULL,
+                 biotic = bioticStruct(),
+                 spatial = NULL,
+                 family = stats::binomial("probit"),
+                 iter = 100L, 
+                 step_size = NULL,
+                 learning_rate = 0.01, 
+                 se = FALSE, 
+                 sampling = 100L,
+                 parallel = 0L, 
+                 control = sjSDMControl(),
+                 device = "cpu", 
+                 dtype = "float32") {
   
   assertMatrix(Y)
   assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
@@ -405,7 +424,6 @@ summary.sjSDM = function(object, ...) {
   out = list()
   
   cat("LogLik: ", -object$logLik[[1]], "\n")
-  cat("Deviance: ", 2*object$logLik[[1]], "\n\n")
   cat("Regularization loss: ", object$logLik[[2]], "\n\n")
   
   cov_m = getCov(object)

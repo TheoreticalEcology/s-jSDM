@@ -65,6 +65,9 @@ sjSDM_cv(
 
 \item{...}{arguments passed to sjSDM, see \code{\link{sjSDM}}}
 }
+\value{
+An S3 class of type 'sjSDM_cv'. Implemented S3 methods include \code{\link{sjSDM.sjSDM_cv}}, \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, and \code{\link{summary.sjSDM_cv}}
+}
 \description{
 Cross validation of elastic net tuning
 }
@@ -97,15 +100,8 @@ summary(tune_results)
 # visualize tuning and best points:
 best = plot(tune_results, perf = "logLik")
 
-# fit model with new regularization paramter:
-model = sjSDM(Y = com$response,
-              env = linear(com$env_weights, 
-                              lambda = best[["lambda_coef"]],
-                              alpha = best[["alpha_coef"]]),
-              biotic = bioticStruct(lambda = best[["lambda_cov"]],
-                                    alpha = best[["alpha_cov"]]),
-              iter = 2L # increase it for your own data 
-              )
+# fit model with best regularization paramter:
+model = sjSDM(tune_results)
 
 summary(model)
 }
