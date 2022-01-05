@@ -2,10 +2,13 @@
 % Please edit documentation in R/sjSDM.R, R/sjSDM_cv.R
 \name{sjSDM}
 \alias{sjSDM}
+\alias{sjSDM.default}
 \alias{sjSDM.sjSDM_cv}
 \title{Fitting scalable joint Species Distribution Models (sjSDM)}
 \usage{
-sjSDM(
+sjSDM(...)
+
+\method{sjSDM}{default}(
   Y = NULL,
   env = NULL,
   biotic = bioticStruct(),
@@ -294,6 +297,8 @@ Pichler, M., & Hartig, F. (2021). A new joint species distribution model for fas
 \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 }
 \author{
+Maximilian Pichler
+
 Maximilian Pichler
 
 Maximilian Pichler
