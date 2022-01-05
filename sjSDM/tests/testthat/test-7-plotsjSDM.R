@@ -16,9 +16,6 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   testthat::expect_error(plot(model), NA)
 }
 
-# 
-# testthat::test_that("sjSDM functionality", {
-#   skip_if_no_torch()
 
 library(sjSDM)
 
@@ -27,8 +24,6 @@ X1 = sim$env_weights
 Y1 = sim$response
 
 
-# iter, batch_size, se, link
-# iter, batch_size, se, link
 Funcs = list(
   list(5, 2, FALSE, binomial("logit")),
   list(5, 23, FALSE, poisson()),

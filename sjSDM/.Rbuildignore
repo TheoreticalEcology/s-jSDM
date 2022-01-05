@@ -9,5 +9,5 @@ inst/python/.eggs
 inst/python/build
 ^doc$
 ^Meta$
-CRAN.md
+^cran-comments\.md$
 ^README\.Rmd$
