@@ -119,7 +119,7 @@ jobs:
           CI: true
         run: |
           options(crayon.enabled = TRUE)
-          rcmdcheck::rcmdcheck("sjSDM", args = c("--no-manual", "--as-cran"), error_on = "error", check_dir = "check")
+          rcmdcheck::rcmdcheck("sjSDM", args = c("--no-manual", "--as-cran"), error_on = "note", check_dir = "check")
         shell: Rscript {0}
         
       - name: Upload check results

@@ -1,11 +1,3 @@
-#' @rdname sjSDM
-#' @author Maximilian Pichler
-#' @export
-sjSDM = function(...) {
-  UseMethod("sjSDM")
-}
-
-
 #' @title Fitting scalable joint Species Distribution Models (sjSDM)
 #'
 #' @description 
@@ -131,9 +123,8 @@ sjSDM = function(...) {
 #' 
 #' @import checkmate mathjaxr
 #' @author Maximilian Pichler
-#' @rdname sjSDM
 #' @export
-sjSDM.default = function(Y = NULL, 
+sjSDM = function(Y = NULL, 
                  env = NULL,
                  biotic = bioticStruct(),
                  spatial = NULL,

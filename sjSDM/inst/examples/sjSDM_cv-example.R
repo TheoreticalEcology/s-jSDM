@@ -27,7 +27,7 @@ summary(tune_results)
 best = plot(tune_results, perf = "logLik")
 
 # fit model with best regularization paramter:
-model = sjSDM(tune_results)
+model = sjSDM.tune(tune_results)
 
 summary(model)
 }

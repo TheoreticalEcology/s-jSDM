@@ -66,7 +66,7 @@ sjSDM_cv(
 \item{...}{arguments passed to sjSDM, see \code{\link{sjSDM}}}
 }
 \value{
-An S3 class of type 'sjSDM_cv'. Implemented S3 methods include \code{\link{sjSDM.sjSDM_cv}}, \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, and \code{\link{summary.sjSDM_cv}}
+An S3 class of type 'sjSDM_cv'. Implemented S3 methods include \code{\link{sjSDM.tune}}, \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, and \code{\link{summary.sjSDM_cv}}
 }
 \description{
 Cross validation of elastic net tuning
@@ -101,11 +101,11 @@ summary(tune_results)
 best = plot(tune_results, perf = "logLik")
 
 # fit model with best regularization paramter:
-model = sjSDM(tune_results)
+model = sjSDM.tune(tune_results)
 
 summary(model)
 }
 }
 \seealso{
-\code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}
+\code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}, \code{\link{sjSDM.tune}}
 }

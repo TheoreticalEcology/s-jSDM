@@ -21,10 +21,10 @@
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}
 #' 
 #' @return 
-#' An S3 class of type 'sjSDM_cv'. Implemented S3 methods include \code{\link{sjSDM.sjSDM_cv}}, \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, and \code{\link{summary.sjSDM_cv}}
+#' An S3 class of type 'sjSDM_cv'. Implemented S3 methods include \code{\link{sjSDM.tune}}, \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, and \code{\link{summary.sjSDM_cv}}
 #' 
 #' @example /inst/examples/sjSDM_cv-example.R
-#' @seealso \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}
+#' @seealso \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}, \code{\link{sjSDM.tune}}
 #' @import checkmate
 #' @export
 
@@ -283,7 +283,7 @@ zero_one = function(x) (x-min(x))/(max(x) - min(x))
 #' @param object object of type \code{\link{sjSDM_cv}}
 #' @author Maximilian Pichler
 #' @export
-sjSDM.sjSDM_cv = function(object) {
+sjSDM.tune = function(object) {
   if(!inherits(object, "sjSDM_cv")) stop("Object must be of type sjSDM_cv, see function ?sjSDM_cv")
   x = object$short_summary
   maxP = which.min(x[["logLik"]])
