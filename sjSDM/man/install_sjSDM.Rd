@@ -14,7 +14,7 @@ install_sjSDM(
 \arguments{
 \item{conda}{path to conda}
 
-\item{version}{version = "cpu" for CPU version, or "gpu" for gpu version. (note MacOS users have to install 'cuda' binaries by themselves)}
+\item{version}{version = "cpu" for CPU version, or "gpu" for GPU version. (note MacOS users have to install 'cuda' binaries by themselves)}
 
 \item{restart_session}{Restart R session after installing (note this will
 only occur within RStudio).}

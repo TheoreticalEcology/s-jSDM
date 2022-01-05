@@ -15,7 +15,7 @@
 #' @param lambda_spatial overall regularization strength on spatial coefficients
 #' @param device device, default cpu
 #' @param n_cores number of cores for parallelization 
-#' @param n_gpu number of gpus
+#' @param n_gpu number of GPUs
 #' @param sampling number of sampling steps for Monte Carlo integration
 #' @param blocks blocks of parallel tuning steps
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}

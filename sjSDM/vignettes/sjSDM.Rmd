@@ -113,7 +113,7 @@ summary(model)
 
 # Handling spatial autocorrelation
 ## Simulating spatial data
-JSDM account for correlation between species within communities (sites), in real datasets, however, communities (sites) are additionally correlated (== spatial autocorrelation).
+sSDM account for correlation between species within communities (sites), in real datasets, however, communities (sites) are often additionally correlated (== spatial autocorrelation).
 
 Let's first simulate test data:
 1) Simulate JSDM without a link (normal response)

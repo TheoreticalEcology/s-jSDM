@@ -409,7 +409,7 @@ madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
 #' accelerated stochastic gradient, see Kidambi et al., 2018 for details
 #' @param kappa long step
 #' @param xi advantage parameter
-#' @param small_const small_const
+#' @param small_const small constant
 #' @param weight_decay l2 penalty on weights
 #' 
 #' @references 

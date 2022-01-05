@@ -2,7 +2,7 @@
 % Please edit documentation in R/sjSDM.R
 \name{update.sjSDM}
 \alias{update.sjSDM}
-\title{Update and Re-fit a Model Call}
+\title{Update and re-fit a model call}
 \usage{
 \method{update}{sjSDM}(object, env_formula = NULL, spatial_formula = NULL, biotic = NULL, ...)
 }
@@ -21,5 +21,5 @@
 An S3 class of type 'sjSDM'.
 }
 \description{
-Update and Re-fit a Model Call
+Update and re-fit a model call
 }

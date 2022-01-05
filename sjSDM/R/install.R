@@ -1,7 +1,7 @@
 #' Install sjSDM and its dependencies
 #'
 #' @param conda path to conda
-#' @param version version = "cpu" for CPU version, or "gpu" for gpu version. (note MacOS users have to install 'cuda' binaries by themselves)
+#' @param version version = "cpu" for CPU version, or "gpu" for GPU version. (note MacOS users have to install 'cuda' binaries by themselves)
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
 #' @param ... not supported

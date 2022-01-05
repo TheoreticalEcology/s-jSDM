@@ -57,7 +57,7 @@ sjSDM_cv(
 
 \item{n_cores}{number of cores for parallelization}
 
-\item{n_gpu}{number of gpus}
+\item{n_gpu}{number of GPUs}
 
 \item{sampling}{number of sampling steps for Monte Carlo integration}
 

@@ -1,8 +1,8 @@
 Package: sjSDM
 Type: Package
 Title: Scalable Joint Species Distribution Modeling
-Version: 0.1.9
-Date: 2021-12-23
+Version: 1.0.0
+Date: 2022-01-05
 Authors@R: 
     c(person(given = "Maximilian",
              family = "Pichler",
@@ -18,10 +18,7 @@ Authors@R:
              family = "Cai",
              role = "ctb",
              email = "caiwang0503@163.com"))
-Description: A scalable method to estimates joint Species Distribution Models (jSDMs) based on 
-    the multivariate probit model through Monte-Carlo approximation of the joint likelihood. 
-    The numerical approximation is based on 'PyTorch' and 'reticulate', and can be calculated
-    on CPUs and GPUs alike <https://github.com/TheoreticalEcology/s-jSDM>. 
+Description: A scalable method to estimate joint Species Distribution Models (jSDMs) for big community datasets based on a Monte Carlo approximation of the joint likelihood.  The numerical approximation is based on 'PyTorch' and 'reticulate', and can be run on CPUs and GPUs alike. The method is described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>. The package contains various extensions, including support for different response families, ability to account for spatial autocorrelation, and deep neural networks instead of the linear predictor in jSDMs.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

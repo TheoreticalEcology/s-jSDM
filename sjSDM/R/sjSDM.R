@@ -119,7 +119,7 @@
 #' Pichler, M., & Hartig, F. (2021). A new joint species distribution model for faster and more accurate inference of species associations from big community data. Methods in Ecology and Evolution, 12(11), 2159-2173. 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
+#' @seealso \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 #' 
 #' @import checkmate mathjaxr
 #' @author Maximilian Pichler
@@ -273,7 +273,8 @@ sjSDM = function(Y = NULL,
   out$model = model
   out$settings = list(biotic = biotic, env = env, spatial = spatial,iter = iter, 
                       step_size = step_size,learning_rate = learning_rate, control = control, 
-                      parallel = parallel,device = device, dtype = dtype, sampling = sampling)
+                      parallel = parallel,device = device, dtype = dtype, sampling = sampling,
+                      se = se)
   out$family = family
   out$time = time
   out$data = list(X = env$X, Y = Y)
@@ -533,7 +534,7 @@ logLik.sjSDM <- function(object, ...){
 
 
 
-#' Update and Re-fit a Model Call
+#' Update and re-fit a model call
 #' 
 #' @param object of class 'sjSDM'
 #' @param env_formula new environmental formula
@@ -589,7 +590,8 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
                     sampling = object$settings$sampling,
                     control = object$settings$control,
                     device = object$settings$device, 
-                    dtype = object$settings$dtype
+                    dtype = object$settings$dtype,
+                    se = object$settings$se
   )
   return(new_model)
 }
