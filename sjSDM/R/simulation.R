@@ -6,7 +6,7 @@
 #' @param Re random effects (intercepts)
 #' @param correlation correlated species TRUE or FALSE, can be also a function or a matrix
 #' @param weight_range sample true weights from uniform range, default -1,1
-#' @param link probit, logit or idential
+#' @param link probit, logit or identical
 #' @param response pa (presence-absence) or count
 #' @param sparse sparse rate
 #' @param tolerance tolerance for sparsity check

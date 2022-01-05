@@ -5,11 +5,18 @@
 \title{plotAssociations
 plot species-species associations}
 \usage{
-plotAssociations(sigma, radius = 5, main = NULL, circleBreak = FALSE,
-  top = 10L, occ = NULL, cols_association = c("#FF0000", "#BF003F",
-  "#7F007F", "#3F00BF", "#0000FF"), cols_occurrence = c("#BEBEBE", "#8E8E8E",
-  "#5F5F5F", "#2F2F2F", "#000000"), lwd_occurrence = 1,
-  species_indices = NULL)
+plotAssociations(
+  sigma,
+  radius = 5,
+  main = NULL,
+  circleBreak = FALSE,
+  top = 10L,
+  occ = NULL,
+  cols_association = c("#FF0000", "#BF003F", "#7F007F", "#3F00BF", "#0000FF"),
+  cols_occurrence = c("#BEBEBE", "#8E8E8E", "#5F5F5F", "#2F2F2F", "#000000"),
+  lwd_occurrence = 1,
+  species_indices = NULL
+)
 }
 \arguments{
 \item{sigma}{species-species covariance matrix}
@@ -22,7 +29,7 @@ plotAssociations(sigma, radius = 5, main = NULL, circleBreak = FALSE,
 
 \item{top}{top negative and positive associations}
 
-\item{occ}{species occurence data}
+\item{occ}{species occurrence data}
 
 \item{cols_association}{col gradient for association lines}
 

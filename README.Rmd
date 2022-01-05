@@ -1,10 +1,8 @@
 ---
-title: "README"
-author: "Max Pichler"
-output: 
-  html_document: 
-    keep_md: yes
+output: github_document
 ---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -95,7 +93,7 @@ print(an)
 plot(an)
 ```
 
-The anova shows the relative changes in the logLik of the groups and their intersections.
+The anova shows the relative changes in the deviance of the groups and their intersections.
 
 
 

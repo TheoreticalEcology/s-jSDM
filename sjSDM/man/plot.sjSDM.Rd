@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{plot.sjSDM}
 \alias{plot.sjSDM}
-\title{Coeffect plot}
+\title{Coefficients plot}
 \usage{
 \method{plot}{sjSDM}(x, ...)
 }
@@ -12,11 +12,11 @@
 \item{...}{Additional arguments to pass to \code{\link{plotsjSDMcoef}}.}
 }
 \description{
-Plotting coeffects return by sjSDM model.
+Plotting coefficients returned by sjSDM model.
 This function only for model fitted by linear, fitted by DNN is not yet supported.
 }
 \examples{
-\donttest{
+\dontrun{
 library(sjSDM)
 # simulate community:
 com = simulate_SDM(env = 6L, species = 7L, sites = 100L)

@@ -1,130 +1,113 @@
 #' Install sjSDM and its dependencies
 #'
-#' @param method installation method, auto = automatically best (conda or virtualenv), or force conda with method = "conda" or virtualenv with method = "virtualenv"
 #' @param conda path to conda
-#' @param version version = "cpu" for CPU version, or "gpu" for gpu version. (note MacOS users have to install cuda binaries by themselves)
-#' @param envname Name of python env, "r-pytorch" is default
+#' @param version version = "cpu" for CPU version, or "gpu" for GPU version. (note MacOS users have to install 'cuda' binaries by themselves)
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
-#' @param cuda which cuda version, 9.2 and 10.2 are supported
 #' @param ... not supported
 #'
 #' @export
-install_sjSDM = function(method = "conda",
-                         conda = "auto",
+install_sjSDM = function(conda = "auto",
                          version = c("cpu", "gpu"),
-                         envname = "r-reticulate",
-                         restart_session = TRUE,
-                         cuda = c("10.2", "9,2"), ...) {
+                         restart_session = TRUE, ...) {
   
-  pip = FALSE
-  extra_packages = NULL
-  is_windows = function() {
-    identical(.Platform$OS.type, "windows")
-  }
-  
-  is_unix = function() {
-    identical(.Platform$OS.type, "unix")
-  }
-  
-  is_osx = function() {
-    Sys.info()["sysname"] == "Darwin"
-  }
-  
-  is_linux = function() {
-    identical(tolower(Sys.info()[["sysname"]]), "linux")
-  }
   version = match.arg(version)
-  cuda = match.arg(cuda)
   
+  method = "conda"
+  envname = "r-sjsdm"
   
+  # install conda if not installed 
   conda = tryCatch(reticulate::conda_binary(), error = function(e) e)
-  
   if(inherits(conda, "error")) {
-    reticulate::install_miniconda()
+    reticulate::install_miniconda(update = TRUE)
   }
+  
+  # get python dependencies
+  pkgs = get_pkgs(version = version)
+  
+  # torch will be installed via pip on macOS because of mkl dependencies
+  pip = FALSE
   channel = "pytorch"
-  if(is_windows()) {
-    package = list()
-    package$conda =
-      switch(version,
-             cpu = "pytorch torchvision torchaudio cpuonly",
-             gpu = "pytorch torchvision torchaudio cudatoolkit=10.2")
-    if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch -c defaults -c numba/label/dev"
-    
-    package$pip = 
-      switch(version,
-             cpu = "torch===1.8.1 torchvision===0.9.1 torchaudio===0.8.1 -f https://download.pytorch.org/whl/torch_stable.html",
-             gpu = "torch==1.8.1+cpu torchvision==0.9.1+cpu torchaudio===0.8.1 -f https://download.pytorch.org/whl/torch_stable.html")
-    if(cuda == 9.2 && version == "gpu") package$conda = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
-  }
-  
-  if(is_linux() || is_unix()) {
-    package = list()
-    package$conda =
-      switch(version,
-             cpu = "pytorch torchvision torchaudio cpuonly",
-             gpu = "pytorch torchvision torchaudio cudatoolkit=10.2")
-    if(cuda == 9.2 && version == "gpu") package$conda = "pytorch torchvision cudatoolkit=9.2 -c pytorch"
-    
-    package$pip =
-      switch(version,
-             cpu = "torch==1.8.1+cpu torchvision==0.9.1+cpu torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html",
-             gpu = "torch torchvision")
-    if(cuda == 9.2 && version == "gpu") package$pip = "torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html"
-  } 
   if(is_osx()) {
-    package = list()
-    package$conda =
-      switch(version,
-             cpu = "pytorch torchvision torchaudio",
-             gpu = "pytorch torchvision torchaudio")
-    
-    package$pip =
-      switch(version,
-             cpu = "torch torchvision torchaudio",
-             gpu = "torch torchvision torchaudio")
-    
-    if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
+    pip = TRUE
+    channel = NULL
   }
   
-  packages = strsplit(unlist(package), " ", fixed = TRUE)
-  
+  # install dependencies
   error = tryCatch({
-#     conda_path =reticulate::conda_binary()
-#     system2(conda_path, args=paste0(" create -y --force -n ", envname))
-#     system2(conda_path, args=paste0(" install -y -n ",envname ," python=", conda_python_version))
-#     system2(conda_path, args=paste0(" install -y -n ",envname, " ", paste(packages$conda, collapse = " "), " -c pytorch"))
-# 	  conda_python = reticulate::conda_python(envname=envname)
-# 	  system2(conda_python, args=" -m pip install --upgrade ssl")
-# 	  reticulate::conda_install(envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
-#     #system2(conda_python, args=paste0(" -m pip install pyro-ppl torch_optimizer"))
     
-    reticulate::conda_install(envname = envname, packages = packages$conda, channel = channel)
-    reticulate::conda_install(envname = envname, packages = c("pyro-ppl", "torch_optimizer", "madgrad"), pip = TRUE)
-  
+    reticulate::py_install(
+      pkgs$conda,
+      envname = envname,
+      method = "conda",
+      conda = "auto",
+      python_version = "3.7.1",
+      channel = channel,
+      pip = pip
+    )
+    
+    reticulate::py_install(
+      c("numpy", "pyro-ppl", "torch_optimizer", "madgrad"),
+      envname = envname,
+      method = "conda",
+      conda = "auto",
+      pip = TRUE
+    )
   }, error = function(e) e)
   
-  error = tryCatch({
-    reticulate::conda_install(envname = envname, packages = packages$conda, channel = channel)
-    reticulate::conda_install(envname = envname, packages = c("pyro-ppl", "torch_optimizer"), pip = TRUE)
-  }, error = function(e) e)
-  
-  
+  # check if instllation was successfull
   if(!inherits(error, "error")) {
-    message("\nInstallation complete.\n\n")
+    cli::cli_alert_success("\nInstallation complete.\n\n")
     
     if (restart_session && rstudioapi::hasFun("restartSession"))
       rstudioapi::restartSession()
     
     invisible(NULL)
   } else {
-    cat("\nInstallation failed... Try to install manually PyTorch (install instructions: https://github.com/TheoreticalEcology/s-jSDM\n")
-    cat("If the installation still fails, please report the following error on https://github.com/TheoreticalEcology/s-jSDM/issues\n")
-    cat(error$message)
+    cli::cli_alert_danger("\nInstallation failed... try to install manually PyTorch (install instructions: https://github.com/TheoreticalEcology/s-jSDM\n")
+    cli::cli_alert_info("If the installation still fails, please report the following error on https://github.com/TheoreticalEcology/s-jSDM/issues\n")
+    cli::cli_alert(error$message)
   }
 }
 
+
+
+is_windows = function() {
+  identical(.Platform$OS.type, "windows")
+}
+
+is_unix = function() {
+  identical(.Platform$OS.type, "unix")
+}
+
+is_osx = function() {
+  Sys.info()["sysname"] == "Darwin"
+}
+
+is_linux = function() {
+  identical(tolower(Sys.info()[["sysname"]]), "linux")
+}
+
+get_pkgs = function(version="cpu") {
+  
+  channel = "pytorch"
+  if(is_windows() || is_linux() || is_unix()) {
+    package = list()
+    package$conda =
+      switch(version,
+             cpu = "pytorch torchvision torchaudio cpuonly",
+             gpu = "pytorch torchvision torchaudio cudatoolkit=11.3")
+   }
+
+  if(is_osx()) {
+    package = list()
+    package$conda = "torch torchvision torchaudio"
+    if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
+  }
+  
+  packages = strsplit(unlist(package), " ", fixed = TRUE)
+  return(packages)
+}
 
 #' @title install diagnostic
 #' 

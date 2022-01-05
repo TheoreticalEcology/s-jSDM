@@ -2,27 +2,33 @@
 % Please edit documentation in R/anova.R
 \name{plot.sjSDManova}
 \alias{plot.sjSDManova}
-\title{Plot anova}
+\title{Plot anova results}
 \usage{
-\method{plot}{sjSDManova}(x, y, perf = c("LogLik", "R2"),
-  cols = c("#7FC97F", "#BEAED4", "#FDC086"), alpha = 0.15,
-  percent = TRUE, ...)
+\method{plot}{sjSDManova}(
+  x,
+  y,
+  type = c("Deviance", "Nagelkerke", "McFadden"),
+  cols = c("#7FC97F", "#BEAED4", "#FDC086"),
+  alpha = 0.15,
+  ...
+)
 }
 \arguments{
 \item{x}{anova object from \code{\link{anova.sjSDM}}}
 
 \item{y}{unused argument}
 
-\item{perf}{performance measurement to plot}
+\item{type}{use of deviance or of Nagelkerke or McFadden R-squareds}
 
 \item{cols}{colors for the groups}
 
 \item{alpha}{alpha for colors}
 
-\item{percent}{use relative instead of absolute values (currently not supported)}
-
 \item{...}{Additional arguments to pass to \code{plot()}}
 }
+\value{
+Matrix of results
+}
 \description{
-Plot anova
+Plot anova results
 }

@@ -6,6 +6,8 @@ inst/python/.pytest_cache
 inst/.pytest_cache
 inst/python/.vscode
 inst/python/.eggs
+inst/python/build
 ^doc$
 ^Meta$
-CRAN.md
+^cran-comments\.md$
+^README\.Rmd$

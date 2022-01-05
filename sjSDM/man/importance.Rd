@@ -13,11 +13,17 @@ importance(x, save_memory = TRUE, ...)
 
 \item{...}{additional arguments}
 }
+\value{
+An S3 class of type 'sjSDMimportance'. Implemented S3 methods include \code{\link{print.sjSDMimportance}} and \code{\link{plot.sjSDMimportance}}
+}
 \description{
-importance of abiotic, biotic, and spatial effects
+Computes standardized variance components with respect to abiotic, biotic, and spatial effect groups.
+}
+\details{
+This variance partitioning approach is based on Ovaskainen et al., 2017. For an example how to interpret the outputs, see Leibold et al., 2021.
 }
 \examples{
-\donttest{
+\dontrun{
 library(sjSDM)
 com = simulate_SDM(sites = 300L, species = 12L, 
                    link = "identical", response = "identical")
@@ -34,6 +40,14 @@ model = sjSDM(Y = Y,env = linear(com$env_weights, lambda = 0.001),
 imp = importance(model)
 plot(imp)
 }
+}
+\references{
+Ovaskainen, O., Tikhonov, G., Norberg, A., Guillaume Blanchet, F., Duan, L., Dunson, D., ... & Abrego, N. (2017). How to make more out of community data? A conceptual framework and its implementation as models and software. Ecology letters, 20(5), 561-576.
+
+Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2021). The internal structure of metacommunities. Oikos.
+}
+\seealso{
+\code{\link{print.sjSDMimportance}}, \code{\link{plot.sjSDMimportance}}
 }
 \author{
 Maximilian Pichler

@@ -3,28 +3,40 @@
 \docType{package}
 \name{installation_help}
 \alias{installation_help}
-\title{installation help}
+\title{Installation help}
 \description{
-A scalable method to estimates joint Species Distribution Models (jSDMs).
+Trouble shooting guide for the installation of the sjSDM package
+
+We provide a function \code{\link{install_sjSDM}} to install automatically 
+all necessary python dependencies but it can fail sometimes because of 
+individual system settings or if other python/conda installations get into 
+the way.
 }
-\details{
-A scalable method to estimates joint Species Distribution Models (jSDMs) based on the multivariate probit model through Monte-Carlo approximation of the joint likelihood. The numerical approximation is based on PyTorch and reticulate, and can be calculated on CPUs and GPUs alike.
-}
-\section{PyTorch Installation - Before you start}{
+\section{'PyTorch' Installation - Before you start}{
 
 
-A few notes before you start with the installation:
+A few notes before you start with the installation (skip this point if you 
+do not know 'conda'):
 \itemize{
- \item existing conda installations (skip this point if you do not know conda): make sure you have the latest conda3/miniconda3 installation and remove unneccessary conda installations.
- \item existing conda/virtualenv (skip this point if you do not know conda): the R package reticulate has problems to find the right environment and it is better to remove unneccessary environments (see the troubleshooting section)
+ \item existing 'conda' installations:
+  make sure you have the latest conda3/miniconda3 version and 
+  remove unnecessary 'conda' installations.
+ \item existing 'conda'/'virtualenv' environments (skip this point if you do not know 'conda'): 
+ we currently enforce the usage of a specific environment called 'r-sjsdm', 
+ so if you want use a custom environment it should be named 'r-sjsdm'
 }
 }
 
 \section{Windows - automatic installation}{
 
 
-Conda is the easiest way to install python and python packages on windows:
-Install the latest \href{https://www.anaconda.com/distribution/}{conda version}
+Sometimes the automatic 'miniconda' installation 
+(via \code{\link{install_sjSDM}}) doesn't work because of white
+spaces in the user's name. But you can easily download and install 'conda' on
+your own:
+
+Download and install the latest 
+\href{https://www.anaconda.com/products/individual}{'conda' version}
 
 Afterwards run:\cr
 \code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
@@ -32,30 +44,32 @@ Afterwards run:\cr
 Reload the package and run the example , if this doesn't work:
 \itemize{
 \item Restart RStudio
-\item Install manually pytorch, see the following section
+\item Install manually 'pytorch', see the following section
 }
 }
 
 \section{Windows - manual installation}{
 
 
-Conda is the easiest way to install python and python packages on windows:
+Download and install the latest 'conda' version:
 \itemize{
-\item Install the latest \href{https://www.anaconda.com/distribution/}{conda version}
+\item Install the latest 
+\href{https://www.anaconda.com/products/individual}{'conda' version}
 \item Open the command window (cmd.exe - hit windows key + r and write cmd)
 }
 Run in cmd.exe:\cr
 \preformatted{
-$ conda create --name sjSDM_env python=3.7\cr
-$ conda activate sjSDM_env\cr
-$ conda install pytorch torchvision cpuonly -c pytorch # cpu\cr
-$ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu\cr
+$ conda create --name r-sjsdm python=3.7
+$ conda activate r-sjsdm
+$ conda install pytorch torchvision cpuonly -c pytorch # cpu
+$ conda install pytorch torchvision cudatoolkit=11.3 -c pytorch #gpu
+$ python -m pip install pyro-ppl torch_optimizer madgrad
 }
 
-Restart R try to run the example, if this doesn't work:
+Restart R, try to run the example, and if this doesn't work:
 \itemize{
 \item Restart RStudio
-\item See the troubleshooting section
+\item See the 'Help and bugs' section
 }
 }
 
@@ -63,123 +77,89 @@ Restart R try to run the example, if this doesn't work:
 
 
 Run in R:\cr
-\code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
+\code{install_sjSDM(version = c("gpu")) # or "cpu" if 
+you do not have a proper 'gpu' device }
+
 Restart R try to run the example, if this doesn't work:
 \itemize{
 \item Restart RStudio
-\item Install manually pytorch, see the following section
+\item Install manually 'PyTorch', see the following section
 }
 }
 
 \section{Linux - manual installation}{
 
 
-Via pip\cr
-python3 is pre-installed on most linux distributions, but you have to check that the minimal requirement of python >= 3.6 is met: 
-  
-Run in your shell:\cr
-\preformatted{
-$ python3 --version\cr
-$ python --version\cr
+We strongly advise to use a 'conda' environment but a virtual env should also 
+work. The only requirement is that it is named 'r-sjsdm'
+
+
+Download and install the latest 'conda' version:
+\itemize{
+\item Install the latest 
+\href{https://www.anaconda.com/products/individual}{'conda' version}
+\item Open your terminal 
 }
 
-Check if pip is installed:
+Run in your terminal:\cr
 \preformatted{
-$ pip3 --version\cr
-$ pip --version\cr
-}
-
-If not then install pip:\cr
-\preformatted{
-$ sudo apt install python3-pip # for ubuntu/deb   # e.g. for ubuntu
-}
-
-It depends on your ENVIRONMENTAL variables whether pip or pip3 corresponds to python3. You can check the python version of pip via:\cr
-\preformatted{
-$ pip --version
-}
-
-In my case, I have to use "pip3":\cr
-\preformatted{
-$ pip3 install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu
-$ pip3 install torch torchvision #gpu
+$ conda create --name r-sjsdm python=3.7
+$ conda activate r-sjsdm
+$ conda install pytorch torchvision cpuonly -c pytorch # cpu
+$ conda install pytorch torchvision cudatoolkit=11.3 -c pytorch #gpu
+$ python -m pip install pyro-ppl torch_optimizer madgrad
 }
 
 Restart R try to run the example, if this doesn't work:
 \itemize{
 \item Restart RStudio
-\item See the troubleshooting section
+\item See the 'Help and bugs' section
+}
 }
 
-Via virtualenv\cr
-Create a virtualenv and install dependencies (shell):\cr
-\preformatted{
-$ python3 -m pip install --user virtualenv\cr
-$ python3 -m venv ~/sjSDM_env\cr
-$ source ~/sjSDM_env/bin/activate\cr
-$ pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu\cr
-$ pip install torch torchvision #gpu\cr
-}
+\section{MacOS - automatic installation}{
+
+
+Run in R:\cr
+\code{install_sjSDM(version = c("cpu"))}
 
 Restart R try to run the example, if this doesn't work:
 \itemize{
 \item Restart RStudio
-\item See the troubleshooting section
+\item Install manually 'PyTorch', see the following section
+}
 }
 
-Via conda\cr
-Install the latest \href{https://www.anaconda.com/distribution/}{conda version} and run (shell):\cr
-\preformatted{
-$ conda create --name sjSDM_env python=3.7\cr
-$ conda activate sjSDM_env\cr
-$ conda install pytorch torchvision cpuonly -c pytorch # cpu\cr
-$ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu\cr
-}
-Restart R try to run the example from, if this doesn't work:\cr
+\section{MacOS - manual installation}{
+
+
+Download and install the latest 'conda' version:
 \itemize{
-\item Restart RStudio
-\item See the troubleshooting section
+\item Install the latest 
+\href{https://www.anaconda.com/products/individual}{'conda' version}
+\item Open your terminal 
 }
-}
 
-\section{MacOS}{
-
-
-Via conda\cr
-Install the latest \href{https://www.anaconda.com/distribution/}{conda version} and run in your OS shell:\cr
+Run in your terminal:\cr
 \preformatted{
-$ conda create --name sjSDM_env python=3.7\cr
-$ conda activate sjSDM_env\cr
-$ conda install pytorch torchvision cpuonly -c pytorch # cpu\Cr
+$ conda create --name r-sjsdm python=3.7
+$ conda activate r-sjsdm
+$ python -m pip install torch torchvision torchaudio 
+$ python -m pip install pyro-ppl torch_optimizer madgrad
 }
 Restart R try to run the example from, if this doesn't work:
 \itemize{
 \item Restart RStudio
-\item See the troubleshooting section
+\item See the 'Help and bugs' section
 }
-    
-For GPU support on MacOS, you have to install the cuda binaries yourself, see \href{https://pytorch.org/}{PyTorch for help}
-}
-
-\section{Troubleshooting}{
-
-
-After several installation attempts you might have corrupt and unneccessary conda environments which you have to remove:
-Open the shell (Windows users: run cmd.exe):\cr
-\preformatted{
-$ conda env list\cr
-}
-will list the paths of all your environments, except for the "base" env, delete them via:\cr
-\preformatted{
-$ rm - r <path-to-env1>\cr
-$ rm - r <path-to-env2>\cr
-}
-Then continue with the manual install instructions in above sections.
 }
 
 \section{Help and bugs}{
 
 
-To report bugs or ask for help, post a \href{http://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example}{reproducible example} via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with a copy of the \code{\link{install_diagnostic}} output as a quote on GitHub.
+To report bugs or ask for help, post a 
+\href{https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example}{reproducible example} 
+via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} 
+with a copy of the \code{\link{install_diagnostic}} output as a quote.
 }
 

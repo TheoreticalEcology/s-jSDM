@@ -2,12 +2,10 @@
 % Please edit documentation in R/utils.R
 \name{check_module}
 \alias{check_module}
-\title{check modul
-check if modul is loaded}
+\title{check module}
 \usage{
 check_module()
 }
 \description{
-check modul
-check if modul is loaded
+check if module is loaded
 }

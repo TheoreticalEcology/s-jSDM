@@ -11,7 +11,7 @@ AccSGD(kappa = 1000, xi = 10, small_const = 0.7, weight_decay = 0)
 
 \item{xi}{advantage parameter}
 
-\item{small_const}{small_const}
+\item{small_const}{small constant}
 
 \item{weight_decay}{l2 penalty on weights}
 }

@@ -4,8 +4,13 @@
 \alias{RMSprop}
 \title{RMSprop}
 \usage{
-RMSprop(alpha = 0.99, eps = 1e-08, weight_decay = 0.01, momentum = 0.1,
-  centered = FALSE)
+RMSprop(
+  alpha = 0.99,
+  eps = 1e-08,
+  weight_decay = 0.01,
+  momentum = 0.1,
+  centered = FALSE
+)
 }
 \arguments{
 \item{alpha}{decay factor}

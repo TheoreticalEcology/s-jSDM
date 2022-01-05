@@ -3,7 +3,7 @@
 #' specify the model to be fitted
 #' @param data matrix of environmental predictors
 #' @param formula formula object for predictors
-#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}
 #' 
 #' @seealso \code{\link{DNN}}, \code{\link{sjSDM}}
@@ -36,11 +36,12 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
       m = match("formula", names(mf))
       if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
-      X = data.frame(data)
-      X = stats::model.matrix(formula, X)
+      data = data.frame(data)
+      X = stats::model.matrix(formula, data)
     } else {
       formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula,data.frame(data))
+      data = data.frame(data)
+      X = stats::model.matrix(formula,data)
     }
   }
   
@@ -51,6 +52,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   out = list()
   out$formula = formula
   out$X = X
+  out$data = data
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
   class(out) = "linear"
@@ -67,7 +69,7 @@ print.linear = function(x, ...) {
 }
 
 
-#' Non-linear nodel (deep neural network) of environmental responses
+#' Non-linear model (deep neural network) of environmental responses
 #' 
 #' specify the model to be fitted
 #' @param data matrix of environmental predictors
@@ -114,16 +116,18 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
       m = match("formula", names(mf))
       if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
-      X = data.frame(data)
-      X = stats::model.matrix(formula, X)
+      data = data.frame(data)
+      X = stats::model.matrix(formula, data)
     } else {
       formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula,data.frame(data))
+      data = data.frame(data)
+      X = stats::model.matrix(formula, data)
     }
   }
   out = list()
   out$formula = formula
   out$X = X
+  out$data = data
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
   out$hidden = as.integer(hidden)
@@ -149,14 +153,14 @@ print.DNN = function(x, ...) {
 
 #' biotic structure
 #' 
-#' define biotic (species-species) assocation (interaction) structur
+#' define biotic (species-species) association (interaction) structure
 #' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}
-#' @param lambda lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}
+#' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}
 #' @param on_diag regularization on diagonals 
 #' @param reg_on_Cov regularization on covariance matrix 
 #' @param inverse regularization on the inverse covariance matrix
-#' @param diag use diagonal marix with zeros (internal usage)
+#' @param diag use diagonal matrix with zeros (internal usage)
 #' 
 #' @seealso \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
@@ -405,7 +409,7 @@ madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
 #' accelerated stochastic gradient, see Kidambi et al., 2018 for details
 #' @param kappa long step
 #' @param xi advantage parameter
-#' @param small_const small_const
+#' @param small_const small constant
 #' @param weight_decay l2 penalty on weights
 #' 
 #' @references 

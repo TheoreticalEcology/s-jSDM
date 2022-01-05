@@ -4,10 +4,20 @@
 \alias{simulate_SDM}
 \title{Simulate joint Species Distribution Models}
 \usage{
-simulate_SDM(env = 5L, sites = 100L, species = 5L, Re = NULL,
-  correlation = TRUE, weight_range = c(-1, 1), link = "probit",
-  response = "pa", sparse = NULL, tolerance = 0.05, iter = 20L,
-  seed = NULL)
+simulate_SDM(
+  env = 5L,
+  sites = 100L,
+  species = 5L,
+  Re = NULL,
+  correlation = TRUE,
+  weight_range = c(-1, 1),
+  link = "probit",
+  response = "pa",
+  sparse = NULL,
+  tolerance = 0.05,
+  iter = 20L,
+  seed = NULL
+)
 }
 \arguments{
 \item{env}{number of environment variables}
@@ -22,7 +32,7 @@ simulate_SDM(env = 5L, sites = 100L, species = 5L, Re = NULL,
 
 \item{weight_range}{sample true weights from uniform range, default -1,1}
 
-\item{link}{probit, logit or idential}
+\item{link}{probit, logit or identical}
 
 \item{response}{pa (presence-absence) or count}
 

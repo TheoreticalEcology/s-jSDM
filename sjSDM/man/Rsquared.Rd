@@ -2,28 +2,30 @@
 % Please edit documentation in R/Rsquared.R
 \name{Rsquared}
 \alias{Rsquared}
-\title{Rsquared}
+\title{R-squared}
 \usage{
-Rsquared(model, X = NULL, Y = NULL, SP = NULL, adjust = FALSE,
-  averageSP = TRUE, averageSite = TRUE)
+Rsquared(model, method = c("Nagelkerke", "McFadden"))
 }
 \arguments{
 \item{model}{model}
 
-\item{X}{new environmental covariates}
-
-\item{Y}{new species occurences}
-
-\item{SP}{new spatial covariates}
-
-\item{adjust}{adjust R squared or not}
-
-\item{averageSP}{average R squared over species}
-
-\item{averageSite}{average R squared over sites}
+\item{method}{Nagelkerke or McFadden}
+}
+\value{
+R-squared as numeric value
 }
 \description{
-claculate Rsquared following Nakagawa
+calculate R-squared following Nagelkerke or McFadden
+}
+\details{
+\loadmathjax 
+
+Calculate R-squared following Nagelkerke or McFadden:
+
+\itemize{
+\item Nagelkerke: \mjeqn{R^2 = 1 - \exp(2/N \cdot (log\mathcal{L}_0 - log\mathcal{L}_1 ) )}{}
+\item McFadden: \mjeqn{R^2 = 1 - log\mathcal{L}_1 / log\mathcal{L}_0  }{}
+}
 }
 \author{
 Maximilian Pichler

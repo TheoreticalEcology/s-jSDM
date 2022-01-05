@@ -1,4 +1,4 @@
-\donttest{
+\dontrun{
 library(sjSDM)
 com = simulate_SDM(sites = 300L, species = 12L, 
                    link = "identical", response = "identical")

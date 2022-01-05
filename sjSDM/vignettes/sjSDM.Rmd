@@ -6,7 +6,7 @@ output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Vignette for the sjSDM package}
+  %\VignetteIndexEntry{sjSDM: a scalable joint Species Distribution Model}
   \usepackage[utf8]{inputenc}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood. \n \n \n"
@@ -48,7 +48,7 @@ install_sjSDM(method = "gpu")
 ```
 
 
-More details on and trouble-shooting for installing the neccessary dependencies is explained in the vignette dependencies, call 
+More details on and trouble-shooting for installing the necessary dependencies is explained in the vignette dependencies, call 
 
 ```{r,eval = F}
 vignette("Dependencies", package = "sjSDM")
@@ -74,7 +74,7 @@ com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
 
 # Fitting a model
 
-The model is then fit with the function sjSDM(). You have to provide predcitors (can be also a data.frame) and response as matrices. 
+The model is then fit with the function sjSDM(). You have to provide predictors (can be also a data.frame) and response as matrices. 
 
 ```{r,eval=FALSE}
 model = sjSDM(Y = com$response, env = com$env_weights, iter = 100L, se=TRUE)
@@ -113,7 +113,7 @@ summary(model)
 
 # Handling spatial autocorrelation
 ## Simulating spatial data
-JSDM account for correlation between species within communities (sites), in real datasets, however, communities (sites) are additionally correlated (== spatial autocorrelation).
+sSDM account for correlation between species within communities (sites), in real datasets, however, communities (sites) are often additionally correlated (== spatial autocorrelation).
 
 Let's first simulate test data:
 1) Simulate JSDM without a link (normal response)
@@ -153,9 +153,9 @@ summary(model)
 
 # Further analyses
 ## Anova
-Analysis of variance for the two/three different compenents (environment, biotic associations, and space (optional)). sjSDM supports cross-validation in the anova to correct for the complexity of the model, which is somehow difficult to estimate:
+Type I analysis of variance for the two/three different components (environment, biotic associations, and space (optional)).
 ```{r,eval=FALSE}
-an = anova(model, cv = FALSE)
+an = anova(model)
 plot(an)
 ```
 
@@ -254,7 +254,7 @@ summary(model)
 
 # Fitting other distributions (e.g. species frequencies)
 sjSDM supports other responses than presence-absence data:
-Simulate non-prescence-absence data:
+Simulate non-presence-absence data:
 ```{r,eval=FALSE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L,link = "identical", response = "count") # samples from a Poisson distribution
 X = com$env_weights
@@ -277,7 +277,8 @@ summary(model)
 ## Workaround to use the default binomial with probit or logit link:
 The log-normalization is one way to transform species counts into quasi-probabilities in the range of [0,1]:
 ```{r,eval=FALSE}
-Y_pa = scales::rescale(log(Y+0.001))
+zero_one = function(x) function(x) (x-min(x))/(max(x) -min(x))
+Y_pa = zero_one(log(Y+0.001))
 ```
 
 We can use the quasi probabilities the same way as presence-absence data:
@@ -286,61 +287,3 @@ We can use the quasi probabilities the same way as presence-absence data:
 model = sjSDM(Y_pa, env = linear(X, ~.), se = TRUE, iter = 50L, family = binomial("logit"))
 summary(model)
 ```
-
-
-# Fitting the latent variable model (still in development)
-We also support fitting JSDM by the LVM via variational inference:
-
-```{r,eval=FALSE}
-com = simulate_SDM(env = 2L, species = 10L, sites = 100L)
-Y = com$response
-X = com$env_weights
-
-lvm = sLVM(Y, X, family = binomial("probit"))
-summary(lvm)
-```
-
-The model can be run either on the CPU or the GPU:
-```{r,eval=FALSE}
-lvm = sLVM(Y, X, family = binomial("probit"), device = "cpu")
-summary(lvm)
-```
-
-Same functionalities as for sjSDM:
-```{r,eval=FALSE}
-lvm = sLVM(Y, X, formula = ~ 0+X1:X2,family = binomial("probit"), device = "cpu")
-summary(lvm)
-
-coef(lvm)
-
-print(lvm)
-```
-
-## Predictions with sLVM
-Get posterior distribution of predictions:
-```{r,eval=FALSE}
-lvm = sLVM(Y, X, family = binomial("probit"), device = "cpu")
-pred = predict(lvm)
-dim(pred)
-hist(pred[,1,1])
-```
-
-Newdata, get mean prediction:
-```{r,eval=FALSE}
-lvm = sLVM(Y, X, family = binomial("probit"), device = "cpu")
-pred = predict(lvm,newdata = X, mean_field = TRUE)
-dim(pred)
-```
-
-Newdata, get posterior distribution of predictions:
-```{r,eval=FALSE}
-pred = predict(lvm,newdata = X, mean_field = FALSE)
-dim(pred)
-```
-
-## Ordiation
-model-based ordination based on the LVM:
-```{r,eval=FALSE}
-plot(lvm)
-```
-

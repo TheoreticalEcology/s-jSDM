@@ -1,0 +1,14 @@
+name: r-sjsdm
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+  - pytorch
+dependencies:
+  - pip
+  - pip:
+    - pyro-ppl
+    - madgrad
+    - torch_optimizer
+    - torch
+    - pytest

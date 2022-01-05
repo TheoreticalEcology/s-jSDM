@@ -65,7 +65,7 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  summary(model)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  an = anova(model, cv = FALSE)
+#  an = anova(model)
 #  plot(an)
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -135,48 +135,11 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  summary(model)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  Y_pa = scales::rescale(log(Y+0.001))
+#  zero_one = function(x) function(x) (x-min(x))/(max(x) -min(x))
+#  Y_pa = zero_one(log(Y+0.001))
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  
 #  model = sjSDM(Y_pa, env = linear(X, ~.), se = TRUE, iter = 50L, family = binomial("logit"))
 #  summary(model)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  com = simulate_SDM(env = 2L, species = 10L, sites = 100L)
-#  Y = com$response
-#  X = com$env_weights
-#  
-#  lvm = sLVM(Y, X, family = binomial("probit"))
-#  summary(lvm)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  lvm = sLVM(Y, X, family = binomial("probit"), device = "cpu")
-#  summary(lvm)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  lvm = sLVM(Y, X, formula = ~ 0+X1:X2,family = binomial("probit"), device = "cpu")
-#  summary(lvm)
-#  
-#  coef(lvm)
-#  
-#  print(lvm)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  lvm = sLVM(Y, X, family = binomial("probit"), device = "cpu")
-#  pred = predict(lvm)
-#  dim(pred)
-#  hist(pred[,1,1])
-
-## ----eval=FALSE---------------------------------------------------------------
-#  lvm = sLVM(Y, X, family = binomial("probit"), device = "cpu")
-#  pred = predict(lvm,newdata = X, mean_field = TRUE)
-#  dim(pred)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  pred = predict(lvm,newdata = X, mean_field = FALSE)
-#  dim(pred)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  plot(lvm)
 

@@ -4,13 +4,20 @@
 \alias{bioticStruct}
 \title{biotic structure}
 \usage{
-bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
-  reg_on_Cov = TRUE, inverse = FALSE, diag = FALSE)
+bioticStruct(
+  df = NULL,
+  lambda = 0,
+  alpha = 0.5,
+  on_diag = FALSE,
+  reg_on_Cov = TRUE,
+  inverse = FALSE,
+  diag = FALSE
+)
 }
 \arguments{
 \item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}}
 
-\item{lambda}{lambda penality, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
+\item{lambda}{lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
 
 \item{alpha}{weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}}
 
@@ -20,20 +27,20 @@ bioticStruct(df = NULL, lambda = 0, alpha = 0.5, on_diag = FALSE,
 
 \item{inverse}{regularization on the inverse covariance matrix}
 
-\item{diag}{use diagonal marix with zeros (internal usage)}
+\item{diag}{use diagonal matrix with zeros (internal usage)}
 }
 \description{
-define biotic (species-species) assocation (interaction) structur
+define biotic (species-species) association (interaction) structure
 }
 \examples{
-\donttest{
+\dontrun{
   
 # Basic workflow:
 ## simulate community:
 com = simulate_SDM(env = 3L, species = 7L, sites = 100L)
 
 ## fit model:
-model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L) 
+model = sjSDM(Y = com$response,env = com$env_weights, iter = 50L) 
 # increase iter for your own data 
 
 coef(model)
@@ -64,22 +71,23 @@ model = sjSDM(Y = com$response,
 summary(model)
 
 ## without intercept:
-model = sjSDM(Y = com$response,
-              env = linear(data = com$env_weights, formula = ~0+X1:X2 + X3), 
-              se = TRUE,
-              iter = 2L) # increase iter for your own data 
+model = update(model, env_formula = ~0+X1:X2 + X3)
+
 summary(model)
 
 ## predict with model:
 preds = predict(model, newdata = com$env_weights)
 
+## calculate R-squared:
+R2 = Rsquared(model)
+print(R2)
 
 # With spatial terms:
 ## linear spatial model
 XY = matrix(rnorm(200), 100, 2)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(XY, ~0+X1:X2),
-              iter = 2L) # increase iter for your own data 
+              iter = 50L) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = XY)
 
@@ -88,7 +96,7 @@ predict(model, newdata = com$env_weights, SP = XY)
 SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(SPV, ~0+., lambda = 0.1),
-              iter = 2L) # increase iter for your own data 
+              iter = 50L) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = SPV)
 
@@ -120,14 +128,14 @@ getCov(model)
 
 
 # Anova 
-com = simulate_SDM(env = 3L, species = 15L, sites = 200L)
+com = simulate_SDM(env = 3L, species = 15L, sites = 200L, correlation = TRUE)
 
 XY = matrix(rnorm(400), 200, 2)
 SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(SPV, ~0+.), 
-              iter = 2L) # increase iter for your own data 
-result = anova(model, cv = 2L)
+              iter = 50L) # increase iter for your own data 
+result = anova(model)
 print(result)
 plot(result)
 

@@ -1,5 +1,5 @@
 ---
-title: "sjSDM: help on installing dependencies"
+title: "sjSDM: Help with the installation of dependencies"
 author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
 date: "`r Sys.Date()`"
 output: 
@@ -7,7 +7,7 @@ output:
     toc: true
     toc_depth: 3
 vignette: >
-  %\VignetteIndexEntry{Dependencies}
+  %\VignetteIndexEntry{sjSDM: Help with the installation of dependencies}
   \usepackage[utf8]{inputenc}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "This document explains how to install dependencies for the sjSDM package. \n \n \n"
@@ -22,211 +22,141 @@ set.seed(123)
 
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = F)
+knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = FALSE, eval = FALSE)
 ```
 
+The `r knitr::inline_expr('sjSDM::install_sjSDM()')` function can install automatically all necessary 'python' dependencies but it can fail sometimes because of individual system settings or if other 'python'/'conda' installations get into the way. 
 
+## PyTorch Installation - Before you start:
 
+A few notes before you start with the installation (skip this point if you 
+do not know conda):
 
-# Before you start
-A few notes before you start with the installation:
+* existing 'conda' installations: make sure you have the latest 'conda' or 'miniconda' version and remove unnecessary 'conda' installations.
+* existing 'conda' or 'virtualenv' environments (skip this point if you do not know 'conda'): we currently enforce the usage of a specific environment called 'r-sjsdm',so if you want use a custom environment it should be named 'r-sjsdm'
+ 
+ 
+## Windows - automatic installation:
+ 
+Sometimes the automatic 'miniconda' installation (via 
+`r knitr::inline_expr('sjSDM::install_sjSDM()')` ).doesn't work because of white spaces in the user's name. But you can easily download and install 'conda' on your own:
 
-- existing conda installations (skip this point if you do not know conda): make sure you have the latest conda3/miniconda3 installation and remove unneccessary conda installations.
-- existing conda/virtualenv (skip this point if you do not know conda): the R package reticulate has problems to find the right environment and it is better to remove unneccessary environments (see the [troubleshooting](#troubleshooting) section
+Download and install the latest ['conda' version](https://www.anaconda.com/products/individual)
 
-
-
-
-# Windows - automatic installation 
-Conda is the easiest way to install python and python packages on windows:
-Install the latest [conda version](https://www.anaconda.com/distribution/)
-
-Afterwards, run in R:
+Afterwards run:
 ```{r,eval=FALSE}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
-library(sjSDM)
 install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
 ```
-Try to load the package and run the example from ?sjSDM, if this doesn't work:
-
-- Restart RStudio
-- Install manually pytorch, see the following section
-
 
  
-# Windows - manual installation {#ww}
-Conda is the easiest way to install python and python packages on windows:
-
-* Install the latest [conda version](https://www.anaconda.com/distribution/)
-* Open the command window (cmd.exe - hit windows key + r and write cmd)
-
-Run:
-```
-$ conda create --name sjSDM_env python=3.7
-$ conda activate sjSDM_env
-$ conda install pytorch torchvision cpuonly -c pytorch # cpu
-$ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu
-```
-
-Start R and run:
-Download, install, and test the package:
-```{r,eval=FALSE}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
-library(sjSDM)
-community <- simulate_SDM(sites = 100, species = 10, env = 5)
-Env <- community$env_weights
-Occ <- community$response
-
-model <- sjSDM(X = Env, Y = Occ, formula = ~0+X1*X2 + X3 + X4)
-summary(model)
-```
-Try to load the package and run the [example](#example), if this doesn't work:
-
-* Restart RStudio
-* See the [troubleshooting](#troubleshooting) section
-
-
-
-
-# Linux - automatic installation
-Run in R:
-```{r,eval=FALSE}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
-library(sjSDM)
-install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
-```
-Try to load the package and run the [example](#example), if this doesn't work:
+Reload the package and run the example, if this doesn't work:
 
 * Restart RStudio
 * Install manually pytorch, see the following section
+ 
+  
+## Windows - manual installation:
+ 
+Download and install the latest ['conda' version](https://www.anaconda.com/products/individual)
 
+Open the command window (cmd.exe - hit windows key + r and write cmd)
 
+Run in cmd.exe:
 
-
-
-# Linux - manual installation {#lm}
-## Via pip
-python3 is pre-installed on most linux distributions, but you have to check that the minimal requirement of python >= 3.6 is met: 
-
+```{bash, eval=FALSE}
+conda create --name r-sjsdm python=3.7
+conda activate r-sjsdm
+conda install pytorch torchvision cpuonly -c pytorch # cpu
+conda install pytorch torchvision cudatoolkit=11.3 -c pytorch #gpu
+python -m pip install pyro-ppl torch_optimizer madgrad
 ```
-$ python3 --version 
-$ python --version
-```
-
-Check if pip is installed:
-```
-$ pip3 --version 
-$ pip --version
-```
-If not then install pip:
-```
-$ sudo apt install python3-pip # for ubuntu/deb   # e.g. for ubuntu
-```
-
-It depends on your ENVIRONMENTAL variables whether pip or pip3 corresponds to python3. You can check the python version of pip via:
-```
-$ pip --version
-```
-
-In my case, I have to use "pip3":
-
-```
-$ pip3 install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu
-$ pip3 install torch torchvision #gpu
-```
-
-Run in R:
-```{r,eval=FALSE}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
-library(sjSDM)
-```
-Try to load the package and run the [example](#example), if this doesn't work:
+ 
+ 
+Restart R, try to run the example, and if this doesn't work:
 
 * Restart RStudio
-* See the [troubleshooting](#troubleshooting) section
-
-
-## Via virtualenv
-Create a virtualenv and install dependencies:
-```
-$ python3 -m pip install --user virtualenv
-$ python3 -m venv ~/sjSDM_env
-$ source ~/sjSDM_env/bin/activate
-$ pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html #cpu
-$ pip install torch torchvision #gpu
-```
-
-start R from within the environment and run:
+* See the 'Help and bugs' section
+ 
+    
+## Linux - automatic installation:
+ 
+Run in R: 
 ```{r,eval=FALSE}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
-library(sjSDM)
+install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
 ```
-Try to load the package and run the [example](#example), if this doesn't work:
 
-* Restart R/RStudio
-* See the [troubleshooting](#troubleshooting) section
+Restart R try to run the example, if this doesn't work:
 
+* Restart RStudio
+* Install manually 'PyTorch', see the following section
 
-## Via conda
-Install the latest [conda version](https://www.anaconda.com/distribution/) and run:
+  
+  
+## Linux - manual installation:
+ 
+We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
+
+Download and install the latest ['conda' version](https://www.anaconda.com/products/individual)
+
+Open your terminal and run:
+```{bash, eval=FALSE}
+conda create --name r-sjsdm python=3.7
+conda activate r-sjsdm
+conda install pytorch torchvision cpuonly -c pytorch # cpu
+conda install pytorch torchvision cudatoolkit=11.3 -c pytorch #gpu
+python -m pip install pyro-ppl torch_optimizer madgrad
 ```
-$ conda create --name sjSDM_env python=3.7
-$ conda activate sjSDM_env
-$ conda install pytorch torchvision cpuonly -c pytorch # cpu
-$ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch #gpu
-```
-start RStudio from  within the conda env and run:
-Try to load the package and run the [example](#example), if this doesn't work:
+ 
+ 
+Restart R try to run the example, if this doesn't work:
 
-* Restart R/RStudio
-* See the [troubleshooting](#troubleshooting) section
-
-
-
-
-# MacOS
-## Conda
-Install the latest [conda version](https://www.anaconda.com/distribution/) and run:
-```
-$ conda create --name sjSDM_env python=3.7
-$ conda activate sjSDM_env
-$ conda install pytorch torchvision cpuonly -c pytorch # cpu
-```
-start R and run:
+* Restart RStudio
+* See the 'Help and bugs' section
+ 
+ 
+## MacOS - automatic installation:
+ 
+Run in R: 
 ```{r,eval=FALSE}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
-library(sjSDM)
+install_sjSDM()
 ```
-Try to load the package and run the [example](#example), if this doesn't work:
 
-* Restart R/RStudio
-* See the [troubleshooting](#troubleshooting) section
+Restart R try to run the example, if this doesn't work:
 
-For GPU support on MacOS, you have to install the cuda binaries yourself, see [PyTorch for help](https://pytorch.org/)
+* Restart RStudio
+* Install manually 'PyTorch', see the following section
 
+ 
+ 
+## MacOS - manual installation:
+ 
+We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
 
-# Troubleshooting
-After several installation attempts you might have corrupt and unneccessary conda environments which we have to remove:
-Open the shell (Windows users: run cmd.exe):
+Download and install the latest conda [conda version](https://www.anaconda.com/products/individual)
+
+Open your terminal and run:
+```{bash, eval=FALSE}
+conda create --name r-sjsdm python=3.7
+conda activate r-sjsdm
+python -m pip install torch torchvision torchaudio 
+python -m pip install pyro-ppl torch_optimizer madgrad
 ```
-$ conda env list
-```
-will list the paths to all your environments, except for the "base" env, delete them via:
-```
-$ rm - r <path-to-env1>
-$ rm - r <path-to-env2>
-```
-Then continue with the manual install instructions:
+ 
+ 
+Restart R try to run the example, if this doesn't work:
 
-1. [Windows](#ww)
-2. [Linux](#lw)
-3. [MacOS](#macos)
+* Restart RStudio
+* See the 'Help and bugs' section
 
+## Help and bugs
 
+* ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of  `r knitr::inline_expr('sjSDM::install_diagnostic()')`as a quote. 
+* report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-emple)
+ via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)
 
 
 
-# Example
+## Example
 ```{r,eval=FALSE}
 library(sjSDM)
 community <- simulate_SDM(sites = 100, species = 10, env = 5)

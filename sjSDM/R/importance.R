@@ -1,11 +1,26 @@
 #' importance 
 #' 
-#' importance of abiotic, biotic, and spatial effects
+#' Computes standardized variance components with respect to abiotic, biotic, and spatial effect groups. 
 #' 
 #' @param x object fitted by \code{\link{sjSDM}} or a list with beta, the association matrix, and the correlation matrix of the predictors, see details below
 #' @param save_memory use torch backend to calculate importance with single precision floats
 #' @param ... additional arguments
 #' 
+#' @details 
+#' 
+#' This variance partitioning approach is based on Ovaskainen et al., 2017. For an example how to interpret the outputs, see Leibold et al., 2021.
+#' 
+#' @return
+#' 
+#' An S3 class of type 'sjSDMimportance'. Implemented S3 methods include \code{\link{print.sjSDMimportance}} and \code{\link{plot.sjSDMimportance}}
+#' 
+#' @references 
+#' 
+#' Ovaskainen, O., Tikhonov, G., Norberg, A., Guillaume Blanchet, F., Duan, L., Dunson, D., ... & Abrego, N. (2017). How to make more out of community data? A conceptual framework and its implementation as models and software. Ecology letters, 20(5), 561-576.
+#' 
+#' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2021). The internal structure of metacommunities. Oikos.
+#' 
+#' @seealso \code{\link{print.sjSDMimportance}}, \code{\link{plot.sjSDMimportance}}
 #' @example /inst/examples/importance-example.R
 #' @author Maximilian Pichler
 #' @export
@@ -40,14 +55,6 @@ importance = function(x, save_memory = TRUE, ...) {
                    total = list(env = rowSums(vp$env), biotic = vp$biotic))
         spatial=FALSE
       }
-      # sp_names = NULL
-      # beta = model[[1]]
-      # sigma = model[[2]]
-      # covX = model[[3]]
-      # vp = getImportance(beta = beta,  association = sigma, covX = covX)
-      # colnames(vp$env) = model$names
-      # res = list(split = vp, 
-      #            total = list(env = rowSums(vp$env), biotic = vp$biotic))
   } else {
     check_module()
     sp_names = colnames(model$data$Y)
@@ -55,20 +62,19 @@ importance = function(x, save_memory = TRUE, ...) {
     if(inherits(coefs, "list")) coefs = coefs[[1]]
     env = t(coefs)
     beta = env
-    #sigma = getCov(model)
     covX = stats::cov(model$data$X)
     if(!is.null(model$settings$spatial)) {
       spatial = TRUE
       sp = t(coef.sjSDM(model)[[2]][[1]])
       covSP = stats::cov(model$settings$spatial$X)
       
-      vp = fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...)
+      vp = force_r( fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...) )
       colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), spatial = rowSums(vp$spatial), biotic = vp$biotic))
     } else {
-      vp = fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...)
+      vp = force_r( fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...) )
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), biotic = vp$biotic))
@@ -124,9 +130,6 @@ plot.sjSDMimportance= function(x, y,contour=FALSE,col.points="#24526e",cex.point
   return(invisible(data))
 }
 
-
-
-#model = list(t(cbind(coef(m)$Xcoef, coef(m)$Intercept)), getResidualCov(m, FALSE)$cov, cov(m$TMBfn$env$data$x))
 
 #' getImportance
 #' 
@@ -192,62 +195,3 @@ getImportance = function(beta, sp=NULL, association, covX, covSP=NULL) {
     return(res)
   }
 }
-
-
-
-#' varPartTypIII
-#' 
-#' variation partitioning Typ III
-#' @param model object fitted by \code{\link{sjSDM}}
-#' @param order which modules should be removed: E (environment), S (spatial), or B (biotic)
-#' @param ... arguments passed to \code{\link{Rsquared}}
-#' 
-#' @author Maximilian Pichler
-
-varPartTypIII = function(model, order = NULL, ...) {
-  if(!is.null(model$spatial_weights)) {
-    sp = TRUE
-    order = c("ESB", "ES", "E")
-  } else {
-    sp = FALSE
-    order = c("EB", "E")
-  }
-  res = vector("list", length(order)+1)
-  res[[1]] = Rsquared(model, ...)
-  for(i in 1:length(order))res[[i+1]] = getRsquaredWOmodule(model,modules = order[[i]],...)
-  names(res) =  c("full", order)
-  return(res)
-}
-
-
-getRsquaredWOmodule = function(model, modules = c("E"), ...) {
-  modules = strsplit(modules,split = "")[[1]]
-  for(i in modules) {
-    if(i == "E") {
-      model$model$set_env_weights(lapply(model$weights, function(w) copyRP(matrix(0.0, nrow(w), ncol(w) )) ))
-    }
-    if(i == "B") {
-      model$model$set_sigma(copyRP(diag(1.0, ncol(model$data$Y))))
-      model$model$df= as.integer(ncol(model$data$Y))
-    }
-    if(i == "S") {
-      model$model$set_spatial_weights(lapply(model$spatial_weights, function(w) copyRP(matrix(0.0, nrow(w), ncol(w)))    ))
-    }
-  }
-  R2 = Rsquared(model, ...)
-  
-  for(i in modules) {
-    if(i == "E") {
-      model$model$set_env_weights(copyRP(model$weights))
-    }
-    if(i == "B") {
-      model$model$set_sigma(copyRP(model$sigma))
-      model$model$df= as.integer(ncol(model$sigma))
-    }
-    if(i == "S") {
-      model$model$set_spatial_weights(lapply(model$spatial_weights, function(w) copyRP(matrix(0.0, nrow(w), ncol(w) ))))
-    }
-  }
-  return(R2)
-}
-

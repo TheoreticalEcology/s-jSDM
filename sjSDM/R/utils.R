@@ -14,17 +14,6 @@ is_torch_available = function() {
   }
 }
 
-#' is_sjSDM_py_available
-#' check whetcher torch is available
-is_sjSDM_py_available = function() {
-  #implementation_module <- resolve_implementation_module()
-  if (reticulate::py_module_available("sjSDM_py")) {
-    TRUE
-  } else {
-    FALSE
-  }
-}
-
 createSplit = function(n=NULL,CV=5) {
   set = cut(sample.int(n), breaks = CV, labels = FALSE)
   test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
@@ -53,10 +42,10 @@ checkModel = function(object) {
     object$model$set_sigma(reticulate::r_to_py(object$sigma)$copy())
   }
   
-  if(inherits(object, "sLVM")) {
-    unserialize_state(object, object$state)
-    object$model$set_posterior_samples(lapply(object$posterior_samples, function(p) torch$tensor(p, dtype=object$model$dtype, device=object$model$device)))
-  }
+  # if(inherits(object, "sLVM")) {
+  #   unserialize_state(object, object$state)
+  #   object$model$set_posterior_samples(lapply(object$posterior_samples, function(p) torch$tensor(p, dtype=object$model$dtype, device=object$model$device)))
+  # }
   return(object)
 }
 
@@ -77,8 +66,9 @@ is_linux = function() {
   identical(tolower(Sys.info()[["sysname"]]), "linux")
 }
 
-#' check modul
-#' check if modul is loaded
+#' check module
+#' 
+#' check if module is loaded
 check_module = function(){
   if(!exists("fa")){
     .onLoad()
@@ -104,11 +94,11 @@ parse_nn = function(nn) {
   for(i in 1:length(layers)) {
     type = strsplit(class(slices[[i]]), ".", fixed = TRUE)[[1]]
     
-    if(layers[i] == "Linear") {
-      wM[i, 1] = slices[[i]]$in_features
-      wM[i, 2] = slices[[i]]$out_features
+    if(layers[i] %in% "Linear") {
+      wM[i, 1] = force_r( slices[[i]]$in_features )
+      wM[i, 2] = force_r( slices[[i]]$out_features )
       txt = paste0(txt, paste0("Layer_", i),":",
-                   "\t (", slices[[i]]$in_features, ", ",slices[[i]]$out_features, ")\n"
+                   "\t (", force_r( slices[[i]]$in_features ), ", ",force_r( slices[[i]]$out_features ), ")\n"
                    )
     } else {
       txt = paste0(txt, paste0("Layer_", i),":",
@@ -122,20 +112,6 @@ parse_nn = function(nn) {
   return(txt)
 }
 
-
-serialize_state = function(model) {
-  tmp = tempfile(pattern = "svi state")
-  on.exit(unlink(tmp), add = TRUE)
-  model$pyro$get_param_store()$save(tmp)
-  return(readBin(tmp, what = "raw", n = file.size(tmp), size=1))
-}
-
-unserialize_state = function(model, state) {
-  tmp = tempfile(pattern = "svi state")
-  on.exit(unlink(tmp), add = TRUE)
-  writeBin(state, tmp)
-  model$model$pyro$get_param_store()$load(tmp)
-}
 
 
 #' Generate spatial eigenvectors
@@ -171,4 +147,19 @@ generateSpatialEV = function(coords = NULL, threshold = 0.0) {
   SV = eigV$vectors[, values>0]
   colnames(SV) = paste0("SE_", 1:ncol(SV))
   return(SV)
+}
+
+force_r = function(x) {
+  if(inherits(x, "python.builtin.object")) return(reticulate::py_to_r( x ))
+  else return(x)
+}
+
+check_installation = function() {
+  # check if dependencies are installed
+  torch_ = pyro_ = torch_optimizer_ = madgrad_ = c(crayon::red(cli::symbol$cross), 0)
+  if(reticulate::py_module_available("torch")) torch_ =  c(crayon::green(cli::symbol$tick), 1)
+  if(reticulate::py_module_available("pyro")) pyro_ =  c(crayon::green(cli::symbol$tick), 1)
+  if(reticulate::py_module_available("torch_optimizer")) torch_optimizer_ =  c(crayon::green(cli::symbol$tick), 1)
+  if(reticulate::py_module_available("madgrad")) madgrad_ =  c(crayon::green(cli::symbol$tick), 1)
+  return(rbind("torch" = torch_,  "torch_optimizer" = torch_optimizer_, "pyro" = pyro_, "madgrad" = madgrad_))
 }

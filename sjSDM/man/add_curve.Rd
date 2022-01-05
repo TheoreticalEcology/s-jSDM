@@ -5,8 +5,16 @@
 \title{add_curve
 curve plotting 'engine'}
 \usage{
-add_curve(p1 = NULL, p2 = NULL, n = 10, spar = 0.7, col = "black",
-  species = TRUE, radius = 5, lwd = 1)
+add_curve(
+  p1 = NULL,
+  p2 = NULL,
+  n = 10,
+  spar = 0.7,
+  col = "black",
+  species = TRUE,
+  radius = 5,
+  lwd = 1
+)
 }
 \arguments{
 \item{p1}{first point}

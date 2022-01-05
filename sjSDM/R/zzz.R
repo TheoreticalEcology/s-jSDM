@@ -1,34 +1,33 @@
-check_installation = function() {
-  
-  torch_ = pyro_ = torch_optimizer_ = madgrad_ = c(crayon::red(cli::symbol$cross), 0)
-  
-  if(reticulate::py_module_available("torch")) torch_ =  c(crayon::green(cli::symbol$tick), 1)
-  if(reticulate::py_module_available("pyro")) pyro_ =  c(crayon::green(cli::symbol$tick), 1)
-  if(reticulate::py_module_available("torch_optimizer")) torch_optimizer_ =  c(crayon::green(cli::symbol$tick), 1)
-  if(reticulate::py_module_available("madgrad")) madgrad_ =  c(crayon::green(cli::symbol$tick), 1)
-  
-  return(rbind("torch" = torch_,  "torch_optimizer" = torch_optimizer_, "pyro" = pyro_, "madgrad" = madgrad_))
-}
-
 .onLoad = function(libname, pkgname){
-  msg( text_col( cli::rule(left = "Attaching sjSDM", right = packageVersion("sjSDM")) ), startup = TRUE)
+  msg( text_col( cli::rule(left = "Attaching sjSDM", right = utils::packageVersion("sjSDM")) ), startup = TRUE)
+  
+  # causes problems on macOS systems
+  if( is_osx() ) Sys.setenv( KMP_DUPLICATE_LIB_OK=TRUE ) 
+  
+  # load r-sjsdm environment
+  success_env = try({
+    envs = reticulate::conda_list()
+    env_path = envs[which(envs$name %in% "r-sjsdm", arr.ind = TRUE), 2]
+    reticulate::use_python(env_path, required = TRUE)
+  }, silent = TRUE)
+  
+  # check if dependencies are installed
   check = check_installation()
   
+  # load modules only if dependencies are available
   modules_available = any(check[,2] == "0")
   if(!modules_available) {
-    torch <<- reticulate::import("torch")
+    # load torch
+    torch <<- reticulate::import("torch", delay_load = list(environment = "r-torch"), convert = FALSE )  
     
+    # 'compile' and load sjSDM python package
     path = system.file("python", package = "sjSDM")
-    
-    Sys.setenv( KMP_DUPLICATE_LIB_OK=TRUE )
-    
     try({
-      compile = reticulate::import("compileall")
+      compile = reticulate::import("compileall", delay_load = TRUE)
       tmp = compile$compile_dir(paste0(path, "/sjSDM_py"),quiet = 2L,force=TRUE)
     }, silent = TRUE)
-    fa <<- reticulate::import_from_path("sjSDM_py", path)
-    
-    check= cbind(check, crayon::black( c(torch$`__version__`, rep("", 3))) )
+    fa <<- reticulate::import_from_path("sjSDM_py", path, delay_load = list(environment = "r-fa"), convert = FALSE)
+    check= cbind(check, crayon::black( c(torch$`__version__`, rep("", 3))))
   } 
   
   check[,2] = crayon::black( rownames(check) )
