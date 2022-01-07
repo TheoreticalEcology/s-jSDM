@@ -23,6 +23,9 @@ RMSprop(
 
 \item{centered}{centered or not}
 }
+\value{
+Anonymous function that returns optimizer when called.
+}
 \description{
 RMSprop optimizer
 }

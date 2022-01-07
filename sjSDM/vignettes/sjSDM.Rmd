@@ -113,10 +113,10 @@ summary(model)
 
 # Handling spatial autocorrelation
 ## Simulating spatial data
-sSDM account for correlation between species within communities (sites), in real datasets, however, communities (sites) are often additionally correlated (== spatial autocorrelation).
+jSDMs account for correlation between species within communities (sites), in real datasets, however, communities (sites) are often additionally correlated (== spatial autocorrelation).
 
 Let's first simulate test data:
-1) Simulate JSDM without a link (normal response)
+1) Simulate jSDM without a link (normal response)
 ```{r,eval=FALSE}
 
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L, 
@@ -140,7 +140,7 @@ Y = ifelse(Ysp < 0, 0, 1) # multivariate probit model
 
 ```
 
-## Fitting spatial JSDM
+## Fitting spatial jSDM
 Using spatial eigenvectors as additional predictors is a common approach:
 
 ```{r,eval=FALSE}

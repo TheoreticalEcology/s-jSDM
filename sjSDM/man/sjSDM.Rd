@@ -56,7 +56,28 @@ sjSDM.tune(object)
 \item{object}{object of type \code{\link{sjSDM_cv}}}
 }
 \value{
-An S3 class of type 'sjSDM'. Implemented S3 methods include \code{\link{summary.sjSDM}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, and \code{\link{coef.sjSDM}}. For other methods, see section 'See Also'.
+An S3 class of type 'sjSDM' including the following components:
+
+\item{cl}{Model call}
+\item{formula}{Formula object for environmental covariates.}
+\item{names}{Names of environmental covariates.}
+\item{species}{Names of species (can be \code{NULL} if columns of Y are not named).}
+\item{get_model}{Method which builds and returns the underlying 'python' model.}
+\item{logLik}{negative log-Likelihood of the model and the regularization loss.}
+\item{model}{The actual model.}
+\item{settings}{List of model settings, see arguments of \code{\link{sjSDM}}.}
+\item{family}{Response family.}
+\item{time}{Runtime.}
+\item{data}{List of Y, X (and spatial) model matrices.}
+\item{sessionInfo}{Output of \code{\link{sessionInfo}}.}
+\item{weights}{List of model coefficients (environmental (and spatial)).}
+\item{sigma}{Lower triangular weight matrix for the covariance matrix.}
+\item{history}{History of iteration losses.}
+\item{se}{Matrix of standard errors, if \code{se = FALSE} the field 'se' is \code{NULL}.}
+
+Implemented S3 methods include \code{\link{summary.sjSDM}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, and \code{\link{coef.sjSDM}}. For other methods, see section 'See Also'.
+
+\code{\link{sjSDM.tune}} returns an S3 object of class 'sjSDM', see above for information about values.
 }
 \description{
 \code{sjSDM} is used to fit joint Species Distribution models (jSDMs) using the central processing unit (CPU) or the graphical processing unit (GPU). 
@@ -75,7 +96,7 @@ environmental covariates \mjeqn{X_{in}}{}(\mjeqn{n=1,...,N}{} covariates), and t
 
 \mjdeqn{g(Z_{ij}) = \beta_{j0} + \Sigma^{N}_{n=1}X_{in}\beta_{nj} + e_{ij}}{}
 
-\mjeqn{g(.)}{} is a link function. For the multivariate probit model, the link function is:
+with \mjeqn{g(.)}{} as link function. For the multivariate probit model, the link function is:
 
 \mjdeqn{Y_{ij}=1(Z_{ij} > 0)}{}
 

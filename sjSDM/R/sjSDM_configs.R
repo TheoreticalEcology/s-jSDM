@@ -6,6 +6,17 @@
 #' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}
 #' 
+#' @return
+#' An S3 class of type 'linear' including the following components:
+#' 
+#' \item{formula}{Model matrix formula}
+#' \item{X}{Model matrix of covariates}
+#' \item{data}{Raw data}
+#' \item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
+#' \item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
+#' 
+#' Implemented S3 methods include \code{\link{print.linear}}
+#' 
 #' @seealso \code{\link{DNN}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @import checkmate
@@ -63,9 +74,13 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
 #' 
 #' @param x object created by \code{\link{linear}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' 
+#' @return Invisible formula object
+#' 
 #' @export
 print.linear = function(x, ...) {
   print(x$formula)
+  return(invisible(x$formula))
 }
 
 
@@ -80,6 +95,20 @@ print.linear = function(x, ...) {
 #' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |weights| + \alpha ||weights||^2}
 #' @param dropout probability of dropout rate 
+#' 
+#' @return
+#' An S3 class of type 'DNN' including the following components:
+#' 
+#' \item{formula}{Model matrix formula}
+#' \item{X}{Model matrix of covariates}
+#' \item{data}{Raw data}
+#' \item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
+#' \item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
+#' \item{hidden}{Integer vector of hidden neurons in the deep neural network. Length of vector corresponds to the number of hidden layers.}
+#' \item{activation}{Charactervector of activation functions.}
+#' \item{bias}{Logical vector whether to use bias or not in each hidden layer.}
+#' 
+#' Implemented S3 methods include \code{\link{print.DNN}}
 #' 
 #' @seealso \code{\link{linear}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
@@ -162,6 +191,18 @@ print.DNN = function(x, ...) {
 #' @param inverse regularization on the inverse covariance matrix
 #' @param diag use diagonal matrix with zeros (internal usage)
 #' 
+#' @return
+#' An S3 class of type 'bioticStruct' including the following components:
+#' 
+#' \item{l1_cov}{L1 regularization strength.}
+#' \item{l2_cov}{L2 regularization strength.}
+#' \item{inverse}{Logical, use inverse covariance matrix or not.}
+#' \item{diag}{Logical, use diagonal matrix or not.}
+#' \item{reg_on_Cov}{Logical, regularize covariance matrix or not.}
+#' \item{on_diag}{Logical, regularize diagonals or not.}
+#' 
+#' Implemented S3 methods include \code{\link{print.bioticStruct}}
+#' 
 #' @seealso \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @import checkmate
@@ -199,32 +240,6 @@ print.bioticStruct = function(x, ...) {
 
 
 
-
-#' spatial random effects
-#' 
-#' define spatial random effects (random intercepts for sites)
-#' @param re vector of factors or integers 
-#' @seealso \code{\link{sjSDM}}
-#' @example /inst/examples/sjSDM-example.R
-#' @export
-spatialRE = function(re = NULL) {
-  out = list()
-  re = as.factor(re)
-  out$levels = levels(re)
-  out$re = as.integer(re) - 1L
-  class(out) = "spatialRE"
-  return(out)
-}
-
-#' Print a spatialRE object
-#' 
-#' @param x object created by \code{\link{spatialRE}}
-#' @param ... optional arguments for compatibility with the generic function, no function implemented
-#' @export
-print.spatialRE = function(x, ...) {
-}
-
-
 #' sjSDM control object
 #' 
 #' @param optimizer object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, \code{\link{madgrad}}, or \code{\link{AdaBound}}
@@ -232,6 +247,17 @@ print.spatialRE = function(x, ...) {
 #' @param lr_reduce_factor factor to reduce learning rate in scheduler
 #' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
 #' @param mixed mixed (half-precision) training or not. Only recommended for GPUs > 2000 series
+#' 
+#' @return
+#' List with the following fields:
+#' 
+#' \item{optimizer}{Function which returns an optimizer.}
+#' \item{scheduler_boolean}{Logical, use scheduler or not.}
+#' \item{scheduler_patience}{Integer, number of epochs to wait before applying plateau scheduler.}
+#' \item{lr_reduce_factor}{Numerical, learning rate reduce factor.}
+#' \item{mixed}{Logical, use mixed training or not.}
+#' \item{early_stopping_training}{Numerical, early stopping after n epochs.}
+#' 
 #' @import checkmate
 #' @export
 sjSDMControl = function(optimizer = RMSprop(),
@@ -292,13 +318,15 @@ check_family = function(family){
 
 
 
-
 #' Adamax
 #' 
 #' Adamax optimizer, see Kingma and Ba, 2014
 #' @param betas exponential decay rates
 #' @param eps fuzz factor
 #' @param weight_decay l2 penalty on weights
+#' 
+#' @return
+#' Anonymous function that returns optimizer when called.
 #' 
 #' @references 
 #' Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
@@ -315,7 +343,7 @@ Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.002) {
   out$params$betas = betas
   out$params$eps = eps
   out$params$weight_decay = weight_decay
-  out$ff = function() fa$optimizer_adamax
+  out$ff = function() pkg.env$fa$optimizer_adamax
   return(out)
 }
 
@@ -328,6 +356,9 @@ Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.002) {
 #' @param weight_decay l2 penalty on weights
 #' @param momentum momentum
 #' @param centered centered or not
+#' 
+#' @return
+#' Anonymous function that returns optimizer when called.
 #' @import checkmate
 #' @export
 RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.01, momentum=0.1, centered=FALSE) {
@@ -344,7 +375,7 @@ RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.01, momentum=0.1, cente
   out$params$weight_decay = weight_decay
   out$params$momentum = momentum
   out$params$centered = centered
-  out$ff = function() fa$optimizer_RMSprop
+  out$ff = function() pkg.env$fa$optimizer_RMSprop
   return(out)
 }
 
@@ -356,6 +387,8 @@ RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.01, momentum=0.1, cente
 #' @param dampening decay
 #' @param weight_decay l2 penalty on weights
 #' @param nesterov Nesterov momentum or not
+#' @return
+#' Anonymous function that returns optimizer when called.
 #' @import checkmate
 #' @export
 SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
@@ -371,7 +404,7 @@ SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
   out$params$dampening = dampening
   out$params$weight_decay = weight_decay
   out$params$nesterov = nesterov
-  out$ff = function() fa$optimizer_SGD
+  out$ff = function() pkg.env$fa$optimizer_SGD
   return(out)
 }
 
@@ -382,7 +415,8 @@ SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
 #' @param momentum strength of momentum
 #' @param weight_decay l2 penalty on weights
 #' @param eps epsilon
-#' 
+#' @return
+#' Anonymous function that returns optimizer when called.
 #' @references 
 #' Defazio, A., & Jelassi, S. (2021). Adaptivity without Compromise: A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic Optimization. arXiv preprint arXiv:2101.11075.
 #' @import checkmate
@@ -398,7 +432,7 @@ madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
   out$params$momentum = momentum
   out$params$weight_decay = weight_decay
   out$params$eps = eps
-  out$ff = function() fa$optimizer_madgrad
+  out$ff = function() pkg.env$fa$optimizer_madgrad
   return(out)
 }
 
@@ -411,7 +445,8 @@ madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
 #' @param xi advantage parameter
 #' @param small_const small constant
 #' @param weight_decay l2 penalty on weights
-#' 
+#' @return
+#' Anonymous function that returns optimizer when called.
 #' @references 
 #' Kidambi, R., Netrapalli, P., Jain, P., & Kakade, S. (2018, February). On the insufficiency of existing momentum schemes for stochastic optimization. In 2018 Information Theory and Applications Workshop (ITA) (pp. 1-9). IEEE.
 #' @import checkmate
@@ -428,7 +463,7 @@ AccSGD = function(     kappa=1000.0,
   
   out = list()
   out$params = list(kappa=kappa,xi=xi,small_const=small_const,weight_decay=weight_decay)
-  out$ff = function() fa$optimizer_AccSGD
+  out$ff = function() pkg.env$fa$optimizer_AccSGD
   return(out)
 }
 
@@ -442,7 +477,8 @@ AccSGD = function(     kappa=1000.0,
 #' @param eps eps
 #' @param weight_decay weight_decay
 #' @param amsbound amsbound
-#' 
+#' @return
+#' Anonymous function that returns optimizer when called.
 #' @references 
 #' Luo, L., Xiong, Y., Liu, Y., & Sun, X. (2019). Adaptive gradient methods with dynamic bound of learning rate. arXiv preprint arXiv:1902.09843.
 #' @import checkmate
@@ -463,7 +499,7 @@ AdaBound = function(    betas= c(0.9, 0.999),
   
   out = list()
   out$params = list(betas=betas,final_lr=final_lr,gamma=gamma,eps= eps,weight_decay=weight_decay,amsbound=amsbound)
-  out$ff = function() fa$optimizer_AdaBound
+  out$ff = function() pkg.env$fa$optimizer_AdaBound
   return(out)
 }
 
@@ -472,6 +508,8 @@ AdaBound = function(    betas= c(0.9, 0.999),
 #' @param betas betas
 #' @param eps eps
 #' @param weight_decay weight_decay
+#' @return
+#' Anonymous function that returns optimizer when called.
 #' @import checkmate
 DiffGrad = function(    betas=c(0.9, 0.999),
                         eps=1e-8,
@@ -483,6 +521,6 @@ DiffGrad = function(    betas=c(0.9, 0.999),
   
   out = list()
   out$params = list(betas=betas,eps=eps,weight_decay=weight_decay)
-  out$ff = function() fa$optimizer_DiffGrad
+  out$ff = function() pkg.env$fa$optimizer_DiffGrad
   return(out)
 }

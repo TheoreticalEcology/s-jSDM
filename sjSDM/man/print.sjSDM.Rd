@@ -11,6 +11,9 @@
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
+\value{
+No return value
+}
 \description{
 Print a fitted sjSDM model
 }

@@ -1,3 +1,14 @@
+
+# Following https://stackoverflow.com/questions/12598242/global-variables-in-packages-in-r
+# Inspired by model.gluontimets (see https://github.com/business-science/modeltime.gluonts/blob/master/R/zzz.R)
+# We will use an environment for global variables
+pkg.env = new.env()
+pkg.env$name = "r-sjsdm"
+pkg.env$torch = NULL
+pkg.env$fa = NULL
+
+
+
 .onLoad = function(libname, pkgname){
   msg( text_col( cli::rule(left = "Attaching sjSDM", right = utils::packageVersion("sjSDM")) ), startup = TRUE)
   
@@ -18,7 +29,7 @@
   modules_available = any(check[,2] == "0")
   if(!modules_available) {
     # load torch
-    torch <<- reticulate::import("torch", delay_load = list(environment = "r-torch"), convert = FALSE )  
+    pkg.env$torch = reticulate::import("torch", delay_load = TRUE, convert = FALSE )  
     
     # 'compile' and load sjSDM python package
     path = system.file("python", package = "sjSDM")
@@ -26,8 +37,8 @@
       compile = reticulate::import("compileall", delay_load = TRUE)
       tmp = compile$compile_dir(paste0(path, "/sjSDM_py"),quiet = 2L,force=TRUE)
     }, silent = TRUE)
-    fa <<- reticulate::import_from_path("sjSDM_py", path, delay_load = list(environment = "r-fa"), convert = FALSE)
-    check= cbind(check, crayon::black( c(torch$`__version__`, rep("", 3))))
+    pkg.env$fa = reticulate::import_from_path("sjSDM_py", path, delay_load = TRUE, convert = FALSE)
+    check= cbind(check, crayon::black( c(pkg.env$torch$`__version__`, rep("", 3))))
   } 
   
   check[,2] = crayon::black( rownames(check) )

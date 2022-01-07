@@ -13,6 +13,9 @@ DiffGrad(betas = c(0.9, 0.999), eps = 1e-08, weight_decay = 0)
 
 \item{weight_decay}{weight_decay}
 }
+\value{
+Anonymous function that returns optimizer when called.
+}
 \description{
 DiffGrad
 }

@@ -8,7 +8,6 @@ simulate_SDM(
   env = 5L,
   sites = 100L,
   species = 5L,
-  Re = NULL,
   correlation = TRUE,
   weight_range = c(-1, 1),
   link = "probit",
@@ -26,8 +25,6 @@ simulate_SDM(
 
 \item{species}{number of species}
 
-\item{Re}{random effects (intercepts)}
-
 \item{correlation}{correlated species TRUE or FALSE, can be also a function or a matrix}
 
 \item{weight_range}{sample true weights from uniform range, default -1,1}
@@ -44,11 +41,25 @@ simulate_SDM(
 
 \item{seed}{random seed. Default = 42}
 }
+\value{
+List of simulation results:
+
+\item{env}{Number of environmental covariates}
+\item{species}{Number of species}
+\item{sites}{Number of sites}
+\item{link}{Which link}
+\item{response_type}{Which response type}
+\item{response}{Species occurrence matrix}
+\item{correlation}{Species covariance matirx}
+\item{species_weights}{Species-environment coefficients}
+\item{env_weights}{Environmental covariates}
+\item{corr_acc}{Method to calculate sign accurracy}
+}
 \description{
 Simulate species distributions
 }
 \details{
-probit is not possible for response = count
+Probit is not possible for abundance response (response = 'count')
 }
 \author{
 Maximilian Pichler

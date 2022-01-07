@@ -15,6 +15,17 @@ linear(data = NULL, formula = NULL, lambda = 0, alpha = 0.5)
 
 \item{alpha}{weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}}
 }
+\value{
+An S3 class of type 'linear' including the following components:
+
+\item{formula}{Model matrix formula}
+\item{X}{Model matrix of covariates}
+\item{data}{Raw data}
+\item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
+\item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
+
+Implemented S3 methods include \code{\link{print.linear}}
+}
 \description{
 specify the model to be fitted
 }

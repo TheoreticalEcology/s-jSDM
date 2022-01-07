@@ -13,6 +13,9 @@ madgrad(momentum = 0.9, weight_decay = 0, eps = 1e-06)
 
 \item{eps}{epsilon}
 }
+\value{
+Anonymous function that returns optimizer when called.
+}
 \description{
 stochastic gradient descent optimizer
 }

@@ -33,7 +33,7 @@
 #' 
 #' \mjdeqn{g(Z_{ij}) = \beta_{j0} + \Sigma^{N}_{n=1}X_{in}\beta_{nj} + e_{ij}}{}
 #' 
-#' \mjeqn{g(.)}{} is a link function. For the multivariate probit model, the link function is:
+#' with \mjeqn{g(.)}{} as link function. For the multivariate probit model, the link function is:
 #' 
 #' \mjdeqn{Y_{ij}=1(Z_{ij} > 0)}{}
 #' 
@@ -110,7 +110,26 @@
 #' }
 #' 
 #' @return 
-#' An S3 class of type 'sjSDM'. Implemented S3 methods include \code{\link{summary.sjSDM}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, and \code{\link{coef.sjSDM}}. For other methods, see section 'See Also'.
+#' An S3 class of type 'sjSDM' including the following components:
+#' 
+#' \item{cl}{Model call}
+#' \item{formula}{Formula object for environmental covariates.}
+#' \item{names}{Names of environmental covariates.}
+#' \item{species}{Names of species (can be \code{NULL} if columns of Y are not named).}
+#' \item{get_model}{Method which builds and returns the underlying 'python' model.}
+#' \item{logLik}{negative log-Likelihood of the model and the regularization loss.}
+#' \item{model}{The actual model.}
+#' \item{settings}{List of model settings, see arguments of \code{\link{sjSDM}}.}
+#' \item{family}{Response family.}
+#' \item{time}{Runtime.}
+#' \item{data}{List of Y, X (and spatial) model matrices.}
+#' \item{sessionInfo}{Output of \code{\link{sessionInfo}}.}
+#' \item{weights}{List of model coefficients (environmental (and spatial)).}
+#' \item{sigma}{Lower triangular weight matrix for the covariance matrix.}
+#' \item{history}{History of iteration losses.}
+#' \item{se}{Matrix of standard errors, if \code{se = FALSE} the field 'se' is \code{NULL}.}
+#' 
+#' Implemented S3 methods include \code{\link{summary.sjSDM}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, and \code{\link{coef.sjSDM}}. For other methods, see section 'See Also'.
 #' 
 #' 
 #' @references 
@@ -166,10 +185,10 @@ sjSDM = function(Y = NULL,
   
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
   
+  out$cl = match.call()
   out$formula = env$formula
   out$names = colnames(env$X)
   out$species = colnames(Y)
-  out$cl = match.call()
   
   ### settings ##
   if(is.null(biotic$df)) {
@@ -184,7 +203,7 @@ sjSDM = function(Y = NULL,
   input = as.integer(ncol(env$X))
   
   out$get_model = function(){
-    model = fa$Model_sjSDM( device = device, dtype = dtype)
+    model = pkg.env$fa$Model_sjSDM( device = device, dtype = dtype)
     
     if(inherits(env, "DNN")) {
       activation=env$activation
@@ -285,7 +304,7 @@ sjSDM = function(Y = NULL,
   out$spatial_weights = force_r(model$spatial_weights)
   out$spatial = spatial
   out$Null = NULL
-  .n = torch$cuda$empty_cache()
+  .n = pkg.env$torch$cuda$empty_cache()
   return(out)
 }
 
@@ -294,6 +313,9 @@ sjSDM = function(Y = NULL,
 #' 
 #' @param x a model fitted by \code{\link{sjSDM}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' 
+#' @return No return value
+#' 
 #' @export
 print.sjSDM = function(x, ...) {
   cat("sjSDM model, see summary(model) for details \n")
@@ -308,6 +330,9 @@ print.sjSDM = function(x, ...) {
 #' @param type raw or link
 #' @param dropout use dropout for predictions or not, only supported for DNNs
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' 
+#' @return Matrix of predictions (sites by species)
+#' 
 #' @import checkmate
 #' @export
 predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "raw"), dropout = FALSE,...) {
@@ -371,6 +396,9 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
 #' 
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' 
+#' @return Matrix of environmental coefficients or list of environmental and spatial coefficients for spatial models. 
+#' 
 #' @export
 coef.sjSDM = function(object, ...) {
   if(inherits(object, "spatial")) {
@@ -384,7 +412,10 @@ coef.sjSDM = function(object, ...) {
 #' Post hoc calculation of standard errors
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param step_size batch size for stochastic gradient descent
-#' @param parallel number of cpu cores for the data loader, only necessary for large datasets 
+#' @param parallel number of cpu cores for the data loader, only necessary for large datasets
+#' 
+#' @return The object passed to this function but the \code{object$se} field contains the standard errors now
+#' 
 #' @export
 getSe = function(object, step_size = NULL, parallel = 0L){
   if(!inherits(object, "sjSDM")) stop("object must be of class sjSDM")
@@ -400,6 +431,9 @@ getSe = function(object, step_size = NULL, parallel = 0L){
 #' 
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
+#' 
+#' @return The above matrix is silently returned.
+#' 
 #' @export
 summary.sjSDM = function(object, ...) {
 
@@ -503,15 +537,17 @@ summary.sjSDM = function(object, ...) {
 #' @param nsim number of simulations
 #' @param seed seed for random numer generator
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
-#'
+#' 
+#' @return Array of simulated species occurrences.
+#' 
 #' @importFrom stats simulate
 #' @export
 simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
   object = checkModel(object)
   if(!is.null(seed)) {
     set.seed(seed)
-    torch$cuda$manual_seed(seed)
-    torch$manual_seed(seed)
+    pkg.env$torch$cuda$manual_seed(seed)
+    pkg.env$torch$manual_seed(seed)
   }
   preds = abind::abind(lapply(1:nsim, function(i) predict.sjSDM(object)), along = 0L)
   simulation = apply(preds, 2:3, function(p) stats::rbinom(nsim, 1L,p))
@@ -524,7 +560,9 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
-#'
+#' 
+#' @return Numeric value
+#' 
 #' @importFrom stats simulate
 #' @export
 logLik.sjSDM <- function(object, ...){
@@ -542,7 +580,7 @@ logLik.sjSDM <- function(object, ...){
 #' @param biotic new biotic config
 #' @param ... additional arguments
 #' 
-#' @return An S3 class of type 'sjSDM'.
+#' @return An S3 class of type 'sjSDM'. See \code{\link{sjSDM}} for more information.
 #' @export
 update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biotic = NULL, ...) {
   

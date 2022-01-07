@@ -6,6 +6,9 @@
 \usage{
 install_diagnostic()
 }
+\value{
+No return value, called to extract dependency information.
+}
 \description{
 Print information about available conda environments, python configs, and pytorch versions.
 }

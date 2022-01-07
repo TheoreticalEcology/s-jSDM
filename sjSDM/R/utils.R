@@ -1,11 +1,10 @@
 #' is_torch_available
-#' check whetcher torch is available
+#' @details check whether torch is available
+#' 
+#' @return Logical, is torch module available or not.
+#' 
 #' @export
 is_torch_available = function() {
-  #implementation_module <- resolve_implementation_module()
-  # conda = try({ reticulate::conda_binary() }, silent=TRUE)
-
-  # if(inherits(conda, "try-error")) return(FALSE)
 
   if (reticulate::py_module_available("torch")) {
     return(TRUE)
@@ -41,11 +40,6 @@ checkModel = function(object) {
     if(!is.null(object$spatial)) object$model$set_spatial_weights(lapply(object$spatial_weights, function(w) reticulate::r_to_py(w)$copy()))
     object$model$set_sigma(reticulate::r_to_py(object$sigma)$copy())
   }
-  
-  # if(inherits(object, "sLVM")) {
-  #   unserialize_state(object, object$state)
-  #   object$model$set_posterior_samples(lapply(object$posterior_samples, function(p) torch$tensor(p, dtype=object$model$dtype, device=object$model$device)))
-  # }
   return(object)
 }
 
@@ -70,15 +64,15 @@ is_linux = function() {
 #' 
 #' check if module is loaded
 check_module = function(){
-  if(!exists("fa")){
+  if(is.null(pkg.env$fa)){
     .onLoad()
   }
 
-  if(!exists("fa")){
+  if(is.null(pkg.env$fa)) {
     stop("PyTorch not installed", call. = FALSE)
   }
 
-  if(reticulate::py_is_null_xptr(fa)) .onLoad()
+  if(reticulate::py_is_null_xptr(pkg.env$fa)) .onLoad()
 }
 
 
@@ -119,6 +113,9 @@ parse_nn = function(nn) {
 #' function to generate spatial eigenvectors to account for spatial autocorrelation
 #' @param coords matrix or data.frame of coordinates
 #' @param threshold ignore distances greater than threshold
+#' 
+#' @return
+#' Matrix of spatial eigenvectors. 
 #' 
 #' @export
 

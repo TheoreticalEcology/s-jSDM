@@ -5,6 +5,10 @@
 #' @param restart_session Restart R session after installing (note this will
 #'   only occur within RStudio).
 #' @param ... not supported
+#' 
+#' @return 
+#' 
+#' No return value, called for side effects (installation of 'python' dependencies).
 #'
 #' @export
 install_sjSDM = function(conda = "auto",
@@ -115,6 +119,11 @@ get_pkgs = function(version="cpu") {
 #' @details If the trouble shooting guide \code{\link{installation_help}} did not help with the installation, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with the output of this function as a quote. 
 #' 
 #' @seealso \code{\link{installation_help}}, \code{\link{install_sjSDM}}
+#' 
+#' @return
+#' 
+#' No return value, called to extract dependency information.
+#' 
 #' @export
 install_diagnostic = function() {
   conda_envs = reticulate::conda_list()
@@ -140,3 +149,4 @@ install_diagnostic = function() {
   cat("\n\n\n")
   cat(conda_info)
 }
+

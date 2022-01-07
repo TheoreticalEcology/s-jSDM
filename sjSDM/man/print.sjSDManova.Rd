@@ -11,6 +11,9 @@
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
+\value{
+The above matrix is silently returned
+}
 \description{
 Print sjSDM anova
 }

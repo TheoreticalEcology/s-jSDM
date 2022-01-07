@@ -13,6 +13,9 @@ Adamax(betas = c(0.9, 0.999), eps = 1e-08, weight_decay = 0.002)
 
 \item{weight_decay}{l2 penalty on weights}
 }
+\value{
+Anonymous function that returns optimizer when called.
+}
 \description{
 Adamax optimizer, see Kingma and Ba, 2014
 }

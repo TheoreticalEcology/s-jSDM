@@ -21,6 +21,9 @@ only occur within RStudio).}
 
 \item{...}{not supported}
 }
+\value{
+No return value, called for side effects (installation of 'python' dependencies).
+}
 \description{
 Install sjSDM and its dependencies
 }

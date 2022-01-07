@@ -11,6 +11,9 @@
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
+\value{
+Invisible formula object
+}
 \description{
 Print a linear object
 }
