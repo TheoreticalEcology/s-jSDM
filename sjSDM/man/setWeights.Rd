@@ -14,6 +14,9 @@ setWeights(object, weights)
 
 \item{weights}{list of layer weights and sigma, see \code{\link{getWeights}}}
 }
+\value{
+No return value, weights are changed in place.
+}
 \description{
 set layer weights and sigma in \code{\link{sjSDM}} with \code{\link{DNN}} object
 }

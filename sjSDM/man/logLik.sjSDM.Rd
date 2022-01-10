@@ -11,6 +11,9 @@
 
 \item{...}{optional arguments for compatibility with the generic function, no functionality implemented}
 }
+\value{
+Numeric value
+}
 \description{
 Extract Log-Likelihood from a fitted sjSDM model
 }

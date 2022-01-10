@@ -1,6 +1,101 @@
 ## Version 1.0.0
 
-### Submission 1, 01/0.5/2022
+
+### Submission 2, 01/07/2022
+
+Hi,
+
+thanks for the comments! I have addressed your points below:
+
+Best,
+Max
+
+> Please add \value to .Rd files regarding exported methods and explain
+> the functions results in the documentation. Please write about the
+> structure of the output (class) and also what the output means. (If a
+> function does not return a value, please document that too, e.g.
+> \value{No return value, called for side effects} or similar)
+> Missing Rd-tags in up to 41 .Rd files, e.g.:
+> AccSGD.Rd: \value
+> AdaBound.Rd: \value
+> Adamax.Rd: \value
+> add_legend.Rd: \value
+> add_species_arrows.Rd: \value
+> bioticStruct.Rd: \value
+> ...
+
+Done.
+
+> \dontrun{} should only be used if the example really cannot be executed
+> (e.g. because of missing additional software, missing API keys, ...) by
+> the user. That's why wrapping examples in \dontrun{} adds the comment
+> ("# Not run:") as a warning for the user.
+> Does not seem necessary.
+> 
+> Please unwrap the examples if they are executable in < 5 sec, or replace
+> \dontrun{} with \donttest{}.
+
+The examples cannot be executed directly after the pkg installation
+because they need additional python dependencies which first have to be 
+installed by the `sjSDM::install_sjSDM()` function. Therefore we deiced to use
+the `\dontrun{}` flag
+
+> 
+> Please make sure that you do not change the user's options, par or
+> working directory. If you really have to do so within functions, please
+> ensure with an *immediate* call of on.exit() that the settings are reset
+> when the function is exited. e.g.:
+> ...
+> oldpar <- par(no.readonly = TRUE) # code line i
+> on.exit(par(oldpar)) # code line i + 1
+> ...
+> par(mfrow=c(2,2)) # somewhere after
+> ...
+> 
+> e.g.: sjSDM_cv.R
+> If you're not familiar with the function, please check ?on.exit. This
+> function makes it possible to restore options before exiting a function
+> even if the function breaks. Therefore it needs to be called immediately
+> after the option change within a function.
+
+Done. All plot functions have been updated accordingly. 
+
+> 
+> Please ensure that you do not modify the global environment (e.g. by
+> using <<-) in your functions. This is not allowed by the CRAN policies.
+
+Done. We moved global variables into the pkg.env.
+
+
+### Successfull R CMD checks under
+
+* Locally: MacOS Monterey 12.1 (R x86_64 version)
+* Github actions: 
+  - MacOS Catalina 10.15 R-release 
+  - Ubuntu 20.04 R-release, R-oldrelease, and R-development
+  - Windows-latest R-release
+* Rhub:
+  - fedora 
+  - solairs
+* Win-builder R-release, R-development, and R-oldrelease
+
+Notes (from win-builder): 
+
+Possibly misspelled words in DESCRIPTION:
+  CPUs (21:262)
+  GPUs (21:271)
+  Hartig (21:320)
+  Pichler (21:310)
+  Scalable (3:8)
+  autocorrelation (21:488)
+  jSDMs (21:79, 21:565)
+  scalable (21:16)
+
+However, this seems fine to me. The spelling is intended.
+
+
+
+### Submission 1, 01/05/2022
 
 This is a new submission. 
 

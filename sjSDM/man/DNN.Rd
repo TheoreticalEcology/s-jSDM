@@ -32,6 +32,20 @@ DNN(
 
 \item{dropout}{probability of dropout rate}
 }
+\value{
+An S3 class of type 'DNN' including the following components:
+
+\item{formula}{Model matrix formula}
+\item{X}{Model matrix of covariates}
+\item{data}{Raw data}
+\item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
+\item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
+\item{hidden}{Integer vector of hidden neurons in the deep neural network. Length of vector corresponds to the number of hidden layers.}
+\item{activation}{Charactervector of activation functions.}
+\item{bias}{Logical vector whether to use bias or not in each hidden layer.}
+
+Implemented S3 methods include \code{\link{print.DNN}}
+}
 \description{
 specify the model to be fitted
 }

@@ -14,7 +14,13 @@ importance(x, save_memory = TRUE, ...)
 \item{...}{additional arguments}
 }
 \value{
-An S3 class of type 'sjSDMimportance'. Implemented S3 methods include \code{\link{print.sjSDMimportance}} and \code{\link{plot.sjSDMimportance}}
+An S3 class of type 'sjSDMimportance' including the following components:
+
+\item{names}{Character vector, species names.}
+\item{res}{Data frame of results.}
+\item{spatial}{Logical, spatial model or not.}
+
+Implemented S3 methods include \code{\link{print.sjSDMimportance}} and \code{\link{plot.sjSDMimportance}}
 }
 \description{
 Computes standardized variance components with respect to abiotic, biotic, and spatial effect groups.

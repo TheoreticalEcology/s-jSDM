@@ -13,6 +13,9 @@ getSe(object, step_size = NULL, parallel = 0L)
 
 \item{parallel}{number of cpu cores for the data loader, only necessary for large datasets}
 }
+\value{
+The object passed to this function but the \code{object$se} field contains the standard errors now
+}
 \description{
 Post hoc calculation of standard errors
 }

@@ -12,7 +12,13 @@
 #' 
 #' @return
 #' 
-#' An S3 class of type 'sjSDMimportance'. Implemented S3 methods include \code{\link{print.sjSDMimportance}} and \code{\link{plot.sjSDMimportance}}
+#' An S3 class of type 'sjSDMimportance' including the following components:
+#' 
+#' \item{names}{Character vector, species names.}
+#' \item{res}{Data frame of results.}
+#' \item{spatial}{Logical, spatial model or not.}
+#' 
+#' Implemented S3 methods include \code{\link{print.sjSDMimportance}} and \code{\link{plot.sjSDMimportance}}
 #' 
 #' @references 
 #' 
@@ -68,13 +74,13 @@ importance = function(x, save_memory = TRUE, ...) {
       sp = t(coef.sjSDM(model)[[2]][[1]])
       covSP = stats::cov(model$settings$spatial$X)
       
-      vp = force_r( fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...) )
+      vp = force_r( pkg.env$fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...) )
       colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), spatial = rowSums(vp$spatial), biotic = vp$biotic))
     } else {
-      vp = force_r( fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...) )
+      vp = force_r( pkg.env$fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...) )
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), biotic = vp$biotic))
@@ -94,10 +100,15 @@ importance = function(x, save_memory = TRUE, ...) {
 #' 
 #' @param x an object of \code{\link{importance}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' 
+#' @return The matrix above is silently returned
+#' 
 #' @export
 print.sjSDMimportance= function(x, ...) {
-  if(is.null(x$sp_names)) print(data.frame(sp = 1:length(x$res$total$biotic), x$res$total))
-  else print(data.frame(sp = x$sp_names, x$res$total))
+  if(is.null(x$sp_names)) res = data.frame(sp = 1:length(x$res$total$biotic), x$res$total)
+  else res = data.frame(sp = x$sp_names, x$res$total)
+  print(res)
+  return(invisible(res))
 }
 
 
@@ -111,9 +122,16 @@ print.sjSDMimportance= function(x, ...) {
 #' @param pch point symbol
 #' @param col.contour contour color
 #' @param ... Additional arguments to pass to \code{plot()}
+#' 
+#' @return The visualized matrix is silently returned.
+#' 
 #' @export
 plot.sjSDMimportance= function(x, y,contour=FALSE,col.points="#24526e",cex.points=1.2,pch=19,
                            col.contour="#ffbf02", ...) {
+  
+  oldpar = par(no.readonly = TRUE)
+  on.exit(par(oldpar))
+  
   if(is.null(x$sp_names)) data = data.frame(sp = 1:length(x$res$total$biotic), x$res$total)
   else data = data.frame(sp = x$sp_names, x$res$total)
   

@@ -2,12 +2,16 @@
 % Please edit documentation in R/utils.R
 \name{is_torch_available}
 \alias{is_torch_available}
-\title{is_torch_available
-check whetcher torch is available}
+\title{is_torch_available}
 \usage{
 is_torch_available()
 }
+\value{
+Logical, is torch module available or not.
+}
 \description{
 is_torch_available
-check whetcher torch is available
+}
+\details{
+check whether torch is available
 }

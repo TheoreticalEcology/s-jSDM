@@ -26,6 +26,9 @@
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
+\value{
+Matrix of predictions (sites by species)
+}
 \description{
 Predict from a fitted sjSDM model
 }

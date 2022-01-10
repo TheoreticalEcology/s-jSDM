@@ -26,6 +26,9 @@ AdaBound(
 
 \item{amsbound}{amsbound}
 }
+\value{
+Anonymous function that returns optimizer when called.
+}
 \description{
 adaptive gradient methods with dynamic bound of learning rate, see Luo et al., 2019 for details
 }

@@ -12,7 +12,14 @@
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
 \value{
-An S3 class of type 'sjSDManova'. Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
+An S3 class of type 'sjSDManova' including the following components:
+
+\item{results}{Data frame of results.}
+\item{to_print}{Data frame, summarized results for type I anova.}
+\item{N}{Number of observations (sites).}
+\item{spatial}{Logical, spatial model or not}
+
+Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 }
 \description{
 Calculate type I anova in the following order:

@@ -11,6 +11,9 @@
 
 \item{...}{optional arguments for compatibility with the generic function, no functionality implemented}
 }
+\value{
+Above data frame is silently returned.
+}
 \description{
 Return summary of a fitted sjSDM_cv model
 }

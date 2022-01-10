@@ -15,6 +15,9 @@ AccSGD(kappa = 1000, xi = 10, small_const = 0.7, weight_decay = 0)
 
 \item{weight_decay}{l2 penalty on weights}
 }
+\value{
+Anonymous function that returns optimizer when called.
+}
 \description{
 accelerated stochastic gradient, see Kidambi et al., 2018 for details
 }

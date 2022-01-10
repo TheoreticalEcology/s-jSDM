@@ -15,6 +15,9 @@ SGD(momentum = 0.5, dampening = 0, weight_decay = 0, nesterov = TRUE)
 
 \item{nesterov}{Nesterov momentum or not}
 }
+\value{
+Anonymous function that returns optimizer when called.
+}
 \description{
 stochastic gradient descent optimizer
 }

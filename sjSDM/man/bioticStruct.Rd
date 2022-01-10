@@ -29,6 +29,18 @@ bioticStruct(
 
 \item{diag}{use diagonal matrix with zeros (internal usage)}
 }
+\value{
+An S3 class of type 'bioticStruct' including the following components:
+
+\item{l1_cov}{L1 regularization strength.}
+\item{l2_cov}{L2 regularization strength.}
+\item{inverse}{Logical, use inverse covariance matrix or not.}
+\item{diag}{Logical, use diagonal matrix or not.}
+\item{reg_on_Cov}{Logical, regularize covariance matrix or not.}
+\item{on_diag}{Logical, regularize diagonals or not.}
+
+Implemented S3 methods include \code{\link{print.bioticStruct}}
+}
 \description{
 define biotic (species-species) association (interaction) structure
 }

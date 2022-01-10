@@ -12,6 +12,9 @@ getCov(object)
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}, or \code{\link{sjSDM}} with \code{\link{DNN}} object}
 }
+\value{
+Matrix of dimensions species by species corresponding to the covariance (occurrence) matrix.
+}
 \description{
 get species-species association (covariance) matrix
 }

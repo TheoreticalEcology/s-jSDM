@@ -32,6 +32,9 @@
 
 \item{...}{Additional arguments to pass to \code{plot()}}
 }
+\value{
+The visualized matrix is silently returned.
+}
 \description{
 Plot importance
 }

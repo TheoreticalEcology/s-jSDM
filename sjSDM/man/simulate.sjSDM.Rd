@@ -15,6 +15,9 @@
 
 \item{...}{optional arguments for compatibility with the generic function, no functionality implemented}
 }
+\value{
+Array of simulated species occurrences.
+}
 \description{
 Simulate nsim responses from the fitted model
 }

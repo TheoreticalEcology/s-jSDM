@@ -19,6 +19,25 @@
 
 \item{...}{Additional arguments to pass to \code{plot()}}
 }
+\value{
+Named vector of optimized regularization parameters.
+
+Without space:
+
+\item{lambda_cov}{Regularization strength in the \code{\link{bioticStruct}} object.}
+\item{alpha_cov}{Weigthing between L1 and L2 in the \code{\link{bioticStruct}} object.}
+\item{lambda_coef}{Regularization strength in the \code{\link{linear}} or \code{\link{DNN}} object.}
+\item{alpha_coef}{Weigthing between L1 and L2 in the \code{\link{linear}} or \code{\link{DNN}} object.}
+
+With space:
+
+\item{lambda_cov}{Regularization strength in the \code{\link{bioticStruct}} object.}
+\item{alpha_cov}{Weigthing between L1 and L2 in the \code{\link{bioticStruct}} object.}
+\item{lambda_coef}{Regularization strength in the \code{\link{linear}} or \code{\link{DNN}} object.}
+\item{alpha_coef}{Weigthing between L1 and L2 in the \code{\link{linear}} or \code{\link{DNN}} object.}
+\item{lambda_spatial}{Regularization strength in the \code{\link{linear}} or \code{\link{DNN}} object for the spatial component.}
+\item{alpha_spatial}{Weigthing between L1 and L2 in the\code{\link{linear}} or \code{\link{DNN}} object for the spatial component.}
+}
 \description{
 Plot elastic net tuning
 }

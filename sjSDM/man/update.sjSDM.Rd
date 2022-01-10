@@ -18,7 +18,7 @@
 \item{...}{additional arguments}
 }
 \value{
-An S3 class of type 'sjSDM'.
+An S3 class of type 'sjSDM'. See \code{\link{sjSDM}} for more information.
 }
 \description{
 Update and re-fit a model call

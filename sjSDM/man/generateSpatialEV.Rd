@@ -11,6 +11,9 @@ generateSpatialEV(coords = NULL, threshold = 0)
 
 \item{threshold}{ignore distances greater than threshold}
 }
+\value{
+Matrix of spatial eigenvectors.
+}
 \description{
 function to generate spatial eigenvectors to account for spatial autocorrelation
 }

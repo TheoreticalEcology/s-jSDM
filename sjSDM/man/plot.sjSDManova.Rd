@@ -18,7 +18,7 @@
 
 \item{y}{unused argument}
 
-\item{type}{use of deviance or of Nagelkerke or McFadden R-squareds}
+\item{type}{use of deviance or of Nagelkerke or McFadden R-squared}
 
 \item{cols}{colors for the groups}
 
@@ -27,7 +27,7 @@
 \item{...}{Additional arguments to pass to \code{plot()}}
 }
 \value{
-Matrix of results
+The visualized matrix is silently returned
 }
 \description{
 Plot anova results

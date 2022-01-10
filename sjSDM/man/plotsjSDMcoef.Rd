@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{plotsjSDMcoef}
 \alias{plotsjSDMcoef}
-\title{Coefficients plot}
+\title{Internal coefficients plot}
 \usage{
 plotsjSDMcoef(object, wrap_col = NULL, group = NULL, col = NULL, slist = NULL)
 }

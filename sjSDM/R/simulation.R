@@ -3,7 +3,6 @@
 #' @param env number of environment variables
 #' @param sites number of sites
 #' @param species number of species
-#' @param Re random effects (intercepts)
 #' @param correlation correlated species TRUE or FALSE, can be also a function or a matrix
 #' @param weight_range sample true weights from uniform range, default -1,1
 #' @param link probit, logit or identical
@@ -15,7 +14,22 @@
 #'
 #' @description Simulate species distributions
 #'
-#' @details probit is not possible for response = count
+#' @details Probit is not possible for abundance response (response = 'count')
+#' 
+#' @return
+#' 
+#' List of simulation results:
+#' 
+#' \item{env}{Number of environmental covariates}
+#' \item{species}{Number of species}
+#' \item{sites}{Number of sites}
+#' \item{link}{Which link}
+#' \item{response_type}{Which response type}
+#' \item{response}{Species occurrence matrix}
+#' \item{correlation}{Species covariance matirx}
+#' \item{species_weights}{Species-environment coefficients}
+#' \item{env_weights}{Environmental covariates}
+#' \item{corr_acc}{Method to calculate sign accurracy}
 #'
 #' @author Maximilian Pichler
 #' @export
@@ -25,7 +39,6 @@ simulate_SDM = function(
   env = 5L,
   sites = 100L,
   species = 5L,
-  Re = NULL,
   correlation = TRUE,
   weight_range = c(-1,1),
   link = "probit",
@@ -35,8 +48,6 @@ simulate_SDM = function(
   iter = 20L,
   seed = NULL
 ){
-
-
 
   if(!is.null(seed)) set.seed(seed)
 
@@ -105,7 +116,6 @@ simulate_SDM = function(
 
   raw_response = linear_reponse + re_i_j
   
-  if(!is.null(Re)) raw_response = raw_response + Re
 
   inv_logit = function(x) 1/(1+exp(-x))
 
@@ -156,7 +166,6 @@ simulate_SDM = function(
     true = species_covariance[ind]
     pred = cor[ind]
     d = sum((true < 0) == (pred < 0))
-    #d = dist(t(cbind(true, pred)))
     return(d/sum(lower.tri(species_covariance)))
   }
 

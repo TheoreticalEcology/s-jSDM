@@ -23,6 +23,16 @@ sjSDMControl(
 
 \item{mixed}{mixed (half-precision) training or not. Only recommended for GPUs > 2000 series}
 }
+\value{
+List with the following fields:
+
+\item{optimizer}{Function which returns an optimizer.}
+\item{scheduler_boolean}{Logical, use scheduler or not.}
+\item{scheduler_patience}{Integer, number of epochs to wait before applying plateau scheduler.}
+\item{lr_reduce_factor}{Numerical, learning rate reduce factor.}
+\item{mixed}{Logical, use mixed training or not.}
+\item{early_stopping_training}{Numerical, early stopping after n epochs.}
+}
 \description{
 sjSDM control object
 }

@@ -14,7 +14,14 @@
 #' Deviance for interactions (e.g. between space and environment) are also calculated and can be visualized via \code{\link{plot.sjSDManova}}.
 #' 
 #' @return 
-#' An S3 class of type 'sjSDManova'. Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
+#' An S3 class of type 'sjSDManova' including the following components:
+#' 
+#' \item{results}{Data frame of results.}
+#' \item{to_print}{Data frame, summarized results for type I anova.}
+#' \item{N}{Number of observations (sites).}
+#' \item{spatial}{Logical, spatial model or not}
+#' 
+#' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 #'  
 #' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}
 #' @import stats
@@ -104,6 +111,10 @@ anova.sjSDM = function(object, ...) {
 #' 
 #' @param x an object of \code{\link{anova.sjSDM}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' 
+#' @return The above matrix is silently returned
+#' 
+#' 
 #' @export
 print.sjSDManova = function(x, ...) {
   cat("Analysis of Deviance Table\n\n")
@@ -118,14 +129,12 @@ print.sjSDManova = function(x, ...) {
 #' 
 #' @param x anova object from \code{\link{anova.sjSDM}}
 #' @param y unused argument
-#' @param type use of deviance or of Nagelkerke or McFadden R-squareds
+#' @param type use of deviance or of Nagelkerke or McFadden R-squared
 #' @param cols colors for the groups
 #' @param alpha alpha for colors
 #' @param ... Additional arguments to pass to \code{plot()}
 #' 
-#' @return 
-#' 
-#' Matrix of results
+#' @return The visualized matrix is silently returned
 #' 
 #' @export
 plot.sjSDManova = function(x, y, type = c("Deviance", "Nagelkerke", "McFadden"), cols = c("#7FC97F","#BEAED4","#FDC086"),alpha=0.15, ...) {
@@ -133,6 +142,9 @@ plot.sjSDManova = function(x, y, type = c("Deviance", "Nagelkerke", "McFadden"),
   nseg = 100
   dr = 1.0
   type = match.arg(type)
+  
+  oldpar = par(no.readonly = TRUE)
+  on.exit(par(oldpar))
   
   values = x$results
   select_rows = 

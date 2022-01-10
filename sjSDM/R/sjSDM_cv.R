@@ -21,7 +21,17 @@
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}
 #' 
 #' @return 
-#' An S3 class of type 'sjSDM_cv'. Implemented S3 methods include \code{\link{sjSDM.tune}}, \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, and \code{\link{summary.sjSDM_cv}}
+#' An S3 class of type 'sjSDM_cv' including the following components:
+#' 
+#' \item{tune_results}{Data frame with tuning results.}
+#' \item{short_summary}{Data frame with averaged tuning results.}
+#' \item{summary}{Data frame with summarized averaged results.}
+#' \item{settings}{List of tuning settings, see the arguments in \code{\link{DNN}}.}
+#' \item{data}{List of Y, env (and spatial) objects.}
+#' \item{config}{List of \code{\link{sjSDM}} settings, see arguments of \code{\link{sjSDM}}.}
+#' \item{spatial}{Logical, spatial model or not.}
+#' 
+#' Implemented S3 methods include \code{\link{sjSDM.tune}}, \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, and \code{\link{summary.sjSDM_cv}}
 #' 
 #' @example /inst/examples/sjSDM_cv-example.R
 #' @seealso \code{\link{plot.sjSDM_cv}}, \code{\link{print.sjSDM_cv}}, \code{\link{summary.sjSDM_cv}}, \code{\link{sjSDM.tune}}
@@ -189,7 +199,7 @@ sjSDM_cv = function(Y,
                                  auc_macro_test = auc_macro_test,
                                  auc_macro_train = auc_macro_train)
       rm(model)
-      torch$cuda$empty_cache()
+      pkg.env$torch$cuda$empty_cache()
     }
     return(cv_step_result)
   }
@@ -282,6 +292,11 @@ zero_one = function(x) (x-min(x))/(max(x) - min(x))
 #' @rdname sjSDM
 #' @param object object of type \code{\link{sjSDM_cv}}
 #' @author Maximilian Pichler
+#' 
+#' @return 
+#' 
+#' \code{\link{sjSDM.tune}} returns an S3 object of class 'sjSDM', see above for information about values.
+#' 
 #' @export
 sjSDM.tune = function(object) {
   if(!inherits(object, "sjSDM_cv")) stop("Object must be of type sjSDM_cv, see function ?sjSDM_cv")
@@ -345,9 +360,12 @@ sjSDM.tune = function(object) {
 #' 
 #' @param x a model fitted by \code{\link{sjSDM_cv}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' 
+#' @return Above data frame is silently returned.
 #' @export
 print.sjSDM_cv = function(x, ...) {
   print(x$summary)
+  return(invisible(x$summary))
 }
 
 
@@ -355,9 +373,11 @@ print.sjSDM_cv = function(x, ...) {
 #' 
 #' @param object a model fitted by \code{\link{sjSDM_cv}}
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
+#' @return Above data frame is silently returned.
 #' @export
 summary.sjSDM_cv = function(object, ...) {
   print(object$short_summary)
+  return(invisible(object$short_summary))
 }
 
 
@@ -369,10 +389,30 @@ summary.sjSDM_cv = function(object, ...) {
 #' @param resolution resolution of grid
 #' @param k number of knots for the gm
 #' @param ... Additional arguments to pass to \code{plot()}
+#' 
+#' @return 
+#' Named vector of optimized regularization parameters.
+#' 
+#' Without space:
+#' 
+#' \item{lambda_cov}{Regularization strength in the \code{\link{bioticStruct}} object.}
+#' \item{alpha_cov}{Weigthing between L1 and L2 in the \code{\link{bioticStruct}} object.}
+#' \item{lambda_coef}{Regularization strength in the \code{\link{linear}} or \code{\link{DNN}} object.}
+#' \item{alpha_coef}{Weigthing between L1 and L2 in the \code{\link{linear}} or \code{\link{DNN}} object.}
+#' 
+#' With space:
+#' 
+#' \item{lambda_cov}{Regularization strength in the \code{\link{bioticStruct}} object.}
+#' \item{alpha_cov}{Weigthing between L1 and L2 in the \code{\link{bioticStruct}} object.}
+#' \item{lambda_coef}{Regularization strength in the \code{\link{linear}} or \code{\link{DNN}} object.}
+#' \item{alpha_coef}{Weigthing between L1 and L2 in the \code{\link{linear}} or \code{\link{DNN}} object.}
+#' \item{lambda_spatial}{Regularization strength in the \code{\link{linear}} or \code{\link{DNN}} object for the spatial component.}
+#' \item{alpha_spatial}{Weigthing between L1 and L2 in the\code{\link{linear}} or \code{\link{DNN}} object for the spatial component.}
+#' 
 #' @export
 plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolution = 6,k = 3, ...) {
-  oldpar = graphics::par()
-  on.exit(do.call(graphics::par, oldpar))
+  oldpar = par(no.readonly = TRUE)
+  on.exit(par(oldpar))
   x = x$short_summary
   perf = match.arg(perf)
   if(perf == "AUC") perf = "AUC_test"

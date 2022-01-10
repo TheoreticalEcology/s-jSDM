@@ -11,6 +11,9 @@
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }
+\value{
+The matrix above is silently returned
+}
 \description{
 Print importance
 }
