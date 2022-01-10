@@ -47,6 +47,16 @@ citation("sjSDM")
 ```
 
 
+### Development
+
+If you want to install the current (development) version from this repository, run
+
+
+```{r,eval=FALSE}
+devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "devel")
+```
+
+
 Once the dependencies are installed, the following code should run:
 
 Simulate a community and fit model:
