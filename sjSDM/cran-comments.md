@@ -1,3 +1,11 @@
+## Version 1.0.1
+
+### Submission 1,
+
+
+
+
+
 ## Version 1.0.0
 
 
@@ -64,7 +72,7 @@ Done. All plot functions have been updated accordingly.
 > Please ensure that you do not modify the global environment (e.g. by
 > using <<-) in your functions. This is not allowed by the CRAN policies.
 
-Done. We moved global variables into the pkg.env.
+Done. We haved moved global variables into the pkg.env.
 
 
 ### Successfull R CMD checks under

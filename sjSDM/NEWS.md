@@ -1,3 +1,12 @@
+# sjSDM 1.0.1
+
+
+## Bug fixes
+
+* unlisting of config objects in `sjSDM::sjSDM_cv` (thanks to Máté) (added unit tests)  #88
+
+
+
 # sjSDM 1.0.0
 
 ## Major changes

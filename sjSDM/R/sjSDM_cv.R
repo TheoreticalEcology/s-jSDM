@@ -281,7 +281,7 @@ sjSDM_cv = function(Y,
              summary = summary_results, 
              settings = list(tune_samples = tune_samples, CV = CV, tune = tune),
              data = list(Y = Y, env = env, biotic = biotic, spatial = spatial),
-             config = c(list(device=device, sampling=sampling), as.list(unlist(ellip))),
+             config = c(list(device=device, sampling=sampling), ellip),
              spatial = !is.null(spatial))
   class(out) = c("sjSDM_cv")
   return(out)
