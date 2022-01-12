@@ -587,7 +587,7 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
   mf = match.call()
   if(!is.null(env_formula)){
     m = match("env_formula", names(mf))
-    if(class(mf[3]$env_formula) == "name") mf[3]$env_formula = eval(mf[3]$env_formula, envir = parent.env(environment()))
+    if(class(mf[m]$env_formula) == "name") mf[m]$env_formula = eval(mf[m]$env_formula, envir = parent.env(environment()))
     env_formula = stats::as.formula(mf[m]$env_formula)
   } else {
     env_formula = object$settings$env$formula
@@ -595,7 +595,7 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
   
   if(!is.null(spatial_formula)){
     m = match("spatial_formula", names(mf))
-    if(class(mf[4]$spatial_formula) == "name") mf[4]$spatial_formula = eval(mf[4]$spatial_formula, envir = parent.env(environment()))
+    if(class(mf[m]$spatial_formula) == "name") mf[m]$spatial_formula = eval(mf[m]$spatial_formula, envir = parent.env(environment()))
     spatial_formula = stats::as.formula(mf[m]$spatial_formula)
   } else {
     spatial_formula = object$settings$spatial$formula

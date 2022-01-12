@@ -102,6 +102,8 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
               iter = 50L) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = XY)
+R2 = Rsquared(model)
+print(R2)
 
 ## Using spatial eigenvectors as predictors to account 
 ## for spatial autocorrelation is a common approach:
