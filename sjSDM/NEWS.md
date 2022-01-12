@@ -4,6 +4,7 @@
 ## Bug fixes
 
 * unlisting of config objects in `sjSDM::sjSDM_cv` (thanks to Máté) (added unit tests)  #88
+* fixed `sjSDM::Rsquared` bug for spatial models (thanks to Máté) #90
 
 
 
