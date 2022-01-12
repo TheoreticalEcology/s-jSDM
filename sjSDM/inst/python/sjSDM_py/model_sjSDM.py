@@ -78,7 +78,8 @@ class Model_sjSDM:
                 bias: List[bool] = [False], 
                 l1: float = -99, 
                 l2: float = -99, 
-                dropout: float = -99) -> None:
+                dropout: float = -99,
+                intercept=False) -> None:
         """Add environmental model
 
         Args:
@@ -96,11 +97,23 @@ class Model_sjSDM:
         self.params.append(self.env.parameters())
         self.input_shape = input_shape
         self.output_shape = output_shape
-        for p in self.env.parameters():
-            if l1 > 0.0: 
-                self.losses.append(lambda: self.l1_l2[0](p, l1))
-            if l2 > 0.0:
-                self.losses.append(lambda: self.l1_l2[1](p, l2))
+        for index, p in enumerate(self.env.parameters()):
+            if index == 0:
+                if l1 > 0.0: 
+                    if intercept is False:
+                        self.losses.append(lambda: self.l1_l2[0](p, l1))
+                    else:
+                        self.losses.append(lambda: self.l1_l2[0](p[:,1:], l1))
+                if l2 > 0.0:
+                    if intercept is False:
+                        self.losses.append(lambda: self.l1_l2[1](p, l2))
+                    else:
+                        self.losses.append(lambda: self.l1_l2[1](p[:,1:], l2))
+            else:
+                if l1 > 0.0: 
+                    self.losses.append(lambda: self.l1_l2[0](p, l1))
+                if l2 > 0.0:
+                    self.losses.append(lambda: self.l1_l2[1](p, l2))
 
     def add_spatial(self, 
                     input_shape: int, 
@@ -110,7 +123,8 @@ class Model_sjSDM:
                     bias: List[bool] = [False], 
                     l1: float = -99, 
                     l2: float = -99, 
-                    dropout: float = -99) -> None:
+                    dropout: float = -99,
+                    intercept=False) -> None:
         """Add spatial model
 
         Args:

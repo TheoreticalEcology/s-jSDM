@@ -50,7 +50,7 @@ getWeights.sjSDM= function(object) {
 #' 
 #' set layer weights and sigma in \code{\link{sjSDM}} with \code{\link{DNN}} object
 #' @param object object of class  \code{\link{sjSDM}} with \code{\link{DNN}} object
-#' @param weights list of layer weights and sigma, see \code{\link{getWeights}}
+#' @param weights list of layer weights:  \code{list(env=list(matrix(...)), spatial=list(matrix(...)), sigma=matrix(...))}, see \code{\link{getWeights}}
 #' 
 #' @return No return value, weights are changed in place. 
 #' 
@@ -63,6 +63,32 @@ setWeights = function(object, weights) UseMethod("setWeights")
 setWeights.sjSDM= function(object, weights = NULL) {
   if(is.null(weights)) weights = list(env = object$weights, spatial = object$spatial_weights)
   
-  object$model$set_env_weights(w = weights[[1]])
-  object$model$set_spatial_weights(w = weights[[2]])
+  e = weights[[1]]
+  if(!is.null(e)){
+    if(!inherits(e, "list")) e = list(e)
+    object$model$set_env_weights(w = e)
+  }
+  if(inherits(object, "spatial")) {
+    if(length(weights) > 1){
+      s = weights[[2]]
+      if(!is.null(s)){
+        if(!inherits(s, "list")) s = list(s)
+        object$model$set_spatial_weights(w = s)
+      }
+    }
+    if(length(weights) > 2) {
+      sig = weights[[3]]
+      if(inherits(sig, "list")) sig = unlist(sig)
+      object$model$set_sigma(w = sig)
+    }
+    return(invisible(NULL))
+  }
+  if(length(weights) > 1) {
+    sig = weights[[3]]
+    if(!is.null(sig)) {
+      if(inherits(sig, "list")) sig = unlist(sig)
+      object$model$set_sigma(w = sig)
+    }
+  }
+
 }

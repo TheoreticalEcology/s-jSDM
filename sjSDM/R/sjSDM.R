@@ -201,6 +201,7 @@ sjSDM = function(Y = NULL,
   
   output = as.integer(ncol(Y))
   input = as.integer(ncol(env$X))
+  intercept = "(Intercept)" %in% colnames(env$X)
   
   out$get_model = function(){
     model = pkg.env$fa$Model_sjSDM( device = device, dtype = dtype)
@@ -218,7 +219,7 @@ sjSDM = function(Y = NULL,
     if(!is.null(env$dropout)) dropout_env = env$dropout
     else dropout_env = -99
     
-    model$add_env(input, output, hidden = hidden, activation = activation,bias = bias, l1 = env$l1, l2=env$l2, dropout=dropout_env)
+    model$add_env(input, output, hidden = hidden, activation = activation,bias = bias, l1 = env$l1, l2=env$l2, dropout=dropout_env, intercept=intercept)
     
     if(!is.null(spatial)) {
       

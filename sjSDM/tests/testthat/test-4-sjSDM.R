@@ -259,4 +259,57 @@ testthat::test_that("sjSDM reload model", {
 })
 
 
+testthat::test_that("Changing weights", {
+  testthat::skip_on_cran()
+  testthat::skip_on_ci()
+  skip_if_no_torch()
+  sjSDM:::check_module()
+  XY = matrix(rnorm(100*2), 100L, 2L)
+  com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+  model = sjSDM(Y = com$response,env = com$env_weights, spatial = linear(XY), iter = 2L)
+  
+  setWeights(model, list(matrix(1.0, 5, 4)))
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 1)
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  setWeights(model, list(matrix(2.0, 5, 4)))
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 2)
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  
+  setWeights(model, list(matrix(3.0, 5, 4), matrix(4.0, 5, 3)))
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 3)
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 4)
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
+  
+  setWeights(model, list(matrix(5.0, 5, 4), list(matrix(6.0, 5, 3))))
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 5)
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 6)
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
+  
+  setWeights(model, list(matrix(5.0, 5, 4), list(matrix(6.0, 5, 3)), matrix(1.0, 5, 5)))
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 5)
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 6)
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), 1)
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), c(5, 5))
+  
+  setWeights(model, list(matrix(5.0, 5, 4), NULL, matrix(1.0, 5, 5)))
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 5)
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 6)
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), 1)
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), c(5, 5))
+  
+  setWeights(model, list(NULL, NULL, matrix(1.0, 5, 5)))
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 5)
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 6)
+  testthat::expect_equal(mean(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), 1)
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
+  testthat::expect_equal(dim(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), c(5, 5))
+  
+})
 
