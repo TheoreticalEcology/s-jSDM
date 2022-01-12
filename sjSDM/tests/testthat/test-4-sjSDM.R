@@ -23,7 +23,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     testthat::expect_error({ .k = testthat::capture_output(summary(model)) }, NA)
     testthat::expect_error({ .k = testthat::capture_output(Rsquared(model)) }, NA)
     testthat::expect_error({ .k = testthat::capture_output(update(model, env_formula=~1)) }, NA)
-    if(inherits(model, "spatial")) testthat::expect_error({ .k = testthat::capture_output(update(model, env_formula=~1, spatial_formula =~1)) }, NA)
+    if(inherits(model, "spatial")) testthat::expect_error({ .k = testthat::capture_output(update(model, env_formula=~1, spatial_formula =~0)) }, NA)
     testthat::expect_false(any(is.na(model$history)))
     testthat::expect_error({ .k= testthat::capture_output(predict(model, batch_size=step_size)) }, NA)
     if(inherits(env, "matrix"))testthat::expect_error({ .k= testthat::capture_output(predict(model, newdata = env, batch_size=step_size)) }, NA)
