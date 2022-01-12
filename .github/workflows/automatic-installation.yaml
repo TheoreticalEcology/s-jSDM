@@ -12,10 +12,10 @@ on:
       - main
       - master
 
-name: Tests
+name: Automatic-installation
 
 jobs:
-  Tests:
+  Automatic-installation:
     runs-on: ${{ matrix.config.os }}
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
@@ -24,6 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
+          - {os: windows-latest, r: 'release'}
           - {os: ubuntu-20.04, r: 'release', rspm: "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"}
 
     env:
@@ -65,15 +66,9 @@ jobs:
         run: |
           setwd("sjSDM")
           pak::local_system_requirements(execute = TRUE)
+          pak::pkg_system_requirements("rcmdcheck", execute = TRUE)
         shell: Rscript {0}
-          
-      - name: Install miniconda r-sjsdm env # taken from gluonts R package
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: r-sjsdm
-          python-version: 3.7.1
-          environment-file: _environment.yml
-
+        
       - name: Install dependencies
         run: |
           setwd("sjSDM")
@@ -87,16 +82,17 @@ jobs:
           Rscript -e "pak::local_install()"
           Rscript -e "pak::pkg_install('rstudio/reticulate')"
           Rscript -e "sjSDM::install_sjSDM(version='cpu')"
-          Rscript -e "reticulate::py_install('pytest', envname = 'r-sjsdm', pip=TRUE)"
           
-      - name: tests
+      - name: Run-sjSDM
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
-          CI: false
+          CI: true
         run: |
           setwd("sjSDM")
           options(crayon.enabled = TRUE)
-          devtools::test()
+          library(sjSDM)
+          com = simulate_SDM(env = 3L, species = 7L, sites = 10L)
+          model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L)
         shell: Rscript {0}
         
       - name: testthat output
