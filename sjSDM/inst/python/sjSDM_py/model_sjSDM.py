@@ -33,7 +33,11 @@ class Model_sjSDM:
         def l2_loss(tensor: torch.Tensor, l2: float):
             return tensor.pow(2.0).sum().mul(l2)
         
-        self.l1_l2 = [l1_loss, l2_loss]
+        @torch.jit.script
+        def l1_l2_loss(tensor: torch.Tensor, l1: float, l2: float):
+            return tensor.pow(2.0).sum().mul(l2)+tensor.abs().sum().mul(l1)
+        
+        self.l1_l2 = [l1_loss, l2_loss, l1_l2_loss]
 
     def __call__(self):
         pass
@@ -97,23 +101,44 @@ class Model_sjSDM:
         self.params.append(self.env.parameters())
         self.input_shape = input_shape
         self.output_shape = output_shape
+
+        individual_losses = []
         for index, p in enumerate(self.env.parameters()):
             if index == 0:
-                if l1 > 0.0: 
+                if (l1 > 0.0) & (l2 > 0.0): 
                     if intercept is False:
-                        self.losses.append(lambda: self.l1_l2[0](p, l1))
+                        individual_losses.append(lambda p: self.l1_l2[2](p, l1, l2))
                     else:
-                        self.losses.append(lambda: self.l1_l2[0](p[:,1:], l1))
-                if l2 > 0.0:
+                        individual_losses.append(lambda p: self.l1_l2[2](p[:,1:], l1, l2))
+                    next
+                elif (l1 <= 0.0) & (l2 > 0.0):
                     if intercept is False:
-                        self.losses.append(lambda: self.l1_l2[1](p, l2))
+                        individual_losses.append(lambda p: self.l1_l2[1](p, l2))
                     else:
-                        self.losses.append(lambda: self.l1_l2[1](p[:,1:], l2))
+                        individual_losses.append(lambda p: self.l1_l2[1](p[:,1:], l2))
+                elif (l1 > 0.0) & (l2 <= 0.0):
+                    if intercept is False:
+                        individual_losses.append(lambda p: self.l1_l2[0](p, l1))
+                    else:
+                        individual_losses.append(lambda p: self.l1_l2[0](p[:,1:], l1))
             else:
-                if l1 > 0.0: 
-                    self.losses.append(lambda: self.l1_l2[0](p, l1))
-                if l2 > 0.0:
-                    self.losses.append(lambda: self.l1_l2[1](p, l2))
+                if (l1 > 0.0) & (l2 > 0.0): 
+                    individual_losses.append(lambda p: self.l1_l2[2](p, l1, l2))
+                elif (l1 <= 0.0) & (l2 > 0.0):
+                    individual_losses.append(lambda p: self.l1_l2[1](p, l2))
+                elif (l1 > 0.0) & (l2 <= 0.0):
+                    individual_losses.append(lambda p: self.l1_l2[0](p, l1))
+        if len(individual_losses) > 0:
+            def loss():
+                tmp_loss = [
+                    individual_losses[index](p).reshape([1])
+                    for index, p in enumerate(self.env.parameters())
+                    if len(p.shape) > 1
+                ]
+                return torch.cat(tmp_loss).sum()
+            self.losses.append( loss )
+                    
+
 
     def add_spatial(self, 
                     input_shape: int, 
@@ -139,11 +164,25 @@ class Model_sjSDM:
         """                    
         self.spatial = (self._build_NN(input_shape, output_shape, hidden, bias, activation, dropout))
         self.params.append(self.spatial.parameters())
+        
+        individual_losses = []
         for p in self.spatial.parameters():
-            if l1 > 0.0: 
-                self.losses.append(lambda: self.l1_l2[0](p, l1))
-            if l2 > 0.0:
-                self.losses.append(lambda: self.l1_l2[1](p, l2))
+            if (l1 > 0.0) & (l2 > 0.0): 
+                individual_losses.append(lambda p: self.l1_l2[2](p, l1, l2))
+            elif (l1 <= 0.0) & (l2 > 0.0):
+                individual_losses.append(lambda p: self.l1_l2[1](p, l2))
+            elif (l1 > 0.0) & (l2 <= 0.0):
+                individual_losses.append(lambda p: self.l1_l2[0](p, l1))
+        if len(individual_losses) > 0:
+            def loss():
+                tmp_loss = [
+                    individual_losses[index](p).reshape([1])
+                    for index, p in enumerate(self.spatial.parameters())
+                    if len(p.shape) > 1
+                ]
+                return torch.cat(tmp_loss).sum()
+            self.losses.append( loss )
+        
                 
     def _build_NN(self, 
                   input_shape: int, 
@@ -170,7 +209,9 @@ class Model_sjSDM:
             activation = [activation[0] for _ in range(len(hidden))]
 
         if len(bias) == 1:
-            bias = [bias[0] for _ in range(len(hidden)+1)]  
+            bias = [bias[0] for _ in range(len(hidden))]
+            
+        bias.insert(0, False)
 
         if len(hidden) > 0:
             for i in range(len(hidden)):

@@ -1,10 +1,15 @@
 # sjSDM 1.0.1
 
+## Minor changes
+
+* first layer of DNN now always without an explicit bias (bias/intercept is passed by model/formula, if desired)
 
 ## Bug fixes
 
 * unlisting of config objects in `sjSDM::sjSDM_cv` (thanks to Máté) (added unit tests)  #88
 * fixed `sjSDM::Rsquared` bug for spatial models (thanks to Máté) #90
+* revised regularization behavior, l1 and l2 were not correctly imposed on DNN structure
+* revised and improved setWeights function
 
 
 
