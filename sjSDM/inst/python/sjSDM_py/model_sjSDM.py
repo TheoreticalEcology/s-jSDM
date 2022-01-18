@@ -860,12 +860,12 @@ class Model_sjSDM:
                 link_func = lambda value: value
 
             def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
-                noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
+                # noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
                 if self.link == "logit": 
-                    E = link_func(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha)).mul(0.999999).add(0.0000005)
+                    E = link_func(mu.mul(alpha)).mul(0.999999).add(0.0000005)
                 else:
-                    E = link_func(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu)).mul(0.999999).add(0.0000005)
-                return E.mean(dim = 0)
+                    E = link_func(mu).mul(0.999999).add(0.0000005)
+                return E
 
         return tmp
 

@@ -3,6 +3,7 @@
 ## Minor changes
 
 * first layer of DNN now always without an explicit bias (bias/intercept is passed by model/formula, if desired)
+* revised prediction function, improved stability
 
 ## Bug fixes
 
