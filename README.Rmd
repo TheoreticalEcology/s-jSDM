@@ -98,7 +98,7 @@ The anova shows the relative changes in the deviance of the groups and their int
 We can also visualize the individual contributions to the species and site $$R^2$$:
 
 
-```{r,fig.height=7, fig.width=8}
+```{r,fig.height=7, fig.width=8, warning=FALSE}
 plot(an, internal=TRUE)
 ```
 

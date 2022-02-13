@@ -33,6 +33,9 @@
 anova.sjSDM = function(object, ...) {
   out = list()
   individual = TRUE
+  
+  if(object$family$family$family == "gaussian") stop("gaussian not yet supported")
+  
   full_m = logLik(object, individual=individual)[[1]]
   object$settings$se = FALSE
   ### fit different models ###
