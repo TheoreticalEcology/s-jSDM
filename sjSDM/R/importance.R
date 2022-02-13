@@ -31,6 +31,7 @@
 #' @author Maximilian Pichler
 #' @export
 importance = function(x, save_memory = TRUE, ...) {
+  .Deprecated("plot(anova(x, internal=TRUE))")
   model = x
   stopifnot(
     inherits(model, "sjSDM"),

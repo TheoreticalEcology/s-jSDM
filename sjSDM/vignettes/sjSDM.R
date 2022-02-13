@@ -7,15 +7,6 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 ## ----eval=FALSE---------------------------------------------------------------
 #  library(sjSDM)
 
-## ---- eval = F----------------------------------------------------------------
-#  install_sjSDM()
-
-## ---- eval = F----------------------------------------------------------------
-#  install_sjSDM(method = "gpu")
-
-## ----eval = F-----------------------------------------------------------------
-#  vignette("Dependencies", package = "sjSDM")
-
 ## ----eval=FALSE---------------------------------------------------------------
 #  citation("sjSDM")
 
@@ -135,7 +126,7 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 #  summary(model)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  zero_one = function(x) function(x) (x-min(x))/(max(x) -min(x))
+#  zero_one = function(x)  (x-min(x))/(max(x) -min(x))
 #  Y_pa = zero_one(log(Y+0.001))
 
 ## ----eval=FALSE---------------------------------------------------------------

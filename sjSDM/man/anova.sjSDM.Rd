@@ -17,7 +17,10 @@ An S3 class of type 'sjSDManova' including the following components:
 \item{results}{Data frame of results.}
 \item{to_print}{Data frame, summarized results for type I anova.}
 \item{N}{Number of observations (sites).}
-\item{spatial}{Logical, spatial model or not}
+\item{spatial}{Logical, spatial model or not.}
+\item{species}{individual species R2s.}
+\item{sites}{individual site R2s.}
+\item{lls}{individual site by species negative-log-likelihood values.}
 
 Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 }

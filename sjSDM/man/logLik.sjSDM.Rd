@@ -2,18 +2,20 @@
 % Please edit documentation in R/sjSDM.R
 \name{logLik.sjSDM}
 \alias{logLik.sjSDM}
-\title{Extract Log-Likelihood from a fitted sjSDM model}
+\title{Extract negative-log-Likelihood from a fitted sjSDM model}
 \usage{
-\method{logLik}{sjSDM}(object, ...)
+\method{logLik}{sjSDM}(object, individual = FALSE, ...)
 }
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}}
 
-\item{...}{optional arguments for compatibility with the generic function, no functionality implemented}
+\item{individual}{returns internal ll structure, mostly for internal useage}
+
+\item{...}{optional arguments passed to internal logLik function (only used if \code{individual=TRUE})}
 }
 \value{
-Numeric value
+Numeric value or numeric matrix if individual is true.
 }
 \description{
-Extract Log-Likelihood from a fitted sjSDM model
+Extract negative-log-Likelihood from a fitted sjSDM model
 }

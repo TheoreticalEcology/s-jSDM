@@ -41,7 +41,8 @@ Imports:
     crayon,
     ggplot2,
     checkmate,
-    mathjaxr
+    mathjaxr,
+    ggtern
 Suggests:
     testthat,
     knitr,

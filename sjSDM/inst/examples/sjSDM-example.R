@@ -106,6 +106,9 @@ result = anova(model)
 print(result)
 plot(result)
 
+## visualize meta-community structure
+plot(result, internal=TRUE)
+
 
 # Deep neural network
 ## we can fit also a deep neural network instead of a linear model:

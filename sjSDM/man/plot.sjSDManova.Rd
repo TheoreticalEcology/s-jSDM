@@ -8,6 +8,7 @@
   x,
   y,
   type = c("Deviance", "Nagelkerke", "McFadden"),
+  internal = FALSE,
   cols = c("#7FC97F", "#BEAED4", "#FDC086"),
   alpha = 0.15,
   ...
@@ -18,7 +19,9 @@
 
 \item{y}{unused argument}
 
-\item{type}{use of deviance or of Nagelkerke or McFadden R-squared}
+\item{type}{deviance, Nagelkerke or McFadden R-squared}
+
+\item{internal}{logical, plot internal or total structure}
 
 \item{cols}{colors for the groups}
 
@@ -27,7 +30,15 @@
 \item{...}{Additional arguments to pass to \code{plot()}}
 }
 \value{
-The visualized matrix is silently returned
+List with the following components:
+
+If \code{internal=TRUE}:
+
+\item{plots}{ggplot objects for sites and species.}
+\item{data}{List of data.frames with the shown results.}
+
+else:
+\item{VENN}{Matrix of shown results.}
 }
 \description{
 Plot anova results

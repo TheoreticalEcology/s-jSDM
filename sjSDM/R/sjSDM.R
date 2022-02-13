@@ -532,14 +532,14 @@ summary.sjSDM = function(object, ...) {
 
 #' Generates simulations from sjSDM model
 #'
-#' Simulate nsim responses from the fitted model
+#' Simulate nsim responses from the fitted model following a multivariate probit model
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param nsim number of simulations
 #' @param seed seed for random numer generator
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
 #' 
-#' @return Array of simulated species occurrences.
+#' @return Array of simulated species occurrences of dimension order [nsim, sites, species]
 #' 
 #' @importFrom stats simulate
 #' @export
@@ -550,24 +550,34 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
     pkg.env$torch$cuda$manual_seed(seed)
     pkg.env$torch$manual_seed(seed)
   }
-  preds = abind::abind(lapply(1:nsim, function(i) predict.sjSDM(object)), along = 0L)
-  simulation = apply(preds, 2:3, function(p) stats::rbinom(nsim, 1L,p))
+  preds = predict.sjSDM(object)
+  sigma = stats::cov2cor(getCov(object))
+  link = function(m) apply(m ,1:2, function(x) return(if(x>0) 1 else 0))
+  simulation = lapply(1:nrow(preds), function(i) link(mvtnorm::rmvnorm(nsim, mean = preds[i,], sigma = sigma)))
+  simulation = abind::abind(simulation, along = 0L)
+  simulation = aperm(simulation, c(2, 1, 3)) # right order
   return(simulation)
 }
 
 
 
-#' Extract Log-Likelihood from a fitted sjSDM model
+#' Extract negative-log-Likelihood from a fitted sjSDM model
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
-#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
+#' @param individual returns internal ll structure, mostly for internal useage
+#' @param ... optional arguments passed to internal logLik function (only used if \code{individual=TRUE})
 #' 
-#' @return Numeric value
+#' @return Numeric value or numeric matrix if individual is true.
 #' 
 #' @importFrom stats simulate
 #' @export
-logLik.sjSDM <- function(object, ...){
-  return(object$logLik[[1]])
+logLik.sjSDM <- function(object, individual=FALSE,...){
+  if(!individual) return(object$logLik[[1]])
+  else {
+    object = checkModel(object)
+    if(!inherits(object, "spatial")) return(force_r(object$model$logLik(object$data$X, object$data$Y, individual = TRUE)))
+    else return(force_r(object$model$logLik(object$data$X, object$data$Y, object$spatial$X, individual = TRUE)))
+  }
 }
 
 

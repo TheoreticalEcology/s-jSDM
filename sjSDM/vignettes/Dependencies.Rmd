@@ -16,12 +16,12 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r, echo = F, message = F}
+```{r, echo = F, message = F, purl=FALSE}
 set.seed(123)
 ```
 
 
-```{r global_options, include=FALSE}
+```{r global_options, include=FALSE, purl=FALSE}
 knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = FALSE, eval = FALSE)
 ```
 
@@ -44,7 +44,7 @@ Sometimes the automatic 'miniconda' installation (via
 Download and install the latest ['conda' version](https://www.anaconda.com/products/individual)
 
 Afterwards run:
-```{r,eval=FALSE}
+```{r,eval=FALSE, purl=FALSE}
 install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
 ```
 
@@ -63,7 +63,7 @@ Open the command window (cmd.exe - hit windows key + r and write cmd)
 
 Run in cmd.exe:
 
-```{bash, eval=FALSE}
+```{bash, eval=FALSE, purl=FALSE}
 conda create --name r-sjsdm python=3.7
 conda activate r-sjsdm
 conda install pytorch torchvision cpuonly -c pytorch # cpu
@@ -81,7 +81,7 @@ Restart R, try to run the example, and if this doesn't work:
 ## Linux - automatic installation:
  
 Run in R: 
-```{r,eval=FALSE}
+```{r,eval=FALSE, purl=FALSE}
 install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
 ```
 
@@ -99,7 +99,7 @@ We strongly advise to use a 'conda' environment but a virtual environment should
 Download and install the latest ['conda' version](https://www.anaconda.com/products/individual)
 
 Open your terminal and run:
-```{bash, eval=FALSE}
+```{bash, eval=FALSE, purl=FALSE}
 conda create --name r-sjsdm python=3.7
 conda activate r-sjsdm
 conda install pytorch torchvision cpuonly -c pytorch # cpu
@@ -117,7 +117,7 @@ Restart R try to run the example, if this doesn't work:
 ## MacOS - automatic installation:
  
 Run in R: 
-```{r,eval=FALSE}
+```{r,eval=FALSE, purl=FALSE}
 install_sjSDM()
 ```
 
@@ -135,7 +135,7 @@ We strongly advise to use a 'conda' environment but a virtual environment should
 Download and install the latest conda [conda version](https://www.anaconda.com/products/individual)
 
 Open your terminal and run:
-```{bash, eval=FALSE}
+```{bash, eval=FALSE, purl=FALSE}
 conda create --name r-sjsdm python=3.7
 conda activate r-sjsdm
 python -m pip install torch torchvision torchaudio 
@@ -163,6 +163,6 @@ community <- simulate_SDM(sites = 100, species = 10, env = 5)
 Env <- community$env_weights
 Occ <- community$response
 
-model <- sjSDM(X = Env, Y = Occ, formula = ~0+X1*X2 + X3 + X4)
+model <- sjSDM(Y = Occ, env = linear(Env, ~0+X1*X2 + X3 + X4))
 summary(model)
 ```
