@@ -165,6 +165,7 @@ print.sjSDManova = function(x, ...) {
 #' @param internal logical, plot internal or total structure
 #' @param cols colors for the groups
 #' @param alpha alpha for colors
+#' @param env_deviance environmental deviance
 #' @param ... Additional arguments to pass to \code{plot()}
 #' 
 #' @return 
@@ -185,7 +186,9 @@ plot.sjSDManova = function(x,
                            type = c("Deviance", "Nagelkerke", "McFadden"), 
                            internal = FALSE,
                            cols = c("#7FC97F","#BEAED4","#FDC086"),
-                           alpha=0.15, ...) {
+                           alpha=0.15, 
+                           env_deviance = NULL,
+                           ...) {
   lineSeq = 0.3
   nseg = 100
   dr = 1.0
@@ -274,6 +277,14 @@ plot.sjSDManova = function(x,
     
     # Code taken from https://github.com/javirudolph/iStructureMetaco/blob/master/InternalStructureMetacommunities_2021_manuscript/Figures.R
     for(i in 1:length(internals)) {
+        
+      add_grad = FALSE
+      if((i == 1) & !is.null(env_deviance)) add_grad = TRUE
+      
+      top = 7
+      if(i > 1) top = 1
+      if(is.null(env_deviance)) top = 1
+        
         r2max = ceiling(max(internals[[i]]$r2)*1e2)/1e2
         plt = 
           ggtern::ggtern(internals[[i]], ggplot2::aes(x = env, z = spa, y = codist, size = r2)) +
@@ -297,7 +308,6 @@ plot.sjSDManova = function(x,
             ggtern::theme_bw() +
             ggtern::theme_showarrows() +
             ggtern::theme_arrowlong() +
-            ggplot2::scale_size_continuous(range = c(0.1,5),limits = c(0, r2max), breaks = seq(0, r2max, length.out=5)) +
             ggplot2::theme(
               panel.grid = ggplot2::element_line(color = "darkgrey", size = 0.3),
               plot.tag = ggplot2::element_text(size = 11),
@@ -309,15 +319,22 @@ plot.sjSDManova = function(x,
               legend.text = ggplot2::element_text(size = 6),
               legend.title = ggplot2::element_text(size = 8),
               strip.text = ggplot2::element_text(size = 8),
+              plot.margin = unit(c(top,1,1,1)*0.2, "cm"),
             strip.background = ggplot2::element_rect(color = NA),
           ) +
           ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1)) +
-          ggplot2::geom_point(alpha = 0.7)  +
-          ggplot2::theme(tern.axis.arrow.text = element_text(size = 7),legend.position = "bottom") +
-          ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom"))
+          { if(!add_grad)ggplot2::geom_point(alpha = 0.7) }+
+          { if(add_grad) ggplot2::geom_point(alpha = 0.7, aes(fill=env_deviance, color = env_deviance)) }+  
+          ggplot2::scale_size_continuous(range = c(0.1,5),limits = c(0, r2max), breaks = seq(0, r2max, length.out=5)) +
+          { if(add_grad) ggplot2::scale_fill_gradient(low = "white", high = "black", guide = "none") } + 
+          { if(add_grad) ggplot2::scale_color_gradient(low = "white", high = "black", limits = c(0, max(env_deviance))) } +
+          ggplot2::theme(tern.axis.arrow.text = element_text(size = 7),legend.position = "bottom", legend.margin = margin(r = 30), legend.box="vertical") +
+          { if(!add_grad) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom")) } +
+          { if( add_grad) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom"),
+                                          color = ggplot2::guide_colorbar(title = "Environmental deviation", title.position = "top", order = 2, barheight = 0.5, barwidth = 8)) } 
         plots_internals[[i]] = plt
       }
-    ggtern::grid.arrange(plots_internals[[1]], plots_internals[[2]], nrow=1)
+    ggtern::grid.arrange(plots_internals[[1]], plots_internals[[2]], nrow=1, widths = c(5.0/10, 5/10))
     out$plots = plots_internals
     out$data = internals
   }

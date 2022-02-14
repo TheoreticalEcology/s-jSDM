@@ -11,6 +11,7 @@
   internal = FALSE,
   cols = c("#7FC97F", "#BEAED4", "#FDC086"),
   alpha = 0.15,
+  env_deviance = NULL,
   ...
 )
 }
@@ -26,6 +27,8 @@
 \item{cols}{colors for the groups}
 
 \item{alpha}{alpha for colors}
+
+\item{env_deviance}{environmental deviance}
 
 \item{...}{Additional arguments to pass to \code{plot()}}
 }
