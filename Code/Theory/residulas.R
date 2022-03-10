@@ -22,7 +22,7 @@ sim =
   createDHARMa(t(array(sims, c(200, 100*7))), 
               c(com$response), 
               c(predict(model)),
-              integerResponse = TRUE)
+              integerResponse = TRUE, method = 'traditional')
 plot(sim)
 
 
@@ -33,8 +33,18 @@ sapply(1:100, function(i) {
               ubounds = as.data.table(com$response[i,]+runif(7,-0.5,0.5)))$CDF
 })
 
+
 sim$scaledResiduals = c(vs)
 sim$observedResponse = c(com$response)
 sim$fittedPredictedResponse = c(predict(model))
 sim$nObs = 700
 plot(sim)
+
+
+# for (i in 1:n) {
+#   minSim <- mean(simulations[i, ] < observed[i])
+#   maxSim <- mean(simulations[i, ] <= observed[i])
+#   if (minSim == maxSim) 
+#     scaledResiduals[i] = minSim
+#   else scaledResiduals[i] = runif(1, minSim, maxSim)
+# }

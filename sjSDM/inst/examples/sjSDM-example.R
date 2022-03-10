@@ -67,7 +67,9 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
 summary(model)
 predict(model, newdata = com$env_weights, SP = SPV)
 
-
+## Visualize internal meta-community structure
+an = anova(model)
+plot(an, internal=TRUE)
 
 ## non-linear(deep neural network) model
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 

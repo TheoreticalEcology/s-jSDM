@@ -98,21 +98,21 @@ anova.sjSDM = function(object, ...) {
   results$`Residual deviance` = -2*(results$ll - results$ll[which(results$models == "Saturated", arr.ind = TRUE)])
   
   results$Deviance = results$`Residual deviance`[which(results$models == "Null", arr.ind = TRUE)] - results$`Residual deviance`
-  R2 = function(a, b) return(1-exp(2/(nrow(object$data$Y))*(-a+b)))
-  results$`R2 Nagelkerke` = R2(rep(-results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), - results$ll)
-  R2 = function(a, b) 1 - (b/a)
-  results$`R2 McFadden`= R2(rep(-results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), - results$ll)
+  R21 = function(a, b) return(1-exp(2/(nrow(object$data$Y))*(-a+b)))
+  results$`R2 Nagelkerke` = R21(rep(-results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), - results$ll)
+  R22 = function(a, b) 1 - (b/a)
+  results$`R2 McFadden`= R22(rep(-results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), - results$ll)
   
   # individual
   
   Residual_deviance_ind = lapply(results_ind, function(r) r - results_ind$Saturated)
   Deviance_ind = lapply(Residual_deviance_ind, function(r) r - Residual_deviance_ind$Null)
-  R2 = function(a, b, n=1) return(1-exp(2/(n)*(-a+b)))   # divide by what?
-  R2_Nagelkerke_ind = lapply(results_ind, function(r) R2(-colSums(results_ind$Null), -colSums(r), n=nrow(object$data$Y)))
-  R2_Nagelkerke_sites = lapply(results_ind, function(r) R2(-rowSums(results_ind$Null), -rowSums(r), n=ncol(object$data$Y)))
-  R2 = function(a, b) 1 - (b/a)
-  R2_McFadden_ind = lapply(results_ind, function(r) R2(-colSums(results_ind$Null), -colSums(r)))
-  R2_McFadden_sites = lapply(results_ind, function(r) R2(-rowSums(results_ind$Null), -rowSums(r)))
+  R211 = function(a, b, n=1) return(1-exp(2/(n)*(-a+b)))   # divide by what?
+  R2_Nagelkerke_ind = lapply(results_ind, function(r) R211(-colSums(results_ind$Null), -colSums(r), n=nrow(object$data$Y)))
+  R2_Nagelkerke_sites = lapply(results_ind, function(r) R211(-rowSums(results_ind$Null), -rowSums(r), n=ncol(object$data$Y)))
+  R222 = function(a, b) 1 - (b/a)
+  R2_McFadden_ind = lapply(results_ind, function(r) R222(-colSums(results_ind$Null), -colSums(r)))
+  R2_McFadden_sites = lapply(results_ind, function(r) R222(-rowSums(results_ind$Null), -rowSums(r)))
   
   to_print = results
   rownames(to_print) = to_print$models
@@ -168,6 +168,8 @@ print.sjSDManova = function(x, ...) {
 #' @param env_deviance environmental deviance
 #' @param ... Additional arguments to pass to \code{plot()}
 #' 
+#' The \code{internal = TRUE} plot was heavily inspired by Leibold et al., 2022
+#' 
 #' @return 
 #' 
 #' List with the following components:
@@ -179,6 +181,9 @@ print.sjSDManova = function(x, ...) {
 #' 
 #' else:
 #' \item{VENN}{Matrix of shown results.}
+#' 
+#' @references 
+#' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
 #' 
 #' @export
 plot.sjSDManova = function(x, 
@@ -287,7 +292,7 @@ plot.sjSDManova = function(x,
         
         r2max = ceiling(max(internals[[i]]$r2)*1e2)/1e2
         plt = 
-          ggtern::ggtern(internals[[i]], ggplot2::aes(x = env, z = spa, y = codist, size = r2)) +
+          ggtern::ggtern(internals[[i]], ggplot2::aes_string(x = "env", z = "spa", y = "codist", size = "r2")) +
             ggtern::scale_T_continuous(limits=c(0,1),
                                        breaks=seq(0, 1,by=0.2),
                                        labels=seq(0,1, by= 0.2)) +

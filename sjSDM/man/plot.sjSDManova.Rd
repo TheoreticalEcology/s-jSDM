@@ -30,7 +30,9 @@
 
 \item{env_deviance}{environmental deviance}
 
-\item{...}{Additional arguments to pass to \code{plot()}}
+\item{...}{Additional arguments to pass to \code{plot()}
+
+The \code{internal = TRUE} plot was heavily inspired by Leibold et al., 2022}
 }
 \value{
 List with the following components:
@@ -45,4 +47,7 @@ else:
 }
 \description{
 Plot anova results
+}
+\references{
+Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
 }

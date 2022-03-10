@@ -377,7 +377,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
   } else {
     
     if(is.null(newdata)) {
-      return(force_r(object$model$predict(newdata = object$data$X, link=link)))
+      return(force_r(object$model$predict(newdata = object$data$X, link=link, ...)))
     } else {
       if(is.data.frame(newdata)) {
         newdata = stats::model.matrix(object$formula, newdata)
@@ -532,7 +532,8 @@ summary.sjSDM = function(object, ...) {
 
 #' Generates simulations from sjSDM model
 #'
-#' Simulate nsim responses from the fitted model following a multivariate probit model
+#' Simulate nsim responses from the fitted model following a multivariate probit model. 
+#' So currently only supported for \code{family = stats::binomial("probit")}
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param nsim number of simulations
@@ -550,22 +551,8 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
     pkg.env$torch$cuda$manual_seed(seed)
     pkg.env$torch$manual_seed(seed)
   }
-  preds = predict.sjSDM(object)
-  torch = pkg.env$torch
-  sigma = getCov(model)
-  mu = torch$tensor(preds, dtype=torch$float32)
-  sigmaT = torch$tensor(sigma, dtype=torch$float32)
-  noise = torch$randn(size = list(as.integer(nsim), nrow(preds), ncol(preds)), dtype=torch$float32)
-  sims = force_r(torch$einsum("ijk, lk -> ijl", list(noise, sigmaT))$add(mu)$data$cpu()$numpy())
+  sims = force_r(predict(object, simulate=TRUE, sampling = as.integer(nsim)))
   return(apply(sims, 1:3, function(i) ifelse(i > 0, 1, 0)))
-  
-  
-  #sigma = as.matrix(Matrix::nearPD( stats::cov2cor(getCov(object)) )$mat)
-  #link = function(m) apply(m ,1:2, function(x) return(if(x>0) 1 else 0))
-  #simulation = lapply(1:nrow(preds), function(i) link(mvtnorm::rmvnorm(nsim, mean = preds[i,], sigma = sigma)))
-  #simulation = abind::abind(simulation, along = 0L)
-  #simulation = aperm(simulation, c(2, 1, 3)) # right order
-  #return(simulation)
 }
 
 

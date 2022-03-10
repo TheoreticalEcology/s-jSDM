@@ -567,7 +567,8 @@ class Model_sjSDM:
                 parallel: int = 0, 
                 sampling: int = 100, 
                 link: bool = True,
-                dropout: bool = False) -> np.ndarray:
+                dropout: bool = False,
+                simulate: bool = False) -> np.ndarray:
         """Predict with sjSDM
 
         Args:
@@ -579,13 +580,14 @@ class Model_sjSDM:
             sampling (int, optional): Number of MC-samples for each species. Defaults to 100.
             link (bool, optional): Linear or response scale. Defaults to True.
             dropout (bool, optional): Use dropout during predictions or not. Defaults to False.
+            simulate (bool, optional): Return simulated values on linear scale. Defaults to False.
 
         Returns:
             np.ndarray: Predictions
         """                
 
         dataLoader = self._get_DataLoader(X = newdata, Y = None, SP=SP, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
-        loss_function = self._build_loss_function(train = False, raw=not link)
+        loss_function = self._build_loss_function(train = False, raw=not link, simulate=simulate)
 
         pred = []
         if self.device.type == 'cuda': # type: ignore
@@ -609,7 +611,7 @@ class Model_sjSDM:
                 sp = sp.to(self.device, non_blocking=True)
                 mu = self.env(x) + self.spatial(sp) # type: ignore
                 # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device, self.dtype)
                 pred.append(loss)
             self.spatial.eval()
         else:
@@ -617,11 +619,14 @@ class Model_sjSDM:
                 x = x[0].to(self.device, non_blocking=True)
                 mu = self.env(x) # type: ignore
                 # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device, self.dtype)
                 pred.append(loss)
 
         self.env.eval()
-        return torch.cat(pred, dim = 0).data.cpu().numpy()
+        cat_dim = 0
+        if simulate:
+            cat_dim = 1
+        return torch.cat(pred, dim = cat_dim).data.cpu().numpy()
 
     def se(self, 
            X: np.ndarray, 
@@ -799,16 +804,26 @@ class Model_sjSDM:
             if l2 > 0.0:
                 self.losses.append( lambda: self.l1_l2[1](self.sigma, l2) )
 
-    def _build_loss_function(self, train: bool = True, raw: bool = False, individual = False) -> Callable:
+    def _build_loss_function(self, train: bool = True, raw: bool = False, individual:bool = False, simulate: bool = False) -> Callable:
         """Build loss (likelihood) function
 
         Args:
             train (bool, optional): Train or evaulation mode Defaults to True.
             raw (bool, optional): Linear or response scale. Defaults to False.
+            individual(bool, optional): Return individual logLL values. Defaults to False.
+            simulate(bool, optional): Return simulated values. Defaults to False.
 
         Returns:
             Callable: loss function
-        """        
+        """
+        
+        if simulate:
+            #tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
+            @torch.jit.script
+            def tmp(mu: torch.Tensor,  sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
+                return torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu)
+            return tmp
 
         if train:
             if self.link == "logit" or self.link == "probit":
@@ -858,7 +873,7 @@ class Model_sjSDM:
             if raw:
                 link_func = lambda value: value
 
-            def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
+            def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                 # noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
                 if self.link == "logit": 
                     E = link_func(mu.mul(alpha)).mul(0.999999).add(0.0000005)
