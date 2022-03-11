@@ -2,7 +2,7 @@ Package: sjSDM
 Type: Package
 Title: Scalable Joint Species Distribution Modeling
 Version: 1.0.1
-Date: 2022-03-10
+Date: 2022-03-11
 Authors@R: 
     c(person(given = "Maximilian",
              family = "Pichler",

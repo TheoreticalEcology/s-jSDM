@@ -32,7 +32,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
     if(!is.null(formula)){
       mf = match.call()
       m = match("formula", names(mf))
-      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
+      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       X = stats::model.matrix(formula, data)
     } else {
@@ -45,7 +45,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
     if(!is.null(formula)) {
       mf = match.call()
       m = match("formula", names(mf))
-      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
+      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       data = data.frame(data)
       X = stats::model.matrix(formula, data)
@@ -130,7 +130,7 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
     if(!is.null(formula)){
       mf = match.call()
       m = match("formula", names(mf))
-      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
+      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       X = stats::model.matrix(formula, data)
     } else {
@@ -143,7 +143,7 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
     if(!is.null(formula)) {
       mf = match.call()
       m = match("formula", names(mf))
-      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
+      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       data = data.frame(data)
       X = stats::model.matrix(formula, data)
