@@ -6,6 +6,7 @@ state and is being actively
 developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
 [![License: GPL
 v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/sjSDM)](https://cran.r-project.org/package=sjSDM)
 ![R-CMD-check](https://github.com/TheoreticalEcology/s-jSDM/workflows/R-CMD-check/badge.svg?branch=master)
 [![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687)
 
@@ -32,7 +33,7 @@ instructions below). Note: for both the R and the python package, python
 Install the package via
 
 ``` r
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
+install.packages("sjSDM")
 ```
 
 Depencies for the package can be installed before or after installing
@@ -51,6 +52,15 @@ To cite sjSDM, please use the following citation:
 
 ``` r
 citation("sjSDM")
+```
+
+### Development
+
+If you want to install the current (development) version from this
+repository, run
+
+``` r
+devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "devel")
 ```
 
 Once the dependencies are installed, the following code should run:
@@ -266,7 +276,7 @@ print(imp)
 plot(imp)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 As expected, space has no effect on occurences.
 
@@ -291,7 +301,7 @@ print(an)
 plot(an)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 The anova shows the relative changes in the deviance of the groups and
 their intersections.

@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/sjSDM)](https://cran.r-project.org/package=sjSDM)
 ![R-CMD-check](https://github.com/TheoreticalEcology/s-jSDM/workflows/R-CMD-check/badge.svg?branch=master)
 [![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687)
 
@@ -30,7 +31,7 @@ The method itself is wrapped into an R package, available under subfolder sjSDM.
 Install the package via
 
 ```{r,eval=FALSE}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM")
+install.packages("sjSDM")
 ```
 
 Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly, the dependencies can be automatically installed from within R:
@@ -44,6 +45,16 @@ sjSDM::install_sjSDM(version = "cpu")
 To cite sjSDM, please use the following citation:
 ```{r,eval=FALSE}
 citation("sjSDM")
+```
+
+
+### Development
+
+If you want to install the current (development) version from this repository, run
+
+
+```{r,eval=FALSE}
+devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "devel")
 ```
 
 
