@@ -1,9 +1,9 @@
 ## Version 1.0.1
 
 ### Submission 1, 03/11/2022
-This is a minor update, fixing a few minor bugs reported by users and 
-adding a few new functionalities for the internal meta-community structure
-
+This is a minor update, fixing a few minor bugs and undesired behaviors reported 
+by users and adding a few new functionalities for the internal meta-community 
+structure
 
 Examples cannot be executed directly after the pkg installation
 because they need additional python dependencies which first have to be 
@@ -35,7 +35,7 @@ Possibly misspelled words in DESCRIPTION:
   jSDMs (21:79, 21:565)
   scalable (21:16)
 
-However, this seems fine to me. The spelling is intended.
+The spelling is intended.
 
 
 

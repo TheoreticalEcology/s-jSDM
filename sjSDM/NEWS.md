@@ -2,7 +2,7 @@
 
 ## New Features
 
-* anova plots for internal meta-community structure (based on individual R-squareds)
+* anova plots for internal meta-community structure (based on individual R-squared values)
 
 ## Minor changes
 

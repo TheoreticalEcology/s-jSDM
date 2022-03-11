@@ -289,7 +289,7 @@ class Model_sjSDM:
             else: 
                 data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=self.dtype, device=torch.device('cpu')))            
 
-        DataLoader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=shuffle, num_workers=int(parallel), pin_memory=pin_memory, drop_last=drop_last)
+        DataLoader = torch.utils.data.DataLoader(data, batch_size=int(batch_size), shuffle=shuffle, num_workers=int(parallel), pin_memory=pin_memory, drop_last=drop_last)
         torch.cuda.empty_cache()
                 
         return DataLoader
