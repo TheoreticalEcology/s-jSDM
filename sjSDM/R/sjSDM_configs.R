@@ -32,7 +32,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
     if(!is.null(formula)){
       mf = match.call()
       m = match("formula", names(mf))
-      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
+      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       X = stats::model.matrix(formula, data)
     } else {
@@ -45,7 +45,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
     if(!is.null(formula)) {
       mf = match.call()
       m = match("formula", names(mf))
-      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
+      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       data = data.frame(data)
       X = stats::model.matrix(formula, data)
@@ -91,7 +91,7 @@ print.linear = function(x, ...) {
 #' @param formula formula object for predictors
 #' @param hidden hidden units in layers, length of hidden corresponds to number of layers
 #' @param activation activation functions, can be of length one, or a vector of activation functions for each layer. Currently supported: tanh, relu, leakyrelu, selu, or sigmoid
-#' @param bias whether use biases in the layers, can be of length one, or a vector (number of hidden layers + 1 (last layer)) of logicals for each layer.
+#' @param bias whether use biases in the layers, can be of length one, or a vector (number of hidden layers including (last layer) but not first layer (intercept in first layer is specified by formula)) of logicals for each layer.
 #' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |weights| + \alpha ||weights||^2}
 #' @param dropout probability of dropout rate 
@@ -105,7 +105,7 @@ print.linear = function(x, ...) {
 #' \item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
 #' \item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
 #' \item{hidden}{Integer vector of hidden neurons in the deep neural network. Length of vector corresponds to the number of hidden layers.}
-#' \item{activation}{Charactervector of activation functions.}
+#' \item{activation}{Character vector of activation functions.}
 #' \item{bias}{Logical vector whether to use bias or not in each hidden layer.}
 #' 
 #' Implemented S3 methods include \code{\link{print.DNN}}
@@ -130,7 +130,7 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
     if(!is.null(formula)){
       mf = match.call()
       m = match("formula", names(mf))
-      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
+      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       X = stats::model.matrix(formula, data)
     } else {
@@ -143,7 +143,7 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
     if(!is.null(formula)) {
       mf = match.call()
       m = match("formula", names(mf))
-      if(class(mf[3]$formula) == "name") mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
+      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
       formula = stats::as.formula(mf[m]$formula)
       data = data.frame(data)
       X = stats::model.matrix(formula, data)

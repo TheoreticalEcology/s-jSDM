@@ -28,11 +28,10 @@ Rsquared = function(model, method = c("Nagelkerke", "McFadden")) {
   
   if(is.null(model$Null)) {
     if(inherits(model, "spatial")) {
-      spatial_formula=stats::as.formula(~0)
+      model$Null = update(model, env_formula=~1, spatial_formula=~0)
     } else {
-      spatial_formula=NULL
+      model$Null = update(model, env_formula=~1)
     }
-    model$Null = update(model, env_formula=~1, spatial_formula=spatial_formula)
   }
   N0 = -logLik(model$Null)[[1]]
   N1 = -logLik(model)[[1]]

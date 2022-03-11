@@ -1,3 +1,27 @@
+# sjSDM 1.0.1
+
+## New Features
+
+* anova plots for internal meta-community structure (based on individual R-squared values)
+
+## Minor changes
+
+* first layer of DNN now always without an explicit bias (bias/intercept is passed by model/formula, if desired)
+* revised prediction function, improved stability
+* revised simulation function, samples now from a multivariate probit model
+
+## Bug fixes
+
+* unlisting of config objects in `sjSDM::sjSDM_cv` (thanks to Máté) (added unit tests)  #88
+* `sjSDM::Rsquared` bug for spatial models (thanks to Máté) #90
+* revised regularization behavior, l1 and l2 were not correctly imposed on DNN structure
+* revised and improved setWeights function
+* bugs in vignettes (thanks to Doug) #92
+* bugs in plot function for models with DNN objects
+
+
+
+
 # sjSDM 1.0.0
 
 ## Major changes

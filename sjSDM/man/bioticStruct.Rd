@@ -102,6 +102,8 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
               iter = 50L) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = XY)
+R2 = Rsquared(model)
+print(R2)
 
 ## Using spatial eigenvectors as predictors to account 
 ## for spatial autocorrelation is a common approach:
@@ -112,7 +114,9 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
 summary(model)
 predict(model, newdata = com$env_weights, SP = SPV)
 
-
+## Visualize internal meta-community structure
+an = anova(model)
+plot(an, internal=TRUE)
 
 ## non-linear(deep neural network) model
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
@@ -150,6 +154,9 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
 result = anova(model)
 print(result)
 plot(result)
+
+## visualize meta-community structure
+plot(result, internal=TRUE)
 
 
 # Deep neural network

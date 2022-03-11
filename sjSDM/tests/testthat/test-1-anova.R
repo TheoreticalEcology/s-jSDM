@@ -33,8 +33,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   # iter, batch_size, se, link
   Funcs = list(
     list(2, 2, FALSE, binomial("logit")),
-    list(2, 23, FALSE, poisson()),
-    list(2, 40, FALSE, gaussian())
+    list(2, 23, FALSE, poisson())
+    #list(2, 40, FALSE, gaussian())
   )
   testthat::test_that("sjSDM anova Func", {
     testthat::skip_on_cran()

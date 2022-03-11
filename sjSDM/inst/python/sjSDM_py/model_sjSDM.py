@@ -33,7 +33,11 @@ class Model_sjSDM:
         def l2_loss(tensor: torch.Tensor, l2: float):
             return tensor.pow(2.0).sum().mul(l2)
         
-        self.l1_l2 = [l1_loss, l2_loss]
+        @torch.jit.script
+        def l1_l2_loss(tensor: torch.Tensor, l1: float, l2: float):
+            return tensor.pow(2.0).sum().mul(l2)+tensor.abs().sum().mul(l1)
+        
+        self.l1_l2 = [l1_loss, l2_loss, l1_l2_loss]
 
     def __call__(self):
         pass
@@ -78,7 +82,8 @@ class Model_sjSDM:
                 bias: List[bool] = [False], 
                 l1: float = -99, 
                 l2: float = -99, 
-                dropout: float = -99) -> None:
+                dropout: float = -99,
+                intercept=False) -> None:
         """Add environmental model
 
         Args:
@@ -96,11 +101,44 @@ class Model_sjSDM:
         self.params.append(self.env.parameters())
         self.input_shape = input_shape
         self.output_shape = output_shape
-        for p in self.env.parameters():
-            if l1 > 0.0: 
-                self.losses.append(lambda: self.l1_l2[0](p, l1))
-            if l2 > 0.0:
-                self.losses.append(lambda: self.l1_l2[1](p, l2))
+
+        individual_losses = []
+        for index, p in enumerate(self.env.parameters()):
+            if index == 0:
+                if (l1 > 0.0) & (l2 > 0.0): 
+                    if intercept is False:
+                        individual_losses.append(lambda p: self.l1_l2[2](p, l1, l2))
+                    else:
+                        individual_losses.append(lambda p: self.l1_l2[2](p[:,1:], l1, l2))
+                    next
+                elif (l1 <= 0.0) & (l2 > 0.0):
+                    if intercept is False:
+                        individual_losses.append(lambda p: self.l1_l2[1](p, l2))
+                    else:
+                        individual_losses.append(lambda p: self.l1_l2[1](p[:,1:], l2))
+                elif (l1 > 0.0) & (l2 <= 0.0):
+                    if intercept is False:
+                        individual_losses.append(lambda p: self.l1_l2[0](p, l1))
+                    else:
+                        individual_losses.append(lambda p: self.l1_l2[0](p[:,1:], l1))
+            else:
+                if (l1 > 0.0) & (l2 > 0.0): 
+                    individual_losses.append(lambda p: self.l1_l2[2](p, l1, l2))
+                elif (l1 <= 0.0) & (l2 > 0.0):
+                    individual_losses.append(lambda p: self.l1_l2[1](p, l2))
+                elif (l1 > 0.0) & (l2 <= 0.0):
+                    individual_losses.append(lambda p: self.l1_l2[0](p, l1))
+        if len(individual_losses) > 0:
+            def loss():
+                tmp_loss = [
+                    individual_losses[index](p).reshape([1])
+                    for index, p in enumerate(self.env.parameters())
+                    if len(p.shape) > 1
+                ]
+                return torch.cat(tmp_loss).sum()
+            self.losses.append( loss )
+                    
+
 
     def add_spatial(self, 
                     input_shape: int, 
@@ -110,7 +148,8 @@ class Model_sjSDM:
                     bias: List[bool] = [False], 
                     l1: float = -99, 
                     l2: float = -99, 
-                    dropout: float = -99) -> None:
+                    dropout: float = -99,
+                    intercept=False) -> None:
         """Add spatial model
 
         Args:
@@ -125,11 +164,25 @@ class Model_sjSDM:
         """                    
         self.spatial = (self._build_NN(input_shape, output_shape, hidden, bias, activation, dropout))
         self.params.append(self.spatial.parameters())
+        
+        individual_losses = []
         for p in self.spatial.parameters():
-            if l1 > 0.0: 
-                self.losses.append(lambda: self.l1_l2[0](p, l1))
-            if l2 > 0.0:
-                self.losses.append(lambda: self.l1_l2[1](p, l2))
+            if (l1 > 0.0) & (l2 > 0.0): 
+                individual_losses.append(lambda p: self.l1_l2[2](p, l1, l2))
+            elif (l1 <= 0.0) & (l2 > 0.0):
+                individual_losses.append(lambda p: self.l1_l2[1](p, l2))
+            elif (l1 > 0.0) & (l2 <= 0.0):
+                individual_losses.append(lambda p: self.l1_l2[0](p, l1))
+        if len(individual_losses) > 0:
+            def loss():
+                tmp_loss = [
+                    individual_losses[index](p).reshape([1])
+                    for index, p in enumerate(self.spatial.parameters())
+                    if len(p.shape) > 1
+                ]
+                return torch.cat(tmp_loss).sum()
+            self.losses.append( loss )
+        
                 
     def _build_NN(self, 
                   input_shape: int, 
@@ -156,7 +209,9 @@ class Model_sjSDM:
             activation = [activation[0] for _ in range(len(hidden))]
 
         if len(bias) == 1:
-            bias = [bias[0] for _ in range(len(hidden)+1)]  
+            bias = [bias[0] for _ in range(len(hidden))]
+            
+        bias.insert(0, False)
 
         if len(hidden) > 0:
             for i in range(len(hidden)):
@@ -234,7 +289,7 @@ class Model_sjSDM:
             else: 
                 data = torch.utils.data.TensorDataset(torch.tensor(X, dtype=self.dtype, device=torch.device('cpu')))            
 
-        DataLoader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=shuffle, num_workers=int(parallel), pin_memory=pin_memory, drop_last=drop_last)
+        DataLoader = torch.utils.data.DataLoader(data, batch_size=int(batch_size), shuffle=shuffle, num_workers=int(parallel), pin_memory=pin_memory, drop_last=drop_last)
         torch.cuda.empty_cache()
                 
         return DataLoader
@@ -464,7 +519,7 @@ class Model_sjSDM:
             Tuple[float, float]: Tuple of log-Likelihood and regularization loss
         """               
         dataLoader = self._get_DataLoader(X = X, Y = Y, SP=SP, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
-        loss_function = self._build_loss_function(train=train)
+        loss_function = self._build_loss_function(train=train, individual=individual)
         torch.cuda.empty_cache()
         any_losses = len(self.losses) > 0
 
@@ -512,7 +567,8 @@ class Model_sjSDM:
                 parallel: int = 0, 
                 sampling: int = 100, 
                 link: bool = True,
-                dropout: bool = False) -> np.ndarray:
+                dropout: bool = False,
+                simulate: bool = False) -> np.ndarray:
         """Predict with sjSDM
 
         Args:
@@ -524,13 +580,14 @@ class Model_sjSDM:
             sampling (int, optional): Number of MC-samples for each species. Defaults to 100.
             link (bool, optional): Linear or response scale. Defaults to True.
             dropout (bool, optional): Use dropout during predictions or not. Defaults to False.
+            simulate (bool, optional): Return simulated values on linear scale. Defaults to False.
 
         Returns:
             np.ndarray: Predictions
         """                
 
         dataLoader = self._get_DataLoader(X = newdata, Y = None, SP=SP, batch_size = batch_size, shuffle = False, parallel = parallel, drop_last = False)
-        loss_function = self._build_loss_function(train = False, raw=not link)
+        loss_function = self._build_loss_function(train = False, raw=not link, simulate=simulate)
 
         pred = []
         if self.device.type == 'cuda': # type: ignore
@@ -554,7 +611,7 @@ class Model_sjSDM:
                 sp = sp.to(self.device, non_blocking=True)
                 mu = self.env(x) + self.spatial(sp) # type: ignore
                 # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device, self.dtype)
                 pred.append(loss)
             self.spatial.eval()
         else:
@@ -562,11 +619,14 @@ class Model_sjSDM:
                 x = x[0].to(self.device, non_blocking=True)
                 mu = self.env(x) # type: ignore
                 # loss = self._loss_function(mu, y, self.sigma, batch_size, sampling, df, alpha, device)
-                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device)
+                loss = loss_function(mu, self.sigma, x.shape[0], sampling, self.df, self.alpha, device, self.dtype)
                 pred.append(loss)
 
         self.env.eval()
-        return torch.cat(pred, dim = 0).data.cpu().numpy()
+        cat_dim = 0
+        if simulate:
+            cat_dim = 1
+        return torch.cat(pred, dim = cat_dim).data.cpu().numpy()
 
     def se(self, 
            X: np.ndarray, 
@@ -744,16 +804,26 @@ class Model_sjSDM:
             if l2 > 0.0:
                 self.losses.append( lambda: self.l1_l2[1](self.sigma, l2) )
 
-    def _build_loss_function(self, train: bool = True, raw: bool = False) -> Callable:
+    def _build_loss_function(self, train: bool = True, raw: bool = False, individual:bool = False, simulate: bool = False) -> Callable:
         """Build loss (likelihood) function
 
         Args:
             train (bool, optional): Train or evaulation mode Defaults to True.
             raw (bool, optional): Linear or response scale. Defaults to False.
+            individual(bool, optional): Return individual logLL values. Defaults to False.
+            simulate(bool, optional): Return simulated values. Defaults to False.
 
         Returns:
             Callable: loss function
-        """        
+        """
+        
+        if simulate:
+            #tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
+            @torch.jit.script
+            def tmp(mu: torch.Tensor,  sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
+                return torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu)
+            return tmp
 
         if train:
             if self.link == "logit" or self.link == "probit":
@@ -788,7 +858,6 @@ class Model_sjSDM:
             elif self.link == "normal":
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0]))).log_prob(Ys).neg()
-
         else:
             if self.link == "probit": 
                 link_func = lambda value: torch.distributions.Normal(0.0, 1.0).cdf(value)
@@ -804,13 +873,55 @@ class Model_sjSDM:
             if raw:
                 link_func = lambda value: value
 
-            def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str):
-                noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
+            def tmp(mu: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                # noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device))
                 if self.link == "logit": 
-                    E = link_func(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha)).mul(0.999999).add(0.0000005)
+                    E = link_func(mu.mul(alpha)).mul(0.999999).add(0.0000005)
                 else:
-                    E = link_func(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu)).mul(0.999999).add(0.0000005)
-                return E.mean(dim = 0)
+                    E = link_func(mu).mul(0.999999).add(0.0000005)
+                return E
+    
+    
+        if individual:
+            if self.link == "logit" or self.link == "probit":
+                @torch.jit.script
+                def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                    noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
+                    E = torch.sigmoid(   torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha)   ).mul(0.999999).add(0.0000005)
+                    logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
+                    logprob2 = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys))#.neg().sum(dim = 2).neg()
+                    Prop = logprob2.exp().mean(0).log().abs() # 
+                    Prop = Prop.multiply( (1.0/Prop.sum(dim=1)).reshape([-1, 1]).repeat_interleave(Ys.shape[1],1) )
+                    maxlogprob = logprob.max(dim = 0).values
+                    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                    return Eprob.log().neg().sub(maxlogprob).reshape([-1,1]).repeat_interleave(Ys.shape[1],1)*Prop
+            elif self.link == "linear":
+                @torch.jit.script
+                def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                    noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
+                    E = torch.clamp(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha), 0.0, 1.0).mul(0.999999).add(0.0000005)
+                    logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
+                    logprob2 = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys))#.neg().sum(dim = 2).neg()
+                    Prop = logprob2.exp().mean(0).log().abs() # 
+                    Prop = Prop.multiply( (1.0/Prop.sum(dim=1)).reshape([-1, 1]).repeat_interleave(Ys.shape[1],1) )
+                    maxlogprob = logprob.max(dim = 0).values
+                    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                    return Eprob.log().neg().sub(maxlogprob).reshape([-1,1]).repeat_interleave(Ys.shape[1],1)*Prop
+            elif self.link == "count":
+                def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                    noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
+                    E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).exp()
+                    logprob = torch.distributions.Poisson(rate=E).log_prob(Ys).sum(2)
+                    logprob2 = torch.distributions.Poisson(rate=E).log_prob(Ys)#.sum(2)
+                    Prop = logprob2.exp().mean(0).log().abs() # 
+                    Prop = Prop.multiply( (1.0/Prop.sum(dim=1)).reshape([-1, 1]).repeat_interleave(Ys.shape[1],1) )
+                    maxlogprob = logprob.max(dim = 0).values
+                    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                    return Eprob.log().neg().sub(maxlogprob).reshape([-1,1]).repeat_interleave(Ys.shape[1],1)*Prop
+
+            elif self.link == "normal":
+                def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                    return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0]))).log_prob(Ys).neg()
 
         return tmp
 

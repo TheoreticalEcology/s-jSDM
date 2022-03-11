@@ -12,7 +12,7 @@ setWeights(object, weights)
 \arguments{
 \item{object}{object of class  \code{\link{sjSDM}} with \code{\link{DNN}} object}
 
-\item{weights}{list of layer weights and sigma, see \code{\link{getWeights}}}
+\item{weights}{list of layer weights:  \code{list(env=list(matrix(...)), spatial=list(matrix(...)), sigma=matrix(...))}, see \code{\link{getWeights}}}
 }
 \value{
 No return value, weights are changed in place.

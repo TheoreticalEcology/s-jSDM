@@ -201,6 +201,7 @@ sjSDM = function(Y = NULL,
   
   output = as.integer(ncol(Y))
   input = as.integer(ncol(env$X))
+  intercept = "(Intercept)" %in% colnames(env$X)
   
   out$get_model = function(){
     model = pkg.env$fa$Model_sjSDM( device = device, dtype = dtype)
@@ -218,7 +219,7 @@ sjSDM = function(Y = NULL,
     if(!is.null(env$dropout)) dropout_env = env$dropout
     else dropout_env = -99
     
-    model$add_env(input, output, hidden = hidden, activation = activation,bias = bias, l1 = env$l1, l2=env$l2, dropout=dropout_env)
+    model$add_env(input, output, hidden = hidden, activation = activation,bias = bias, l1 = env$l1, l2=env$l2, dropout=dropout_env, intercept=intercept)
     
     if(!is.null(spatial)) {
       
@@ -376,7 +377,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
   } else {
     
     if(is.null(newdata)) {
-      return(force_r(object$model$predict(newdata = object$data$X, link=link)))
+      return(force_r(object$model$predict(newdata = object$data$X, link=link, ...)))
     } else {
       if(is.data.frame(newdata)) {
         newdata = stats::model.matrix(object$formula, newdata)
@@ -531,14 +532,15 @@ summary.sjSDM = function(object, ...) {
 
 #' Generates simulations from sjSDM model
 #'
-#' Simulate nsim responses from the fitted model
+#' Simulate nsim responses from the fitted model following a multivariate probit model. 
+#' So currently only supported for \code{family = stats::binomial("probit")}
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param nsim number of simulations
 #' @param seed seed for random numer generator
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
 #' 
-#' @return Array of simulated species occurrences.
+#' @return Array of simulated species occurrences of dimension order [nsim, sites, species]
 #' 
 #' @importFrom stats simulate
 #' @export
@@ -549,24 +551,29 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
     pkg.env$torch$cuda$manual_seed(seed)
     pkg.env$torch$manual_seed(seed)
   }
-  preds = abind::abind(lapply(1:nsim, function(i) predict.sjSDM(object)), along = 0L)
-  simulation = apply(preds, 2:3, function(p) stats::rbinom(nsim, 1L,p))
-  return(simulation)
+  sims = force_r(predict(object, simulate=TRUE, sampling = as.integer(nsim)))
+  return(apply(sims, 1:3, function(i) ifelse(i > 0, 1, 0)))
 }
 
 
 
-#' Extract Log-Likelihood from a fitted sjSDM model
+#' Extract negative-log-Likelihood from a fitted sjSDM model
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
-#' @param ... optional arguments for compatibility with the generic function, no functionality implemented
+#' @param individual returns internal ll structure, mostly for internal useage
+#' @param ... optional arguments passed to internal logLik function (only used if \code{individual=TRUE})
 #' 
-#' @return Numeric value
+#' @return Numeric value or numeric matrix if individual is true.
 #' 
 #' @importFrom stats simulate
 #' @export
-logLik.sjSDM <- function(object, ...){
-  return(object$logLik[[1]])
+logLik.sjSDM <- function(object, individual=FALSE,...){
+  if(!individual) return(object$logLik[[1]])
+  else {
+    object = checkModel(object)
+    if(!inherits(object, "spatial")) return(force_r(object$model$logLik(object$data$X, object$data$Y, individual = TRUE)))
+    else return(force_r(object$model$logLik(object$data$X, object$data$Y, object$spatial$X, individual = TRUE)))
+  }
 }
 
 
@@ -587,7 +594,7 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
   mf = match.call()
   if(!is.null(env_formula)){
     m = match("env_formula", names(mf))
-    if(class(mf[3]$env_formula) == "name") mf[3]$env_formula = eval(mf[3]$env_formula, envir = parent.env(environment()))
+    if(inherits(mf[m]$env_formula,"name")) mf[m]$env_formula = eval(mf[m]$env_formula, envir = parent.env(environment()))
     env_formula = stats::as.formula(mf[m]$env_formula)
   } else {
     env_formula = object$settings$env$formula
@@ -595,7 +602,7 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
   
   if(!is.null(spatial_formula)){
     m = match("spatial_formula", names(mf))
-    if(class(mf[4]$spatial_formula) == "name") mf[4]$spatial_formula = eval(mf[4]$spatial_formula, envir = parent.env(environment()))
+    if(inherits(mf[m]$spatial_formula, "name")) mf[m]$spatial_formula = eval(mf[m]$spatial_formula, envir = parent.env(environment()))
     spatial_formula = stats::as.formula(mf[m]$spatial_formula)
   } else {
     spatial_formula = object$settings$spatial$formula

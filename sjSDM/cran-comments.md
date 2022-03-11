@@ -1,3 +1,45 @@
+## Version 1.0.1
+
+### Submission 1, 03/11/2022
+This is a minor update, fixing a few minor bugs and undesired behaviors reported 
+by users and adding a few new functionalities for the internal meta-community 
+structure
+
+Examples cannot be executed directly after the pkg installation
+because they need additional python dependencies which first have to be 
+installed by the `sjSDM::install_sjSDM()` function. Therefore we deiced to use
+the `\dontrun{}` flag
+
+
+### Successfull R CMD checks under
+
+* Locally: MacOS Monterey 12.2.1 (R x86_64 version)
+* Github actions: 
+  - MacOS Catalina 10.15 R-release 
+  - Ubuntu 20.04 R-release, R-oldrelease, and R-development
+  - Windows-latest R-release
+* Rhub:
+  - fedora 
+  - solairs
+* Win-builder R-release, R-development, and R-oldrelease
+
+Notes (from win-builder): 
+
+Possibly misspelled words in DESCRIPTION:
+  CPUs (21:262)
+  GPUs (21:271)
+  Hartig (21:320)
+  Pichler (21:310)
+  Scalable (3:8)
+  autocorrelation (21:488)
+  jSDMs (21:79, 21:565)
+  scalable (21:16)
+
+The spelling is intended.
+
+
+
+
 ## Version 1.0.0
 
 
@@ -64,7 +106,7 @@ Done. All plot functions have been updated accordingly.
 > Please ensure that you do not modify the global environment (e.g. by
 > using <<-) in your functions. This is not allowed by the CRAN policies.
 
-Done. We moved global variables into the pkg.env.
+Done. We haved moved global variables into the pkg.env.
 
 
 ### Successfull R CMD checks under

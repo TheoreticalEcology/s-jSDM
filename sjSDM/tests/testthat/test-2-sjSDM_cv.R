@@ -49,4 +49,11 @@ testthat::test_that("sjSDM_cv", {
   #testthat::expect_error(suppressWarnings(plot(model)), NA)
   testthat::expect_error(summary(model), NA)  
   
+  
+  ### sjSDM.tune ###
+  testthat::expect_error(sjSDM.tune(sjSDM_cv(Y1, X1,spatial = linear(SP), iter = 1L, CV = 2L, tune_steps = 3L, n_cores = 2L, device=device, sampling=10L)), NA)
+  testthat::expect_error(sjSDM.tune(sjSDM_cv(Y1, X1,spatial = linear(SP), iter = 1L, family = binomial(),CV = 2L, tune_steps = 3L, n_cores = 2L, device=device, sampling=10L)), NA)
+  testthat::expect_error(sjSDM.tune(sjSDM_cv(Y1, X1,spatial = linear(SP), iter = 1L, family = binomial(), control = sjSDMControl(), CV = 2L, tune_steps = 3L, n_cores = 2L, device=device, sampling=10L)), NA)
+  testthat::expect_error(sjSDM.tune(sjSDM_cv(Y1, X1,spatial = linear(SP), CV = 2L, tune_steps = 3L, n_cores = 2L)), NA)
+  
 })

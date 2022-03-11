@@ -9,6 +9,6 @@ force_r = function(x) {
 }
 
 is_gpu_available = function() {
-  if( force_r(pkg.env$torch$cuda$is_available()) ) return("gpu")
+  if( force_r(sjSDM:::pkg.env$torch$cuda$is_available()) ) return("gpu")
   else return("cpu")
 }

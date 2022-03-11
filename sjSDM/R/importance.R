@@ -9,6 +9,7 @@
 #' @details 
 #' 
 #' This variance partitioning approach is based on Ovaskainen et al., 2017. For an example how to interpret the outputs, see Leibold et al., 2021.
+#' This function will be deprecated in the future. Please use \code{plot(anova(model), internal=TRUE)} (currently only supported for spatial models).
 #' 
 #' @return
 #' 

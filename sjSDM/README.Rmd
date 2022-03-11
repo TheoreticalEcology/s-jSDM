@@ -5,7 +5,7 @@ output: github_document
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, collapse = TRUE)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, fig.path = "man/figures/README-")
 ```
 
 
@@ -76,6 +76,14 @@ Update model (change main effects to quadratic effects):
 model2 <- update(model, env_formula = ~I(X1^2))
 summary(model2)
 ```
+
+Estimate and visualize meta-community structure:
+      
+```{r}
+anv <- anova(model)
+plot(anv, internal=TRUE)
+```
+
 
 Change linear part of model to a deep neural network:
 

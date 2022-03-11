@@ -8,8 +8,10 @@
   x,
   y,
   type = c("Deviance", "Nagelkerke", "McFadden"),
+  internal = FALSE,
   cols = c("#7FC97F", "#BEAED4", "#FDC086"),
   alpha = 0.15,
+  env_deviance = NULL,
   ...
 )
 }
@@ -18,17 +20,34 @@
 
 \item{y}{unused argument}
 
-\item{type}{use of deviance or of Nagelkerke or McFadden R-squared}
+\item{type}{deviance, Nagelkerke or McFadden R-squared}
+
+\item{internal}{logical, plot internal or total structure}
 
 \item{cols}{colors for the groups}
 
 \item{alpha}{alpha for colors}
 
-\item{...}{Additional arguments to pass to \code{plot()}}
+\item{env_deviance}{environmental deviance}
+
+\item{...}{Additional arguments to pass to \code{plot()}
+
+The \code{internal = TRUE} plot was heavily inspired by Leibold et al., 2022}
 }
 \value{
-The visualized matrix is silently returned
+List with the following components:
+
+If \code{internal=TRUE}:
+
+\item{plots}{ggplot objects for sites and species.}
+\item{data}{List of data.frames with the shown results.}
+
+else:
+\item{VENN}{Matrix of shown results.}
 }
 \description{
 Plot anova results
+}
+\references{
+Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
 }

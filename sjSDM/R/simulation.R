@@ -26,7 +26,7 @@
 #' \item{link}{Which link}
 #' \item{response_type}{Which response type}
 #' \item{response}{Species occurrence matrix}
-#' \item{correlation}{Species covariance matirx}
+#' \item{correlation}{Species covariance matrix}
 #' \item{species_weights}{Species-environment coefficients}
 #' \item{env_weights}{Environmental covariates}
 #' \item{corr_acc}{Method to calculate sign accurracy}

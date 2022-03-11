@@ -15,7 +15,8 @@
 #' @export
 #' 
 plot.sjSDM = function(x, ...) {
-  plotsjSDMcoef(x, ...)
+  if(inherits(x, "linear")) plotsjSDMcoef(x, ...)
+  if(inherits(x, "DNN")) plot.sjSDM.DNN(x, ...)
 }
 
 #' Internal coefficients plot
@@ -95,4 +96,20 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
       geom_text(aes(y= miny-0.1, label =as.factor(star)), position = position_dodge(0.3), size = 2.5, fontface = "bold")+
       geom_errorbar(aes(ymax = Estimate + Std.Err, ymin = Estimate - Std.Err), width = 0.3)+ scale_y_continuous(limits = c(miny-0.3,maxy+0.1))
   })
+}
+
+
+#' Training history
+#' 
+#' Plot training loss history
+#' 
+#' @param x a model fitted by \code{\link{sjSDM}} with \code{\link{DNN}} object
+#' @param ... passed to plot
+#' @example /inst/examples/plot.sjSDM-example.R
+#' 
+#' @return No return value, called for side effects.
+#' 
+#' @import graphics
+plot.sjSDM.DNN = function(x, ...) {
+  graphics::plot(x$history, ylab = "loss", xlab = "epoch", ...)
 }

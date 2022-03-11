@@ -1,12 +1,13 @@
 ---
-title: "sjSDM: a scalable joint Species Distribution Model"
+title: "Getting started with sjSDM: a scalable joint Species Distribution Model"
 author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
 date: "`r Sys.Date()`"
 output: 
+
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{sjSDM: a scalable joint Species Distribution Model}
+  %\VignetteIndexEntry{Getting started with sjSDM: a scalable joint Species Distribution Model}
   \usepackage[utf8]{inputenc}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood. \n \n \n"
@@ -20,7 +21,7 @@ set.seed(123)
 
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = F)
+knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = FALSE)
 ```
 
 
@@ -38,19 +39,19 @@ library(sjSDM)
 sjSDM depends on the Anaconda distribution of python and pytorch. You will get a warning if you don't have python installed. sjSDM depends on Anaconda which will be installed automatically if it is not available.
 
 To install the CPU version, run:
-```{r, eval = F}
+```{r, eval = F, purl=FALSE}
 install_sjSDM()
 ```
 
 For the GPU version (NVIDIA GPUs are only supported), run:
-```{r, eval = F}
+```{r, eval = F, purl=FALSE}
 install_sjSDM(method = "gpu")
 ```
 
 
 More details on and trouble-shooting for installing the necessary dependencies is explained in the vignette dependencies, call 
 
-```{r,eval = F}
+```{r,eval = F, purl=FALSE}
 vignette("Dependencies", package = "sjSDM")
 ```
 
@@ -159,8 +160,17 @@ an = anova(model)
 plot(an)
 ```
 
+## Internal meta-community structure
+We can also visualize the internal meta-community structure (only for models with space):
+```{r}
+plot(an, internal = TRUE)
+```
+
+
+
 ## Importance
-We can also partition the effects of the different components
+We can also partition the effects of the different components. This function will be deprecated in future. 
+Please use `plot(anova(model), internal = TRUE)`
 ```{r,eval=FALSE}
 imp = importance(model)
 plot(imp)
@@ -270,20 +280,5 @@ summary(model)
 ## Normal (gaussian)
 ```{r,eval=FALSE}
 model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE, iter = 50L, family = gaussian("identity"))
-summary(model)
-```
-
-
-## Workaround to use the default binomial with probit or logit link:
-The log-normalization is one way to transform species counts into quasi-probabilities in the range of [0,1]:
-```{r,eval=FALSE}
-zero_one = function(x) function(x) (x-min(x))/(max(x) -min(x))
-Y_pa = zero_one(log(Y+0.001))
-```
-
-We can use the quasi probabilities the same way as presence-absence data:
-```{r,eval=FALSE}
-
-model = sjSDM(Y_pa, env = linear(X, ~.), se = TRUE, iter = 50L, family = binomial("logit"))
 summary(model)
 ```

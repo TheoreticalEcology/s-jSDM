@@ -24,7 +24,7 @@ DNN(
 
 \item{activation}{activation functions, can be of length one, or a vector of activation functions for each layer. Currently supported: tanh, relu, leakyrelu, selu, or sigmoid}
 
-\item{bias}{whether use biases in the layers, can be of length one, or a vector (number of hidden layers + 1 (last layer)) of logicals for each layer.}
+\item{bias}{whether use biases in the layers, can be of length one, or a vector (number of hidden layers including (last layer) but not first layer (intercept in first layer is specified by formula)) of logicals for each layer.}
 
 \item{lambda}{lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
 
@@ -41,7 +41,7 @@ An S3 class of type 'DNN' including the following components:
 \item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
 \item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
 \item{hidden}{Integer vector of hidden neurons in the deep neural network. Length of vector corresponds to the number of hidden layers.}
-\item{activation}{Charactervector of activation functions.}
+\item{activation}{Character vector of activation functions.}
 \item{bias}{Logical vector whether to use bias or not in each hidden layer.}
 
 Implemented S3 methods include \code{\link{print.DNN}}
@@ -107,6 +107,8 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
               iter = 50L) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = XY)
+R2 = Rsquared(model)
+print(R2)
 
 ## Using spatial eigenvectors as predictors to account 
 ## for spatial autocorrelation is a common approach:
@@ -117,7 +119,9 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
 summary(model)
 predict(model, newdata = com$env_weights, SP = SPV)
 
-
+## Visualize internal meta-community structure
+an = anova(model)
+plot(an, internal=TRUE)
 
 ## non-linear(deep neural network) model
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
@@ -155,6 +159,9 @@ model = sjSDM(Y = com$response, env = linear(com$env_weights),
 result = anova(model)
 print(result)
 plot(result)
+
+## visualize meta-community structure
+plot(result, internal=TRUE)
 
 
 # Deep neural network
