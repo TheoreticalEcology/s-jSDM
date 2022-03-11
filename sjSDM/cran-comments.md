@@ -2,8 +2,8 @@
 
 ### Submission 1, 03/11/2022
 This is a minor update, fixing a few minor bugs and undesired behaviors reported 
-by users and adding a few new functionalities for the internal meta-community 
-structure
+by users and adding a few new functionalities to analyse the internal 
+meta-community structure.
 
 Examples cannot be executed directly after the pkg installation
 because they need additional python dependencies which first have to be 

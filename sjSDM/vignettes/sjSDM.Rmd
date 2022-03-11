@@ -162,7 +162,7 @@ plot(an)
 
 ## Internal meta-community structure
 We can also visualize the internal meta-community structure (only for models with space):
-```{r}
+```{r,eval=FALSE}
 plot(an, internal = TRUE)
 ```
 
