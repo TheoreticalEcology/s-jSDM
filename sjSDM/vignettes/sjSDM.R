@@ -2,7 +2,7 @@
 set.seed(123)
 
 ## ----global_options, include=FALSE--------------------------------------------
-knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = F)
+knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = FALSE)
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  library(sjSDM)
@@ -58,6 +58,9 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 ## ----eval=FALSE---------------------------------------------------------------
 #  an = anova(model)
 #  plot(an)
+
+## ----eval=FALSE---------------------------------------------------------------
+#  plot(an, internal = TRUE)
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  imp = importance(model)
@@ -123,14 +126,5 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=F
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE, iter = 50L, family = gaussian("identity"))
-#  summary(model)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  zero_one = function(x)  (x-min(x))/(max(x) -min(x))
-#  Y_pa = zero_one(log(Y+0.001))
-
-## ----eval=FALSE---------------------------------------------------------------
-#  
-#  model = sjSDM(Y_pa, env = linear(X, ~.), se = TRUE, iter = 50L, family = binomial("logit"))
 #  summary(model)
 
