@@ -1,3 +1,16 @@
+# sjSDM 1.0.2
+
+## New Features
+
+
+## Minor changes
+
+
+
+## Bug fixes
+
+* fixed plot.sjSDM(...) #97
+
 # sjSDM 1.0.1
 
 ## New Features
