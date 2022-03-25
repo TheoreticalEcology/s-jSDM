@@ -1,17 +1,3 @@
-# sjSDM 1.0.2
-
-## New Features
-
-
-## Minor changes
-
-
-## Bug fixes
-
-* plot bug #97
-
-
-
 # sjSDM 1.0.1
 
 ## New Features

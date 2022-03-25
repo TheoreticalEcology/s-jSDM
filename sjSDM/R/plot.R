@@ -8,19 +8,14 @@
 #' @seealso \code{\link{plotsjSDMcoef}}
 #' @example /inst/examples/plot.sjSDM-example.R
 #' 
-#' @return 
-#' 
-#' ggplot2 object
+#' @return No return value, called for side effects.
 #' 
 #' @import graphics
 #' @author CAI Wang
 #' @export
 #' 
 plot.sjSDM = function(x, ...) {
-  if(inherits(x, "linear")) {
-    g = plotsjSDMcoef(x, ...)
-    return(g)
-  }
+  if(inherits(x, "linear")) plotsjSDMcoef(x, ...)
   if(inherits(x, "DNN")) plot.sjSDM.DNN(x, ...)
 }
 
@@ -29,13 +24,13 @@ plot.sjSDM = function(x, ...) {
 #' Plotting coefficients returned by sjSDM model.
 #' This function only for model fitted by linear, fitted by DNN is not yet supported.
 #' 
+#' @import ggplot2
 #' @param object a model fitted by \code{\link{sjSDM}} 
 #' @param wrap_col Scales argument passed to wrap_col
 #' @param group Define the taxonomic characteristics of a species, you need to provide a dataframe with column1 named “species” and column2 named “group”, default is NULL. For example, group[1,1]== "sp1", group[1,2]== "Mammal".
 #' @param col Define colors for groups, default is NULL.
 #' @param slist Select the species you want to plot, default is all, parameter is not supported yet.
 #' @example /inst/examples/plot.sjSDM-example.R
-#' 
 #
 #' @author CAI Wang
 
@@ -84,28 +79,23 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
   }
   
   #if(!is.null(slist)) #effect = effect %>% dplyr::filter(species!=slist)
-  Estimate=NULL
-  coef=NULL
-  star=NULL
-  Std.Err=NULL
+  
   maxy=max(effect$Estimate+effect$Std.Err)
   miny=min(effect$Estimate-effect$Std.Err)
-    g = 
-      ggplot2::ggplot(effect,ggplot2::aes_string(x = "species", y = "Estimate", fill = group)) +
-        ggplot2::geom_bar(position = ggplot2::position_dodge(0.6), stat="identity", width = 0.5)+
-        ggplot2::scale_fill_manual(values=col)+
-        ggplot2::guides(fill = ggplot2::guide_legend(reverse=FALSE))+
-        ggplot2::xlab("species") + 
-        ggplot2::ylab("coefficients") + 
-        ggplot2::labs(fill="Group") + 
-        ggplot2::coord_flip(expand=FALSE) + 
-        ggplot2::geom_hline(ggplot2::aes_string(yintercept = 0),linetype="dashed",size=1) +
-        ggplot2::theme_classic()+ ggplot2::facet_wrap(~coef, ncol = wrap_col)+ 
-        ggplot2::geom_text(aes(y= miny-0.1, label =as.factor(star)), position = ggplot2:: position_dodge(0.3), size = 2.5, fontface = "bold")+
-        ggplot2::geom_errorbar(ggplot2::aes(ymax = Estimate + Std.Err, ymin = Estimate - Std.Err), width = 0.3)+ 
-        ggplot2::scale_y_continuous(limits = c(miny-0.3,maxy+0.1))
-    
-  return(g)
+  with(effect, {
+    ggplot2::ggplot(effect,aes(x = species, y = Estimate, fill = group)) +
+      geom_bar(position = position_dodge(0.6), stat="identity", width = 0.5)+
+      scale_fill_manual(values=col)+
+      guides(fill = guide_legend(reverse=F))+
+      xlab("species") + 
+      ylab("coefficients") + 
+      labs(fill="Group") + 
+      coord_flip(expand=F) + 
+      geom_hline(aes(yintercept = 0),linetype="dashed",size=1) +
+      theme_classic()+ facet_wrap(~coef, ncol = wrap_col)+ 
+      geom_text(aes(y= miny-0.1, label =as.factor(star)), position = position_dodge(0.3), size = 2.5, fontface = "bold")+
+      geom_errorbar(aes(ymax = Estimate + Std.Err, ymin = Estimate - Std.Err), width = 0.3)+ scale_y_continuous(limits = c(miny-0.3,maxy+0.1))
+  })
 }
 
 

@@ -12,7 +12,7 @@
 \item{...}{Additional arguments to pass to \code{\link{plotsjSDMcoef}}.}
 }
 \value{
-ggplot2 object
+No return value, called for side effects.
 }
 \description{
 Plotting coefficients returned by sjSDM model.
