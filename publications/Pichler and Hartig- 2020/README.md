@@ -130,6 +130,13 @@ source("analysis/scripts/3_covariance_behaviour.R")
 
 ## Case study - eDNA Fungi Dataset <a name="eDNA"></a>
 
+We used the eDNA Fungi dataset from [Frøslev et al., 2019](http://www.sciencedirect.com/science/article/pii/S0006320718314435). You can download their data [here](https://github.com/tobiasgf/man_vs_machine/tree/master/data).
+
+Data preparation:
+```
+source("data/eDNA/prepare_eDNA.R") # please change the path
+```
+
 Tune covariance regularization
 
 ```
