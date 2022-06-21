@@ -6,7 +6,7 @@
 [![License: GPL
 v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 ![R-CMD-check](https://github.com/TheoreticalEcology/s-jSDM/workflows/R-CMD-check/badge.svg?branch=master)
-[![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687)
+[![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://doi.org/10.1111/2041-210X.13687)
 
 ## Overview
 
@@ -17,7 +17,7 @@ of the joint likelihood. The numerical approximation is based on
 alike.
 
 The method is described in [Pichler & Hartig
-(2021)](https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687)
+(2021)](https://doi.org/10.1111/2041-210X.13687)
 A new joint species distribution model for faster and more accurate
 inference of species associations from big community data.
 

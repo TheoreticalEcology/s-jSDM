@@ -1,3 +1,13 @@
+# sjSDM 1.0.2
+## Minor changes
+* changed \mjeqn{}{} to \mjeqn{} as requested by the CRAN team
+
+## Bug fixes
+
+* fixed plot.sjSDM(...) #97
+
+
+
 # sjSDM 1.0.1
 
 ## New Features

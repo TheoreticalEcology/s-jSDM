@@ -8,14 +8,16 @@
 #' @seealso \code{\link{plotsjSDMcoef}}
 #' @example /inst/examples/plot.sjSDM-example.R
 #' 
-#' @return No return value, called for side effects.
+#' @return 
+#' 
+#' ggplot2 object for linear sjSDM model and nothing for DNN sjSDM model.
 #' 
 #' @import graphics
 #' @author CAI Wang
 #' @export
 #' 
 plot.sjSDM = function(x, ...) {
-  if(inherits(x, "linear")) plotsjSDMcoef(x, ...)
+  if(inherits(x, "linear")) return(plotsjSDMcoef(x, ...))
   if(inherits(x, "DNN")) plot.sjSDM.DNN(x, ...)
 }
 
@@ -31,7 +33,8 @@ plot.sjSDM = function(x, ...) {
 #' @param col Define colors for groups, default is NULL.
 #' @param slist Select the species you want to plot, default is all, parameter is not supported yet.
 #' @example /inst/examples/plot.sjSDM-example.R
-#
+#' 
+#' @return ggplot2 object
 #' @author CAI Wang
 
 plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
@@ -82,20 +85,22 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
   
   maxy=max(effect$Estimate+effect$Std.Err)
   miny=min(effect$Estimate-effect$Std.Err)
-  with(effect, {
-    ggplot2::ggplot(effect,aes(x = species, y = Estimate, fill = group)) +
-      geom_bar(position = position_dodge(0.6), stat="identity", width = 0.5)+
-      scale_fill_manual(values=col)+
-      guides(fill = guide_legend(reverse=F))+
-      xlab("species") + 
-      ylab("coefficients") + 
-      labs(fill="Group") + 
-      coord_flip(expand=F) + 
-      geom_hline(aes(yintercept = 0),linetype="dashed",size=1) +
-      theme_classic()+ facet_wrap(~coef, ncol = wrap_col)+ 
-      geom_text(aes(y= miny-0.1, label =as.factor(star)), position = position_dodge(0.3), size = 2.5, fontface = "bold")+
-      geom_errorbar(aes(ymax = Estimate + Std.Err, ymin = Estimate - Std.Err), width = 0.3)+ scale_y_continuous(limits = c(miny-0.3,maxy+0.1))
+  g = 
+    with(effect, {
+      ggplot2::ggplot(effect,aes(x = species, y = Estimate, fill = group)) +
+        geom_bar(position = position_dodge(0.6), stat="identity", width = 0.5)+
+        scale_fill_manual(values=col)+
+        guides(fill = guide_legend(reverse=FALSE))+
+        xlab("species") + 
+        ylab("coefficients") + 
+        labs(fill="Group") + 
+        coord_flip(expand=FALSE) + 
+        geom_hline(aes(yintercept = 0),linetype="dashed",size=1) +
+        theme_classic()+ facet_wrap(~coef, ncol = wrap_col)+ 
+        geom_text(aes(y= miny-0.1, label =as.factor(star)), position = position_dodge(0.3), size = 2.5, fontface = "bold")+
+        geom_errorbar(aes(ymax = Estimate + Std.Err, ymin = Estimate - Std.Err), width = 0.3)+ scale_y_continuous(limits = c(miny-0.3,maxy+0.1))
   })
+  return(g)
 }
 
 

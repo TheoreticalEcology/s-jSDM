@@ -23,8 +23,8 @@ calculate R-squared following Nagelkerke or McFadden
 Calculate R-squared following Nagelkerke or McFadden:
 
 \itemize{
-\item Nagelkerke: \mjeqn{R^2 = 1 - \exp(2/N \cdot (log\mathcal{L}_0 - log\mathcal{L}_1 ) )}{}
-\item McFadden: \mjeqn{R^2 = 1 - log\mathcal{L}_1 / log\mathcal{L}_0  }{}
+\item Nagelkerke: \mjseqn{R^2 = 1 - \exp(2/N \cdot (log\mathcal{L}_0 - log\mathcal{L}_1 ) )}
+\item McFadden: \mjseqn{R^2 = 1 - log\mathcal{L}_1 / log\mathcal{L}_0  }
 }
 }
 \author{
