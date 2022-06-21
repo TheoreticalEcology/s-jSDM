@@ -1,3 +1,51 @@
+## Version 1.0.2
+### Submission 1, 06/21/2022
+This is a minor update, fixing a minor bug in the plot function and changing 
+'\mjeqn{}{}' to '\mjeqn{}' as requested by the CRAN team
+
+### Successfull R CMD checks under
+* Locally: MacOS Monterey 12.4 (R x86_64 version)
+* Github actions: 
+  - MacOS Catalina 10.15 R-release 
+  - Ubuntu 20.04 R-release, R-oldrelease, and R-development
+  - Windows-latest R-release
+* Rhub:
+  - fedora 
+  - solairs
+* Win-builder R-release, R-development, and R-oldrelease
+
+Notes from win-builder:
+Found the following (possibly) invalid URLs:
+  URL: https://doi.org/10.1111/2041-210X.13687
+    From: README.md
+    Status: 503
+    Message: Service Unavailable
+
+Found the following (possibly) invalid DOIs:
+  DOI: 10.1111/2041-210X.13687
+    From: DESCRIPTION
+          inst/CITATION
+    Status: Service Unavailable
+    Message: 503
+
+URL and DOI are correct.
+
+Possibly misspelled words in DESCRIPTION:
+  CPUs (21:262)
+  GPUs (21:271)
+  Hartig (21:320)
+  Pichler (21:310)
+  Scalable (3:8)
+  autocorrelation (21:488)
+  jSDMs (21:79, 21:565)
+  scalable (21:16)
+
+The spelling is intended.
+
+
+
+
+
 ## Version 1.0.1
 
 ### Submission 1, 03/11/2022

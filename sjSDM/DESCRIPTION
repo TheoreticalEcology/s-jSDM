@@ -2,7 +2,7 @@ Package: sjSDM
 Type: Package
 Title: Scalable Joint Species Distribution Modeling
 Version: 1.0.2
-Date: 2022-03-25
+Date: 2022-06-21
 Authors@R: 
     c(person(given = "Maximilian",
              family = "Pichler",
@@ -47,7 +47,7 @@ Suggests:
     testthat,
     knitr,
     rmarkdown
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
 URL: https://theoreticalecology.github.io/s-jSDM/
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
 Roxygen: list(old_usage = FALSE)

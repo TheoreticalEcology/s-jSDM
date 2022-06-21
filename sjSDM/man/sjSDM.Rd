@@ -90,37 +90,37 @@ The function fits per default a multivariate probit model via Monte-Carlo integr
 
 \subsection{Model description}{
 
-The most common jSDM structure describes the site (\mjeqn{i = 1, ..., I}{})  by species (\mjeqn{j = 1, ..., J}{}) matrix \mjeqn{Y_{ij}}{} as a function of
-environmental covariates \mjeqn{X_{in}}{}(\mjeqn{n=1,...,N}{} covariates), and the species-species covariance matrix
-\mjeqn{\Sigma}{} accounts for correlations in \mjeqn{e_{ij}}{}:
+The most common jSDM structure describes the site (\mjseqn{i = 1, ..., I})  by species (\mjseqn{j = 1, ..., J}) matrix \mjseqn{Y_{ij}} as a function of
+environmental covariates \mjseqn{X_{in}}(\mjseqn{n=1,...,N} covariates), and the species-species covariance matrix
+\mjseqn{\Sigma} accounts for correlations in \mjseqn{e_{ij}}:
 
-\mjdeqn{g(Z_{ij}) = \beta_{j0} + \Sigma^{N}_{n=1}X_{in}\beta_{nj} + e_{ij}}{}
+\mjsdeqn{g(Z_{ij}) = \beta_{j0} + \Sigma^{N}_{n=1}X_{in}\beta_{nj} + e_{ij}}
 
-with \mjeqn{g(.)}{} as link function. For the multivariate probit model, the link function is:
+with \mjseqn{g(.)} as link function. For the multivariate probit model, the link function is:
 
-\mjdeqn{Y_{ij}=1(Z_{ij} > 0)}{}
+\mjsdeqn{Y_{ij}=1(Z_{ij} > 0)}
 
-The probability to observe the occurrence vector \mjeqn{\bf{Y_i}}{} is:
+The probability to observe the occurrence vector \mjseqn{\bf{Y_i}} is:
 
-\mjdeqn{Pr(\bf{Y}_i|\bf{X}_i\beta, \Sigma) = \int_{A_{iJ}}...\int_{A_{i1}} \phi_J(\bf{Y}_i^{\ast};\bf{X}_i\beta, \Sigma)  dY_{i1}^{\ast}... dY_{iJ}^{\ast}}{}
+\mjsdeqn{Pr(\bf{Y}_i|\bf{X}_i\beta, \Sigma) = \int_{A_{iJ}}...\int_{A_{i1}} \phi_J(\bf{Y}_i^{\ast};\bf{X}_i\beta, \Sigma)  dY_{i1}^{\ast}... dY_{iJ}^{\ast}}
 
-in the interval \mjeqn{A_{ij}}{} with \mjeqn{(-\inf, 0]}{} if \mjeqn{Y_{ij}=0}{} and \mjeqn{ [0, +\inf) }{}  if \mjeqn{Y_{ij}=1}{}.
+in the interval \mjseqn{A_{ij}} with \mjseqn{(-\inf, 0]} if \mjseqn{Y_{ij}=0} and \mjseqn{ [0, +\inf) }  if \mjseqn{Y_{ij}=1}.
 
-and \mjeqn{\phi}{} being the density function of the multivariate normal distribution. 
+and \mjseqn{\phi} being the density function of the multivariate normal distribution. 
 
-The probability of \mjeqn{\bf{Y_i}}{} requires to integrate over \mjeqn{\bf{Y_i^{\ast}}}{} which has no closed analytical expression for more than two species
+The probability of \mjseqn{\bf{Y_i}} requires to integrate over \mjseqn{\bf{Y_i^{\ast}}} which has no closed analytical expression for more than two species
 which makes the evaluation of the likelihood computationally costly and needs a numerical approximation.
 The previous equation can be expressed more generally as:
 
-\mjdeqn{ \mathcal{L}(\beta, \Sigma; \bf{Y}_i, \bf{X}_i) = \int_{\Omega} \prod_{j=1}^J Pr(Y_{ij}|\bf{X}_i\beta+\zeta) Pr(\zeta|\Sigma) d\zeta  }{}
+\mjsdeqn{ \mathcal{L}(\beta, \Sigma; \bf{Y}_i, \bf{X}_i) = \int_{\Omega} \prod_{j=1}^J Pr(Y_{ij}|\bf{X}_i\beta+\zeta) Pr(\zeta|\Sigma) d\zeta  }
 
-\code{sjSDM} approximates this integral by \mjeqn{M}{} Monte-Carlo samples from the multivariate normal species-species covariance. 
+\code{sjSDM} approximates this integral by \mjseqn{M} Monte-Carlo samples from the multivariate normal species-species covariance. 
 After integrating out the covariance term, the remaining part of the likelihood can be calculated as in an univariate case and the average 
-of the \mjeqn{M}{} samples are used to get an approximation of the integral:
+of the \mjseqn{M} samples are used to get an approximation of the integral:
 
-\mjdeqn{ \mathcal{L}(\beta, \Sigma; \bf{Y}_i, \bf{X}_i) \approx \frac{1}{M} \Sigma_{m=1}^M \prod_{j=1}^J Pr(Y_{ij}|\bf{X}_i\beta+\zeta_m)}{}
+\mjsdeqn{ \mathcal{L}(\beta, \Sigma; \bf{Y}_i, \bf{X}_i) \approx \frac{1}{M} \Sigma_{m=1}^M \prod_{j=1}^J Pr(Y_{ij}|\bf{X}_i\beta+\zeta_m)}
 
-with \mjeqn{ \zeta_m \sim MVN(0, \Sigma)}{}. 
+with \mjseqn{ \zeta_m \sim MVN(0, \Sigma)}. 
 
 \code{sjSDM} uses 'PyTorch' to run optionally the model on the graphical processing unit (GPU). Python dependencies needs to be  
 installed before being able to use the \code{sjSDM} function. We provide a function which installs automatically python and the python dependencies.
@@ -143,9 +143,9 @@ Currently supported distributions and link functions:
 
 We can extend the model to account for spatial auto-correlation between the sites by:
 
-\mjdeqn{g(Z_{ij}) = \beta_{j0} + \Sigma^{N}_{n=1}X_{in}\beta_{nj} + \Sigma^{M}_{m=1}S_{im}\alpha_{mj} + e_{ij}}{}
+\mjsdeqn{g(Z_{ij}) = \beta_{j0} + \Sigma^{N}_{n=1}X_{in}\beta_{nj} + \Sigma^{M}_{m=1}S_{im}\alpha_{mj} + e_{ij}}
 
-There are two ways to generate spatial predictors \mjeqn{S}{}:
+There are two ways to generate spatial predictors \mjseqn{S}:
 
 \itemize{
 \item trend surface model - using spatial coordinates in a polynomial:
@@ -322,7 +322,5 @@ Pichler, M., & Hartig, F. (2021). A new joint species distribution model for fas
 \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 }
 \author{
-Maximilian Pichler
-
 Maximilian Pichler
 }
