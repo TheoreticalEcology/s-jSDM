@@ -1,5 +1,5 @@
 ## Version 1.0.2
-### Submission 1, 06/21/2022
+### Submission 1, 06/22/2022
 This is a minor update, fixing a minor bug in the plot function and changing 
 '\mjeqn{}{}' to '\mjeqn{}' as requested by the CRAN team
 
