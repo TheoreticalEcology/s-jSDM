@@ -1,7 +1,9 @@
 ## Version 1.0.3
-### Submission 1, 13/09/2022
-This is a minor update, fixing a bug in the tuning function (sjSDM_cv). 
-Compatibility with PyTorch 1.12.1 was successfully checked.
+### Submission 1, 14/09/2022
+This is a minor update, fixing a bug in the tuning function (sjSDM_cv) and
+changing weight_decay in 'RMSprop' from 0.01 to 0.0001. Compatibility 
+with PyTorch 1.12.1 was successfully checked.
+
 
 
 ### Successfull R CMD checks under

@@ -1,4 +1,8 @@
 # sjSDM 1.0.3
+## Mino changes
+
+* changed weight_decay in 'RMSprop' from 0.01 to 0.0001 
+
 ## Important bug fix
 
 * fixed sjSDM_cv(...) #104 (thanks to @Cdevenish)
