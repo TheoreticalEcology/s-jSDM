@@ -232,6 +232,7 @@ sjSDM_cv = function(Y,
     parallel::stopCluster(cl)
     
   }
+  
   summary_results = 
     data.frame(do.call(rbind, lapply(1:CV, function(i) tune_samples)), 
                iter = rep(1:nrow(tune_samples), CV),
@@ -262,8 +263,8 @@ sjSDM_cv = function(Y,
                    logLik = rep(NA,nrow(tune_samples)))
   
   for(t in 1:nrow(tune_samples)) {
-      res[t,2] = mean(summary_results$AUC_macro_test[summary_results$iter == t])
-      res[t,3] = mean(summary_results$AUC_train[summary_results$iter == t])
+      res[t,2] = mean(summary_results$AUC_test[summary_results$iter == t])
+      res[t,3] = mean(summary_results$AUC_macro_test[summary_results$iter == t])
       res[t,4] = sum(summary_results$ll_test[summary_results$iter == t])
   }
   short_summary = cbind(tune_samples, res[,-1])

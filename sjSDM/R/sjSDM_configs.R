@@ -361,7 +361,7 @@ Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.002) {
 #' Anonymous function that returns optimizer when called.
 #' @import checkmate
 #' @export
-RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.01, momentum=0.1, centered=FALSE) {
+RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.0001, momentum=0.1, centered=FALSE) {
   
   qassert(alpha, "R1(0,)")
   qassert(weight_decay, "R1[0,)")
