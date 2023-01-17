@@ -46,7 +46,7 @@ Suggests:
     testthat,
     knitr,
     rmarkdown
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.1
 URL: https://theoreticalecology.github.io/s-jSDM/
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
 Roxygen: list(old_usage = FALSE)
