@@ -1,0 +1,262 @@
+---
+title: "Internal structure simulations"
+format: 
+  gfm:
+    fig-format: png
+    toc: true
+  html:
+    fig-format: png
+    toc: true
+    embed-resources: true
+crossref:
+  fig-title: '**Figure **'
+  fig-labels: arabic
+  tbl-title: '**Table **'
+  tbl-labels: arabic
+  title-delim: ":"
+editor: visual
+---
+
+## Internal community stucture simulations
+
+```{r}
+#| message: false
+#| warning: false
+library(sjSDM)
+```
+
+## No effects, simple Sigma
+
+```{r}
+set.seed(42)
+SP = 4
+Sigma = diag(1.0, SP)
+diag(Sigma) = 1.0
+Sigma[2,1] = Sigma[1,2] = 0.9
+beta = c(rep(0, 4))
+Env = rnorm(1000)
+Y = 1*((Env %*% t(beta) + mvtnorm::rmvnorm(1000, sigma = Sigma))>0)
+XY = matrix(rnorm(2000), 1000, 2)
+
+fields::image.plot(Sigma)
+```
+
+```{r}
+#| message: false
+#| warning: false
+model = sjSDM(Y = Y, 
+              env = linear(matrix(Env, ncol = 1L)), 
+              spatial = linear(XY, ~0+X1:X2),
+              iter = 50L)
+an = anova(model)
+p = plot(an, internal = TRUE, suppress_plotting = TRUE)
+p_shared = plot(an, internal = TRUE, add_shared = TRUE, suppress_plotting = TRUE)
+```
+
+```{r}
+#| label: fig-Fig_1
+#| fig-cap: "Internal structure. Left figure without shared components Right figure with shared contribution"
+#| fig-width: 7
+#| fig-height: 5
+#| warning: false
+#| message: false
+#| include: false
+ggtern::grid.arrange(p$plots[[2]], p_shared$plots[[2]], nrow=1, widths = c(5.0/10, 5/10))
+```
+
+```{r}
+#| label: tbl-Table_1
+#| tbl-cap: Without shared components
+#| include: false
+knitr::kable(p$data$Species)
+```
+
+```{r}
+#| label: tbl-Table_2
+#| tbl-cap: With shared components
+#| include: false
+knitr::kable(p_shared$data$Species)
+```
+
+
+# With environmental effects and more covariance structure
+
+First five species only affected by environment, last 5 species with weak environment and strong biotic components.
+
+```{r}
+SP = 10
+Sigma = diag(1.0, SP)
+Sigma[] = 0.9
+Sigma[1:5,] = Sigma[,1:5] = 0.0
+diag(Sigma) = 1.0
+fields::image.plot(Sigma)
+beta = c(rep(1.5, 5), rep(0.3, 5))
+Env = rnorm(500)
+XY = matrix(rnorm(1000), 500, 2)
+betaSP = rep(0.0, SP)
+Y = 1*((Env %*% t(beta) + (XY[,1,drop=FALSE]*XY[,2,drop=FALSE]) %*% t(betaSP) +  mvtnorm::rmvnorm(500, sigma = Sigma))>0)
+```
+
+
+```{r}
+#| message: false
+#| warning: false
+model = sjSDM(Y = Y, 
+              env = linear(matrix(Env, ncol = 1L)), 
+              spatial = linear(XY, ~0+X1:X2),
+              iter = 100L)
+an = anova(model)
+p = plot(an, internal = TRUE, suppress_plotting = TRUE)
+p_shared = plot(an, internal = TRUE, add_shared = TRUE, suppress_plotting = TRUE)
+```
+
+```{r}
+#| label: fig-Fig_2
+#| fig-cap: "Internal structure. Left figure without shared components Right figure with shared contribution"
+#| fig-width: 7
+#| fig-height: 5
+#| warning: false
+#| message: false
+#| include: false
+ggtern::grid.arrange(p$plots[[2]], p_shared$plots[[2]], nrow=1, widths = c(5.0/10, 5/10))
+```
+
+```{r}
+#| label: tbl-Table_3
+#| tbl-cap: Without shared components
+#| include: false
+knitr::kable(p$data$Species)
+```
+
+```{r}
+#| label: tbl-Table_4
+#| tbl-cap: With shared components
+#| include: false
+knitr::kable(p_shared$data$Species)
+```
+
+Separation is better with shared components?
+
+
+# With environmental and spatial effects and complex covariance structure
+
+First five species only affected by environment, last 5 species with weak environment and strong biotic components. Species are alternately affected by space:
+
+```{r}
+SP = 10
+Sigma = diag(1.0, SP)
+Sigma[] = 0.9
+Sigma[1:5,] = Sigma[,1:5] = 0.0
+diag(Sigma) = 1.0
+fields::image.plot(Sigma)
+beta = c(rep(1.5, 5), rep(0.3, 5))
+Env = rnorm(500)
+XY = matrix(rnorm(1000), 500, 2)
+betaSP = rep(c(0.1, 1.0), SP/2)
+Y = 1*((Env %*% t(beta) + (XY[,1,drop=FALSE]*XY[,2,drop=FALSE]) %*% t(betaSP) +  mvtnorm::rmvnorm(500, sigma = Sigma))>0)
+```
+
+
+```{r}
+#| message: false
+#| warning: false
+model = sjSDM(Y = Y, 
+              env = linear(matrix(Env, ncol = 1L)), 
+              spatial = linear(XY, ~0+X1:X2),
+              iter = 100L)
+an = anova(model)
+p = plot(an, internal = TRUE, suppress_plotting = TRUE)
+p_shared = plot(an, internal = TRUE, add_shared = TRUE, suppress_plotting = TRUE)
+```
+
+```{r}
+#| label: fig-Fig_3
+#| fig-cap: "Internal structure. Left figure without shared components Right figure with shared contribution"
+#| fig-width: 7
+#| fig-height: 5
+#| warning: false
+#| message: false
+#| include: false
+ggtern::grid.arrange(p$plots[[2]], p_shared$plots[[2]], nrow=1, widths = c(5.0/10, 5/10))
+```
+
+```{r}
+#| label: tbl-Table_5
+#| tbl-cap: Without shared components
+#| include: false
+knitr::kable(p$data$Species)
+```
+
+```{r}
+#| label: tbl-Table_6
+#| tbl-cap: With shared components
+#| include: false
+knitr::kable(p_shared$data$Species)
+```
+
+Again it seems that the shared components improve the separation!
+
+## Compare spatial DNN with spatial LM
+
+First five species only affected by environment, last 5 species with weak environment and strong biotic components. Species are alternately affected by space. 
+
+Space is modelled by DNN:
+
+```{r}
+SP = 10
+Sigma = diag(1.0, SP)
+Sigma[] = 0.9
+Sigma[1:5,] = Sigma[,1:5] = 0.0
+diag(Sigma) = 1.0
+fields::image.plot(Sigma)
+beta = c(rep(1.5, 5), rep(0.3, 5))
+Env = rnorm(500)
+XY = matrix(rnorm(1000), 500, 2)
+betaSP = rep(c(0.1, 1.0), SP/2)
+Y = 1*((Env %*% t(beta) + (XY[,1,drop=FALSE]*XY[,2,drop=FALSE]) %*% t(betaSP) +  mvtnorm::rmvnorm(500, sigma = Sigma))>0)
+```
+
+
+```{r}
+#| message: false
+#| warning: false
+model1 = sjSDM(Y = Y, 
+              env = linear(matrix(Env, ncol = 1L)), 
+              spatial = linear(XY, ~0+X1:X2),
+              iter = 100L)
+model2 = sjSDM(Y = Y, 
+              env = linear(matrix(Env, ncol = 1L)), 
+              spatial = DNN(XY, ~0+.),
+              iter = 100L)
+an1 = anova(model1)
+an2 = anova(model2)
+p_shared1 = plot(an1, internal = TRUE, add_shared = TRUE, suppress_plotting = TRUE)
+p_shared2 = plot(an2, internal = TRUE, add_shared = TRUE, suppress_plotting = TRUE)
+```
+
+```{r}
+#| label: fig-Fig_4
+#| fig-cap: "Internal structure. Left figure with spatial LM. Right figure with spatial DNN"
+#| fig-width: 7
+#| fig-height: 5
+#| warning: false
+#| message: false
+#| include: false
+ggtern::grid.arrange(p_shared2$plots[[2]], p_shared1$plots[[2]], nrow=1, widths = c(5.0/10, 5/10))
+```
+
+```{r}
+#| label: tbl-Table_7
+#| tbl-cap: Spatial LM (with shared components)
+#| include: false
+knitr::kable(p_shared1$data$Species)
+```
+
+```{r}
+#| label: tbl-Table_8
+#| tbl-cap: Spatial DNN (with shared components)
+#| include: false
+knitr::kable(p_shared2$data$Species)
+```
+
+Almost identical! Which is good.

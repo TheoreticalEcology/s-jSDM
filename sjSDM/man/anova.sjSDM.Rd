@@ -4,12 +4,14 @@
 \alias{anova.sjSDM}
 \title{Anova}
 \usage{
-\method{anova}{sjSDM}(object, ...)
+\method{anova}{sjSDM}(object, samples = 1000L, ...)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
 
-\item{...}{optional arguments for compatibility with the generic function, no function implemented}
+\item{samples}{Number of Monte Carlo samples}
+
+\item{...}{optional arguments which are passed to the calculation of the logLikelihood}
 }
 \value{
 An S3 class of type 'sjSDManova' including the following components:
@@ -25,11 +27,10 @@ An S3 class of type 'sjSDManova' including the following components:
 Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 }
 \description{
-Calculate type I anova in the following order:
+Calculate type II anova.
 
-Null, biotic, abiotic (environment), and spatial (if present).
 
-Deviance for interactions (e.g. between space and environment) are also calculated and can be visualized via \code{\link{plot.sjSDManova}}.
+Shared contributions (e.g. between space and environment) are also calculated and can be visualized via \code{\link{plot.sjSDManova}}.
 }
 \details{
 Compute analysis of variance

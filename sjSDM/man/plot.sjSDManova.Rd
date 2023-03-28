@@ -7,11 +7,13 @@
 \method{plot}{sjSDManova}(
   x,
   y,
-  type = c("Deviance", "Nagelkerke", "McFadden"),
+  type = c("McFadden", "Deviance", "Nagelkerke"),
   internal = FALSE,
+  add_shared = FALSE,
   cols = c("#7FC97F", "#BEAED4", "#FDC086"),
   alpha = 0.15,
   env_deviance = NULL,
+  suppress_plotting = FALSE,
   ...
 )
 }
@@ -24,11 +26,15 @@
 
 \item{internal}{logical, plot internal or total structure}
 
+\item{add_shared}{Add shared contributions when plotting the internal structure}
+
 \item{cols}{colors for the groups}
 
 \item{alpha}{alpha for colors}
 
 \item{env_deviance}{environmental deviance}
+
+\item{suppress_plotting}{return plots but don't plot them}
 
 \item{...}{Additional arguments to pass to \code{plot()}
 

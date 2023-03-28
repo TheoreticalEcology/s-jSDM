@@ -3,15 +3,15 @@
 #' Compute analysis of variance
 #' 
 #' @param object model of object \code{\link{sjSDM}}
-#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @param samples Number of Monte Carlo samples
+#' @param ... optional arguments which are passed to the calculation of the logLikelihood
 #' 
 #' @description
 #' 
-#' Calculate type I anova in the following order:
+#' Calculate type II anova.
 #' 
-#' Null, biotic, abiotic (environment), and spatial (if present).
 #' 
-#' Deviance for interactions (e.g. between space and environment) are also calculated and can be visualized via \code{\link{plot.sjSDManova}}.
+#' Shared contributions (e.g. between space and environment) are also calculated and can be visualized via \code{\link{plot.sjSDManova}}.
 #' 
 #' @return 
 #' An S3 class of type 'sjSDManova' including the following components:
@@ -30,69 +30,98 @@
 #' @import stats
 #' @export
 
-anova.sjSDM = function(object, ...) {
+anova.sjSDM = function(object, samples = 1000L, ...) {
   out = list()
   individual = TRUE
+  samples = as.integer(samples)
+  object = checkModel(object)
   
   if(object$family$family$family == "gaussian") stop("gaussian not yet supported")
   
-  full_m = logLik(object, individual=individual)[[1]]
   object$settings$se = FALSE
+  
+  if(object$family$family$family == "binomial") {
+    null_m = -stats::dbinom( object$data$Y, 1, 0.5, log = TRUE)
+  } else {
+    null_m = -stats::dpois( object$data$Y, 1, log = TRUE)
+  }
+  
+  full_m = get_conditional_lls(object, null_m, ...)
+  
   ### fit different models ###
   #e_form = stats::as.formula(paste0(as.character(object$settings$env$formula), collapse = ""))
   if(!inherits(object, "spatial")) {
     out$spatial = FALSE
     
+    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ))
+    A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE))
+    B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ))
+    SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     
-    null_m = logLik(update(object, env_formula = ~1, biotic=bioticStruct(diag = TRUE )), individual=individual)[[1]]
-    A_m =    logLik(update(object, env_formula = NULL, biotic=bioticStruct(diag = TRUE )), individual=individual)[[1]]
-    B_m =    logLik(update(object, env_formula = ~1, biotic=bioticStruct(diag = FALSE)), individual=individual)[[1]]
-    SAT_m =  logLik(update(object, env_formula = ~as.factor(1:nrow(object$data$X)), biotic=bioticStruct(diag = TRUE )), individual=individual)[[1]]
+    F_A  = (null_m - full_m) - F_B
+    F_B  = (null_m - full_m) - F_A
+    F_AB =  (null_m - full_m) - F_A - F_B
     
-    A =    A_m
-    B =    B_m
     full = full_m
-    AB =   null_m - ((null_m-full_m) - (null_m - A + null_m - B))
-    sat =  SAT_m
     null = null_m
-    anova_rows = c("Null", "B", "Full")
-    names(anova_rows) = c("Null", "Biotic", "Abiotic")
-    results = data.frame(models = c("A", "B","AB", "Full", "Saturated", "Null"),
-                         ll = -c(sum(A), sum(B), sum(AB), sum(full), sum(sat), sum(null)))
-    results_ind = list(A = -A, B = -B, AB = - AB, Full = -full, Saturated = -sat, Null = - null)
-    results_predict = list(A = -A, B = -B, AB = - AB, Full = -full, Saturated = -sat, Null = - null)
+    sat =  SAT_m
+    anova_rows = c("Null", "F_A", "F_B", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Biotic", "Full")
+    results = data.frame(models = c("F_A", "F_B","F_AB","A","B", "Full", "Saturated", "Null"),
+                         ll = -c(sum(null_m) - sum(F_A), sum(null_m) -sum(F_B), sum(null_m) - sum(F_AB),sum(A_m),sum(B_m), sum(full), sum(sat), sum(null)))
+    results_ind = list("F_A"=-(null_m - F_A), "F_B"=-(null_m -F_B), "F_AB"=-(null_m -F_AB),
+                       "A"=-A_m, "B"=-B_m,
+                       "Full"=-full, "Saturated"=-sat, "Null"=-null)
     
   } else {
     out$spatial = TRUE
-    s_form = stats::as.formula(paste0(as.character(object$settings$spatial$formula), collapse = ""))
-    null_m = logLik(update(object, env_formula = ~1, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE )), individual=individual)[[1]]
-    A_m =    logLik(update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE )), individual=individual)[[1]]
-    B_m =    logLik(update(object, env_formula = ~1, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE)), individual=individual)[[1]]
-    S_m =    logLik(update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE)), individual=individual)[[1]]
-    AB_m =   logLik(update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE )), individual=individual)[[1]]
-    AS_m =   logLik(update(object, env_formula = NULL, spatial_formula= NULL, biotic=bioticStruct(diag = FALSE )), individual=individual)[[1]]
-    BS_m =   logLik(update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE )), individual=individual)[[1]]
-    SAT_m =  logLik(update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = TRUE )), individual=individual)[[1]]
+    zero_like = function(M) {
+      return(matrix(0.0, nrow(M), ncol(M)))
+    }
     
-    A =    A_m
-    B =    B_m
-    S =    S_m
-    AB =   null_m - ((null_m-AB_m) - (null_m- A + null_m-B))
-    AS =   null_m - ((null_m-AB_m) - (null_m- A + null_m-S))
-    BS =   null_m - ((null_m-BS_m) - (null_m- B + null_m-S))
-    ABS =  null_m - ((null_m-full_m) - (null_m- B + null_m-S+null_m-A))
+    s_form = stats::as.formula(paste0(as.character(object$settings$spatial$formula), collapse = ""))
+    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ))
+    A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE))
+    B_m = sjSDM:::get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE))
+    S_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ))
+    AB_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = NULL, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE ))
+    AS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = FALSE ))
+    BS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ))
+    SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    
+    F_AB =   S_m - full_m
+    F_AS =   B_m - full_m
+    F_BS =   A_m - full_m
+    F_A  = (null_m - full_m) - F_BS
+    F_B  = (null_m - full_m) - F_AS
+    F_S  = (null_m - full_m) - F_AB
+    F_ABS =  (null_m - full_m) - F_BS - F_AB - F_AS - F_A - F_B - F_S
+    
     full = full_m
     null = null_m
     sat =  SAT_m
     
+    results = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS",
+                                    "A", "B", "S", "AB", "AS", "BS", "Full", "Saturated", "Null"),
+                         ll = -c(sum(null_m) - sum(F_A), sum(null_m) - sum(F_B),sum(null_m) - sum(F_S), 
+                                 sum(null_m) - sum(F_AB), sum(null_m) - sum(F_AS), sum(null_m) - sum(F_BS), sum(null_m) - sum(F_ABS), 
+                                 sum(A_m), sum(B_m), sum(S_m), sum(AB_m), sum(AS_m), sum(BS_m),
+                                 sum(full), sum(sat), sum(null)))
     
-    results = data.frame(models = c("A", "B","S","B+A","B+S","A+S","AB","AS", "BS", "ABS", "Full", "Saturated", "Null"),
-                         ll = -c(sum(A), sum(B),sum(S),sum(AB_m),sum(BS_m), sum(AS_m), sum(AB), sum(AS), sum(BS), sum(ABS), sum(full), sum(sat), sum(null)))
+    results_ind = list("F_A"=-(null_m - F_A), "F_B"=-(null_m -F_B),"F_S"=-(null_m -F_S), "F_AB"=-(null_m -F_AB),"F_AS"=-(null_m -F_AS), "F_BS"=-(null_m -F_BS), "F_ABS"=-(null_m -F_ABS), 
+                       "A"=-A_m, "B"=-B_m,"S"=-S_m, "AB"=-AB_m,"AS"=-AS_m, "BS"=-BS_m,
+                       "Full"=-full, "Saturated"=-sat, "Null"=-null)
     
-    results_ind = list("A"=-A, "B"=-B,"S"=-S,"B+A"=-AB_m,"B+S"=-BS_m,"A+S"=-AS_m,"AB"=-AB,"AS"=-AS, "BS"=-BS, "ABS"=-ABS, "Full"=-full, "Saturated"=-sat, "Null"=-null)
-    
-    anova_rows = c("Null", "B", "B+A", "Full")
-    names(anova_rows) = c("Null", "Biotic", "Abiotic", "Spatial")
+    anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Biotic", "Spatial", "Full")
   }
   
   results$`Residual deviance` = -2*(results$ll - results$ll[which(results$models == "Saturated", arr.ind = TRUE)])
@@ -104,7 +133,6 @@ anova.sjSDM = function(object, ...) {
   results$`R2 McFadden`= R22(rep(-results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), - results$ll)
   
   # individual
-  
   Residual_deviance_ind = lapply(results_ind, function(r) r - results_ind$Saturated)
   Deviance_ind = lapply(Residual_deviance_ind, function(r) r - Residual_deviance_ind$Null)
   R211 = function(a, b, n=1) return(1-exp(2/(n)*(-a+b)))   # divide by what?
@@ -114,11 +142,15 @@ anova.sjSDM = function(object, ...) {
   R2_McFadden_ind = lapply(results_ind, function(r) R222(-colSums(results_ind$Null), -colSums(r)))
   R2_McFadden_sites = lapply(results_ind, function(r) R222(-rowSums(results_ind$Null), -rowSums(r)))
   
+  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind)
+  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites)
+  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind)
+  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites)
+  
   to_print = results
   rownames(to_print) = to_print$models
   to_print = to_print[anova_rows,]
   to_print$models = names(anova_rows)
-  to_print$Deviance = c(0,-diff(to_print$`Residual deviance`))
   to_print = to_print[-1,c(1, 4, 3,5,6)]
   rownames(to_print) = to_print$models
   to_print = to_print[,-1]
@@ -128,14 +160,69 @@ anova.sjSDM = function(object, ...) {
   out$species = list(Residual_deviance = Residual_deviance_ind,
                      Deviance = Deviance_ind,
                      R2_Nagelkerke = R2_Nagelkerke_ind,
-                     R2_McFadden = R2_McFadden_ind)
+                     R2_McFadden = R2_McFadden_ind,
+                     R2_Nagelkerke_shared = R2_Nagelkerke_ind_shared,
+                     R2_McFadden_shared = R2_McFadden_ind_shared                
+                     )
   out$sites = list(R2_Nagelkerke = R2_Nagelkerke_sites,
-                   R2_McFadden = R2_McFadden_sites)
+                   R2_McFadden = R2_McFadden_sites,
+                   R2_Nagelkerke_shared = R2_Nagelkerke_sites_shared,
+                   R2_McFadden_shared = R2_McFadden_sites_shared)
   out$lls = list(results_ind)
   class(out) = "sjSDManova"
   return(invisible(out))
 }
 
+get_conditional_lls = function(m, null_m, ...) {
+  joint_ll = rowSums( logLik(m, individual = TRUE)[[1]] )
+  raw_ll = 
+    sapply(1:ncol(m$data$Y), function(i) {
+      reticulate::py_to_r(
+        pkg.env$fa$MVP_logLik(m$data$Y[,-i], 
+                              predict(m, type = "raw")[,-i], 
+                              reticulate::py_to_r(m$model$get_sigma)[-i,],
+                              device = m$model$device,
+                              individual = TRUE,
+                              dtype = m$model$dtype,
+                              batch_size = as.integer(m$settings$step_size),
+                              alpha = m$model$alpha,
+                              link = m$family$link,
+                              ...
+                              )
+        )
+    })
+  raw_conditional_ll = (joint_ll - raw_ll )
+  diff_ll = colSums(null_m - raw_conditional_ll)
+  rates = diff_ll/sum(diff_ll)
+  rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(Y), ncol = ncol(Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
+  return(rescaled_conditional_lls)
+}
+
+get_shared_anova = function(R2objt, spatial = TRUE) {
+  if(spatial) {
+    F_BS = R2objt$Full-R2objt$A
+    F_AB = R2objt$Full-R2objt$S
+    F_AS = R2objt$Full-R2objt$B
+    F_A = R2objt$Full-R2objt$BS
+    F_B =  R2objt$Full-R2objt$AS
+    F_S =  R2objt$Full-R2objt$AB
+    F_BS = F_BS - F_B -F_S
+    F_AB = F_AB - F_A -F_B
+    F_AS = F_AS - F_A -F_S
+    F_ABS = R2objt$Full - F_BS - F_AB- F_AS- F_A- F_B - F_S
+    A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+    B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+    S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+  } else {
+    F_A = R2objt$Full-R2objt$B
+    F_B =  R2objt$Full-R2objt$A
+    F_AB = R2objt$Full - F_A -F_B
+    A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
+    B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
+    S = 0
+  }
+  return(list(A = A, B = B, S = S, R2 = A+B+S))
+}
 
 
 
@@ -163,9 +250,11 @@ print.sjSDManova = function(x, ...) {
 #' @param y unused argument
 #' @param type deviance, Nagelkerke or McFadden R-squared
 #' @param internal logical, plot internal or total structure
+#' @param add_shared Add shared contributions when plotting the internal structure
 #' @param cols colors for the groups
 #' @param alpha alpha for colors
 #' @param env_deviance environmental deviance
+#' @param suppress_plotting return plots but don't plot them
 #' @param ... Additional arguments to pass to \code{plot()}
 #' 
 #' The \code{internal = TRUE} plot was heavily inspired by Leibold et al., 2022
@@ -188,11 +277,13 @@ print.sjSDManova = function(x, ...) {
 #' @export
 plot.sjSDManova = function(x, 
                            y, 
-                           type = c("Deviance", "Nagelkerke", "McFadden"), 
+                           type = c("McFadden", "Deviance", "Nagelkerke"), 
                            internal = FALSE,
+                           add_shared = FALSE,
                            cols = c("#7FC97F","#BEAED4","#FDC086"),
                            alpha=0.15, 
                            env_deviance = NULL,
+                           suppress_plotting = FALSE,
                            ...) {
   lineSeq = 0.3
   nseg = 100
@@ -211,11 +302,13 @@ plot.sjSDManova = function(x,
   if(!internal) {
     
     values = x$results
+    values$`R2 Nagelkerke` = ifelse(values$`R2 Nagelkerke`<0, 0, values$`R2 Nagelkerke`)
+    values$`R2 McFadden` = ifelse(values$`R2 McFadden`<0, 0, values$`R2 McFadden`)
     select_rows = 
       if(x$spatial) { 
-        sapply(c("A", "B", "AB","S", "AS", "BS", "ABS"), function(i) which(values$models == i, arr.ind = TRUE))
+        sapply(c("F_A", "F_B", "F_AB","F_S", "F_AS", "F_BS", "F_ABS"), function(i) which(values$models == i, arr.ind = TRUE))
       } else {
-        sapply(c("A", "B", "AB"), function(i) which(values$models == i, arr.ind = TRUE))
+        sapply(c("F_A", "F_B", "F_AB"), function(i) which(values$models == i, arr.ind = TRUE))
       }
     
     values = values[select_rows,]
@@ -257,26 +350,47 @@ plot.sjSDManova = function(x,
     }
     internals = list()
     
-
-    df = data.frame(
+    if(!add_shared) {
+      df = data.frame(
+          env = ifelse(x$sites[[type]]$F_A<0, 0, x$sites[[type]]$F_A),
+          spa = ifelse(x$sites[[type]]$F_S<0, 0, x$sites[[type]]$F_S),
+          codist = ifelse(x$sites[[type]]$F_B<0, 0, x$sites[[type]]$F_B),
+          r2  = ifelse(x$sites[[type]]$Full<0, 0, x$sites[[type]]$Full)/length(x$sites[[type]]$Full)
+        )
+      internals[[1]] = df
+      names(internals)[1] = "Sites"
+      
+      df = data.frame(
+          env = ifelse(x$species[[type]]$F_A<0, 0, x$species[[type]]$F_A),
+          spa = ifelse(x$species[[type]]$F_S<0, 0, x$species[[type]]$F_S),
+          codist = ifelse(x$species[[type]]$F_B<0, 0, x$species[[type]]$F_B),
+          r2  = ifelse(x$species[[type]]$Full<0, 0, x$species[[type]]$Full)/length(x$species[[type]]$Full)
+        )
+      
+      internals[[2]] = df
+      names(internals)[2] = "Species"
+    } else {
+      type = paste0(type, "_shared")
+      df = data.frame(
         env = ifelse(x$sites[[type]]$A<0, 0, x$sites[[type]]$A),
         spa = ifelse(x$sites[[type]]$S<0, 0, x$sites[[type]]$S),
         codist = ifelse(x$sites[[type]]$B<0, 0, x$sites[[type]]$B),
-        r2  = ifelse(x$sites[[type]]$Full<0, 0, x$sites[[type]]$Full)/length(x$sites[[type]]$Full)
+        r2  = ifelse(x$sites[[type]]$R2<0, 0, x$sites[[type]]$R2)/length(x$sites[[type]]$R2)
       )
-    internals[[1]] = df
-    names(internals)[1] = "Sites"
-    
-    df = data.frame(
+      internals[[1]] = df
+      names(internals)[1] = "Sites"
+      
+      df = data.frame(
         env = ifelse(x$species[[type]]$A<0, 0, x$species[[type]]$A),
         spa = ifelse(x$species[[type]]$S<0, 0, x$species[[type]]$S),
         codist = ifelse(x$species[[type]]$B<0, 0, x$species[[type]]$B),
-        r2  = ifelse(x$species[[type]]$Full<0, 0, x$species[[type]]$Full)/length(x$species[[type]]$Full)
+        r2  = ifelse(x$species[[type]]$R2<0, 0, x$species[[type]]$R2)/length(x$species[[type]]$R2)
       )
-    
-    internals[[2]] = df
-    names(internals)[2] = "Species"
       
+      internals[[2]] = df
+      names(internals)[2] = "Species"
+    }
+    
     
     plots_internals = list()
     
@@ -339,7 +453,7 @@ plot.sjSDManova = function(x,
                                           color = ggplot2::guide_colorbar(title = "Environmental deviation", title.position = "top", order = 2, barheight = 0.5, barwidth = 8)) } 
         plots_internals[[i]] = plt
       }
-    ggtern::grid.arrange(plots_internals[[1]], plots_internals[[2]], nrow=1, widths = c(5.0/10, 5/10))
+    if(!suppress_plotting) ggtern::grid.arrange(plots_internals[[1]], plots_internals[[2]], nrow=1, widths = c(5.0/10, 5/10))
     out$plots = plots_internals
     out$data = internals
   }
