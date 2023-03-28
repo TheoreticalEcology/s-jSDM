@@ -4,6 +4,8 @@ format:
   gfm:
     fig-format: png
     toc: true
+    embed-resources: true
+    number-sections: true
   html:
     fig-format: png
     toc: true
@@ -23,6 +25,7 @@ editor: visual
 #| message: false
 #| warning: false
 library(sjSDM)
+set.seed(42)
 ```
 
 ## No effects, simple Sigma
@@ -60,21 +63,21 @@ p_shared = plot(an, internal = TRUE, add_shared = TRUE, suppress_plotting = TRUE
 #| fig-height: 5
 #| warning: false
 #| message: false
-#| include: false
+#| echo: false
 ggtern::grid.arrange(p$plots[[2]], p_shared$plots[[2]], nrow=1, widths = c(5.0/10, 5/10))
 ```
 
 ```{r}
 #| label: tbl-Table_1
 #| tbl-cap: Without shared components
-#| include: false
+#| echo: false
 knitr::kable(p$data$Species)
 ```
 
 ```{r}
 #| label: tbl-Table_2
 #| tbl-cap: With shared components
-#| include: false
+#| echo: false
 knitr::kable(p_shared$data$Species)
 ```
 
@@ -117,21 +120,21 @@ p_shared = plot(an, internal = TRUE, add_shared = TRUE, suppress_plotting = TRUE
 #| fig-height: 5
 #| warning: false
 #| message: false
-#| include: false
+#| echo: false
 ggtern::grid.arrange(p$plots[[2]], p_shared$plots[[2]], nrow=1, widths = c(5.0/10, 5/10))
 ```
 
 ```{r}
 #| label: tbl-Table_3
 #| tbl-cap: Without shared components
-#| include: false
+#| echo: false
 knitr::kable(p$data$Species)
 ```
 
 ```{r}
 #| label: tbl-Table_4
 #| tbl-cap: With shared components
-#| include: false
+#| echo: false
 knitr::kable(p_shared$data$Species)
 ```
 
@@ -176,21 +179,21 @@ p_shared = plot(an, internal = TRUE, add_shared = TRUE, suppress_plotting = TRUE
 #| fig-height: 5
 #| warning: false
 #| message: false
-#| include: false
+#| echo: false
 ggtern::grid.arrange(p$plots[[2]], p_shared$plots[[2]], nrow=1, widths = c(5.0/10, 5/10))
 ```
 
 ```{r}
 #| label: tbl-Table_5
 #| tbl-cap: Without shared components
-#| include: false
+#| echo: false
 knitr::kable(p$data$Species)
 ```
 
 ```{r}
 #| label: tbl-Table_6
 #| tbl-cap: With shared components
-#| include: false
+#| echo: false
 knitr::kable(p_shared$data$Species)
 ```
 
@@ -241,21 +244,21 @@ p_shared2 = plot(an2, internal = TRUE, add_shared = TRUE, suppress_plotting = TR
 #| fig-height: 5
 #| warning: false
 #| message: false
-#| include: false
+#| echo: false
 ggtern::grid.arrange(p_shared2$plots[[2]], p_shared1$plots[[2]], nrow=1, widths = c(5.0/10, 5/10))
 ```
 
 ```{r}
 #| label: tbl-Table_7
 #| tbl-cap: Spatial LM (with shared components)
-#| include: false
+#| echo: false
 knitr::kable(p_shared1$data$Species)
 ```
 
 ```{r}
 #| label: tbl-Table_8
 #| tbl-cap: Spatial DNN (with shared components)
-#| include: false
+#| echo: false
 knitr::kable(p_shared2$data$Species)
 ```
 
