@@ -4,12 +4,7 @@ format:
   gfm:
     fig-format: png
     toc: true
-    embed-resources: true
     number-sections: true
-  html:
-    fig-format: png
-    toc: true
-    embed-resources: true
 crossref:
   fig-title: '**Figure **'
   fig-labels: arabic
