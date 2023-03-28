@@ -26,6 +26,8 @@ set.seed(42)
 ## No effects, simple Sigma
 
 ```{r}
+#| label: fig-Sigma1
+#| fig-cap: Covariance matrix
 set.seed(42)
 SP = 4
 Sigma = diag(1.0, SP)
@@ -76,12 +78,13 @@ knitr::kable(p$data$Species)
 knitr::kable(p_shared$data$Species)
 ```
 
-
-# With environmental effects and more covariance structure
+## With environmental effects and more covariance structure
 
 First five species only affected by environment, last 5 species with weak environment and strong biotic components.
 
 ```{r}
+#| label: fig-Sigma2
+#| fig-cap: Covariance matrix
 SP = 10
 Sigma = diag(1.0, SP)
 Sigma[] = 0.9
@@ -94,7 +97,6 @@ XY = matrix(rnorm(1000), 500, 2)
 betaSP = rep(0.0, SP)
 Y = 1*((Env %*% t(beta) + (XY[,1,drop=FALSE]*XY[,2,drop=FALSE]) %*% t(betaSP) +  mvtnorm::rmvnorm(500, sigma = Sigma))>0)
 ```
-
 
 ```{r}
 #| message: false
@@ -135,12 +137,13 @@ knitr::kable(p_shared$data$Species)
 
 Separation is better with shared components?
 
-
-# With environmental and spatial effects and complex covariance structure
+## With environmental and spatial effects and complex covariance structure
 
 First five species only affected by environment, last 5 species with weak environment and strong biotic components. Species are alternately affected by space:
 
 ```{r}
+#| label: fig-Sigma3
+#| fig-cap: Covariance matrix
 SP = 10
 Sigma = diag(1.0, SP)
 Sigma[] = 0.9
@@ -153,7 +156,6 @@ XY = matrix(rnorm(1000), 500, 2)
 betaSP = rep(c(0.1, 1.0), SP/2)
 Y = 1*((Env %*% t(beta) + (XY[,1,drop=FALSE]*XY[,2,drop=FALSE]) %*% t(betaSP) +  mvtnorm::rmvnorm(500, sigma = Sigma))>0)
 ```
-
 
 ```{r}
 #| message: false
@@ -196,11 +198,13 @@ Again it seems that the shared components improve the separation!
 
 ## Compare spatial DNN with spatial LM
 
-First five species only affected by environment, last 5 species with weak environment and strong biotic components. Species are alternately affected by space. 
+First five species only affected by environment, last 5 species with weak environment and strong biotic components. Species are alternately affected by space.
 
 Space is modelled by DNN:
 
 ```{r}
+#| label: fig-Sigma4
+#| fig-cap: Covariance matrix
 SP = 10
 Sigma = diag(1.0, SP)
 Sigma[] = 0.9
@@ -213,7 +217,6 @@ XY = matrix(rnorm(1000), 500, 2)
 betaSP = rep(c(0.1, 1.0), SP/2)
 Y = 1*((Env %*% t(beta) + (XY[,1,drop=FALSE]*XY[,2,drop=FALSE]) %*% t(betaSP) +  mvtnorm::rmvnorm(500, sigma = Sigma))>0)
 ```
-
 
 ```{r}
 #| message: false

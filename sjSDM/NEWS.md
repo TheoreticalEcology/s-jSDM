@@ -1,3 +1,15 @@
+# sjSDM 1.0.4
+## New features
+
+* Anova function uses now conditional probabilities to better separate the 
+  biotic components
+* Anova can use shared components (plot(...,internal=TRUE, add_shared=TRUE))
+
+
+## Bug fixes
+
+* fixed Rsquared(...) #113 (thanks to @AndrewCSlater)
+
 # sjSDM 1.0.3
 ## Minor changes
 
