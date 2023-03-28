@@ -8,7 +8,7 @@ DNN(
   data = NULL,
   formula = NULL,
   hidden = c(10L, 10L, 10L),
-  activation = "relu",
+  activation = "selu",
   bias = TRUE,
   lambda = 0,
   alpha = 0.5,

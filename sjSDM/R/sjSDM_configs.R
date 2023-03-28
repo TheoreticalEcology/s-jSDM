@@ -114,7 +114,7 @@ print.linear = function(x, ...) {
 #' @example /inst/examples/sjSDM-example.R
 #' @import checkmate
 #' @export
-DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "relu", bias = TRUE, lambda = 0.0, alpha = 0.5, dropout = 0.0) {
+DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activation = "selu", bias = TRUE, lambda = 0.0, alpha = 0.5, dropout = 0.0) {
   
   assert(checkMatrix(data), checkDataFrame(data))
   qassert(hidden, "X+[1,)")

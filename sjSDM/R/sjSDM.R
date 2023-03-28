@@ -571,8 +571,8 @@ logLik.sjSDM <- function(object, individual=FALSE,...){
   if(!individual) return(object$logLik[[1]])
   else {
     object = checkModel(object)
-    if(!inherits(object, "spatial")) return(force_r(object$model$logLik(object$data$X, object$data$Y, individual = TRUE)))
-    else return(force_r(object$model$logLik(object$data$X, object$data$Y, object$spatial$X, individual = TRUE)))
+    if(!inherits(object, "spatial")) return(force_r(object$model$logLik(object$data$X, object$data$Y, individual = TRUE, ...)))
+    else return(force_r(object$model$logLik(object$data$X, object$data$Y, object$spatial$X, individual = TRUE, ...)))
   }
 }
 

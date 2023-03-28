@@ -4,7 +4,7 @@
 \alias{anova.sjSDM}
 \title{Anova}
 \usage{
-\method{anova}{sjSDM}(object, samples = 1000L, ...)
+\method{anova}{sjSDM}(object, samples = 5000L, ...)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}

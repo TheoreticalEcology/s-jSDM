@@ -30,7 +30,7 @@
 #' @import stats
 #' @export
 
-anova.sjSDM = function(object, samples = 1000L, ...) {
+anova.sjSDM = function(object, samples = 5000L, ...) {
   out = list()
   individual = TRUE
   samples = as.integer(samples)
@@ -46,7 +46,7 @@ anova.sjSDM = function(object, samples = 1000L, ...) {
     null_m = -stats::dpois( object$data$Y, 1, log = TRUE)
   }
   
-  full_m = get_conditional_lls(object, null_m, ...)
+  full_m = get_conditional_lls(object, null_m, sampling = samples, ...)
   
   ### fit different models ###
   #e_form = stats::as.formula(paste0(as.character(object$settings$env$formula), collapse = ""))
@@ -174,7 +174,7 @@ anova.sjSDM = function(object, samples = 1000L, ...) {
 }
 
 get_conditional_lls = function(m, null_m, ...) {
-  joint_ll = rowSums( logLik(m, individual = TRUE)[[1]] )
+  joint_ll = rowSums( logLik(m, individual = TRUE, ...)[[1]] )
   raw_ll = 
     sapply(1:ncol(m$data$Y), function(i) {
       reticulate::py_to_r(
