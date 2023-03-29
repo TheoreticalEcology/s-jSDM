@@ -4,18 +4,18 @@
 \alias{Rsquared}
 \title{R-squared}
 \usage{
-Rsquared(model, method = c("Nagelkerke", "McFadden"))
+Rsquared(model, method = c("McFadden", "Nagelkerke"))
 }
 \arguments{
 \item{model}{model}
 
-\item{method}{Nagelkerke or McFadden}
+\item{method}{McFadden or Nagelkerke}
 }
 \value{
 R-squared as numeric value
 }
 \description{
-calculate R-squared following Nagelkerke or McFadden
+calculate R-squared following McFadden or Nagelkerke
 }
 \details{
 \loadmathjax 
