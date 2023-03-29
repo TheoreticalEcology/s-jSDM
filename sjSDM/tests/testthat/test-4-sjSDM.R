@@ -61,7 +61,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     list(5, 40, FALSE, stats::gaussian()),
     list(5, 20, TRUE, stats::binomial()),
     list(5, 20, TRUE, stats::poisson()),
-    list(5, 20, TRUE, stats::binomial("probit"))
+    list(5, 20, TRUE, stats::binomial("probit")),
+    list(5, 20, TRUE, "nbinom")
   )
   testthat::test_that("sjSDM Func", {
     testthat::skip_on_cran()

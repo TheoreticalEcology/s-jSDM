@@ -33,7 +33,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   Funcs = list(
     list(5, 2, FALSE, binomial("logit")),
     list(5, 23, FALSE, poisson()),
-    list(5, 40, FALSE, gaussian())
+    list(5, 40, FALSE, gaussian()),
+    list(5, 40, FALSE, "nbinom")
   )
   testthat::test_that("sjSDM importance Func", {
     testthat::skip_on_cran()

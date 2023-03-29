@@ -4,11 +4,15 @@
 * Anova function uses now conditional probabilities to better separate the 
   biotic components
 * Anova can use shared components (plot(...,internal=TRUE, add_shared=TRUE))
+* It can be now simulated from all supported families (binomial, poisson, and
+  negative binomial)
+* Support for negative binomial distribution
 
 
 ## Bug fixes
 
 * fixed Rsquared(...) #113 (thanks to @AndrewCSlater)
+* fixed whitespaces in species names #115 @dansmi-hub
 
 # sjSDM 1.0.3
 ## Minor changes

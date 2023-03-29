@@ -170,7 +170,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
 }
 
 get_conditional_lls = function(m, null_m, ...) {
-  joint_ll = rowSums( logLik(m, individual = TRUE, ...)[[1]] )
+  joint_ll = rowSums( logLik(m, individual = TRUE)[[1]] )
   raw_ll = 
     sapply(1:ncol(m$data$Y), function(i) {
       reticulate::py_to_r(
@@ -191,7 +191,7 @@ get_conditional_lls = function(m, null_m, ...) {
   raw_conditional_ll = (joint_ll - raw_ll )
   diff_ll = colSums(null_m - raw_conditional_ll)
   rates = diff_ll/sum(diff_ll)
-  rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(Y), ncol = ncol(Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
+  rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(m$data$Y), ncol = ncol(m$data$Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
   return(rescaled_conditional_lls)
 }
 
