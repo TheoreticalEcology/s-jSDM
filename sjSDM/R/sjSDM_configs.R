@@ -290,7 +290,7 @@ sjSDMControl = function(optimizer = RMSprop(),
 
 check_family = function(family){
   out = list()
-  if(!family$family %in% c("binomial", "poisson", "gaussian")) stop(paste0(family$family, " ->  not supported"), call. = FALSE)
+  if(!family$family %in% c("binomial", "poisson", "gaussian", "nbinom")) stop(paste0(family$family, " ->  not supported"), call. = FALSE)
   
   if(family$family == "binomial"){
     if(!family$link %in% c("logit", "probit")){
@@ -303,6 +303,13 @@ check_family = function(family){
       stop(paste0(family$link, " ->  not supported"), call. = FALSE)
     }
     out$link = "count"
+  }
+  
+  if(family$family == "nbinom"){
+    if(!family$link %in% c("log")){
+      stop(paste0(family$link, " ->  not supported"), call. = FALSE)
+    }
+    out$link = "nbinom"
   }
   
   if(family$family == "gaussian"){

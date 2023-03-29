@@ -40,6 +40,10 @@ checkModel = function(object) {
     if(!is.null(object$spatial)) object$model$set_spatial_weights(lapply(object$spatial_weights, function(w) reticulate::r_to_py(w)$copy()))
     object$model$set_sigma(reticulate::r_to_py(object$sigma)$copy())
   }
+  
+  if(object$family$family$family == "nbinom") {
+    object$model$set_theta(reticulate::r_to_py(object$theta)$copy())
+  }
   return(object)
 }
 
@@ -110,13 +114,15 @@ parse_nn = function(nn) {
 
 #' Generate spatial eigenvectors
 #' 
-#' function to generate spatial eigenvectors to account for spatial autocorrelation
+#' Generates a Moran's eigenvector map of the distance matrix. See Dray, Legendre, and Peres-Neto, 2006 for more information.
+#' 
 #' @param coords matrix or data.frame of coordinates
 #' @param threshold ignore distances greater than threshold
 #' 
 #' @return
 #' Matrix of spatial eigenvectors. 
 #' 
+#' @references Dray, S., Legendre, P., & Peres-Neto, P. R. (2006). Spatial modelling: a comprehensive framework for principal coordinate analysis of neighbour matrices (PCNM). Ecological modelling, 196(3-4), 483-493.
 #' @export
 
 generateSpatialEV = function(coords = NULL, threshold = 0.0) {
@@ -151,6 +157,8 @@ force_r = function(x) {
   else return(x)
 }
 
+softplus = function(x) log(1+exp(x))
+
 check_installation = function() {
   # check if dependencies are installed
   torch_ = pyro_ = torch_optimizer_ = madgrad_ = c(crayon::red(cli::symbol$cross), 0)
@@ -160,3 +168,5 @@ check_installation = function() {
   if(reticulate::py_module_available("madgrad")) madgrad_ =  c(crayon::green(cli::symbol$tick), 1)
   return(rbind("torch" = torch_,  "torch_optimizer" = torch_optimizer_, "pyro" = pyro_, "madgrad" = madgrad_))
 }
+
+

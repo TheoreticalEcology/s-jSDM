@@ -26,14 +26,8 @@ Rsquared = function(model, method = c("Nagelkerke", "McFadden")) {
   
   method = match.arg(method)
   
-  if(is.null(model$Null)) {
-    if(inherits(model, "spatial")) {
-      model$Null = update(model, env_formula=~1, spatial_formula=~0, biotic=bioticStruct(diag = TRUE))
-    } else {
-      model$Null = update(model, env_formula=~1, biotic=bioticStruct(diag = TRUE))
-    }
-  }
-  N0 = -sum(logLik(model$Null, individual=TRUE )[[1]])
+  N0 = sum(get_null_ll(object))
+  
   N1 = -sum(logLik(model, individual=TRUE )[[1]])
   
   if(method == "McFadden") {

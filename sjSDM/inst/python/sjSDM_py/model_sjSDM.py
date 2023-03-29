@@ -348,6 +348,11 @@ class Model_sjSDM:
         self.alpha = alpha
         self.mixed = mixed
         r_dim = self.output_shape
+        
+        if link == "nbinom":
+            self.theta = torch.ones([r_dim], requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
+            self.params.append([self.theta])
+            
         if not diag:
             low = -np.sqrt(6.0/(r_dim+df)) # type: ignore
             high = np.sqrt(6.0/(r_dim+df)) # type: ignore      
@@ -857,6 +862,17 @@ class Model_sjSDM:
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     return Eprob.log().neg().sub(maxlogprob)
+            elif self.link == "nbinom":
+                def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                    noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
+                    E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).exp()
+                    eps = 0.0001
+                    theta = 1.0/(torch.nn.functional.softplus(self.theta)+eps)
+                    probs = torch.clamp((1.0 - theta/(theta+E)) + eps, 0.0, 1.0-eps)
+                    logprob = torch.distributions.NegativeBinomial(total_count=theta, probs=probs).log_prob(Ys).sum(2)
+                    maxlogprob = logprob.max(dim = 0).values
+                    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                    return Eprob.log().neg().sub(maxlogprob)          
 
             elif self.link == "normal":
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
@@ -869,6 +885,8 @@ class Model_sjSDM:
             elif self.link == "linear":
                 link_func = lambda value: torch.clamp(value, 0.0, 1.0)
             elif self.link == "count":
+                link_func = lambda value: value.exp()
+            elif self.link == "nbinom":
                 link_func = lambda value: value.exp()
             elif self.link == "normal":
                 link_func = lambda value: value
@@ -913,6 +931,17 @@ class Model_sjSDM:
                     E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).exp()
                     logprob = torch.distributions.Poisson(rate=E).log_prob(Ys)#.sum(2)
                     logprob = logprob.sum(dim = 2)# .neg()
+                    maxlogprob = logprob.max(dim = 0).values
+                    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                    return Eprob.log().neg().sub(maxlogprob).reshape([batch_size, 1])
+            elif self.link == "nbinom":
+                def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                    noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
+                    E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).exp()
+                    eps = 0.0001
+                    theta = 1.0/(torch.nn.functional.softplus(self.theta)+eps)
+                    probs = torch.clamp((1.0 - theta/(theta+E)) + eps, 0.0, 1.0-eps)
+                    logprob = torch.distributions.NegativeBinomial(total_count=theta, probs=probs).log_prob(Ys).sum(2)
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     return Eprob.log().neg().sub(maxlogprob).reshape([batch_size, 1])
@@ -970,6 +999,20 @@ class Model_sjSDM:
             return [(lambda p: p.data.cpu().numpy())(p) for p in self.spatial.parameters()]
         else:
             return None
+        
+    @property
+    def get_theta(self):
+        if self.theta is not None:
+            return self.theta.data.cpu().numpy()
+        else:
+            return None
+        
+    def set_theta(self, w: np.ndarray):
+        if self.theta is None:
+            return None
+        else:
+            with torch.no_grad():
+                self.theta.data = torch.tensor(w, device=self.device, dtype=self.dtype).data          
 
     def set_spatial_weights(self, w: np.ndarray):
         """Set spatial coefficients

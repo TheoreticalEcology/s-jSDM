@@ -33,7 +33,7 @@ sjSDM.tune(object)
 
 \item{spatial}{defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}}
 
-\item{family}{error distribution with link function, see details for supported family functions}
+\item{family}{error distribution with link function, see details for supported distributions}
 
 \item{iter}{number of fitting iterations}
 
@@ -135,6 +135,7 @@ Currently supported distributions and link functions:
 \itemize{
 \item \code{\link{binomial}}: \code{"probit"} or \code{"logit"}
 \item \code{\link{poisson}}: \code{"log"} 
+\item \code{"nbinom"}: \code{"log"} 
 \item \code{\link{gaussian}}: \code{"identity"} 
 }
 }
@@ -319,7 +320,7 @@ Chen, D., Xue, Y., & Gomes, C. P. (2018). End-to-end learning for the deep multi
 Pichler, M., & Hartig, F. (2021). A new joint species distribution model for faster and more accurate inference of species associations from big community data. Methods in Ecology and Evolution, 12(11), 2159-2173.
 }
 \seealso{
-\code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
+\code{\link{getCor}},  \code{\link{getCov}}, \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 }
 \author{
 Maximilian Pichler

@@ -52,7 +52,8 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
   
   coef = NULL
   rownames = NULL
-  sep_df = do.call(rbind, strsplit(effect$rownames, split = " ", fixed = TRUE))
+  #sep_df = do.call(rbind, strsplit(effect$rownames, split = " ", fixed = TRUE))
+  sep_df = cbind(rep(summary.se$names$species, each = length(summary.se$names$env)), rep(summary.se$names$env, length(summary.se$names$species)))
   colnames(sep_df) = c("species", "coef")
   effect = cbind(effect[,-4], sep_df)
   effect = effect[effect$coef!= "(Intercept)",]

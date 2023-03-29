@@ -15,5 +15,8 @@ generateSpatialEV(coords = NULL, threshold = 0)
 Matrix of spatial eigenvectors.
 }
 \description{
-function to generate spatial eigenvectors to account for spatial autocorrelation
+Generates a Moran's eigenvector map of the distance matrix. See Dray, Legendre, and Peres-Neto, 2006 for more information.
+}
+\references{
+Dray, S., Legendre, P., & Peres-Neto, P. R. (2006). Spatial modelling: a comprehensive framework for principal coordinate analysis of neighbour matrices (PCNM). Ecological modelling, 196(3-4), 483-493.
 }

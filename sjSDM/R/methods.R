@@ -20,6 +20,27 @@ getCov.sjSDM = function(object){
   #return(object$sigma %*% t(object$sigma))
 }
 
+#' getCor
+#'
+#' get species-species association correlation matrix
+#' @param object a model fitted by \code{\link{sjSDM}}, or \code{\link{sjSDM}} with \code{\link{DNN}} object
+#' @seealso \code{\link{sjSDM}},\code{\link{DNN}}
+#' 
+#' @return
+#' 
+#' Matrix of dimensions species by species corresponding to the covariance (occurrence) matrix.  
+#' 
+#' @export
+getCor = function(object) UseMethod("getCor")
+
+
+#' @rdname getCor
+#' @export
+getCor.sjSDM = function(object){
+  object = checkModel(object)
+  return(cov2cor(force_r(object$model$covariance)))
+}
+
 
 #' Get weights
 #' 

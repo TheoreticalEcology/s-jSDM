@@ -113,7 +113,7 @@ class MultivariateProbit(TorchDistribution):
         return loss.view(shape[:-1])
 
 
-def MVP_logLik(Y, pred, sigma, device, dtype, batch_size=25, alpha = 1.0, sampling=1000, link="probit", individual=False):
+def MVP_logLik(Y, pred, sigma, device, dtype, batch_size=25, alpha = 1.0, sampling=1000, link="probit", individual=False, theta = None):
 
     torch.set_default_tensor_type('torch.FloatTensor')
     
@@ -138,6 +138,11 @@ def MVP_logLik(Y, pred, sigma, device, dtype, batch_size=25, alpha = 1.0, sampli
         link_func = lambda value: torch.sigmoid(value)
     elif link=="count":
         link_func = lambda value: torch.exp(value)
+    elif link=="nbinom":
+        link_func = lambda value: torch.exp(value)
+    
+    if theta is not None:
+        theta = torch.tensor(theta, dtype=dtype, device=torch.device(device))
 
     data = torch.utils.data.TensorDataset(torch.tensor(Y, dtype=dtype, device=torch.device('cpu')), torch.tensor(pred, dtype=dtype, device=torch.device('cpu')))
     DataLoader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=pin_memory, drop_last=False)
@@ -149,10 +154,15 @@ def MVP_logLik(Y, pred, sigma, device, dtype, batch_size=25, alpha = 1.0, sampli
         pred = pred.to(device, non_blocking=True)
         noise = torch.randn(size = [sampling, batch_size, sigma.shape[1]], device=torch.device(device), dtype=dtype)
         E = link_func( torch.tensordot(noise, sigma.t(), dims = 1).add(pred).mul(alpha) ).mul(0.999999).add(0.0000005)
-        if link != "count": 
+        if link in ["probit", "linear", "logit"] : 
             logprob = E.log().mul(y).add((1.0 - E).log().mul(1.0 - y)).neg().sum(dim = 2).neg()
-        else:
+        elif link == "count":
             logprob = torch.distributions.Poisson(rate=E).log_prob(y).sum(2)
+        elif link == "nbinom":
+            eps = 0.0001
+            theta_tmp = 1.0/(torch.nn.functional.softplus(theta)+eps)
+            probs = torch.clamp((1.0 - theta_tmp/(theta_tmp+E)) + eps, 0.0, 1.0-eps)
+            logprob = torch.distributions.NegativeBinomial(total_count=theta_tmp, probs=probs).log_prob(y).sum(2)
         maxlogprob = logprob.max(dim = 0).values
         Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
         loss = Eprob.log().neg().sub(maxlogprob)

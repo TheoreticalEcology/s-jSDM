@@ -10,7 +10,7 @@
 #' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
 #' @param spatial defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}
-#' @param family error distribution with link function, see details for supported family functions
+#' @param family error distribution with link function, see details for supported distributions
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
 #' @param learning_rate learning rate for Adamax optimizer
@@ -72,6 +72,7 @@
 #' \itemize{
 #' \item \code{\link{binomial}}: \code{"probit"} or \code{"logit"}
 #' \item \code{\link{poisson}}: \code{"log"} 
+#' \item \code{"nbinom"}: \code{"log"} 
 #' \item \code{\link{gaussian}}: \code{"identity"} 
 #' }
 #' }
@@ -138,7 +139,7 @@
 #' Pichler, M., & Hartig, F. (2021). A new joint species distribution model for faster and more accurate inference of species associations from big community data. Methods in Ecology and Evolution, 12(11), 2159-2173. 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{getCov}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
+#' @seealso  \code{\link{getCor}},  \code{\link{getCov}}, \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 #' 
 #' @import checkmate mathjaxr
 #' @author Maximilian Pichler
@@ -162,7 +163,6 @@ sjSDM = function(Y = NULL,
   assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
   assert(checkClass(spatial, "DNN"), checkClass(spatial, "linear"), checkNull(spatial))
   assert_class(biotic, "bioticStruct")
-  assert_class(family, "family")
   qassert(iter, c("X1[1,)"))
   qassert(step_size, c("X1[1,)", "0"))
   qassert(learning_rate, c("R1(0,)"))
@@ -172,6 +172,12 @@ sjSDM = function(Y = NULL,
   qassert(device, c("S1", "X1[0,)", "I1[0,)"))
   qassert(dtype, "S1")
   
+  if(inherits(family, "character")) {
+    if(family == "nbinom") {
+      family = stats::poisson()
+      family$family = "nbinom"
+    }
+  }
   
   family = check_family(family)
   
@@ -301,10 +307,11 @@ sjSDM = function(Y = NULL,
   out$sessionInfo = utils::sessionInfo()
   out$weights = force_r(model$env_weights)
   out$sigma = force_r(model$get_sigma)
+  if(out$family$family$family== "nbinom") out$theta = force_r(model$get_theta)
   out$history = force_r(model$history)
   out$spatial_weights = force_r(model$spatial_weights)
   out$spatial = spatial
-  out$Null = NULL
+  out$Null = NULL # ?????
   .n = pkg.env$torch$cuda$empty_cache()
   return(out)
 }
@@ -440,8 +447,15 @@ summary.sjSDM = function(object, ...) {
 
   out = list()
   
+  cat("Family: ", object$family$family$family, "\n\n")
   cat("LogLik: ", -object$logLik[[1]], "\n")
   cat("Regularization loss: ", object$logLik[[2]], "\n\n")
+  
+  if(object$family$family$family == "nbinom") {
+    disps = 1+(softplus(object$theta)+0.00001)
+    out$disperion = disps
+    cat("Dispersion parameters for nbinom", disps, "\n\n")
+  }
   
   cov_m = getCov(object)
   cor_m = stats::cov2cor(cov_m)
@@ -526,6 +540,7 @@ summary.sjSDM = function(object, ...) {
   out$logLik = object$logLik
   out$sigma = object$sigma
   out$cov = cov_m
+  out$names = list(species = if(is.null(object$species)) paste0("sp", 1:ncol(object$data$Y)) else object$species, env = object$names)
   return(invisible(out))
 }
 
@@ -551,8 +566,28 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
     pkg.env$torch$cuda$manual_seed(seed)
     pkg.env$torch$manual_seed(seed)
   }
-  sims = force_r(predict(object, simulate=TRUE, sampling = as.integer(nsim)))
-  return(apply(sims, 1:3, function(i) ifelse(i > 0, 1, 0)))
+  pred = predict(object)
+  
+  if(object$family$family$family == "binomial") {
+    sim = apply(pred, 1:2, function(p) stats::rbinom(sim, 1, p))
+  } else if(object$family$family$family == "poisson") {
+    sim = apply(pred, 1:2, function(p) stats::rpois(sim, p))
+  } else if(object$family$family$family == "nbinom") {
+    theta = 1/(softplus(object$theta)+0.00001)
+    
+    sim = 
+      lapply(1:nsim, function(n) {
+          t(sapply(1:nrow(pred), function(i) {
+              sapply(1:ncol(pred), function(j) {
+                prob = theta[j] / (theta[j] +pred[i,j]) +0.00001
+                stats::rnbinom(1, size = theta[j], prob = prob)
+                })
+            })
+          )
+        })
+    sim = abind::abind(sim, along = 0L)
+  }
+  return(sim)
 }
 
 

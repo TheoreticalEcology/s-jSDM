@@ -1,8 +1,7 @@
 ---
-output: github_document
+format: gfm
 ---
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -74,7 +73,7 @@ summary(model)
 plot(model)
 ```
 
-We also support also other response families:
+We also support other response families:
 Count data:
 ```{r,eval=FALSE}
 model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=poisson("log"))
@@ -86,16 +85,7 @@ model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial =
 ```
 
 
-
-Let's have a look at the importance of the three groups (environment, associations, and space) on the occurences:
-```{r,fig.height=5, fig.width=5}
-imp = importance(model)
-print(imp)
-plot(imp)
-```
-
-
-As expected, space has no effect on occurences.
+Let's do an ANOVA to partition the three components (abiotic, biotic, and spatial):
 
 Let's have a look on community level how the three groups contribute to the overall explained variance 
 ```{r,fig.height=7, fig.width=6.3}
@@ -104,9 +94,9 @@ print(an)
 plot(an)
 ```
 
-The anova shows the relative changes in the deviance of the groups and their intersections.
+The anova shows the relative changes in the R^2^ of the groups and their intersections.
 
-We can also visualize the individual contributions to the species and site $$R^2$$:
+We can also visualize the individual contributions to species and site $$R^2$$:
 
 
 ```{r,fig.height=7, fig.width=8, warning=FALSE}

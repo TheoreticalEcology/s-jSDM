@@ -40,11 +40,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   
   object$settings$se = FALSE
   
-  if(object$family$family$family == "binomial") {
-    null_m = -stats::dbinom( object$data$Y, 1, 0.5, log = TRUE)
-  } else {
-    null_m = -stats::dpois( object$data$Y, 1, log = TRUE)
-  }
+  null_m = -get_null_ll(object)
   
   full_m = get_conditional_lls(object, null_m, sampling = samples, ...)
   
@@ -60,8 +56,8 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ))
     SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     
-    F_A  = (null_m - full_m) - F_B
-    F_B  = (null_m - full_m) - F_A
+    F_A  = (null_m - full_m) - B_m
+    F_B  = (null_m - full_m) - A_m
     F_AB =  (null_m - full_m) - F_A - F_B
     
     full = full_m
@@ -187,6 +183,7 @@ get_conditional_lls = function(m, null_m, ...) {
                               batch_size = as.integer(m$settings$step_size),
                               alpha = m$model$alpha,
                               link = m$family$link,
+                              theta = m$theta[-i],
                               ...
                               )
         )
@@ -222,6 +219,17 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     S = 0
   }
   return(list(A = A, B = B, S = S, R2 = A+B+S))
+}
+
+get_null_ll = function(object) {
+  if(object$family$family$family == "binomial") {
+    null_m = stats::dbinom( object$data$Y, 1, 0.5, log = TRUE)
+  } else if(object$family$family$family == "poisson") {
+    null_m = stats::dpois( object$data$Y, 1, log = TRUE)
+  } else if(object$family$family$family == "nbinom") {
+    null_m = stats::dpois( object$data$Y, 1, log = TRUE)
+  }
+  return(null_m)
 }
 
 
