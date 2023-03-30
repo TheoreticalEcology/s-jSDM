@@ -45,14 +45,14 @@ jobs:
       - uses: r-lib/actions/setup-pandoc@v2
       
       - name: TinyTex for non Windows
-        if: if: runner.os != 'Windows'
+        if: runner.os != 'Windows'
         uses: r-lib/actions/setup-tinytex@v2
         env:
           TINYTEX_INSTALLER: TinyTeX
           #TINYTEX_VERSION: '2023.03'
 
       - name: TinyTex for Windows
-        if: if: runner.os == 'Windows'
+        if: runner.os == 'Windows'
         uses: r-lib/actions/setup-tinytex@v2
         env:
           TINYTEX_INSTALLER: TinyTeX
