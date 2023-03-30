@@ -31,3 +31,4 @@ sjSDM.Rproj
 *.woff
 *.html
 sjSDM/vignettes/sjSDM_Introduction.R
+.DS_Store
