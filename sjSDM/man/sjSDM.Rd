@@ -25,7 +25,7 @@ sjSDM(
 sjSDM.tune(object)
 }
 \arguments{
-\item{Y}{matrix of species occurences/responses in range}
+\item{Y}{matrix of species occurrences/responses in range}
 
 \item{env}{matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}}
 

@@ -11,7 +11,7 @@
 
 \item{nsim}{number of simulations}
 
-\item{seed}{seed for random numer generator}
+\item{seed}{seed for random number generator}
 
 \item{...}{optional arguments for compatibility with the generic function, no functionality implemented}
 }

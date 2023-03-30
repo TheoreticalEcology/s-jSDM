@@ -248,7 +248,6 @@ get_null_ll = function(object) {
 #' @export
 print.sjSDManova = function(x, ...) {
   cat("Analysis of Deviance Table\n\n")
-  cat("Terms added sequentially:\n\n")
   stats::printCoefmat(x$to_print)
   return(invisible(x$to_print))
 }
