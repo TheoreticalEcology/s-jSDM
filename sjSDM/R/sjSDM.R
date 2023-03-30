@@ -6,7 +6,7 @@
 #' The default is a multivariate probit model based on a Monte-Carlo approximation of the joint likelihood. 
 #' \code{sjSDM} can be used to fit linear but also deep neural networks and supports the well known formula syntax. 
 #' 
-#' @param Y matrix of species occurences/responses in range
+#' @param Y matrix of species occurrences/responses in range
 #' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
 #' @param spatial defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}
@@ -552,7 +552,7 @@ summary.sjSDM = function(object, ...) {
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param nsim number of simulations
-#' @param seed seed for random numer generator
+#' @param seed seed for random number generator
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
 #' 
 #' @return Array of simulated species occurrences of dimension order [nsim, sites, species]
