@@ -8,7 +8,7 @@ output:
     toc: true
 vignette: >
   %\VignetteIndexEntry{Getting started with sjSDM: a scalable joint Species Distribution Model}
-  \usepackage[utf8]{inputenc}
+  %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood. \n \n \n"
 editor_options: 
@@ -36,14 +36,14 @@ library(sjSDM)
 
 ## Installing dependencies
 
-sjSDM depends on the Anaconda distribution of python and pytorch. You will get a warning if you don't have python installed. sjSDM depends on Anaconda which will be installed automatically if it is not available.
+sjSDM depends on Anaconda which will be installed automatically if it is not available.
 
 To install the CPU version, run:
 ```{r, eval = F, purl=FALSE}
 install_sjSDM()
 ```
 
-For the GPU version (NVIDIA GPUs are only supported), run:
+For the GPU version (only NVIDIA GPUs are supported), run:
 ```{r, eval = F, purl=FALSE}
 install_sjSDM(method = "gpu")
 ```
@@ -66,7 +66,7 @@ citation("sjSDM")
 
 # Working with sjSDM
 
-sjSDM has a function to create test data. Here, we create a dataset with 3 environmental predictors, 5 species and 100 sites.
+sjSDM has a function to create test data: We create a dataset with 3 environmental predictors, 5 species and 100 sites.
 
 ```{r,eval=FALSE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
@@ -89,14 +89,20 @@ Things you can do with the model output
 ```{r,eval=FALSE}
 coef(model)
 summary(model)
-getCov(model)
 ```
+
+### Get species-species association matrix
+
+```{r}
+association = getCor(model)
+```
+
 
 ## Adding quadratic predictors and interactions
 
-sjSDM supports formula description for the predictors.
+sjSDM supports the R formula syntax.
 
-E.g. interaction with intercept and calculate p-values:
+E.g. interaction with intercept (if you want/need p-values, you have to set se = TRUE)
 ```{r,eval=FALSE}
 model = sjSDM(Y = com$response, 
               env = linear(data = com$env_weights, formula = ~ X1*X2,), iter = 50L, se = TRUE)
@@ -106,18 +112,19 @@ summary(model)
 
 E.g. quadratic effect without intercept:
 ```{r,eval=FALSE}
-model = sjSDM(Y = com$response, 
-              env = linear(data = com$env_weights, formula = ~0+ I(X1^2)), iter = 50L, se = TRUE)
+model = update(model, env_formula = ~0+ I(X1^2)+X1)
 summary(model)
 ```
 
 
 # Handling spatial autocorrelation
 ## Simulating spatial data
-jSDMs account for correlation between species within communities (sites), in real datasets, however, communities (sites) are often additionally correlated (== spatial autocorrelation).
+jSDMs account for correlation between species within communities (sites), in real datasets, however, communities (sites) are often also correlated (== spatial autocorrelation). Usually conditional autoregressive (CAR) models are used to account for the spatial autocorrelation in the residuals, which we, however, do not support yet. A similar approach is to condition the model on space, which we can do by using space as predictors. 
 
 Let's first simulate test data:
+
 1) Simulate jSDM without a link (normal response)
+
 ```{r,eval=FALSE}
 
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L, 
@@ -127,6 +134,7 @@ Y = com$response
 ```
 
 2) add spatial residuals (create coordinates and use spatial distance matrix to draw autocorrelated residuals for each species)
+
 ```{r,eval=FALSE}
 XYcoords = matrix(rnorm(200), 100, 2)+2
 WW = as.matrix(dist(XYcoords))
@@ -142,7 +150,31 @@ Y = ifelse(Ysp < 0, 0, 1) # multivariate probit model
 ```
 
 ## Fitting spatial jSDM
-Using spatial eigenvectors as additional predictors is a common approach:
+There are three options to condition our model on space:
+
+1) Trend surface model - linear
+
+The idea of the trend surface model is to use the spatial coordinates within a polynom:
+
+```{r,eval=FALSE}
+colnames(XYcoords) = c("XX", "YY")
+model = sjSDM(Y, env = linear(X, ~.), spatial = linear(XYcoords, ~0+XX+YY+XX:YY+I(XX^2)+I(YY^2)), iter = 100L)
+summary(model)
+```
+
+2) Trend surface model - DNN
+
+Sometimes a linear model and a polynom is not flexible enough to account for space. We can use a "simple" DNN for space to condition our linear environmental model on the space:
+
+```{r,eval=FALSE}
+colnames(XYcoords) = c("XX", "YY")
+model = sjSDM(Y, env = linear(X, ~.), spatial = DNN(XYcoords, ~0+.), iter = 100L)
+summary(model)
+```
+
+
+3) Using Moran's eigenvector map predictors
+
 
 ```{r,eval=FALSE}
 SPeigen = generateSpatialEV(XYcoords)

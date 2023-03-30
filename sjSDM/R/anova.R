@@ -81,7 +81,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ))
     A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE))
-    B_m = sjSDM:::get_conditional_lls(m, null_m, sampling = samples, ...)
+    B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE))
     S_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ))
