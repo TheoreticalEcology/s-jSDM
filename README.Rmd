@@ -3,6 +3,7 @@ output: github_document
 ---
  
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -71,21 +72,21 @@ We support other distributions:
 
 -   Count data with Poisson:
 
-    ```{r,eval=FALSE}
-    model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=poisson("log"))
-    ```
+```{r,eval=FALSE}
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=poisson("log"))
+```
 
 -   Count data with negative Binomial (which is still experimental, if you run into errors/problems, please let us know):
 
-    ```{r,eval=FALSE}
-    model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family="nbinom")
-    ```
+```{r,eval=FALSE}
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TR, family="nbinom")
+```
 
 -   Gaussian (normal):
 
-    ```{r,eval=FALSE}
-    model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=gaussian("identity"))
-    ```
+```{r,eval=FALSE}
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TR, family=gaussian("identity"))
+```
 
 ### Anova
 

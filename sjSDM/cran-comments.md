@@ -1,5 +1,49 @@
 ## Version 1.0.4
-### Submission 1, XX/04/2023
+### Submission 1, 30/03/2023
+This is a minor update. Several functions/methods (ANOVA, Rsquared) were 
+improved. Also, support for negative binomial distribution was added. Two new
+functions (plotInternalStructure and getCor) were added. Two bugs in Rsquared
+and the S3 method plot.sjSDM were fixed. The vignette was updated/improved.
+
+### Successfull R CMD checks under
+* Locally: MacOS Monterey 13.3 (R x86_64 version)
+* Github actions: 
+  - MacOS Catalina 10.15 R-release 
+  - Ubuntu 20.04 R-release, R-oldrelease, and R-development
+  - Windows-latest R-release
+* Rhub:
+  - fedora 
+* Win-builder R-release, R-development, and R-oldrelease
+
+Notes from win-builder:
+Found the following (possibly) invalid URLs:
+  URL: https://doi.org/10.1111/2041-210X.13687
+    From: README.md
+    Status: 503
+    Message: Service Unavailable
+
+Found the following (possibly) invalid DOIs:
+  DOI: 10.1111/2041-210X.13687
+    From: DESCRIPTION
+          inst/CITATION
+    Status: Service Unavailable
+    Message: 503
+
+URL and DOI are correct.
+
+Possibly misspelled words in DESCRIPTION:
+  CPUs (21:262)
+  GPUs (21:271)
+  Hartig (21:320)
+  Pichler (21:310)
+  Scalable (3:8)
+  autocorrelation (21:488)
+  jSDMs (21:79, 21:565)
+  scalable (21:16)
+
+The spelling is intended.
+
+
 
 
 ## Version 1.0.3

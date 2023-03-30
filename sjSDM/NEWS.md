@@ -1,12 +1,14 @@
 # sjSDM 1.0.4
 ## New features
 
-* Anova function uses now conditional probabilities to better separate the 
-  biotic components
+* Anova function is now based on conditional probabilities to better separate 
+  the biotic components
 * Anova can use shared components (plot(...,internal=TRUE, add_shared=TRUE))
-* It can be now simulated from all supported families (binomial, poisson, and
+* Simulation methods for all supported families (binomial, poisson, and
   negative binomial)
 * Support for negative binomial distribution
+* plotInternalStructure for plotting internal metacommunity structure
+* getCor to return species-species association matrix
 
 
 ## Bug fixes
