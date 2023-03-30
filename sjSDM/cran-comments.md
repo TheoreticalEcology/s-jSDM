@@ -1,21 +1,28 @@
 ## Version 1.0.4
 ### Submission 1, 30/03/2023
 This is a minor update. Several functions/methods (ANOVA, Rsquared) were 
-improved. Also, support for negative binomial distribution was added. Two new
-functions (plotInternalStructure and getCor) were added. Two bugs in Rsquared
+improved. New features: Support for negative binomial distribution and two new
+functions (plotInternalStructure and getCor). Bug fixes: Two bugs in Rsquared
 and the S3 method plot.sjSDM were fixed. The vignette was updated/improved.
 
 ### Successfull R CMD checks under
 * Locally: MacOS Monterey 13.3 (R x86_64 version)
 * Github actions: 
   - MacOS Catalina 10.15 R-release 
-  - Ubuntu 20.04 R-release, R-oldrelease, and R-development
+  - Ubuntu 20.04 R-release, and R-development
   - Windows-latest R-release
 * Rhub:
-  - fedora 
+  - fedora, ubuntu
 * Win-builder R-release, R-development, and R-oldrelease
 
 Notes from win-builder:
+
+Found the following (possibly) invalid URLs:
+  URL: https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687
+    From: README.md
+    Status: 403
+    Message: Forbidden
+
 Found the following (possibly) invalid URLs:
   URL: https://doi.org/10.1111/2041-210X.13687
     From: README.md
@@ -31,15 +38,13 @@ Found the following (possibly) invalid DOIs:
 
 URL and DOI are correct.
 
-Possibly misspelled words in DESCRIPTION:
-  CPUs (21:262)
-  GPUs (21:271)
-  Hartig (21:320)
-  Pichler (21:310)
+Possibly mis-spelled words in DESCRIPTION:
+  GPUs (20:271)
+  Hartig (20:320)
+  Pichler (20:310)
   Scalable (3:8)
-  autocorrelation (21:488)
-  jSDMs (21:79, 21:565)
-  scalable (21:16)
+  jSDMs (20:79, 20:565)
+  scalable (20:16)
 
 The spelling is intended.
 
