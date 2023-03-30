@@ -48,11 +48,6 @@ jobs:
         env:
           TINYTEX_INSTALLER: TinyTeX
           #TINYTEX_VERSION: '2023.03'
-          
-      - name: Latex-env
-        if: runner.os == 'Windows'
-        env:
-          TINYTEX_VERSION: '2023.03'
       
       - name: Install makeindex
         run: |

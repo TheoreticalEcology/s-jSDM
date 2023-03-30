@@ -44,11 +44,6 @@ jobs:
       - uses: r-lib/actions/setup-tinytex@v2
         env:
           TINYTEX_INSTALLER: TinyTeX
-      
-      - name: Latex-env
-        if: runner.os == 'Windows'
-        env:
-          TINYTEX_VERSION: '2023.03'
           
       - name: Install makeindex
         run: |
