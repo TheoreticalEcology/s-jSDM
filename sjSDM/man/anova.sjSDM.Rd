@@ -36,5 +36,5 @@ Shared contributions (e.g. between space and environment) are also calculated an
 Compute analysis of variance
 }
 \seealso{
-\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}
+\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}, \code{\link{plotInternalStructure}}
 }

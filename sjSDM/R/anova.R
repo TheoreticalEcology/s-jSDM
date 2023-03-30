@@ -26,7 +26,7 @@
 #' 
 #' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 #'  
-#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}
+#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}, \code{\link{plotInternalStructure}}
 #' @import stats
 #' @export
 
@@ -228,7 +228,10 @@ get_null_ll = function(object) {
     null_m = stats::dpois( object$data$Y, 1, log = TRUE)
   } else if(object$family$family$family == "nbinom") {
     null_m = stats::dpois( object$data$Y, 1, log = TRUE)
+  } else if(object$family$family$family == "gaussian") {
+    null_m = stats::dnorm( object$data$Y, 0, 1.0, log = TRUE)
   }
+    
   return(null_m)
 }
 
@@ -248,6 +251,47 @@ print.sjSDManova = function(x, ...) {
   cat("Terms added sequentially:\n\n")
   stats::printCoefmat(x$to_print)
   return(invisible(x$to_print))
+}
+
+#' Plot internal metacommunity structure
+#' 
+#' @param object anova object from \code{\link{anova.sjSDM}}
+#' @param Rsquared which R squared should be used, McFadden or Nagelkerke (McFadden is default)
+#' @param add_shared split shared components, default is TRUE 
+#' @param env_deviance environmental deviance
+#' @param suppress_plotting should the plots be suppressed or not.
+#' 
+#' Plots and returns the internal metacommunity structure of species and sites (see Leibold et al., 2022). 
+#' Plots were heavily inspired by Leibold et al., 2022
+#' 
+#' @return 
+#' 
+#' List with the following components:
+#' 
+#' 
+#' \item{plots}{ggplot objects for sites and species.}
+#' \item{data}{List of data.frames with the internal metacommunity structure.}
+#' 
+#' 
+#' @references 
+#' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
+#' 
+#' @export
+plotInternalStructure = function(object,  
+                                 Rsquared = c("McFadden", "Nagelkerke"), 
+                                 add_shared = TRUE,
+                                 env_deviance = NULL,
+                                 suppress_plotting = FALSE) {
+  Rsquared = match.arg(Rsquared)
+  out = 
+    plot.sjSDManova(x = object, 
+                    internal = TRUE, 
+                    add_shared = add_shared,
+                    type = Rsquared, 
+                    alpha = alpha,
+                    env_deviance = env_deviance,
+                    suppress_plotting = suppress_plotting)
+  return(invisible(out))
 }
 
 
@@ -287,7 +331,7 @@ plot.sjSDManova = function(x,
                            y, 
                            type = c("McFadden", "Deviance", "Nagelkerke"), 
                            internal = FALSE,
-                           add_shared = FALSE,
+                           add_shared = TRUE,
                            cols = c("#7FC97F","#BEAED4","#FDC086"),
                            alpha=0.15, 
                            env_deviance = NULL,

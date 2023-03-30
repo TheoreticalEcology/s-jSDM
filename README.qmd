@@ -2,18 +2,11 @@
 format: gfm
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
-[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/sjSDM)](https://cran.r-project.org/package=sjSDM)
-![R-CMD-check](https://github.com/TheoreticalEcology/s-jSDM/workflows/R-CMD-check/badge.svg?branch=master)
-[![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687)
-
-
+[![Project Status: Active -- The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active) [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/sjSDM)](https://cran.r-project.org/package=sjSDM) ![R-CMD-check](https://github.com/TheoreticalEcology/s-jSDM/workflows/R-CMD-check/badge.svg?branch=master) [![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687)
 
 # s-jSDM - Fast and accurate Joint Species Distribution Modeling
 
@@ -21,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://doi.org/10.1111/2041-210X.13687. The code for producing the results in this paper is available under the subfolder publications in this repo.
 
-The method itself is wrapped into an R package, available under subfolder sjSDM. You can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python >= 3.6 and pytorch must be installed (more details below).
+The method itself is wrapped into an R package, available under subfolder sjSDM. You can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.7 and pytorch must be installed (more details below).
 
 ## Installing the R / Python package
 
@@ -40,26 +33,26 @@ sjSDM::install_sjSDM(version = "gpu") # or
 sjSDM::install_sjSDM(version = "cpu")
 ```
 
-
 To cite sjSDM, please use the following citation:
+
 ```{r,eval=FALSE}
 citation("sjSDM")
 ```
-
 
 ### Development
 
 If you want to install the current (development) version from this repository, run
 
-
 ```{r,eval=FALSE}
 devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
 ```
 
-
 Once the dependencies are installed, the following code should run:
 
-Simulate a community and fit model:
+## Workflow
+
+Simulate a community and fit a sjSDM model:
+
 ```{r}
 library(sjSDM)
 set.seed(42)
@@ -73,21 +66,30 @@ summary(model)
 plot(model)
 ```
 
-We also support other response families:
-Count data:
-```{r,eval=FALSE}
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=poisson("log"))
-```
+We support other distributions:
 
-Gaussian (normal):
-```{r,eval=FALSE}
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=gaussian("identity"))
-```
+-   Count data with Poisson:
 
+    ```{r,eval=FALSE}
+    model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=poisson("log"))
+    ```
 
-Let's do an ANOVA to partition the three components (abiotic, biotic, and spatial):
+-   Count data with negative Binomial (which is still experimental, if you run into errors/problems, please let us know):
 
-Let's have a look on community level how the three groups contribute to the overall explained variance 
+    ```{r,eval=FALSE}
+    model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family="nbinom")
+    ```
+
+-   Gaussian (normal):
+
+    ```{r,eval=FALSE}
+    model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=gaussian("identity"))
+    ```
+
+### Anova
+
+ANOVA can be used to partition the three components (abiotic, biotic, and spatial):
+
 ```{r,fig.height=7, fig.width=6.3}
 an = anova(model)
 print(an)
@@ -96,26 +98,34 @@ plot(an)
 
 The anova shows the relative changes in the R^2^ of the groups and their intersections.
 
-We can also visualize the individual contributions to species and site $$R^2$$:
+### Internal metacommunity structure
 
+Following [Leibold et al., 2022](https://doi.org/10.1111/oik.08618) we can calculate and visualize the internal metacommunity structure (=partitioning of the three components for species and sites). The internal structure is already calculated by the ANOVA and we can visualize it with the plot method:
 
 ```{r,fig.height=7, fig.width=8, warning=FALSE}
-plot(an, internal=TRUE)
+results = plotInternalStructure(an) # or plot(an, internal = TRUE)
 ```
 
+The plot function returns the results for the internal metacommunity structure:
 
-If it fails, check out the help of ?install_sjSDM, ?installation_help, and vignette("Dependencies", package = "sjSDM"). 
+```{r}
+print(results$data$Species)
+```
 
-#### Installation workflow:
-1. Try install_sjSDM()
-2. New session, if no 'PyTorch not found' appears it should work, otherwise see ?installation_help
-3. If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
+## Installation trouble shooting
 
+If the installation fails, check out the help of ?install_sjSDM, ?installation_help, and vignette("Dependencies", package = "sjSDM").
+
+1.  Try install_sjSDM()
+2.  New session, if no 'PyTorch not found' appears it should work, otherwise see ?installation_help
+3.  If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
 
 ### Python Package
+
 ```{bash,eval=FALSE}
 pip install sjSDM_py
 ```
+
 Python example
 
 ```{python,eval=TRUE}
@@ -134,6 +144,7 @@ model.fit(Env, Occ, batch_size = 20, epochs = 10)
 ```
 
 Calculate Importance:
+
 ```{python}
 Beta = np.transpose(model.env_weights[0])
 Sigma = ( model.sigma @ model.sigma.t() + torch.diag(torch.ones([1])) ).data.cpu().numpy()
@@ -141,4 +152,3 @@ covX = fa.covariance( torch.tensor(Env).t() ).data.cpu().numpy()
 
 fa.importance(beta=Beta, covX=covX, sigma=Sigma)
 ```
-
