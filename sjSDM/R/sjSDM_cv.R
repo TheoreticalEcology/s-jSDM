@@ -87,6 +87,7 @@ sjSDM_cv = function(Y,
     test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
   } else {
     test_indices = CV
+    CV = length(test_indices)
   }
   
   if(is.null(spatial)) {
