@@ -37,7 +37,7 @@ sjSDM_cv(
 
 \item{tune}{tuning strategy, random or grid search}
 
-\item{CV}{n-fold cross validation}
+\item{CV}{n-fold cross validation or list of test indices}
 
 \item{tune_steps}{number of tuning steps}
 

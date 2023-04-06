@@ -1,3 +1,7 @@
+# sjSDM 1.0.5
+## New features
+* Pass custom test indices to sjSDM function via CV argument
+
 # sjSDM 1.0.4
 ## New features
 

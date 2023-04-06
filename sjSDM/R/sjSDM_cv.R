@@ -6,7 +6,7 @@
 #' @param spatial defines spatial structure, object of type \code{\link{linear}}, or \code{\link{DNN}}
 #' @param tune tuning strategy, random or grid search
 #' @param tune_steps number of tuning steps
-#' @param CV n-fold cross validation
+#' @param CV n-fold cross validation or list of test indices
 #' @param alpha_cov weighting of l1 and l2 on covariances: \eqn{(1 - \alpha) * |cov| + \alpha ||cov||^2}
 #' @param alpha_coef weighting of l1 and l2 on coefficients: \eqn{(1 - \alpha) * |coef| + \alpha ||coef||^2}
 #' @param alpha_spatial weighting of l1 and l2 on spatial coefficients: \eqn{(1 - \alpha) * |coef_sp| + \alpha ||coef_sp||^2}
@@ -62,7 +62,7 @@ sjSDM_cv = function(Y,
   assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
   assert(checkClass(spatial, "DNN"), checkClass(spatial, "linear"), checkNull(spatial))
   assert_class(biotic, "bioticStruct")
-  qassert(CV, "X1[1,)")
+  #qassert(CV, "X1[1,)")
   qassert(tune_steps, "X1[1,)")
   qassert(alpha_cov, "R+[0,)")
   qassert(alpha_coef, "R+[0,)")
@@ -82,8 +82,12 @@ sjSDM_cv = function(Y,
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
   if(is.matrix(spatial) || is.data.frame(spatial)) spatial = linear(data = spatial)
   
-  set = cut(sample.int(nrow(env$X)), breaks = CV, labels = FALSE)
-  test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
+  if(!inherits(CV, "list")) {
+    set = cut(sample.int(nrow(env$X)), breaks = CV, labels = FALSE)
+    test_indices = lapply(unique(set), function(s) which(set == s, arr.ind = TRUE))
+  } else {
+    test_indices = CV
+  }
   
   if(is.null(spatial)) {
     if(tune == "random") { 
