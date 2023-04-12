@@ -36,6 +36,8 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   samples = as.integer(samples)
   object = checkModel(object)
   
+  pkg.env$fa$set_seed(object$seed)
+  
   if(object$family$family$family == "gaussian") stop("gaussian not yet supported")
   
   object$settings$se = FALSE

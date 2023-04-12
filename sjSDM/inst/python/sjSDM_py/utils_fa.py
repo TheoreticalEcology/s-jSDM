@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import random
 from typing import Optional, List
 
 
@@ -35,6 +36,16 @@ def _device_and_dtype(device, dtype):
         if dtype == "float64":
             return device, torch.float64
     return device, torch.float32
+
+
+def set_seed(seed):
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 def covariance(X):
     # taken from https://github.com/pytorch/pytorch/issues/19037#issuecomment-739002393 
