@@ -19,7 +19,8 @@ sjSDM(
   parallel = 0L,
   control = sjSDMControl(),
   device = "cpu",
-  dtype = "float32"
+  dtype = "float32",
+  seed = 758341678
 )
 
 sjSDM.tune(object)
@@ -52,6 +53,8 @@ sjSDM.tune(object)
 \item{device}{which device to be used, "cpu" or "gpu"}
 
 \item{dtype}{which data type, most GPUs support only 32 bit floats.}
+
+\item{seed}{seed for random operations}
 
 \item{object}{object of type \code{\link{sjSDM_cv}}}
 }

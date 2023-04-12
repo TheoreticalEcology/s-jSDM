@@ -20,6 +20,7 @@
 #' @param control control parameters for optimizer, see \code{\link{sjSDMControl}}
 #' @param device which device to be used, "cpu" or "gpu"
 #' @param dtype which data type, most GPUs support only 32 bit floats.
+#' @param seed seed for random operations
 #' 
 #' @details 
 #' \loadmathjax
@@ -157,7 +158,8 @@ sjSDM = function(Y = NULL,
                  parallel = 0L, 
                  control = sjSDMControl(),
                  device = "cpu", 
-                 dtype = "float32") {
+                 dtype = "float32",
+                 seed = 758341678) {
   
   assertMatrix(Y)
   assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
@@ -171,6 +173,10 @@ sjSDM = function(Y = NULL,
   qassert(control, c("L"))
   qassert(device, c("S1", "X1[0,)", "I1[0,)"))
   qassert(dtype, "S1")
+  
+  seed = as.integer(seed)
+  
+  if( any(apply(Y, 2, var) < .Machine$double.eps) ) warning("No variation in at least one of Y columns detected!")
   
   if(inherits(family, "character")) {
     if(family == "nbinom") {
@@ -210,7 +216,7 @@ sjSDM = function(Y = NULL,
   intercept = "(Intercept)" %in% colnames(env$X)
   
   out$get_model = function(){
-    model = pkg.env$fa$Model_sjSDM( device = device, dtype = dtype)
+    model = pkg.env$fa$Model_sjSDM( device = device, dtype = dtype, seed = seed)
     
     if(inherits(env, "DNN")) {
       activation=env$activation
@@ -312,6 +318,7 @@ sjSDM = function(Y = NULL,
   out$spatial_weights = force_r(model$spatial_weights)
   out$spatial = spatial
   out$Null = NULL # ?????
+  out$seed = seed
   .n = pkg.env$torch$cuda$empty_cache()
   return(out)
 }

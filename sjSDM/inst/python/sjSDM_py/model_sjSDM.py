@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import itertools
 import sys
+import random
 from .utils_fa import covariance
 from typing import Union, Tuple, List, Optional, Callable
 from tqdm import tqdm
@@ -11,7 +12,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 class Model_sjSDM:
-    def __init__(self, device: str = "cpu", dtype: str = "float32"):
+    def __init__(self, device: str = "cpu", dtype: str = "float32", seed: int = 42):
         """sjSDM constructor
 
         Args:
@@ -19,6 +20,14 @@ class Model_sjSDM:
             dtype (str, optional): Dtype. Defaults to "float32".
 
         """
+        
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        self.seed = seed
         self.params = []
         self.losses = []
         self.env = None
