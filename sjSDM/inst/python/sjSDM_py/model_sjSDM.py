@@ -4,12 +4,14 @@ import itertools
 import sys
 import random
 from .utils_fa import covariance
+from .utils_fa import set_seed
 from typing import Union, Tuple, List, Optional, Callable
 from tqdm import tqdm
 from torch import nn, optim
 import warnings 
 
 warnings.filterwarnings("ignore")
+
 
 class Model_sjSDM:
     def __init__(self, device: str = "cpu", dtype: str = "float32", seed: int = 42):
@@ -21,13 +23,9 @@ class Model_sjSDM:
 
         """
         
-        np.random.seed(seed)
-        random.seed(seed)
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        
         self.seed = seed
+        set_seed(seed)
         self.params = []
         self.losses = []
         self.env = None
