@@ -408,7 +408,7 @@ plot.sjSDManova = function(x,
           env = ifelse(x$sites[[type]]$F_A<0, 0, x$sites[[type]]$F_A),
           spa = ifelse(x$sites[[type]]$F_S<0, 0, x$sites[[type]]$F_S),
           codist = ifelse(x$sites[[type]]$F_B<0, 0, x$sites[[type]]$F_B),
-          r2  = ifelse(x$sites[[type]]$Full<0, 0, x$sites[[type]]$Full)/length(x$sites[[type]]$Full)
+          r2  = ifelse(x$sites[[type]]$Full<0, 0, x$sites[[type]]$Full)#/length(x$sites[[type]]$Full)
         )
       internals[[1]] = df
       names(internals)[1] = "Sites"
@@ -417,7 +417,7 @@ plot.sjSDManova = function(x,
           env = ifelse(x$species[[type]]$F_A<0, 0, x$species[[type]]$F_A),
           spa = ifelse(x$species[[type]]$F_S<0, 0, x$species[[type]]$F_S),
           codist = ifelse(x$species[[type]]$F_B<0, 0, x$species[[type]]$F_B),
-          r2  = ifelse(x$species[[type]]$Full<0, 0, x$species[[type]]$Full)/length(x$species[[type]]$Full)
+          r2  = ifelse(x$species[[type]]$Full<0, 0, x$species[[type]]$Full)#/length(x$species[[type]]$Full)
         )
       
       internals[[2]] = df
@@ -428,7 +428,7 @@ plot.sjSDManova = function(x,
         env = ifelse(x$sites[[type]]$A<0, 0, x$sites[[type]]$A),
         spa = ifelse(x$sites[[type]]$S<0, 0, x$sites[[type]]$S),
         codist = ifelse(x$sites[[type]]$B<0, 0, x$sites[[type]]$B),
-        r2  = ifelse(x$sites[[type]]$R2<0, 0, x$sites[[type]]$R2)/length(x$sites[[type]]$R2)
+        r2  = ifelse(x$sites[[type]]$R2<0, 0, x$sites[[type]]$R2)#/length(x$sites[[type]]$R2)
       )
       internals[[1]] = df
       names(internals)[1] = "Sites"
@@ -437,7 +437,7 @@ plot.sjSDManova = function(x,
         env = ifelse(x$species[[type]]$A<0, 0, x$species[[type]]$A),
         spa = ifelse(x$species[[type]]$S<0, 0, x$species[[type]]$S),
         codist = ifelse(x$species[[type]]$B<0, 0, x$species[[type]]$B),
-        r2  = ifelse(x$species[[type]]$R2<0, 0, x$species[[type]]$R2)/length(x$species[[type]]$R2)
+        r2  = ifelse(x$species[[type]]$R2<0, 0, x$species[[type]]$R2)#/length(x$species[[type]]$R2)
       )
       
       internals[[2]] = df
@@ -474,9 +474,9 @@ plot.sjSDManova = function(x,
                           x = "E",
                           xarrow = "Environment",
                           y = "C",
-                          yarrow = "Co-Distribution",
+                          yarrow = "Species associations",
                           z = "S", 
-                          zarrow = "Spatial Autocorrelation") +
+                          zarrow = "Space") +
             ggtern::theme_bw() +
             ggtern::theme_showarrows() +
             ggtern::theme_arrowlong() +
