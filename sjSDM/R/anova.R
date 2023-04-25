@@ -225,13 +225,19 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
 
 get_null_ll = function(object) {
   if(object$family$family$family == "binomial") {
-    null_m = stats::dbinom( object$data$Y, 1, 0.5, log = TRUE)
+    null_m = stats::dbinom( object$data$Y, 1, matrix(apply(object$data$Y, 2, mean), 
+                                                     nrow = nrow(object$data$Y), ncol = ncol(object$data$Y), byrow = TRUE), log = TRUE)
   } else if(object$family$family$family == "poisson") {
-    null_m = stats::dpois( object$data$Y, 1, log = TRUE)
+    null_m = stats::dpois( object$data$Y, matrix(apply(object$data$Y, 2, mean), 
+                                                 nrow = nrow(object$data$Y), ncol = ncol(object$data$Y), byrow = TRUE), log = TRUE)
   } else if(object$family$family$family == "nbinom") {
-    null_m = stats::dpois( object$data$Y, 1, log = TRUE)
+    object1 = object
+    object1$settings$iter = 20L
+    null_m = -logLik(update(object1, env_formula = ~1, spatial_formula = NULL, biotic = bioticStruct(diag = TRUE)), individual = TRUE)[[1]]
   } else if(object$family$family$family == "gaussian") {
-    null_m = stats::dnorm( object$data$Y, 0, 1.0, log = TRUE)
+    object1 = object
+    object1$settings$iter = 20L
+    null_m = -logLik(update(object1, env_formula = ~1, spatial_formula = NULL, biotic = bioticStruct(diag = TRUE)), individual = TRUE)[[1]]
   }
     
   return(null_m)

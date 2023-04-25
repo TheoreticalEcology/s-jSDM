@@ -134,4 +134,34 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
   })
   
 
+  
+  testthat::test_that("McFadden Rsquared", {
+    testthat::skip_on_cran()
+    testthat::skip_on_ci()
+    skip_if_no_torch()
+    ## Binomial ##
+    X = runif(100)
+    Y = rbinom(100, 1, plogis(2*X))
+    gl1 = stats::glm(Y~X, family = binomial("logit"))
+    gl2 = stats::glm(Y~1, family = binomial("logit"))
+    R0 = 1 - stats::logLik(gl1)/stats::logLik(gl2)
+    m = sjSDM(matrix(Y, ncol = 1L), data.frame(X = X), biotic = bioticStruct(diag = TRUE),sampling = 500L, family = binomial("logit"))
+    R1 = mean(replicate(500, {Rsquared(m)}))
+    
+    testthat::expect_true(abs(R0 - R1) < 0.03)
+    
+    ## Poisson ##
+    X = runif(500)
+    Y = rpois(500, exp(5*X))
+    gl1 = stats::glm(Y~X, family = poisson)
+    gl2 = stats::glm(Y~1, family = poisson)
+    R0 = 1 - stats::logLik(gl1)/stats::logLik(gl2)
+    m = sjSDM(matrix(Y, ncol = 1L), linear(data.frame(X = X), ~1+X), 
+              biotic = bioticStruct(diag = TRUE),
+              learning_rate = 0.1,sampling = 10L, family = poisson(), control = sjSDMControl(RMSprop(weight_decay = 0.0)))
+    R1 = mean(replicate(500, {Rsquared(m)}))
+    testthat::expect_true(abs(R0 - R1) < 0.08)
+    
+  })
+  
 
