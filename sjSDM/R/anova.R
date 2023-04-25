@@ -226,8 +226,6 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
 get_null_ll = function(object) {
   
   object1 = object
-  object1$settings$iter = 50L
-  object1$settings$learning_rate = 0.02
   
   if(inherits(object, "spatial ")) null_pred = predict(update(object1, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE)))
   else null_pred = predict(update(object1, env_formula = ~1, biotic = bioticStruct(diag = TRUE)))
