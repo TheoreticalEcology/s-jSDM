@@ -220,29 +220,37 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
     S = 0
   }
-  return(list(A = A, B = B, S = S, R2 = A+B+S))
+  return(list(A = A, B = B, S = S, R2 = R2objt$Full))
 }
 
 get_null_ll = function(object) {
   
-  object1 = object
+  object_tmp = object
+  object_tmp$settings$se = FALSE
   
-  if(inherits(object, "spatial ")) null_pred = predict(update(object1, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE)))
-  else null_pred = predict(update(object1, env_formula = ~1, biotic = bioticStruct(diag = TRUE)))
+  if(inherits(object, "spatial ")) null_pred = predict(update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE)))
+  else null_pred = predict(update(object_tmp, env_formula = ~1, biotic = bioticStruct(diag = TRUE)))
   
   if(object$family$family$family == "binomial") {
     null_m = stats::dbinom( object$data$Y, 1, null_pred, log = TRUE)
   } else if(object$family$family$family == "poisson") {
     null_m = stats::dpois( object$data$Y, null_pred, log = TRUE)
   } else if(object$family$family$family == "nbinom") {
-    object1 = object
-    object1$settings$iter = 20L
-    null_m = -logLik(update(object1, env_formula = ~1, spatial_formula = NULL, biotic = bioticStruct(diag = TRUE)), individual = TRUE)[[1]]
+    check_module()
+    torch = pkg.env$torch
+    theta = object$theta
+    theta = 1.0/(softplus(theta)+0.0001)
+    theta = matrix(theta, nrow = nrow(null_pred), ncol = ncol(null_pred), byrow = TRUE)
+    probs = (1.0 - theta/(theta+null_pred))+0.0001 
+    probs = ifelse(probs < 0.0, 0.0, probs)
+    probs = ifelse(probs > 1.0, 1.0-0.0001, probs )
+    theta = torch$tensor(theta, dtype = torch$float32)
+    probs = torch$tensor(probs, dtype = torch$float32)
+    YT = torch$tensor(object$data$Y, dtype = torch$float32)
+    null_m = force_r(torch$distributions$NegativeBinomial(total_count=theta, probs=probs)$log_prob(YT)$cpu()$data$numpy())
   } else if(object$family$family$family == "gaussian") {
-    object1 = object
-    object1$settings$iter = 0L
-    object1$settings$learning_rate = 0.05
-    null_m = -logLik(update(object1, env_formula = ~1, spatial_formula = NULL, biotic = bioticStruct(diag = TRUE)), individual = TRUE)[[1]]
+    warning("family = gaussian() is not fully supported yet.")
+    null_m = stats::dnorm(object$data$Y, mean = null_pred, log = TRUE)
   }
     
   return(null_m)
