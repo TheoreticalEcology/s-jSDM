@@ -224,11 +224,25 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
 }
 
 get_null_ll = function(object) {
-  object1 = object
-  object1$settings$iter = 50L
-  object1$settings$learning_rate = 0.05
+  
   if(inherits(object, "spatial ")) null_m = -logLik(update(object1, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE)), individual = TRUE)[[1]]
-  else null_m = -logLik(update(object1, env_formula = ~1, biotic = bioticStruct(diag = TRUE)), individual = TRUE)[[1]]
+  else null_pred = update(object1, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE))
+  
+  if(object$family$family$family == "binomial") {
+    null_m = stats::dbinom( object$data$Y, 1, null_pred, log = TRUE)
+  } else if(object$family$family$family == "poisson") {
+    null_m = stats::dpois( object$data$Y, null_pred, log = TRUE)
+  } else if(object$family$family$family == "nbinom") {
+    object1 = object
+    object1$settings$iter = 20L
+    null_m = -logLik(update(object1, env_formula = ~1, spatial_formula = NULL, biotic = bioticStruct(diag = TRUE)), individual = TRUE)[[1]]
+  } else if(object$family$family$family == "gaussian") {
+    object1 = object
+    object1$settings$iter = 0L
+    object1$settings$learning_rate = 0.05
+    null_m = -logLik(update(object1, env_formula = ~1, spatial_formula = NULL, biotic = bioticStruct(diag = TRUE)), individual = TRUE)[[1]]
+  }
+    
   return(null_m)
 }
 
