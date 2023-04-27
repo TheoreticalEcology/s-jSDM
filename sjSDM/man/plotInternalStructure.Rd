@@ -7,7 +7,7 @@
 plotInternalStructure(
   object,
   Rsquared = c("McFadden", "Nagelkerke"),
-  add_shared = TRUE,
+  add_shared = FALSE,
   env_deviance = NULL,
   suppress_plotting = FALSE
 )

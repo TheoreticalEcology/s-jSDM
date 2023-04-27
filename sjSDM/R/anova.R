@@ -8,10 +8,9 @@
 #' 
 #' @description
 #' 
-#' Calculate type II anova.
+#' Calculates type II anova.
 #' 
-#' 
-#' Shared contributions (e.g. between space and environment) are also calculated and can be visualized via \code{\link{plot.sjSDManova}}.
+#' Shared contributions (e.g. between space and environment) are also calculated (and divided proportionally) and can be optionally visualized via \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
 #' 
 #' @return 
 #' An S3 class of type 'sjSDManova' including the following components:
@@ -299,7 +298,7 @@ print.sjSDManova = function(x, ...) {
 #' @export
 plotInternalStructure = function(object,  
                                  Rsquared = c("McFadden", "Nagelkerke"), 
-                                 add_shared = TRUE,
+                                 add_shared = FALSE,
                                  env_deviance = NULL,
                                  suppress_plotting = FALSE) {
   Rsquared = match.arg(Rsquared)
