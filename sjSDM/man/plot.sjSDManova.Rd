@@ -7,9 +7,9 @@
 \method{plot}{sjSDManova}(
   x,
   y,
-  type = c("Deviance", "McFadden", "Nagelkerke"),
+  type = c("McFadden", "Deviance", "Nagelkerke"),
   internal = FALSE,
-  add_shared = TRUE,
+  add_shared = FALSE,
   cols = c("#7FC97F", "#BEAED4", "#FDC086"),
   alpha = 0.15,
   env_deviance = NULL,
