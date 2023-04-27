@@ -153,7 +153,7 @@ def MVP_logLik(Y, X, sigma, device, dtype, batch_size=25, alpha = 1.0, sampling=
         y = y.to(device, non_blocking=True)
         pred = pred.to(device, non_blocking=True)
         noise = torch.randn(size = [sampling, pred.shape[0], sigma.shape[1]], device=torch.device(device), dtype=dtype)
-        E = link_func( torch.tensordot(noise, sigma.t(), dims = 1).add(pred).mul(alpha) ).mul(0.999999).add(0.0000005)
+        E = link_func( torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(pred).mul(alpha) ).mul(0.999999).add(0.0000005)
         if link in ["probit", "linear", "logit"] : 
             logprob = E.log().mul(y).add((1.0 - E).log().mul(1.0 - y)).neg().sum(dim = 2).neg()
         elif link == "count":
@@ -166,7 +166,7 @@ def MVP_logLik(Y, X, sigma, device, dtype, batch_size=25, alpha = 1.0, sampling=
         maxlogprob = logprob.max(dim = 0).values
         Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
         loss = Eprob.log().neg().sub(maxlogprob)
-        logLik.append(loss.data)
+        logLik.append(loss.reshape([pred.shape[0], 1]).data)
     if individual is not True:
         logLik = torch.cat(logLik).sum().data.cpu().numpy()
     else:

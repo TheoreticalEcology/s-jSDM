@@ -170,3 +170,7 @@ check_installation = function() {
 }
 
 
+zero_like = function(M) {
+  return(matrix(0.0, nrow(M), ncol(M)))
+}
+
