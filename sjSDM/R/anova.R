@@ -141,6 +141,9 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind)
   R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites)
   
+  R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
+  R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
+  
   to_print = results
   rownames(to_print) = to_print$models
   to_print = to_print[anova_rows,]
@@ -165,6 +168,12 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   out$lls = list(results_ind)
   class(out) = "sjSDManova"
   return(out)
+}
+
+correct_R2 = function(R2) {
+  R2 = ifelse(R2 < 0, 0, R2)
+  R2 = ifelse(R2 > 1.000, 0, R2)
+  return(R2)
 }
 
 get_conditional_lls = function(m, null_m, ...) {
@@ -218,9 +227,7 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
     S = 0
   }
-  R2 = R2objt$Full
-  R2 = ifelse(R2 < 0, 0, R2)
-  R2 = ifelse(R2 > 1.000, 0, R2)
+  R2 = correct_R2(R2objt$Full)
   return(list(F_A = A, F_B = B, F_S = S, R2 = R2))
 }
 
