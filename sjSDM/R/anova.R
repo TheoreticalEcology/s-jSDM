@@ -69,7 +69,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     names(anova_rows) = c("Null", "Abiotic", "Biotic", "Full")
     results = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m)  + sum(F_B), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
-    results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m +F_B), "F_AB"=-(null_m + F_AB), "Full"=-full_m, "Saturated"=-SAT_m, "Null"=-null_m)
+    results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m +F_B), "F_AB"=-(null_m + F_AB), "A" = -A_m, "B" = -B_m, "Full"=-full_m, "Saturated"=-SAT_m, "Null"=-null_m)
     
   } else {
     out$spatial = TRUE
@@ -105,14 +105,13 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     F_AS = full_wo - B_wo - F_A - F_S
     F_AB = full_wo - S_wo - F_A - F_B
     F_BS = full_wo - A_wo - F_S - F_B
-    F_ABS = full_wo - F_BS - F_AB- F_AS- F_A- F_B - F_S    
-    
+    F_ABS = full_wo - F_BS - F_AB- F_AS- F_A- F_B - F_S        
     results = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m) + sum(F_B),sum(null_m) + sum(F_S), 
                                  sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
                                  sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m + F_B),"F_S"=-(null_m +F_S), "F_AB"=-(null_m +F_AB),"F_AS"=-(null_m + F_AS), 
-                       "F_BS"=-(null_m + F_BS), "F_ABS"=-(null_m + F_ABS), 
+                       "F_BS"=-(null_m + F_BS), "F_ABS"=-(null_m + F_ABS), "A" = -A_m, "B" = -B_m, "S" = -S_m, AB = AB_m, AS = AS_m, BS = BS_m,
                        "Full"=-(full_m), "Saturated"= -(SAT_m), "Null"=-null_m)
     
     anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
@@ -198,12 +197,12 @@ get_conditional_lls = function(m, null_m, ...) {
 
 get_shared_anova = function(R2objt, spatial = TRUE) {
   if(spatial) {
-    F_BS = R2objt$Full-R2objt$F_A
-    F_AB = R2objt$Full-R2objt$F_S
-    F_AS = R2objt$Full-R2objt$F_B
-    F_A = R2objt$Full- R2objt$F_BS
-    F_B =  R2objt$Full-R2objt$F_AS
-    F_S =  R2objt$Full-R2objt$F_AB
+    F_BS = R2objt$Full-R2objt$A
+    F_AB = R2objt$Full-R2objt$S
+    F_AS = R2objt$Full-R2objt$B
+    F_A = R2objt$Full- R2objt$BS
+    F_B =  R2objt$Full-R2objt$AS
+    F_S =  R2objt$Full-R2objt$AB
     F_BS = F_BS - F_B -F_S
     F_AB = F_AB - F_A -F_B
     F_AS = F_AS - F_A -F_S
@@ -212,14 +211,17 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
     S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
   } else {
-    F_A = R2objt$Full-R2objt$F_B
-    F_B =  R2objt$Full-R2objt$F_A
+    F_A = R2objt$Full-R2objt$B
+    F_B =  R2objt$Full-R2objt$A
     F_AB = R2objt$Full - F_A -F_B
     A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
     S = 0
   }
-  return(list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full))
+  R2 = R2objt$Full
+  R2 = ifelse(R2 < 0, 0, R2)
+  R2 = ifelse(R2 > 1.000, 0, R2)
+  return(list(F_A = A, F_B = B, F_S = S, R2 = R2))
 }
 
 get_null_ll = function(object) {
