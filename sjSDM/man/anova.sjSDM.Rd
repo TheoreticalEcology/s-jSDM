@@ -30,6 +30,7 @@ Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.s
 Calculates type II anova.
 
 Shared contributions (e.g. between space and environment) are also calculated (and divided proportionally) and can be optionally visualized via \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
+The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
 }
 \details{
 Compute analysis of variance

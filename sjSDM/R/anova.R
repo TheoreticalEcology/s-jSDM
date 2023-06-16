@@ -11,6 +11,7 @@
 #' Calculates type II anova.
 #' 
 #' Shared contributions (e.g. between space and environment) are also calculated (and divided proportionally) and can be optionally visualized via \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
+#' The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
 #' 
 #' @return 
 #' An S3 class of type 'sjSDManova' including the following components:
@@ -41,7 +42,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   
   object$settings$se = FALSE
   
-  null_m = -get_null_ll(object)
+  null_m = -get_null_ll(object, ...)
   
   full_m = get_conditional_lls(object, null_m, sampling = samples, ...)
   
@@ -197,7 +198,7 @@ get_conditional_lls = function(m, null_m, ...) {
                               )
         ) 
     })
-  raw_conditional_ll = ( joint_ll - raw_ll )
+  raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
   diff_ll = colSums(null_m - raw_conditional_ll)
   rates = diff_ll/sum(diff_ll)
   rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(m$data$Y), ncol = ncol(m$data$Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
@@ -231,7 +232,7 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
   return(list(F_A = A, F_B = B, F_S = S, R2 = R2))
 }
 
-get_null_ll = function(object) {
+get_null_ll = function(object, ...) {
   
   object_tmp = object
   object_tmp$settings$se = FALSE
@@ -486,7 +487,7 @@ plot.sjSDManova = function(x,
         
         r2max = ceiling(max(internals[[i]]$r2)*1e2)/1e2
         plt = 
-          ggtern::ggtern(internals[[i]], ggplot2::aes_string(x = "env", z = "spa", y = "codist", size = "r2")) +
+          ggtern::ggtern(internals[[i]], ggplot2::aes_string(x = "env", z = "spa", y = "codist", size = "r2"))+
             ggtern::scale_T_continuous(limits=c(0,1),
                                        breaks=seq(0, 1,by=0.2),
                                        labels=seq(0,1, by= 0.2)) +

@@ -1,3 +1,24 @@
+# Version 1.0.5
+### Submission 1, 16/06/2023
+This is a re-submission. The package was taken down from CRAN because a 
+dependency (ggtern) was removed from CRAN. However, the dependency is now back
+on CRAN.
+
+New features: Pass custom test indices to sjSDM function via CV argument, 
+improve reproducibility (seeding), improve stability of ANOVA. Bug fixes: fixed small
+bug in the calculation of the partial Rsquareds.
+
+### Successfull R CMD checks under
+* Locally: MacOS Monterey 13.3.1 (R x86_64 version)
+* Github actions: 
+  - MacOS Catalina 10.15 R-release 
+  - Ubuntu 20.04 R-release, and R-development
+  - Windows-latest R-release
+* Rhub:
+  - fedora, ubuntu
+* Win-builder R-release, R-development, and R-oldrelease
+
+
 ## Version 1.0.4
 ### Submission 1, 30/03/2023
 This is a minor update. Several functions/methods (ANOVA, Rsquared) were 
