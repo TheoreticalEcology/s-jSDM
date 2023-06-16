@@ -7,10 +7,8 @@
 \method{plot}{sjSDMimportance}(
   x,
   y,
-  contour = FALSE,
   col.points = "#24526e",
   cex.points = 1.2,
-  pch = 19,
   col.contour = "#ffbf02",
   ...
 )
@@ -20,15 +18,9 @@
 
 \item{y}{unused argument}
 
-\item{contour}{plot contour or not}
-
 \item{col.points}{point color}
 
 \item{cex.points}{point size}
-
-\item{pch}{point symbol}
-
-\item{col.contour}{contour color}
 
 \item{...}{Additional arguments to pass to \code{plot()}}
 }

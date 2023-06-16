@@ -117,17 +117,14 @@ print.sjSDMimportance= function(x, ...) {
 #' 
 #' @param x a model fitted by \code{\link{importance}}
 #' @param y unused argument
-#' @param contour plot contour or not
 #' @param col.points point color
 #' @param cex.points point size
-#' @param pch point symbol
-#' @param col.contour contour color
 #' @param ... Additional arguments to pass to \code{plot()}
 #' 
 #' @return The visualized matrix is silently returned.
 #' 
 #' @export
-plot.sjSDMimportance= function(x, y,contour=FALSE,col.points="#24526e",cex.points=1.2,pch=19,
+plot.sjSDMimportance= function(x, y, col.points="#24526e",cex.points=1.2,
                            col.contour="#ffbf02", ...) {
   
   oldpar = par(no.readonly = TRUE)
@@ -137,12 +134,46 @@ plot.sjSDMimportance= function(x, y,contour=FALSE,col.points="#24526e",cex.point
   else data = data.frame(sp = x$sp_names, x$res$total)
   
   if(ncol(data) > 3) {
-    Ternary::TernaryPlot(grid.lines = 2, 
-                         axis.labels = seq(0, 1, by = 0.5), 
-                         alab = 'Environmental', blab = 'Spatial', clab = 'Biotic',
-                         grid.col = "grey")
-    if(contour) Ternary::TernaryDensityContour(data[,2:4], resolution = 10L, col=col.contour)
-    Ternary::TernaryPoints(data[,2:4], col = col.points, pch = pch, cex=cex.points)
+    
+    x = as.data.frame(do.call(cbind, x$res$total))
+    
+    plt = 
+      ggtern::ggtern(x, ggplot2::aes_string(x = "env", z = "spatial", y = "biotic"))+
+      ggtern::scale_T_continuous(limits=c(0,1),
+                                 breaks=seq(0, 1,by=0.2),
+                                 labels=seq(0,1, by= 0.2)) +
+      ggtern::scale_L_continuous(limits=c(0,1),
+                                 breaks=seq(0, 1,by=0.2),
+                                 labels=seq(0, 1,by=0.2)) +
+      ggtern::scale_R_continuous(limits=c(0,1),
+                                 breaks=seq(0, 1,by=0.2),
+                                 labels=seq(0, 1,by=0.2)) +
+      ggplot2::geom_point(color = col.points, size = cex.points) + 
+      ggplot2::labs(x = "E",
+                    xarrow = "Environment",
+                    y = "C",
+                    yarrow = "Species associations",
+                    z = "S", 
+                    zarrow = "Space") +
+      ggtern::theme_bw() +
+      ggtern::theme_showarrows() +
+      ggtern::theme_arrowlong() +
+      ggplot2::theme(
+        panel.grid = ggplot2::element_line(color = "darkgrey", size = 0.3),
+        plot.tag = ggplot2::element_text(size = 11),
+        plot.title = ggplot2::element_text(size = 11, hjust = 0.1 , margin = ggplot2::margin(t = 10, b = -20)),
+        tern.axis.arrow = ggplot2::element_line(size = 1),
+        tern.axis.arrow.text = ggplot2::element_text(size = 6),
+        axis.text = ggplot2::element_text(size = 4),
+        axis.title = ggplot2::element_text(size = 6),
+        legend.text = ggplot2::element_text(size = 6),
+        legend.title = ggplot2::element_text(size = 8),
+        strip.text = ggplot2::element_text(size = 8),
+        #plot.margin = unit(c(top,1,1,1)*0.2, "cm"),
+        strip.background = ggplot2::element_rect(color = NA),
+      ) 
+    plt
+    
   } else {
     graphics::barplot(t(data[,2:3]), las = 2, names.arg=data$sp)
   }
