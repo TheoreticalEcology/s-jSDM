@@ -8,6 +8,8 @@ New features: Pass custom test indices to sjSDM function via CV argument,
 improve reproducibility (seeding), improve stability of ANOVA. Bug fixes: fixed small
 bug in the calculation of the partial Rsquareds.
 
+Thank you.
+
 ### Successfull R CMD checks under
 * Locally: MacOS Monterey 13.3.1 (R x86_64 version)
 * Github actions: 
@@ -17,6 +19,41 @@ bug in the calculation of the partial Rsquareds.
 * Rhub:
   - fedora, ubuntu
 * Win-builder R-release, R-development, and R-oldrelease
+
+
+Notes from win-builder:
+
+Found the following (possibly) invalid URLs:
+  URL: https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687
+    From: README.md
+    Status: 403
+    Message: Forbidden
+
+Found the following (possibly) invalid URLs:
+  URL: https://doi.org/10.1111/2041-210X.13687
+    From: README.md
+    Status: 503
+    Message: Service Unavailable
+
+Found the following (possibly) invalid DOIs:
+  DOI: 10.1111/2041-210X.13687
+    From: DESCRIPTION
+          inst/CITATION
+    Status: Service Unavailable
+    Message: 503
+
+URL and DOI are correct.
+
+Possibly mis-spelled words in DESCRIPTION:
+  GPUs (20:271)
+  Hartig (20:320)
+  Pichler (20:310)
+  Scalable (3:8)
+  jSDMs (20:79, 20:565)
+  scalable (20:16)
+
+The spelling is intended.
+
 
 
 ## Version 1.0.4

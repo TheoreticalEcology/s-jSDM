@@ -124,8 +124,7 @@ print.sjSDMimportance= function(x, ...) {
 #' @return The visualized matrix is silently returned.
 #' 
 #' @export
-plot.sjSDMimportance= function(x, y, col.points="#24526e",cex.points=1.2,
-                           col.contour="#ffbf02", ...) {
+plot.sjSDMimportance= function(x, y, col.points="#24526e",cex.points=1.2, ...) {
   
   oldpar = par(no.readonly = TRUE)
   on.exit(par(oldpar))

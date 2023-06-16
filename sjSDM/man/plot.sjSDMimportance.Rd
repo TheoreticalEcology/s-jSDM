@@ -4,14 +4,7 @@
 \alias{plot.sjSDMimportance}
 \title{Plot importance}
 \usage{
-\method{plot}{sjSDMimportance}(
-  x,
-  y,
-  col.points = "#24526e",
-  cex.points = 1.2,
-  col.contour = "#ffbf02",
-  ...
-)
+\method{plot}{sjSDMimportance}(x, y, col.points = "#24526e", cex.points = 1.2, ...)
 }
 \arguments{
 \item{x}{a model fitted by \code{\link{importance}}}
