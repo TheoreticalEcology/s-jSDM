@@ -1,4 +1,31 @@
 # Version 1.0.5
+### Submission 2, 16/06/2023
+Feedback from CRAN Team:
+ Found the following (possibly) invalid URLs:
+   URL: https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687
+     From: README.md
+     Status: 403
+     Message: Forbidden
+Yan you rather use
+https://www.doi.org/10.1111/2041-210X.13687
+
+   URL: https://www.anaconda.com/products/distribution (moved to https://www.anaconda.com/download)
+     From: man/installation_help.Rd
+           inst/doc/Dependencies.html
+     Status: 301
+     Message: Moved Permanently
+
+Please change http --> https, add trailing slashes, 
+or follow moved content as appropriate.
+Please fix and resubmit.
+
+Response:
+- Changed publication links to doi
+- Updated anaconda links
+- Changed http to https
+
+Thank you!
+
 ### Submission 1, 16/06/2023
 This is a re-submission. The package was taken down from CRAN because a 
 dependency (ggtern) was removed from CRAN. However, the dependency is now back

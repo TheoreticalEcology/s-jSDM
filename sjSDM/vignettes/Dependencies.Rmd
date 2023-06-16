@@ -41,7 +41,7 @@ do not know conda):
 Sometimes the automatic 'miniconda' installation (via 
 `r knitr::inline_expr('sjSDM::install_sjSDM()')` ).doesn't work because of white spaces in the user's name. But you can easily download and install 'conda' on your own:
 
-Download and install the latest ['conda' version](https://www.anaconda.com/products/distribution)
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
 
 Afterwards run:
 ```{r,eval=FALSE, purl=FALSE}
@@ -57,7 +57,7 @@ Reload the package and run the example, if this doesn't work:
   
 ## Windows - manual installation:
  
-Download and install the latest ['conda' version](https://www.anaconda.com/products/distribution)
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
 
 Open the command window (cmd.exe - hit windows key + r and write cmd)
 
@@ -96,7 +96,7 @@ Restart R try to run the example, if this doesn't work:
  
 We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
 
-Download and install the latest ['conda' version](https://www.anaconda.com/products/distribution)
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
 
 Open your terminal and run:
 ```{bash, eval=FALSE, purl=FALSE}
@@ -132,7 +132,7 @@ Restart R try to run the example, if this doesn't work:
  
 We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
 
-Download and install the latest conda [conda version](https://www.anaconda.com/products/distribution)
+Download and install the latest conda [conda version](https://www.anaconda.com/download/)
 
 Open your terminal and run:
 ```{bash, eval=FALSE, purl=FALSE}

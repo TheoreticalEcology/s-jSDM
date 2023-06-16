@@ -30,7 +30,7 @@
 #' your own:
 #' 
 #' Download and install the latest 
-#' \href{https://www.anaconda.com/products/distribution}{'conda' version}
+#' \href{https://www.anaconda.com/download/}{'conda' version}
 #' 
 #' Afterwards run:\cr
 #' \code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
@@ -47,7 +47,7 @@
 #' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/products/distribution}{'conda' version}
+#' \href{https://www.anaconda.com/download/}{'conda' version}
 #' \item Open the command window (cmd.exe - hit windows key + r and write cmd)
 #' }
 #' Run in cmd.exe:\cr
@@ -88,7 +88,7 @@
 #' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/products/distribution}{'conda' version}
+#' \href{https://www.anaconda.com/download/}{'conda' version}
 #' \item Open your terminal 
 #' }
 #' 
@@ -125,7 +125,7 @@
 #' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/products/distribution}{'conda' version}
+#' \href{https://www.anaconda.com/download/}{'conda' version}
 #' \item Open your terminal 
 #' }
 #' 
@@ -145,7 +145,7 @@
 #' @section Help and bugs:
 #' 
 #' To report bugs or ask for help, post a 
-#' \href{https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example}{reproducible example} 
-#' via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} 
+#' \href{https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example/}{reproducible example} 
+#' via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues/}{issue tracker} 
 #' with a copy of the \code{\link{install_diagnostic}} output as a quote. 
 NULL

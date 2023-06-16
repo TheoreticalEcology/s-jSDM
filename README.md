@@ -3,12 +3,12 @@
 
 [![Project Status: Active – The project has reached a stable, usable
 state and is being actively
-developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
+developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![License: GPL
 v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/sjSDM)](https://cran.r-project.org/package=sjSDM)
+[![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/sjSDM)](https://cran.r-project.org/package=sjSDM)
 ![R-CMD-check](https://github.com/TheoreticalEcology/s-jSDM/workflows/R-CMD-check/badge.svg?branch=master)
-[![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13687)
+[![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://www.doi.org/10.1111/2041-210X.13687)
 
 # s-jSDM - Fast and accurate Joint Species Distribution Modeling
 
