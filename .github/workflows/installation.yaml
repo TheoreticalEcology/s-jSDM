@@ -55,6 +55,10 @@ jobs:
           TINYTEX_INSTALLER: TinyTeX
           TINYTEX_VERSION: '2023.03'
           
+      - name: TinyTex2 for Windows
+        if: runner.os == 'Windows'
+        uses: teatimeguest/setup-texlive-action@v2
+          
       - name: Install makeindex
         run: |
           tlmgr install makeindex
