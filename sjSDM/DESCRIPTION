@@ -44,7 +44,9 @@ Imports:
 Suggests:
     testthat,
     knitr,
-    rmarkdown
+    rmarkdown,
+    iml,
+    fields
 RoxygenNote: 7.2.3
 URL: https://theoreticalecology.github.io/s-jSDM/
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues

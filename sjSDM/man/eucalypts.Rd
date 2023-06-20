@@ -13,13 +13,13 @@ A 'list': List of 3.
 }
 }
 \source{
-\url{https://doi.org/10.1111/2041-210x.12180}
+\doi{10.1111/2041-210x.12180}
 }
 \usage{
 eucalypts
 }
 \description{
-This data set comes from \url{https://doi.org/10.1111/2041-210x.12180} and is about Eucalypt communities
+This data set comes from \doi{10.1111/2041-210x.12180} and is about Eucalypt communities
 }
 \details{
 This is a dataset about butterfly communities. It consists of 458 sites and 12 species.

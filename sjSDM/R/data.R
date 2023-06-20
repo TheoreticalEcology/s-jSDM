@@ -1,6 +1,6 @@
 #' butterflies
 #'
-#' This data set comes from \url{https://doi.org/10.1111/2041-210X.13106} and is about butterfly communities
+#' This data set comes from \doi{10.1111/2041-210X.13106} and is about butterfly communities
 #'
 #' @details This is a dataset about butterfly communities. It consists of 2609 sites and 55 species.
 #'
@@ -11,14 +11,14 @@
 #'  \item{lat_lon}{Coordinates for the sites}
 #' }
 #' @author Maximilian Pichler
-#' @source \url{https://doi.org/10.1111/2041-210X.13106}
+#' @source \doi{10.1111/2041-210X.13106}
 #' @example inst/examples/butterflies-example.R
 "butterflies"
 
 
 #' eucalypts
 #'
-#' This data set comes from \url{https://doi.org/10.1111/2041-210x.12180} and is about Eucalypt communities
+#' This data set comes from \doi{10.1111/2041-210x.12180} and is about Eucalypt communities
 #'
 #' @details This is a dataset about butterfly communities. It consists of 458 sites and 12 species.
 #'
@@ -29,6 +29,6 @@
 #'  \item{lat_lon}{Coordinates for the sites}
 #' }
 #' @author Maximilian Pichler
-#' @source \url{https://doi.org/10.1111/2041-210x.12180}
+#' @source \doi{10.1111/2041-210x.12180}
 #' @example inst/examples/eucalypts-example.R
 "eucalypts"
