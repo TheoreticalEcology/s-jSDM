@@ -20,7 +20,7 @@ or follow moved content as appropriate.
 Please fix and resubmit.
 
 Response:
-- Changed publication links to doi
+- Changed publication link to doi
 - Updated anaconda links
 - Changed http to https
 
