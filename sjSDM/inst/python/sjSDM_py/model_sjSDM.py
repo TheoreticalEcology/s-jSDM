@@ -707,7 +707,7 @@ class Model_sjSDM:
                         hessian_out = hessian
                     else:
                         hessian_out += hessian
-                se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out+0.0001))).data.cpu().numpy())
+                se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out+0.001))).data.cpu().numpy())
             return se                
         else:
             for i in sp_bar:
@@ -736,7 +736,7 @@ class Model_sjSDM:
                         hessian_out = hessian
                     else:
                         hessian_out += hessian
-                se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out+0.0001))).data.cpu().numpy())
+                se.append(torch.sqrt(torch.diag(torch.inverse(hessian_out+0.001))).data.cpu().numpy())
             return se
 
     def _build_cov_constrain_function(self, 
