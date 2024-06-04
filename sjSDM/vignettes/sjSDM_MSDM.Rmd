@@ -31,7 +31,7 @@ knitr::opts_chunk$set(
 
 ## Connection between JSDM and MSDM
 
-JSDMs are essentially MSDMs, but with the addition of the co-occurrence component. The basic idea of JSDMs is to connect individual GLMs, e.g. by a multivariate distributed error. The idea of MSDMs, actually a more modern view of MSDMs, is that a model should directly predict all species, which we can achieve for example by using a deep neural network:
+JSDMs are multi-species distribution models (MSDM), but with a co-occurrence component. The basic idea of JSDMs is to connect individual GLMs, for example by a multivariate distributed error. MSDMs and JSDMs model and predict all species jointly. The underlying model could be a lm/glm (as in most JSDMs) or a Deep Neural Network (DNN), often used in MSDMs:
 
 ![](MSDM_DNN.png){width="70%"}
 

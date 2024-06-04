@@ -1,10 +1,10 @@
-## ---- echo = F, message = F---------------------------------------------------
+## ----echo = F, message = F----------------------------------------------------
 set.seed(123)
 
 ## ----global_options, include=FALSE--------------------------------------------
 knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = FALSE)
 
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = ""
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 #  PA = eucalypts$PA
 #  head(PA)
 
-## ----  eval = TRUE,echo = FALSE, results = TRUE-------------------------------
+## ----eval = TRUE,echo = FALSE, results = TRUE---------------------------------
 cat("
      ALA ARE BAX CAM GON MEL OBL OVA WIL ALP VIM ARO.SAB
 [1,]   0   0   0   0   0   0   0   0   1   1   0       0
@@ -27,19 +27,19 @@ cat("
 [6,]   0   0   0   0   0   0   0   0   1   1   0       0"
 )
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  dnn = sjSDM(Y = PA,
 #              env = DNN(scale(Env), hidden = c(20L, 20L)),
 #              biotic = bioticStruct(diag = TRUE))
 
-## ----  eval = TRUE,echo = FALSE, results = TRUE-------------------------------
+## ----eval = TRUE,echo = FALSE, results = TRUE---------------------------------
 cat("Iter: 100/100 100%|██████████| [00:03, 27.17it/s, loss=2.642]"
 )
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  summary(dnn)
 
-## ----  eval = TRUE,echo = FALSE, results = TRUE-------------------------------
+## ----eval = TRUE,echo = FALSE, results = TRUE---------------------------------
 cat("
 Family:  binomial 
 
@@ -81,14 +81,14 @@ Weights :	 800
 #                   env = DNN(scale(Env), hidden = c(20L, 20L)),
 #                   biotic = bioticStruct(diag = FALSE))
 
-## ----  eval = TRUE,echo = FALSE, results = TRUE-------------------------------
+## ----eval = TRUE,echo = FALSE, results = TRUE---------------------------------
 cat("Iter: 100/100 100%|██████████| [00:03, 30.99it/s, loss=2.427]"
 )
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  summary(jsdm_dnn)
 
-## ----  eval = TRUE,echo = FALSE, results = TRUE-------------------------------
+## ----eval = TRUE,echo = FALSE, results = TRUE---------------------------------
 cat("
 Family:  binomial 
 
@@ -124,11 +124,11 @@ Weights :	 800
     "
 )
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  association = getCor(jsdm_dnn)
 #  fields::image.plot(association)
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  predict_wrapper = function(model, newdata) predict(model, newdata = newdata)[,1]
 #  
 #  library(iml)
@@ -139,6 +139,6 @@ Weights :	 800
 #                  predict.function = predict_wrapper
 #                  ) # First species
 
-## ---- eval = FALSE------------------------------------------------------------
+## ----eval = FALSE-------------------------------------------------------------
 #  plot(FeatureEffect$new(predictor, feature = "Rockiness"))
 

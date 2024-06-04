@@ -1,6 +1,7 @@
 # sjSDM 1.0.6
 ## New features
 * Datasets: butterflies and eucalypts
+* Conditional predictions
 
 # sjSDM 1.0.5
 ## New features

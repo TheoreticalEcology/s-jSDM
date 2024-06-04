@@ -8,6 +8,7 @@
   object,
   newdata = NULL,
   SP = NULL,
+  Y = NULL,
   type = c("link", "raw"),
   dropout = FALSE,
   ...
@@ -19,6 +20,8 @@
 \item{newdata}{newdata for predictions}
 
 \item{SP}{spatial predictors (e.g. X and Y coordinates)}
+
+\item{Y}{Known occurrences of species, must be a matrix of the original size, species to be predicted must consist of NAs}
 
 \item{type}{raw or link}
 

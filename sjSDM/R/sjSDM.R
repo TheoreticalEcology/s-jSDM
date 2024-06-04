@@ -342,6 +342,7 @@ print.sjSDM = function(x, ...) {
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param newdata newdata for predictions
 #' @param SP spatial predictors (e.g. X and Y coordinates)
+#' @param Y Known occurrences of species, must be a matrix of the original size, species to be predicted must consist of NAs
 #' @param type raw or link
 #' @param dropout use dropout for predictions or not, only supported for DNNs
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
@@ -350,12 +351,17 @@ print.sjSDM = function(x, ...) {
 #' 
 #' @import checkmate
 #' @export
-predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "raw"), dropout = FALSE,...) {
+predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("link", "raw"), dropout = FALSE,...) {
   object = checkModel(object)
   
   assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata) )
   assert( checkNull(SP), checkMatrix(newdata), checkDataFrame(newdata) )
   qassert( dropout, "B1")
+  
+  if(!is.null(Y)) {
+    if(object$family$link == "count") warning("Conditional predictions are available for binomial response only")
+    type = "raw"
+  }
   
   if(inherits(object, "spatial")) assert_class(object, "spatial")
   
@@ -363,6 +369,8 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
   
   if(type == "raw") link = FALSE
   else link = TRUE
+  
+
   
   if(inherits(object, "spatial")) {
     
@@ -385,7 +393,6 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
       
     }
     pred = force_r(object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, ...))
-    return(pred)
     
     
   } else {
@@ -400,9 +407,56 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, type = c("link", "ra
       }
     }
     pred = force_r(object$model$predict(newdata = newdata, link=link, dropout = dropout, ...))
-    return(pred)
-    
   }
+  
+  if(!is.null(Y)) {
+    predictions = pred
+    to_predict = which(apply(Y,2,  function(i) any(is.na(i))))
+    focal = which(apply(Y,2,  function(i) any(!is.na(i))))
+    Y_copy = matrix(NA, nrow(Y), length(to_predict))
+    counter = 1
+    for(K in to_predict) {
+      joint_ll = reticulate::py_to_r(
+        pkg.env$fa$MVP_logLik(cbind(1, Y[, focal]), 
+                              predictions[,c(K, focal)], 
+                              reticulate::py_to_r(object$model$get_sigma)[c(K, focal),],
+                              device = object$model$device,
+                              individual = TRUE,
+                              dtype = object$model$dtype,
+                              batch_size = as.integer(object$settings$step_size),
+                              alpha = object$model$alpha,
+                              link = object$family$link,
+                              theta = object$theta[c(K, focal)], ...
+        )
+      )
+      raw_ll = 
+        reticulate::py_to_r(
+          pkg.env$fa$MVP_logLik(Y[,focal], 
+                                predictions[,focal], 
+                                reticulate::py_to_r(object$model$get_sigma)[focal,],
+                                device = object$model$device,
+                                individual = TRUE,
+                                dtype = object$model$dtype,
+                                batch_size = as.integer(object$settings$step_size),
+                                alpha = object$model$alpha,
+                                link = object$family$link,
+                                theta = object$theta[focal], ...
+          )
+        ) 
+      raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
+      pred_prob = exp(-raw_conditional_ll)
+      pred_prob[pred_prob> 1] = 1.0
+      pred_prob[pred_prob<0] = 0
+      Y_copy[,counter] = pred_prob
+      counter = counter + 1
+      
+    }
+    
+    pred = Y_copy
+  }
+  
+  
+  return(pred)
 }
 
 

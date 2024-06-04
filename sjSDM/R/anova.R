@@ -23,6 +23,7 @@
 #' \item{species}{individual species R2s.}
 #' \item{sites}{individual site R2s.}
 #' \item{lls}{individual site by species negative-log-likelihood values.}
+#' \item{model}{model}
 #' 
 #' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 #'  
@@ -167,6 +168,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
                    R2_Nagelkerke_shared = R2_Nagelkerke_sites_shared,
                    R2_McFadden_shared = R2_McFadden_sites_shared)
   out$lls = list(results_ind)
+  out$object = object
   class(out) = "sjSDManova"
   return(out)
 }
@@ -317,9 +319,192 @@ plotInternalStructure = function(object,
                     internal = TRUE, 
                     add_shared = add_shared,
                     type = Rsquared, 
-                    alpha = alpha,
+                    alpha = 0.15,
                     env_deviance = env_deviance,
                     suppress_plotting = suppress_plotting)
+  return(invisible(out))
+}
+
+
+get_eigen = function(X, double_center = TRUE, full = FALSE) {
+  D = as.matrix(dist(scale(X)))
+  if(double_center) D = D - (diag(0.0, ncol(D)) + rowMeans(D)) - t(diag(0.0, ncol(D)) + colMeans(D)) + mean(D) # Double center
+  eig = eigen(D)
+  if(!full)return(abs(eig$vectors[,which.max(abs(eig$values))]))
+  else {
+    return(list(x = eig$vectors))
+  }
+}
+
+
+#' Correlations between assembly processes and predictors or traits
+#' 
+#' @param object anova object from \code{\link{anova.sjSDM}}
+#' @param env predictor, if null, assembly processes is plotted against env and spatial uniqueness, and richness
+#' @param trait trait, plotted against species R2 for the three processes
+#' @param Rsquared which R squared should be used, McFadden or Nagelkerke (McFadden is default)
+#' @param cols colors for the three assembly processes
+#' 
+#' Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R2 (shown in the internal structure plots). Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R2 and traits are plotted against species R2.
+#' 
+#' Regression lines are estimated by 50% quantile regression models.
+#' 
+#' @return 
+#' 
+#' List with the following components:
+#' 
+#' 
+#' \item{env}{list of summary tables for env, space, and codist R2}
+#' \item{space}{list of summary tables for env, space, and codist R2}
+#' \item{codist}{list of summary tables for env, space, and codist R2}
+#' 
+#' 
+#' @references 
+#' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
+#' 
+#' @export
+plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("McFadden", "Nagelkerke"), cols = c("#A38310", "#B42398", "#20A382")) {
+  Rsquared = match.arg(Rsquared)
+  out = 
+    sjSDM:::plot.sjSDManova(x = object, 
+                    internal = TRUE, 
+                    add_shared = add_shared,
+                    type = Rsquared, 
+                    env_deviance = env_deviance,
+                    suppress_plotting = TRUE)
+  
+  
+  lwd = 2
+  
+  X = object$object$settings$env$X
+  XYcoords = object$object$settings$spatial$X
+  Y = object$object$data$Y
+  rr = out
+  out = list()
+  
+  
+  if(is.null(env) & is.null(trait)) {
+  
+    graphics::par(mfrow = c(1, 3), mar = c(4, 4, 4, 1), xaxt= "s")
+    env_eigen = get_eigen(scale(X), FALSE)
+    spatial_eigen = get_eigen(scale(XYcoords),FALSE)
+    richness = rowSums(Y)
+    
+    env_eigen_centered = scale(env_eigen, center = TRUE, scale = FALSE)
+    spatial_eigen_centered = scale(spatial_eigen, center = TRUE, scale = FALSE)
+    richness_centered = scale(richness, center = TRUE, scale = FALSE)
+    
+    
+    out$env = list()
+    out$space = list()
+    out$codist = list()
+    
+    graphics::plot(NULL, NULL, xlim = c(min(env_eigen_centered), max(env_eigen_centered)), 
+         ylim = c(0, 0.6), xlab = "Env uniqueness",main = "", ylab = "R2", las =1)
+    for(i in 1:3) {
+      graphics::points(env_eigen_centered, rr$data$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
+      g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
+                data = data.frame(Y = rr$data$Sites[,i], 
+                                  env_eigen_centered = env_eigen_centered, 
+                                  spatial_eigen_centered = spatial_eigen_centered, 
+                                  richness_centered = richness_centered), 
+                qu = 0.5, control = list(progress="none"))
+      out$env[[colnames(rr$data$Sites)[i]]] = g 
+      graphics::abline(a = coef(g)[c(1, 2)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[2,4] > 0.05)+1 )
+      
+    }
+    graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
+    graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
+    
+    graphics::plot(NULL, NULL, xlim = c(min(spatial_eigen_centered), max(spatial_eigen_centered)), ylim = c(0, 0.6), xlab = "Spatial uniqueness",main = "", ylab = "R2", las =1)
+    for(i in 1:3) {
+      graphics::points(spatial_eigen_centered, rr$data$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
+      g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
+                data = data.frame(Y = rr$data$Sites[,i], 
+                                  env_eigen_centered = env_eigen_centered, 
+                                  spatial_eigen_centered = spatial_eigen_centered, 
+                                  richness_centered = richness_centered), 
+                qu = 0.5, control = list(progress="none"))
+      out$space[[colnames(rr$data$Sites)[i]]] = g 
+      graphics::abline(a = coef(g)[c(1, 3)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[3,4] > 0.05)+1 )
+      
+    }
+    graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
+    graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
+    
+    
+    graphics::plot(NULL, NULL, xlim = c(min(richness_centered), max(richness_centered)), ylim = c(0, 0.6), xlab = "Richness",main = "", ylab = "R2", las =1)
+    for(i in 1:3) {
+      graphics::points(richness_centered, rr$data$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
+      g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
+                data = data.frame(Y = rr$data$Sites[,i], 
+                                  env_eigen_centered = env_eigen_centered, 
+                                  spatial_eigen_centered = spatial_eigen_centered, 
+                                  richness_centered = richness_centered), 
+                qu = 0.5, control = list(progress="none"))
+      out$codist[[colnames(rr$data$Sites)[i]]] = g 
+      graphics::abline(a = coef(g)[c(1, 4)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[4,4] > 0.05)+1 )
+      
+    }
+    graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
+    graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
+  } else {
+    if(!is.null(env)) {
+      if(is.factor(env) || is.character(env)) {
+        group = env
+        df = data.frame(R2 = c(rr$data$Sites$env, rr$data$Sites$spa, rr$data$Sites$codist),
+                        part = rep(c("env", "spa", "codist"), each = nrow(rr$data$Sites)),
+                        group = rep(group, 3)
+        )
+        b = graphics::boxplot(R2~part+group, data =df,las = 2, col = alpha(cols[c(3, 1, 2)],0.7), xlab = "", main = "", notch = TRUE )
+        b = beeswarm::beeswarm(R2~part+group, data =df,las = 2, col = cols[c(3, 1, 2)], xlab = "", main = "" , add=TRUE, method = "center", spacing = 0.3)
+        graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
+      } else {
+        graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 1), xaxt= "s")
+        pred = scale(env, center = TRUE, scale = FALSE)
+        
+        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(0, 0.6), xlab = "Predictor",main = "", ylab = "R2", las =1)
+        for(i in 1:3) {
+          graphics::points(pred, rr$data$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
+          g = qgam::qgam( Y ~ pred, data = data.frame(Y = rr$data$Sites[,i], pred = pred), qu = 0.5, control = list(progress="none"))
+          graphics::abline(a = coef(g)[c(1, 2)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[2,4] > 0.05)+1 )
+          out$pred[[colnames(rr$data$Sites)[i]]] = g 
+        }
+        graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
+        graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
+      }
+    }
+    
+    if(!is.null(trait)) {
+      if(is.factor(trait) || is.character(trait)) {
+        group = trait
+        df = data.frame(R2 = c(rr$data$Species$env, rr$data$Species$spa, rr$data$Species$codist),
+                        part = rep(c("env", "spa", "codist"), each = nrow(rr$data$Species)),
+                        group = rep(group, 3)
+        )
+        b = graphics::boxplot(R2~part+group, data =df,las = 2, col = alpha(cols[c(3, 1, 2)],0.7), xlab = "", main = "", notch = TRUE )
+        b = beeswarm::beeswarm(R2~part+group, data =df,las = 2, col = cols[c(3, 1, 2)], xlab = "", main = "" , add=TRUE, method = "center", spacing = 0.3)
+        graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
+      } else {
+        graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 1), xaxt= "s")
+        pred = scale(trait, center = TRUE, scale = FALSE)
+        
+        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(0, 0.6), xlab = "Predictor",main = "", ylab = "R2", las =1)
+        for(i in 1:3) {
+          graphics::points(pred, rr$data$Species[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
+          g = qgam::qgam( Y ~ pred, data = data.frame(Y = rr$data$Species[,i], pred = pred), qu = 0.5, control = list(progress="none"))
+          graphics::abline(a = coef(g)[c(1, 2)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[2,4] > 0.05)+1 )
+          out$pred[[colnames(rr$data$Species)[i]]] = g 
+        }
+        graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
+        graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
+      }
+      
+    }
+    
+
+}
+  
   return(invisible(out))
 }
 

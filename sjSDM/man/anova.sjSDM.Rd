@@ -23,6 +23,7 @@ An S3 class of type 'sjSDManova' including the following components:
 \item{species}{individual species R2s.}
 \item{sites}{individual site R2s.}
 \item{lls}{individual site by species negative-log-likelihood values.}
+\item{model}{model}
 
 Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 }

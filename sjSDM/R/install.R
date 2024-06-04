@@ -32,10 +32,6 @@ install_sjSDM = function(conda = "auto",
   # torch will be installed via pip on macOS because of mkl dependencies
   pip = FALSE
   channel = "pytorch"
-  if(is_osx()) {
-    pip = TRUE
-    channel = NULL
-  }
   
   # install dependencies
   error = tryCatch({
@@ -45,7 +41,7 @@ install_sjSDM = function(conda = "auto",
       envname = envname,
       method = "conda",
       conda = "auto",
-      python_version = "3.7.1",
+      python_version = "3.10",
       channel = channel,
       pip = pip
     )
@@ -100,12 +96,12 @@ get_pkgs = function(version="cpu") {
     package$conda =
       switch(version,
              cpu = "pytorch torchvision torchaudio cpuonly",
-             gpu = "pytorch torchvision torchaudio cudatoolkit=11.3")
+             gpu = "pytorch torchvision torchaudio cudatoolkit=11.8 -c nvidia")
    }
 
   if(is_osx()) {
     package = list()
-    package$conda = "torch torchvision torchaudio"
+    package$conda = "pytorch::pytorch torchvision torchaudio"
     if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
   }
   
