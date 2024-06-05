@@ -4,12 +4,14 @@
 \alias{anova.sjSDM}
 \title{Anova}
 \usage{
-\method{anova}{sjSDM}(object, samples = 5000L, ...)
+\method{anova}{sjSDM}(object, samples = 5000L, fractional = c("proportional", "equal"), ...)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
 
 \item{samples}{Number of Monte Carlo samples}
+
+\item{fractional}{how to distribute the shared partitions, proportional to the fractions' R2s or equal}
 
 \item{...}{optional arguments which are passed to the calculation of the logLikelihood}
 }

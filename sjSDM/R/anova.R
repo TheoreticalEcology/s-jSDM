@@ -4,6 +4,7 @@
 #' 
 #' @param object model of object \code{\link{sjSDM}}
 #' @param samples Number of Monte Carlo samples
+#' @param fractional how to distribute the shared partitions, proportional to the fractions' R2s or equal
 #' @param ... optional arguments which are passed to the calculation of the logLikelihood
 #' 
 #' @description
@@ -31,7 +32,7 @@
 #' @import stats
 #' @export
 
-anova.sjSDM = function(object, samples = 5000L, ...) {
+anova.sjSDM = function(object, samples = 5000L, fractional = c("proportional", "equal"), ...) {
   out = list()
   individual = TRUE
   samples = as.integer(samples)
@@ -131,17 +132,19 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   # individual
   Residual_deviance_ind = lapply(results_ind, function(r) r - results_ind$Saturated)
   Deviance_ind = lapply(Residual_deviance_ind, function(r) Residual_deviance_ind$Null - r)
+
   R211 = function(a, b, n=1) return(1-exp(2/(n)*(-a+b)))   # divide by what?
-  R2_Nagelkerke_ind = lapply(results_ind, function(r) R211(colSums(results_ind$Null), colSums(r), n=nrow(object$data$Y)))
-  R2_Nagelkerke_sites = lapply(results_ind, function(r) R211(rowSums(results_ind$Null), rowSums(r), n=ncol(object$data$Y)))
+  R2_Nagelkerke_ind = lapply(results_ind, function(r) R211(-colSums(results_ind$Null), -colSums(r), n=nrow(object$data$Y)))
+  R2_Nagelkerke_sites = lapply(results_ind, function(r) R211(-rowSums(results_ind$Null), -rowSums(r), n=ncol(object$data$Y)))
+  
   R222 = function(a, b) 1 - (b/a)
   R2_McFadden_ind = lapply(results_ind, function(r) R222(colSums(results_ind$Null), colSums(r)))
   R2_McFadden_sites = lapply(results_ind, function(r) R222(rowSums(results_ind$Null), rowSums(r)))
   
-  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind)
-  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites)
-  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind)
-  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites)
+  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind, fractional = fractional)
+  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites, fractional = fractional)
+  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind, fractional = fractional)
+  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites, fractional = fractional)
   
   R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
   R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
@@ -204,24 +207,45 @@ get_conditional_lls = function(m, null_m, ...) {
   diff_ll = colSums(null_m - raw_conditional_ll)
   rates = diff_ll/sum(diff_ll)
   rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(m$data$Y), ncol = ncol(m$data$Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
+  
+  ### Maximal/Minimal 0?
+  rescaled_conditional_lls[rescaled_conditional_lls<0] = 0
+  
   return(rescaled_conditional_lls)
 }
 
-get_shared_anova = function(R2objt, spatial = TRUE) {
+get_shared_anova = function(R2objt, spatial = TRUE, fractional = c("proportional", "equal")) {
+  fractional = match.arg(fractional)
   if(spatial) {
-    F_BS = R2objt$Full-R2objt$A
-    F_AB = R2objt$Full-R2objt$S
-    F_AS = R2objt$Full-R2objt$B
-    F_A = R2objt$Full- R2objt$BS
-    F_B =  R2objt$Full-R2objt$AS
-    F_S =  R2objt$Full-R2objt$AB
-    F_BS = F_BS - F_B -F_S
-    F_AB = F_AB - F_A -F_B
-    F_AS = F_AS - F_A -F_S
-    F_ABS = R2objt$Full - F_BS - F_AB- F_AS- F_A- F_B - F_S
-    A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
-    B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
-    S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    # F_BS = R2objt$Full-R2objt$A
+    # F_AB = R2objt$Full-R2objt$S
+    # F_AS = R2objt$Full-R2objt$B
+    # F_A = R2objt$Full- R2objt$BS
+    # F_B =  R2objt$Full-R2objt$AS
+    # F_S =  R2objt$Full-R2objt$AB
+    # F_BS = R2objt$Full-R2objt$A - F_B -F_S
+    # F_AB = F_AB - F_A -F_B
+    # F_AS = F_AS - F_A -F_S
+    # F_ABS = R2objt$Full - F_BS - F_AB- F_AS- F_A- F_B - F_S
+    # A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+    # B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+    # S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    F_A <- R2objt$Full - R2objt$F_BS
+    F_B <- R2objt$Full - R2objt$F_AB
+    F_S <- R2objt$Full - R2objt$F_AS
+    F_BS <- R2objt$Full - R2objt$F_A - (F_B + F_S)
+    F_AB <- R2objt$Full - R2objt$F_S - (F_A + F_B)
+    F_AS <- R2objt$Full - R2objt$F_B - (F_A + F_S)
+    F_ABS <- R2objt$Full - (F_A + F_B + F_S + F_BS + F_AB + F_AS)
+    if(fractional == "proportional") {
+      A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+      B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+      S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    } else {
+      A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
+      B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+      S = F_S + F_AS*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    }
   } else {
     F_A = R2objt$Full-R2objt$B
     F_B =  R2objt$Full-R2objt$A
@@ -337,30 +361,28 @@ get_eigen = function(X, double_center = TRUE, full = FALSE) {
 }
 
 
-#' Correlations between assembly processes and predictors or traits
+#' Plot Correlations between assembly processes and predictors or traits
+#' @param object An `anova` object from the `anova.sjSDM` function.
+#' @param env Predictor variable. If `NULL`, assembly processes are plotted against environment, spatial uniqueness, and richness.
+#' @param trait Trait variable. Plotted against species R-squared for the three processes.
+#' @param Rsquared Which R-squared should be used: "McFadden" (default) or "Nagelkerke".
+#' @param cols Colors for the three assembly processes.
 #' 
-#' @param object anova object from \code{\link{anova.sjSDM}}
-#' @param env predictor, if null, assembly processes is plotted against env and spatial uniqueness, and richness
-#' @param trait trait, plotted against species R2 for the three processes
-#' @param Rsquared which R squared should be used, McFadden or Nagelkerke (McFadden is default)
-#' @param cols colors for the three assembly processes
+#' Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
 #' 
-#' Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R2 (shown in the internal structure plots). Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R2 and traits are plotted against species R2.
+#' Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.
 #' 
 #' Regression lines are estimated by 50% quantile regression models.
 #' 
-#' @return 
+#' @return
+#' A list with the following components:
+#'
+#' \item{env}{A list of summary tables for env, space, and codist R-squared.}
+#' \item{space}{A list of summary tables for env, space, and codist R-squared.}
+#' \item{codist}{A list of summary tables for env, space, and codist R-squared.}
 #' 
-#' List with the following components:
-#' 
-#' 
-#' \item{env}{list of summary tables for env, space, and codist R2}
-#' \item{space}{list of summary tables for env, space, and codist R2}
-#' \item{codist}{list of summary tables for env, space, and codist R2}
-#' 
-#' 
-#' @references 
-#' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
+#' @references
+#' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. *Oikos*, 2022(1).
 #' 
 #' @export
 plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("McFadden", "Nagelkerke"), cols = c("#A38310", "#B42398", "#20A382")) {

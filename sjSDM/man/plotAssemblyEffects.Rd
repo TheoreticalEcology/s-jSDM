@@ -2,7 +2,7 @@
 % Please edit documentation in R/anova.R
 \name{plotAssemblyEffects}
 \alias{plotAssemblyEffects}
-\title{Correlations between assembly processes and predictors or traits}
+\title{Plot Correlations between assembly processes and predictors or traits}
 \usage{
 plotAssemblyEffects(
   object,
@@ -13,31 +13,32 @@ plotAssemblyEffects(
 )
 }
 \arguments{
-\item{object}{anova object from \code{\link{anova.sjSDM}}}
+\item{object}{An `anova` object from the `anova.sjSDM` function.}
 
-\item{env}{predictor, if null, assembly processes is plotted against env and spatial uniqueness, and richness}
+\item{env}{Predictor variable. If `NULL`, assembly processes are plotted against environment, spatial uniqueness, and richness.}
 
-\item{trait}{trait, plotted against species R2 for the three processes}
+\item{trait}{Trait variable. Plotted against species R-squared for the three processes.}
 
-\item{Rsquared}{which R squared should be used, McFadden or Nagelkerke (McFadden is default)}
+\item{Rsquared}{Which R-squared should be used: "McFadden" (default) or "Nagelkerke".}
 
-\item{cols}{colors for the three assembly processes
+\item{cols}{Colors for the three assembly processes.
 
-Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R2 (shown in the internal structure plots). Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R2 and traits are plotted against species R2.
+Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
+
+Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.
 
 Regression lines are estimated by 50% quantile regression models.}
 }
 \value{
-List with the following components:
+A list with the following components:
 
-
-\item{env}{list of summary tables for env, space, and codist R2}
-\item{space}{list of summary tables for env, space, and codist R2}
-\item{codist}{list of summary tables for env, space, and codist R2}
+\item{env}{A list of summary tables for env, space, and codist R-squared.}
+\item{space}{A list of summary tables for env, space, and codist R-squared.}
+\item{codist}{A list of summary tables for env, space, and codist R-squared.}
 }
 \description{
-Correlations between assembly processes and predictors or traits
+Plot Correlations between assembly processes and predictors or traits
 }
 \references{
-Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
+Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. *Oikos*, 2022(1).
 }
