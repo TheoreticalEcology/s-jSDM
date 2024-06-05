@@ -386,6 +386,10 @@ get_eigen = function(X, double_center = TRUE, full = FALSE) {
 #' 
 #' @export
 plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("McFadden", "Nagelkerke"), cols = c("#A38310", "#B42398", "#20A382")) {
+  
+  oldpar = par(no.readonly = TRUE)
+  on.exit(par(oldpar))
+  
   Rsquared = match.arg(Rsquared)
   out = 
     sjSDM:::plot.sjSDManova(x = object, 
