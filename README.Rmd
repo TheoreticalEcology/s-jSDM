@@ -11,17 +11,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # s-jSDM - Fast and accurate Joint Species Distribution Modeling
 
-## About the method
+## About sjSDM
 
-The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. The code for producing the results in this paper is available under the subfolder publications in this repo.
+The sjSDM package is an R package for estimating so-called joint species distribution models. Statistically, those are GLMMs with a multivariate response and a covariance term that models correlations between the different output dimensions (in the case of an SDM: species). 
 
-The method itself is wrapped into an R package, available under subfolder sjSDM. You can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.7 and pytorch must be installed (more details below).
+A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. 
+
+The core code of sjSDM is implemented in Python / PyTorch, which is then wrapped into an R package. In principle, you can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.7 and pytorch must be installed (more details below). However, for most users, it will be more convenient to use sjSDM via the sjSDM R package, which also provides a large number of downstream functionalities. 
 
 ## Installing the R / Python package
 
-### R-package
-
-Install the package via
+sjSDM is distributed via [CRAN](https://cran.rstudio.com/web/packages/sjSDM/index.html). For most users, it will be best to install the package from CRAN
 
 ```{r,eval=FALSE}
 install.packages("sjSDM")
@@ -34,62 +34,51 @@ sjSDM::install_sjSDM(version = "gpu") # or
 sjSDM::install_sjSDM(version = "cpu")
 ```
 
+For advanced users: if you want to install the current (development) version from this repository, run
+
+```{r,eval=FALSE}
+devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
+```
+
+dependencies should be installed as above:
+
+## Citing sjSDM
+
 To cite sjSDM, please use the following citation:
 
 ```{r,eval=FALSE}
 citation("sjSDM")
 ```
 
-### Development
+## Basic Workflow
 
-If you want to install the current (development) version from this repository, run
-
-```{r,eval=FALSE}
-devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
-```
-
-Once the dependencies are installed, the following code should run:
-
-## Workflow
-
-Simulate a community and fit a sjSDM model:
+Load the package
 
 ```{r}
 library(sjSDM)
+```
+
+Simulate some community data 
+
+```{r}
 set.seed(42)
 community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
 Env <- community$env_weights
 Occ <- community$response
 SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates (no effect on species occurences)
+```
 
+Fit a sjSDM: 
+
+```{r}
 model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=binomial("probit"), sampling = 100L)
 summary(model)
 plot(model)
 ```
 
-We support other distributions:
-
--   Count data with Poisson:
-
-```{r,eval=FALSE}
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=poisson("log"))
-```
-
--   Count data with negative Binomial (which is still experimental, if you run into errors/problems, please let us know):
-
-```{r,eval=FALSE}
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TR, family="nbinom")
-```
-
--   Gaussian (normal):
-
-```{r,eval=FALSE}
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TR, family=gaussian("identity"))
-```
-
 ### Anova
 
-ANOVA can be used to partition the three components (abiotic, biotic, and spatial):
+ANOVA can be used to partition the three model components (abiotic, biotic, and spatial):
 
 ```{r,fig.height=7, fig.width=6.3}
 an = anova(model)

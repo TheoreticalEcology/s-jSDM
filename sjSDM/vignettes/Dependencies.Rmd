@@ -7,8 +7,8 @@ output:
     toc: true
     toc_depth: 3
 vignette: >
-  %\VignetteIndexEntry{sjSDM: Help with the installation of dependencies}
   \usepackage[utf8]{inputenc}
+  %\VignetteIndexEntry{sjSDM: Help with the installation of dependencies}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "This document explains how to install dependencies for the sjSDM package. \n \n \n"
 editor_options: 

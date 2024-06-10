@@ -3,12 +3,11 @@ title: "sjSDM: Getting started with sjSDM - a scalable joint Species Distributio
 author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
 date: "`r Sys.Date()`"
 output: 
-
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model}
   %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood. \n \n \n"
 editor_options: 

@@ -4,7 +4,7 @@
 #' 
 #' @param object model of object \code{\link{sjSDM}}
 #' @param samples Number of Monte Carlo samples
-#' @param fractional how to distribute the shared partitions, proportional to the fractions' R2s or equal
+#' @param fractions how to distribute the shared partitions, proportional to the fractions' R2s or equal
 #' @param ... optional arguments which are passed to the calculation of the logLikelihood
 #' 
 #' @description
@@ -29,10 +29,13 @@
 #' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 #'  
 #' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}, \code{\link{plotInternalStructure}}
+#' 
+#' @example /inst/examples/anova-example.R
+#' 
 #' @import stats
 #' @export
 
-anova.sjSDM = function(object, samples = 5000L, fractional = c("proportional", "equal"), ...) {
+anova.sjSDM = function(object, samples = 5000L, ...) {
   out = list()
   individual = TRUE
   samples = as.integer(samples)
@@ -141,10 +144,10 @@ anova.sjSDM = function(object, samples = 5000L, fractional = c("proportional", "
   R2_McFadden_ind = lapply(results_ind, function(r) R222(colSums(results_ind$Null), colSums(r)))
   R2_McFadden_sites = lapply(results_ind, function(r) R222(rowSums(results_ind$Null), rowSums(r)))
   
-  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind, fractional = fractional)
-  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites, fractional = fractional)
-  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind, fractional = fractional)
-  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites, fractional = fractional)
+  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind, fractions = fractions)
+  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites, fractions = fractions)
+  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind, fractions = fractions)
+  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites, fractions = fractions)
   
   R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
   R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
@@ -214,8 +217,8 @@ get_conditional_lls = function(m, null_m, ...) {
   return(rescaled_conditional_lls)
 }
 
-get_shared_anova = function(R2objt, spatial = TRUE, fractional = c("proportional", "equal")) {
-  fractional = match.arg(fractional)
+get_shared_anova = function(R2objt, spatial = TRUE, fractions = c("proportional", "equal")) {
+  fractions = match.arg(fractions)
   if(spatial) {
     # F_BS = R2objt$Full-R2objt$A
     # F_AB = R2objt$Full-R2objt$S
@@ -237,7 +240,7 @@ get_shared_anova = function(R2objt, spatial = TRUE, fractional = c("proportional
     F_AB <- R2objt$Full - R2objt$F_S - (F_A + F_B)
     F_AS <- R2objt$Full - R2objt$F_B - (F_A + F_S)
     F_ABS <- R2objt$Full - (F_A + F_B + F_S + F_BS + F_AB + F_AS)
-    if(fractional == "proportional") {
+    if(fractions == "proportional") {
       A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
       B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
       S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
@@ -302,7 +305,7 @@ get_null_ll = function(object, ...) {
 #' 
 #' 
 #' @export
-print.sjSDManova = function(x, ...) {
+print.sjSDManova = function(x, type = c("I", "II"), fractions = c("discard", "proportional", "equal"), ...) {
   cat("Analysis of Deviance Table\n\n")
   stats::printCoefmat(x$to_print)
   return(invisible(x$to_print))
@@ -334,7 +337,8 @@ print.sjSDManova = function(x, ...) {
 #' @export
 plotInternalStructure = function(object,  
                                  Rsquared = c("McFadden", "Nagelkerke"), 
-                                 add_shared = FALSE,
+                                 type = c("I", "II"), 
+                                 fractions = c("discard", "proportional", "equal"),
                                  env_deviance = NULL,
                                  suppress_plotting = FALSE) {
   Rsquared = match.arg(Rsquared)

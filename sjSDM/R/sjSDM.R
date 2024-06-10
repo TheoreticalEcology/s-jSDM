@@ -69,7 +69,7 @@
 #' 
 #' \subsection{Supported distributions}{
 #' 
-#' Currently supported distributions and link functions:
+#' Currently supported distributions and link functions, which are :
 #' \itemize{
 #' \item \code{\link{binomial}}: \code{"probit"} or \code{"logit"}
 #' \item \code{\link{poisson}}: \code{"log"} 
@@ -348,6 +348,8 @@ print.sjSDM = function(x, ...) {
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' 
 #' @return Matrix of predictions (sites by species)
+#' 
+#' @example /inst/examples/predict-example.R
 #' 
 #' @import checkmate
 #' @export
