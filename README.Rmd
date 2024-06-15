@@ -13,13 +13,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## About sjSDM
 
-The sjSDM package is an R package for estimating so-called joint species distribution models. Statistically, those are GLMMs with a multivariate response and a covariance term that models correlations between the different output dimensions (in the case of an SDM: species). 
+The sjSDM package is an R package for estimating so-called joint species distribution models. A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to the environment, space and a covariance term that models conditional (on the other terms) correlations between the outputs (i.e. species). 
+
+![image](sjSDM/vignettes/jSDM-structure.png)
 
 A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. 
 
 The core code of sjSDM is implemented in Python / PyTorch, which is then wrapped into an R package. In principle, you can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.7 and pytorch must be installed (more details below). However, for most users, it will be more convenient to use sjSDM via the sjSDM R package, which also provides a large number of downstream functionalities. 
 
-## Installing the R / Python package
+To get citation info for sjSDM when you use it for your reseach, type  
+
+```{r,eval=FALSE}
+citation("sjSDM")
+```
+
+## Installing the R package
 
 sjSDM is distributed via [CRAN](https://cran.rstudio.com/web/packages/sjSDM/index.html). For most users, it will be best to install the package from CRAN
 
@@ -40,21 +48,17 @@ For advanced users: if you want to install the current (development) version fro
 devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
 ```
 
-dependencies should be installed as above:
+dependencies should be installed as above. If the installation fails, check out the help of ?install_sjSDM, ?installation_help, and vignette("Dependencies", package = "sjSDM").
 
-## Citing sjSDM
-
-To cite sjSDM, please use the following citation:
-
-```{r,eval=FALSE}
-citation("sjSDM")
-```
+1.  Try install_sjSDM()
+2.  New session, if no 'PyTorch not found' appears it should work, otherwise see ?installation_help
+3.  If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
 
 ## Basic Workflow
 
 Load the package
 
-```{r}
+```{r, message = F}
 library(sjSDM)
 ```
 
@@ -68,17 +72,34 @@ Occ <- community$response
 SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates (no effect on species occurences)
 ```
 
-Fit a sjSDM: 
+This fits the standard SDM with environmental, spatial and covariance terms 
 
 ```{r}
 model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=binomial("probit"), sampling = 100L)
 summary(model)
+```
+
+We can also plot the niche estimates, i.e the estimates in the environmental component
+
+```{r, echo=F}
 plot(model)
 ```
 
-### Anova
+We can also visualize the species-species association matrix
 
-ANOVA can be used to partition the three model components (abiotic, biotic, and spatial):
+```{r}
+image(getCor(model))
+```
+
+
+## Anova / Variation partitioning
+
+### Global ANOVA
+
+As in other models, it can be interesting to analyze how much variation is explained by which parts of hte model. 
+
+![image](sjSDM/vignettes/jSDM-ANOVA.png)
+For the Env, Spatial, Covariance terms, this is implemented in 
 
 ```{r,fig.height=7, fig.width=6.3}
 an = anova(model)
@@ -102,15 +123,9 @@ The plot function returns the results for the internal metacommunity structure:
 print(results$data$Species)
 ```
 
-## Installation trouble shooting
+## Python Package
 
-If the installation fails, check out the help of ?install_sjSDM, ?installation_help, and vignette("Dependencies", package = "sjSDM").
-
-1.  Try install_sjSDM()
-2.  New session, if no 'PyTorch not found' appears it should work, otherwise see ?installation_help
-3.  If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
-
-### Python Package
+If you want to use sjSDM from python (as said, not encouraged because all help and downstream functions are in R), install via 
 
 ```{bash,eval=FALSE}
 pip install sjSDM_py
