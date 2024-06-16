@@ -9,25 +9,26 @@ plotAssemblyEffects(
   env = NULL,
   trait = NULL,
   Rsquared = c("McFadden", "Nagelkerke"),
+  fractions = c("discard", "proportional", "equal"),
   cols = c("#A38310", "#B42398", "#20A382")
 )
 }
 \arguments{
-\item{object}{An `anova` object from the `anova.sjSDM` function.}
+\item{object}{An \code{sjSDManova} object from the \code{\link{anova.sjSDM}} function.}
 
-\item{env}{Predictor variable. If `NULL`, assembly processes are plotted against environment, spatial uniqueness, and richness.}
+\item{env}{Predictor variable. If \code{NULL}, assembly processes are plotted against environment, spatial uniqueness, and richness.}
 
 \item{trait}{Trait variable. Plotted against species R-squared for the three processes.}
 
 \item{Rsquared}{Which R-squared should be used: "McFadden" (default) or "Nagelkerke".}
 
+\item{fractions}{how to handle shared fractions}
+
 \item{cols}{Colors for the three assembly processes.
 
 Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
-
 Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.
-
-Regression lines are estimated by 50% quantile regression models.}
+Regression lines are estimated by 50\% quantile regression models.}
 }
 \value{
 A list with the following components:

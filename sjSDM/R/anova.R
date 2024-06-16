@@ -4,7 +4,6 @@
 #' 
 #' @param object model of object \code{\link{sjSDM}}
 #' @param samples Number of Monte Carlo samples
-#' @param fractions how to distribute the shared partitions, proportional to the fractions' R2s or equal
 #' @param ... optional arguments which are passed to the calculation of the logLikelihood
 #' 
 #' @description
@@ -73,8 +72,22 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
 
     anova_rows = c("Null", "F_A", "F_B", "Full")
     names(anova_rows) = c("Null", "Abiotic", "Biotic", "Full")
-    results = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
+    
+    results_discard = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m)  + sum(F_B), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
+    F_AA = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
+    F_BB = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
+
+    results_proportional = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
+                                 ll = -c(sum(null_m) + sum(F_AA), sum(null_m)  + sum(F_BB), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
+    
+    F_AA = F_A + F_AB*0.5
+    F_BB = F_B + F_AB*0.5
+    
+    results_equal = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
+                                 ll = -c(sum(null_m) + sum(F_AA), sum(null_m)  + sum(F_BB), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
+    
+    
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m +F_B), "F_AB"=-(null_m + F_AB), "A" = -A_m, "B" = -B_m, "Full"=-full_m, "Saturated"=-SAT_m, "Null"=-null_m)
     
   } else {
@@ -111,11 +124,35 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     F_AS = full_wo - B_wo - F_A - F_S
     F_AB = full_wo - S_wo - F_A - F_B
     F_BS = full_wo - A_wo - F_S - F_B
-    F_ABS = full_wo - F_BS - F_AB- F_AS- F_A- F_B - F_S        
-    results = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
+    F_ABS = full_wo - F_BS - F_AB- F_AS- F_A- F_B - F_S
+    
+    ## discard
+    
+    results_discard = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m) + sum(F_B),sum(null_m) + sum(F_S), 
                                  sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
                                  sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
+    ## proportional
+    F_AA = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+    F_BB = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+    F_SS = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    results_proportional = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
+                                     ll = -c(sum(null_m) + sum(F_AA, na.rm = TRUE), sum(null_m) + sum(F_BB, na.rm = TRUE),sum(null_m) + sum(F_SS, na.rm = TRUE), 
+                                           sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
+                                          sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
+
+
+    
+    ## equal
+    F_AA = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
+    F_BB = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    F_SS = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    
+    results_equal = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
+                                      ll = -c(sum(null_m) + sum(F_AA), sum(null_m) + sum(F_BB),sum(null_m) + sum(F_SS), 
+                                              sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
+                                              sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
+    
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m + F_B),"F_S"=-(null_m +F_S), "F_AB"=-(null_m +F_AB),"F_AS"=-(null_m + F_AS), 
                        "F_BS"=-(null_m + F_BS), "F_ABS"=-(null_m + F_ABS), "A" = -A_m, "B" = -B_m, "S" = -S_m, AB = AB_m, AS = AS_m, BS = BS_m,
                        "Full"=-(full_m), "Saturated"= -(SAT_m), "Null"=-null_m)
@@ -123,14 +160,19 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
     names(anova_rows) = c("Null", "Abiotic", "Biotic", "Spatial", "Full")
   }
-  
-  results$`Residual deviance` = -2*(results$ll - results$ll[which(results$models == "Saturated", arr.ind = TRUE)])
-  
-  results$Deviance = results$`Residual deviance`[which(results$models == "Null", arr.ind = TRUE)] - results$`Residual deviance`
-  R21 = function(a, b) return(1-exp(2/(nrow(object$data$Y))*(-a+b)))
-  results$`R2 Nagelkerke` = R21(rep(-results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), - results$ll)
-  R22 = function(a, b) 1 - (b/a)
-  results$`R2 McFadden`= R22(rep(results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), results$ll)
+  results = 
+    lapply(list(results_discard, results_proportional, results_equal), function(res) {
+      
+      res$`Residual deviance` = -2*(res$ll - res$ll[which(res$models == "Saturated", arr.ind = TRUE)])
+      
+      res$Deviance = res$`Residual deviance`[which(res$models == "Null", arr.ind = TRUE)] - res$`Residual deviance`
+      R21 = function(a, b) return(1-exp(2/(nrow(object$data$Y))*(-a+b)))
+      res$`R2 Nagelkerke` = R21(rep(-res$ll[which(res$models == "Null", arr.ind = TRUE)], length(res$ll)), - res$ll)
+      R22 = function(a, b) 1 - (b/a)
+      res$`R2 McFadden`= R22(rep(res$ll[which(res$models == "Null", arr.ind = TRUE)], length(res$ll)), res$ll)
+      return(res)
+    
+    })
   
   # individual
   Residual_deviance_ind = lapply(results_ind, function(r) r - results_ind$Saturated)
@@ -144,23 +186,28 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   R2_McFadden_ind = lapply(results_ind, function(r) R222(colSums(results_ind$Null), colSums(r)))
   R2_McFadden_sites = lapply(results_ind, function(r) R222(rowSums(results_ind$Null), rowSums(r)))
   
-  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind, fractions = fractions)
-  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites, fractions = fractions)
-  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind, fractions = fractions)
-  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites, fractions = fractions)
+  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind)
+  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites)
+  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind)
+  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites)
   
   R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
   R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
   
-  to_print = results
-  rownames(to_print) = to_print$models
-  to_print = to_print[anova_rows,]
-  to_print$models = names(anova_rows)
-  to_print = to_print[-1,c(1, 4, 3,5,6)]
-  rownames(to_print) = to_print$models
-  to_print = to_print[,-1]
+  results_print = 
+    lapply(results, function(res) {
+      to_print = res
+      rownames(to_print) = to_print$models
+      to_print = to_print[anova_rows,]
+      to_print$models = names(anova_rows)
+      to_print = to_print[-1,c(1, 4, 3,5,6)]
+      rownames(to_print) = to_print$models
+      to_print = to_print[,-1]
+      return(to_print)
+    })
+  
   out$results = results
-  out$to_print = to_print
+  out$to_print = list(discard = results_print[[1]], proportional = results_print[[2]], equal = results_print[[3]]) # TODO
   out$N = nrow(object$data$Y)
   out$species = list(Residual_deviance = Residual_deviance_ind,
                      Deviance = Deviance_ind,
@@ -217,22 +264,8 @@ get_conditional_lls = function(m, null_m, ...) {
   return(rescaled_conditional_lls)
 }
 
-get_shared_anova = function(R2objt, spatial = TRUE, fractions = c("proportional", "equal")) {
-  fractions = match.arg(fractions)
+get_shared_anova = function(R2objt, spatial = TRUE) {
   if(spatial) {
-    # F_BS = R2objt$Full-R2objt$A
-    # F_AB = R2objt$Full-R2objt$S
-    # F_AS = R2objt$Full-R2objt$B
-    # F_A = R2objt$Full- R2objt$BS
-    # F_B =  R2objt$Full-R2objt$AS
-    # F_S =  R2objt$Full-R2objt$AB
-    # F_BS = R2objt$Full-R2objt$A - F_B -F_S
-    # F_AB = F_AB - F_A -F_B
-    # F_AS = F_AS - F_A -F_S
-    # F_ABS = R2objt$Full - F_BS - F_AB- F_AS- F_A- F_B - F_S
-    # A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
-    # B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
-    # S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
     F_A <- R2objt$Full - R2objt$F_BS
     F_B <- R2objt$Full - R2objt$F_AB
     F_S <- R2objt$Full - R2objt$F_AS
@@ -240,15 +273,15 @@ get_shared_anova = function(R2objt, spatial = TRUE, fractions = c("proportional"
     F_AB <- R2objt$Full - R2objt$F_S - (F_A + F_B)
     F_AS <- R2objt$Full - R2objt$F_B - (F_A + F_S)
     F_ABS <- R2objt$Full - (F_A + F_B + F_S + F_BS + F_AB + F_AS)
-    if(fractions == "proportional") {
-      A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
-      B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
-      S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
-    } else {
-      A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
-      B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
-      S = F_S + F_AS*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
-    }
+    A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+    B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+    S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    R2 = correct_R2(R2objt$Full)
+    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2)
+    A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
+    B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    S = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    equal = list(F_A = A, F_B = B, F_S = S, R2 = R2)
   } else {
     F_A = R2objt$Full-R2objt$B
     F_B =  R2objt$Full-R2objt$A
@@ -256,9 +289,13 @@ get_shared_anova = function(R2objt, spatial = TRUE, fractions = c("proportional"
     A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
     S = 0
+    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2)
+    A = F_A + F_AB*0.5
+    B = F_B + F_AB*0.5
+    S = 0
+    equal = list(F_A = A, F_B = B, F_S = S, R2 = R2)
   }
-  R2 = correct_R2(R2objt$Full)
-  return(list(F_A = A, F_B = B, F_S = S, R2 = R2))
+  return(list(proportional = proportional, equal = equal))
 }
 
 get_null_ll = function(object, ...) {
@@ -299,23 +336,33 @@ get_null_ll = function(object, ...) {
 #' Print sjSDM anova
 #' 
 #' @param x an object of \code{\link{anova.sjSDM}}
+#' @param fractions how to handle the shared fractions
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' 
 #' @return The above matrix is silently returned
 #' 
 #' 
 #' @export
-print.sjSDManova = function(x, type = c("I", "II"), fractions = c("discard", "proportional", "equal"), ...) {
+print.sjSDManova = function(x, fractions = c("discard", "proportional", "equal"), ...) {
   cat("Analysis of Deviance Table\n\n")
-  stats::printCoefmat(x$to_print)
-  return(invisible(x$to_print))
+  fractions = match.arg(fractions)
+  if(fractions == "discard") {
+    stats::printCoefmat(x$to_print[[1]])
+    return(invisible(x$to_print[[1]]))
+  } else if (fractions == "proportional") {
+    stats::printCoefmat(x$to_print[[2]])
+    return(invisible(x$to_print[[2]]))
+  } else {
+    stats::printCoefmat(x$to_print[[3]])
+    return(invisible(x$to_print[[3]]))
+  }
 }
 
 #' Plot internal metacommunity structure
 #' 
 #' @param object anova object from \code{\link{anova.sjSDM}}
 #' @param Rsquared which R squared should be used, McFadden or Nagelkerke (McFadden is default)
-#' @param add_shared split shared components, default is TRUE 
+#' @param fractions how to handle shared fractions
 #' @param env_deviance environmental deviance
 #' @param suppress_plotting should the plots be suppressed or not.
 #' 
@@ -337,15 +384,15 @@ print.sjSDManova = function(x, type = c("I", "II"), fractions = c("discard", "pr
 #' @export
 plotInternalStructure = function(object,  
                                  Rsquared = c("McFadden", "Nagelkerke"), 
-                                 type = c("I", "II"), 
                                  fractions = c("discard", "proportional", "equal"),
                                  env_deviance = NULL,
                                  suppress_plotting = FALSE) {
+  fractions = match.arg(fractions)
   Rsquared = match.arg(Rsquared)
   out = 
     plot.sjSDManova(x = object, 
                     internal = TRUE, 
-                    add_shared = add_shared,
+                    fractions = fractions,
                     type = Rsquared, 
                     alpha = 0.15,
                     env_deviance = env_deviance,
@@ -366,19 +413,20 @@ get_eigen = function(X, double_center = TRUE, full = FALSE) {
 
 
 #' Plot Correlations between assembly processes and predictors or traits
-#' @param object An `anova` object from the `anova.sjSDM` function.
-#' @param env Predictor variable. If `NULL`, assembly processes are plotted against environment, spatial uniqueness, and richness.
+#' 
+#' @param object An \code{sjSDManova} object from the \code{\link{anova.sjSDM}} function.
+#' @param env Predictor variable. If \code{NULL}, assembly processes are plotted against environment, spatial uniqueness, and richness.
 #' @param trait Trait variable. Plotted against species R-squared for the three processes.
 #' @param Rsquared Which R-squared should be used: "McFadden" (default) or "Nagelkerke".
+#' @param fractions how to handle shared fractions
 #' @param cols Colors for the three assembly processes.
 #' 
 #' Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
-#' 
 #' Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.
-#' 
-#' Regression lines are estimated by 50% quantile regression models.
+#' Regression lines are estimated by 50\% quantile regression models.
 #' 
 #' @return
+#' 
 #' A list with the following components:
 #'
 #' \item{env}{A list of summary tables for env, space, and codist R-squared.}
@@ -386,21 +434,23 @@ get_eigen = function(X, double_center = TRUE, full = FALSE) {
 #' \item{codist}{A list of summary tables for env, space, and codist R-squared.}
 #' 
 #' @references
+#' 
 #' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. *Oikos*, 2022(1).
 #' 
 #' @export
-plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("McFadden", "Nagelkerke"), cols = c("#A38310", "#B42398", "#20A382")) {
+plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("McFadden", "Nagelkerke"), fractions = c("discard", "proportional", "equal"), cols = c("#A38310", "#B42398", "#20A382")) {
   
   oldpar = par(no.readonly = TRUE)
   on.exit(par(oldpar))
   
+  fractions = match.arg(fractions)
+  
   Rsquared = match.arg(Rsquared)
   out = 
-    sjSDM:::plot.sjSDManova(x = object, 
+    plot.sjSDManova(x = object, 
                     internal = TRUE, 
-                    add_shared = add_shared,
+                    fractions = fractions,
                     type = Rsquared, 
-                    env_deviance = env_deviance,
                     suppress_plotting = TRUE)
   
   
@@ -546,7 +596,7 @@ plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("M
 #' @param y unused argument
 #' @param type deviance, Nagelkerke or McFadden R-squared
 #' @param internal logical, plot internal or total structure
-#' @param add_shared Add shared contributions when plotting the internal structure
+#' @param fractions how to handle shared fractions
 #' @param cols colors for the groups
 #' @param alpha alpha for colors
 #' @param env_deviance environmental deviance
@@ -575,12 +625,15 @@ plot.sjSDManova = function(x,
                            y, 
                            type = c( "McFadden", "Deviance", "Nagelkerke"), 
                            internal = FALSE,
-                           add_shared = FALSE,
+                           fractions = c("discard", "proportional", "equal"),
                            cols = c("#7FC97F","#BEAED4","#FDC086"),
                            alpha=0.15, 
                            env_deviance = NULL,
                            suppress_plotting = FALSE,
                            ...) {
+  
+  fractions = match.arg(fractions)
+  
   lineSeq = 0.3
   nseg = 100
   dr = 1.0
@@ -597,7 +650,7 @@ plot.sjSDManova = function(x,
   
   if(!internal) {
     
-    values = x$results
+    values = x$results[[1]]
     values$`R2 Nagelkerke` = ifelse(values$`R2 Nagelkerke`<0, 0, values$`R2 Nagelkerke`)
     values$`R2 McFadden` = ifelse(values$`R2 McFadden`<0, 0, values$`R2 McFadden`)
     select_rows = 
@@ -646,7 +699,7 @@ plot.sjSDManova = function(x,
     }
     internals = list()
     
-    if(!add_shared) {
+    if(fractions == "discard") {
       df = data.frame(
           env = ifelse(x$sites[[type]]$F_A<0, 0, x$sites[[type]]$F_A),
           spa = ifelse(x$sites[[type]]$F_S<0, 0, x$sites[[type]]$F_S),
@@ -667,21 +720,43 @@ plot.sjSDManova = function(x,
       names(internals)[2] = "Species"
     } else {
       type = paste0(type, "_shared")
-      df = data.frame(
-        env = ifelse(x$sites[[type]]$F_A<0, 0, x$sites[[type]]$F_A),
-        spa = ifelse(x$sites[[type]]$F_S<0, 0, x$sites[[type]]$F_S),
-        codist = ifelse(x$sites[[type]]$F_B<0, 0, x$sites[[type]]$F_B),
-        r2  = ifelse(x$sites[[type]]$R2<0, 0, x$sites[[type]]$R2)#/length(x$sites[[type]]$R2)
-      )
-      internals[[1]] = df
-      names(internals)[1] = "Sites"
+      if(fractions == "proportional") {
       
-      df = data.frame(
-        env = ifelse(x$species[[type]]$F_A<0, 0, x$species[[type]]$F_A),
-        spa = ifelse(x$species[[type]]$F_S<0, 0, x$species[[type]]$F_S),
-        codist = ifelse(x$species[[type]]$F_B<0, 0, x$species[[type]]$F_B),
-        r2  = ifelse(x$species[[type]]$R2<0, 0, x$species[[type]]$R2)#/length(x$species[[type]]$R2)
-      )
+        df = data.frame(
+          env = ifelse(x$sites[[type]]$proportional$F_A<0, 0, x$sites[[type]]$proportional$F_A),
+          spa = ifelse(x$sites[[type]]$proportional$F_S<0, 0, x$sites[[type]]$proportional$F_S),
+          codist = ifelse(x$sites[[type]]$proportional$F_B<0, 0, x$sites[[type]]$proportional$F_B),
+          r2  = ifelse(x$sites[[type]]$proportional$R2<0, 0, x$sites[[type]]$proportional$R2)#/length(x$sites[[type]]$R2)
+        )
+        internals[[1]] = df
+        names(internals)[1] = "Sites"
+        
+        df = data.frame(
+          env = ifelse(x$species[[type]]$proportional$F_A<0, 0, x$species[[type]]$proportional$F_A),
+          spa = ifelse(x$species[[type]]$proportional$F_S<0, 0, x$species[[type]]$proportional$F_S),
+          codist = ifelse(x$species[[type]]$proportional$F_B<0, 0, x$species[[type]]$proportional$F_B),
+          r2  = ifelse(x$species[[type]]$proportional$R2<0, 0, x$species[[type]]$proportional$R2)#/length(x$species[[type]]$R2)
+        )
+      
+      } else {
+ 
+        df = data.frame(
+          env = ifelse(x$sites[[type]]$equal$F_A<0, 0, x$sites[[type]]$equal$F_A),
+          spa = ifelse(x$sites[[type]]$equal$F_S<0, 0, x$sites[[type]]$equal$F_S),
+          codist = ifelse(x$sites[[type]]$equal$F_B<0, 0, x$sites[[type]]$equal$F_B),
+          r2  = ifelse(x$sites[[type]]$equal$R2<0, 0, x$sites[[type]]$equal$R2)#/length(x$sites[[type]]$R2)
+        )
+        internals[[1]] = df
+        names(internals)[1] = "Sites"
+        
+        df = data.frame(
+          env = ifelse(x$species[[type]]$equal$F_A<0, 0, x$species[[type]]$equal$F_A),
+          spa = ifelse(x$species[[type]]$equal$F_S<0, 0, x$species[[type]]$equal$F_S),
+          codist = ifelse(x$species[[type]]$equal$F_B<0, 0, x$species[[type]]$equal$F_B),
+          r2  = ifelse(x$species[[type]]$equal$R2<0, 0, x$species[[type]]$equal$R2)#/length(x$species[[type]]$R2)
+        )
+        
+      }
       
       internals[[2]] = df
       names(internals)[2] = "Species"

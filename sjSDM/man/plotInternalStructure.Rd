@@ -7,7 +7,8 @@
 plotInternalStructure(
   object,
   Rsquared = c("McFadden", "Nagelkerke"),
-  add_shared = FALSE,
+  type = c("I", "II"),
+  fractions = c("discard", "proportional", "equal"),
   env_deviance = NULL,
   suppress_plotting = FALSE
 )
@@ -17,7 +18,7 @@ plotInternalStructure(
 
 \item{Rsquared}{which R squared should be used, McFadden or Nagelkerke (McFadden is default)}
 
-\item{add_shared}{split shared components, default is TRUE}
+\item{fractions}{how to handle shared fractions}
 
 \item{env_deviance}{environmental deviance}
 

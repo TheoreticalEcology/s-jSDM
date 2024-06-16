@@ -2,6 +2,7 @@
 % Please edit documentation in R/installation_help.R
 \docType{package}
 \name{installation_help}
+\alias{sjSDM-package}
 \alias{installation_help}
 \title{Installation help}
 \description{
@@ -163,3 +164,25 @@ via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues/}{issue 
 with a copy of the \code{\link{install_diagnostic}} output as a quote.
 }
 
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://theoreticalecology.github.io/s-jSDM/}
+  \item Report bugs at \url{https://github.com/TheoreticalEcology/s-jSDM/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Maximilian Pichler \email{maximilian.pichler@biologie.uni-regensburg.de} (\href{https://orcid.org/0000-0003-2252-8327}{ORCID})
+
+Authors:
+\itemize{
+  \item Florian Hartig \email{florian.hartig@biologie.uni-regensburg.de} (\href{https://orcid.org/0000-0002-6255-9059}{ORCID})
+}
+
+Other contributors:
+\itemize{
+  \item Wang Cai \email{caiwang0503@163.com} [contributor]
+}
+
+}

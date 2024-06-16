@@ -4,10 +4,12 @@
 \alias{print.sjSDManova}
 \title{Print sjSDM anova}
 \usage{
-\method{print}{sjSDManova}(x, ...)
+\method{print}{sjSDManova}(x, fractions = c("discard", "proportional", "equal"), ...)
 }
 \arguments{
 \item{x}{an object of \code{\link{anova.sjSDM}}}
+
+\item{fractions}{how to handle the shared fractions}
 
 \item{...}{optional arguments for compatibility with the generic function, no function implemented}
 }

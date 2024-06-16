@@ -12,28 +12,22 @@ model = sjSDM(Y = com$response,env = com$env_weights,spatial = linear(XY, ~0+.),
 # Anova 
 an = anova(model)
 plot(an)
-an # note this table is sequential (type I) ... other shares have to be 
-# calculated by hand
+
+print(an, fractions = "equal")
+print(an, fractions = "proportional")
+print(an, fractions = "discard")
+
+
+
 
 # Internal structure
-plotInternalStructure(an)
+plotInternalStructure(an, fractions = "discard")
 
 plotAssemblyEffects(an)
-
-
-an1 = anova(model, fractions = "equal")
-an2 = anova(model, fractions = "proportional")
-
-
-
-
-
-plotInternalStructure(an2, add_shared = FALSE)
-plotAssemblyEffects(an2)
-plotAssemblyEffects(an2, env = runif(100))
-plotAssemblyEffects(an2, env = as.factor(c(rep(1, 50), rep(2, 50))))
-plotAssemblyEffects(an2, trait = runif(10))
-plotAssemblyEffects(an2, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+plotAssemblyEffects(an, env = runif(100))
+plotAssemblyEffects(an, env = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(an, trait = runif(10))
+plotAssemblyEffects(an, trait = as.factor(c(rep(1, 5), rep(2, 5))))
 
 
 }

@@ -87,7 +87,7 @@ community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
 
 For convenience, we extract the community matrix, the environmental matrix and the spatial position
 
-```{r}
+```{r,eval=FALSE}
 Occ <- community$response
 Env <- community$env_weights
 SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates
@@ -124,7 +124,7 @@ The linear means that you essentially fit a linear regression structure for the 
 
 To get an overall summary of the model, type 
 
-```{r}
+```{r,eval=FALSE}
 summary(model)
 ```
 
@@ -138,7 +138,7 @@ Rsquared(model)
 
 ### Environmental effects
 
-```{r}
+```{r,eval=FALSE}
 plot(model)
 ```
 
@@ -148,7 +148,7 @@ plot(model)
 
 ### Species-species covariance (associations)
 
-```{r}
+```{r,eval=FALSE}
 association = getCor(model)
 print(association)
 ```

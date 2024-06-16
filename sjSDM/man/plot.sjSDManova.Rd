@@ -9,7 +9,7 @@
   y,
   type = c("McFadden", "Deviance", "Nagelkerke"),
   internal = FALSE,
-  add_shared = FALSE,
+  fractions = c("discard", "proportional", "equal"),
   cols = c("#7FC97F", "#BEAED4", "#FDC086"),
   alpha = 0.15,
   env_deviance = NULL,
@@ -26,7 +26,7 @@
 
 \item{internal}{logical, plot internal or total structure}
 
-\item{add_shared}{Add shared contributions when plotting the internal structure}
+\item{fractions}{how to handle shared fractions}
 
 \item{cols}{colors for the groups}
 

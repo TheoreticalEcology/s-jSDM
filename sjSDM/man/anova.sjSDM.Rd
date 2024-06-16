@@ -4,16 +4,16 @@
 \alias{anova.sjSDM}
 \title{Anova}
 \usage{
-\method{anova}{sjSDM}(object, samples = 5000L, fractional = c("proportional", "equal"), ...)
+\method{anova}{sjSDM}(object, samples = 5000L, ...)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
 
 \item{samples}{Number of Monte Carlo samples}
 
-\item{fractional}{how to distribute the shared partitions, proportional to the fractions' R2s or equal}
-
 \item{...}{optional arguments which are passed to the calculation of the logLikelihood}
+
+\item{fractions}{how to distribute the shared partitions, proportional to the fractions' R2s or equal}
 }
 \value{
 An S3 class of type 'sjSDManova' including the following components:
@@ -37,6 +37,41 @@ The anova can get unstable for many species and few occurrences/observations. We
 }
 \details{
 Compute analysis of variance
+}
+\examples{
+\dontrun{
+
+library(sjSDM)
+# simulate community:
+com = simulate_SDM(env = 3L, species = 10L, sites = 100L)
+XY = matrix(runif(100, -1, 1), 100, 2)
+
+# fit model:
+model = sjSDM(Y = com$response,env = com$env_weights,spatial = linear(XY, ~0+.), iter = 50L) 
+# increase iter for your own data 
+
+# Anova 
+an = anova(model)
+plot(an)
+
+print(an, fractions = "equal")
+print(an, fractions = "proportional")
+print(an, fractions = "discard")
+
+
+
+
+# Internal structure
+plotInternalStructure(an, fractions = "discard")
+
+plotAssemblyEffects(an)
+plotAssemblyEffects(an, env = runif(100))
+plotAssemblyEffects(an, env = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(an, trait = runif(10))
+plotAssemblyEffects(an, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+
+
+}
 }
 \seealso{
 \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}, \code{\link{plotInternalStructure}}
