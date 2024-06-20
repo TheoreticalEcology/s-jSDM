@@ -7,9 +7,9 @@ output:
     toc: true
 vignette: >
   %\VignetteEncoding{UTF-8}
-  %\VignetteIndexEntry{sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model}
+  %\VignetteIndexEntry{sjSDM: Getting started with the sjSDM package}
   %\VignetteEngine{knitr::rmarkdown}
-abstract: "sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood. \n \n \n"
+abstract: "A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response functions (including the traditional multivariate probit model). As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'PyTorch' and 'reticulate', which can be run on CPUs or GPUs. The package includes support for different response families, the ability to account for spatial autocorrelation, and the option to fit responses via deep neural networks instead of a standard linear predictor. In addition, you can perform variation partitioning (VP) / ANOVA on the fitted models for environmental, spatial, and co-association model components, and further subdivide these three components per species and sites (internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>). \n \n \n"
 editor_options: 
   chunk_output_type: console
 ---
@@ -223,16 +223,6 @@ cat("
 )
 ```
 
-### Importance
-
-We can also partition the effects of the different components. This function will be deprecated in future. Please use `plot(anova(model), internal = TRUE)`
-
-```{r,eval=FALSE}
-imp = importance(model)
-plot(imp)
-```
-
-![](importance.png)
 
 
 ## Predictions 
