@@ -79,7 +79,7 @@ dependencies should be installed as above. If the installation fails, check out 
 
 sjSDM has a function to create test data: We create a dataset with 3 environmental predictors, 100 species and 100 sites.
 
-```{r,eval=FALSE}
+```{r}
 library(sjSDM)
 set.seed(42)
 community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
@@ -87,7 +87,7 @@ community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
 
 For convenience, we extract the community matrix, the environmental matrix and the spatial position
 
-```{r,eval=FALSE}
+```{r}
 Occ <- community$response
 Env <- community$env_weights
 SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates
@@ -97,10 +97,10 @@ SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates
 
 The model is then fit with the function sjSDM(). You have to provide predictors (can be also a data.frame) and response as matrices. If you want/need p-values, you have to set se = TRUE.
 
-```{r,eval=FALSE}
+```{r}
 model <- sjSDM(Y = Occ, 
                env = linear(data = Env, formula = ~X1+X2+X3), 
-               spatial = linear(data = SP, formula = ~0+X1:X2), 
+               spatial = linear(data = SP, formula = ~0+X1*X2), 
                family=binomial("probit"),
                se = TRUE)
 summary(model)
@@ -108,29 +108,29 @@ summary(model)
 
 As you see, for environmental and spatial predictors, you can provide the dependency you want via the standard R formular syntax. E.g. for an interaction between X1 and X2, write 
 
-```{r,eval=FALSE}
-env = linear(data = com$env_weights, formula = ~ X1*X2,)
+```{r, eval = F}
+env = linear(data = Env, formula = ~ X1*X2,)
 ```
 
 or for a quadratic effect of X1, but without an intercept, write
 
-```{r,eval=FALSE}
-env = linear(data = com$env_weights, formula = ~0+ I(X1^2)+X1)
+```{r, eval = F}
+env = linear(data = Env, formula = ~0+ I(X1^2)+X1)
 ```
 
 The linear means that you essentially fit a linear regression structure for the respective component. Alternatively, you could also fit a neural network (see later). 
 
-## Interpreting model output
+## Interpreting the estimated model coefficients
 
 To get an overall summary of the model, type 
 
-```{r,eval=FALSE}
+```{r}
 summary(model)
 ```
 
-Implemented S3 functions include
+This output will show you the fitted environmental, spatial and covariance parameters (provided that those components were specified). Implemented S3 functions for a model object include
 
-```{r,eval=FALSE}
+```{r, echo=F}
 coef(model)
 residuals(model)
 Rsquared(model)
@@ -138,19 +138,34 @@ Rsquared(model)
 
 ### Environmental effects
 
-```{r,eval=FALSE}
+The environmental effects are displayed in the summary() table. To get a visual plot, you can use 
+
+```{r}
 plot(model)
 ```
 
+If you have species groups in your data, a bit nicer plot is produced by
+
+```{r}
+species=c("sp1","sp2","sp3","sp4","sp5","sp6","sp7","sp8","sp9","sp10")
+group=c("mammal","bird","fish","fish","mammal","amphibian","amphibian", "fish","mammal","amphibian")
+group = data.frame(species=species,group=group)
+plot(model,group=group)
+```
+
+
 ### Spatial effects 
 
-
+The spatial effects are displayed in the summary() table. Currently, there are not additional options implemented to visualize the spatial effects
 
 ### Species-species covariance (associations)
 
-```{r,eval=FALSE}
+The species-species associations are displayed in the summary() table. You can extract them as follows:
+
+```{r}
 association = getCor(model)
-print(association)
+sp = x = 1:length(species)
+image(x = sp, y = sp, z= association, )
 ```
 
 ## ANOVA and variation partitioning
@@ -159,46 +174,24 @@ print(association)
 
 ![image](jSDM-ANOVA.png)
 
-ANOVA (Type II) will separate the three components (environment, associations, and space):
+ANOVA (Type II) will calculate the amount of variation explained by the three components (environment, associations, and space):
 
-```{r,eval=FALSE}
-model = sjSDM(Y, 
-              env = linear(X, ~.), 
-              spatial = linear(XYcoords, ~0+XX+YY+XX:YY+I(XX^2)+I(YY^2)), 
-              iter = 100L)
-
+```{r}
 an = anova(model)
-print(an)
+```
+
+Amount of variance explained is measured by 
+
+
+
+```{r}
 plot(an)
 ```
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-Iter: 100/100 100%|██████████| [00:01, 64.31it/s, loss=2.819]
-Iter: 100/100 100%|██████████| [00:01, 58.37it/s, loss=3.373]
-Iter: 100/100 100%|██████████| [00:01, 64.17it/s, loss=3.099]
-Iter: 100/100 100%|██████████| [00:01, 56.71it/s, loss=2.731]
-Iter: 100/100 100%|██████████| [00:01, 58.89it/s, loss=2.646]
-Iter: 100/100 100%|██████████| [00:01, 51.46it/s, loss=2.984]
-Iter: 100/100 100%|██████████| [00:02, 48.46it/s, loss=0.121]
-"
-)
-```
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-Analysis of Deviance Table
+print(an)
 
-         Deviance Residual deviance R2 Nagelkerke R2 McFadden
-Abiotic 135.46469         534.13894       0.74196      0.1954
-Biotic   24.48839         645.11523       0.21720      0.0353
-Spatial  91.44113         578.16250       0.59925      0.1319
-Full    187.83630         481.76733       0.84716      0.2710
-"
-)
-```
 
-![](VENN.png)
 
 ### Internal metacommunity structure
 
