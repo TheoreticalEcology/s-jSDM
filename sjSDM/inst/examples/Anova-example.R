@@ -1,33 +1,41 @@
-\dontrun{
-
 library(sjSDM)
 # simulate community:
-com = simulate_SDM(env = 3L, species = 10L, sites = 100L)
-XY = matrix(runif(100, -1, 1), 100, 2)
+community = simulate_SDM(env = 3L, species = 10L, sites = 100L)
+
+Occ <- community$response
+Env <- community$env_weights
+SP <- data.frame(matrix(rnorm(200, 0, 0.3), 100, 2)) # spatial coordinates
+
 
 # fit model:
-model = sjSDM(Y = com$response,env = com$env_weights,spatial = linear(XY, ~0+.), iter = 50L) 
-# increase iter for your own data 
+model <- sjSDM(Y = Occ, 
+               env = linear(data = Env, formula = ~X1+X2+X3), 
+               spatial = linear(data = SP, formula = ~0+X1*X2), 
+               family=binomial("probit"),
+               iter = 20) # increase iter for real analysis
 
-# Anova 
-an = anova(model)
+# Calculate ANOVA for env, space, associations, for details see ?anova.sjSDM
+an = anova(model, samples = 10) # increase iter for real analysis
+
+# Show anova fractions
 plot(an)
 
-print(an, fractions = "equal")
-print(an, fractions = "proportional")
-print(an, fractions = "discard")
-
-
-
+# ANOVA tables with different way to handle fractions
+summary(an)
+summary(an, fractions = "discard")
+summary(an, fractions = "proportional")
+summary(an, fractions = "equal")
 
 # Internal structure
-plotInternalStructure(an, fractions = "discard")
+int = internalStructure(an, fractions = "equal")
 
-plotAssemblyEffects(an)
-plotAssemblyEffects(an, env = runif(100))
-plotAssemblyEffects(an, env = as.factor(c(rep(1, 50), rep(2, 50))))
-plotAssemblyEffects(an, trait = runif(10))
-plotAssemblyEffects(an, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+print(int)
 
+plot(int)
 
-}
+plotAssemblyEffects(int)
+plotAssemblyEffects(int, env = runif(100))
+plotAssemblyEffects(int, env = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(int, trait = runif(10))
+plotAssemblyEffects(int, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+

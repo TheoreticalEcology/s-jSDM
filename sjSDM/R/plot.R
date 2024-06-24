@@ -43,7 +43,7 @@ plotsjSDMcoef = function(object,wrap_col=NULL,group=NULL,col=NULL,slist=NULL) {
     inherits(object$settings$env, "linear")
   )
   oldpar = par(no.readonly = TRUE)
-  on.exit(par(oldpar))
+  on.exit(suppressWarnings(par(oldpar)))
   
   if(is.null(object$se)) object=getSe(object)
   summary.se = summary(object)

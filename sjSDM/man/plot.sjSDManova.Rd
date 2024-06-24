@@ -8,12 +8,10 @@
   x,
   y,
   type = c("McFadden", "Deviance", "Nagelkerke"),
-  internal = FALSE,
   fractions = c("discard", "proportional", "equal"),
   cols = c("#7FC97F", "#BEAED4", "#FDC086"),
   alpha = 0.15,
   env_deviance = NULL,
-  suppress_plotting = FALSE,
   ...
 )
 }
@@ -24,8 +22,6 @@
 
 \item{type}{deviance, Nagelkerke or McFadden R-squared}
 
-\item{internal}{logical, plot internal or total structure}
-
 \item{fractions}{how to handle shared fractions}
 
 \item{cols}{colors for the groups}
@@ -34,11 +30,13 @@
 
 \item{env_deviance}{environmental deviance}
 
-\item{suppress_plotting}{return plots but don't plot them}
-
 \item{...}{Additional arguments to pass to \code{plot()}
 
 The \code{internal = TRUE} plot was heavily inspired by Leibold et al., 2022}
+
+\item{internal}{logical, plot internal or total structure}
+
+\item{suppress_plotting}{return plots but don't plot them}
 }
 \value{
 List with the following components:
