@@ -286,11 +286,11 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
     S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
     # R2 = correct_R2(R2objt$Full) TODO Check that this can be gone
-    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2)
+    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
     A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
     B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
     S = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
-    equal = list(F_A = A, F_B = B, F_S = S, R2 = R2)
+    equal = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
   } else {
     F_A = R2objt$Full-R2objt$B
     F_B =  R2objt$Full-R2objt$A
@@ -298,11 +298,11 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
     S = 0
-    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2)
+    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
     A = F_A + F_AB*0.5
     B = F_B + F_AB*0.5
     S = 0
-    equal = list(F_A = A, F_B = B, F_S = S, R2 = R2)
+    equal = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
   }
   return(list(proportional = proportional, equal = equal))
 }

@@ -8,7 +8,7 @@ internalStructure(
   object,
   Rsquared = c("McFadden", "Nagelkerke"),
   fractions = c("discard", "proportional", "equal"),
-  standadize = c("scale", "floor"),
+  standardize = c("scale", "floor"),
   plot = FALSE
 )
 }
