@@ -1,3 +1,7 @@
+# Version 1.0.6
+### Submission 1, 31/07/2024
+
+
 # Version 1.0.5
 ### Submission 2, 16/06/2023
 Feedback from CRAN Team:

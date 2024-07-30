@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## About sjSDM
 
-The sjSDM package is an R package for estimating so-called joint species distribution models. A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to the environment, space and a covariance term that models conditional (on the other terms) correlations between the outputs (i.e. species). 
+The sjSDM package is an R package for estimating joint species distribution models. A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to the environment, space and a covariance term that models conditional (on the other terms) correlations between the outputs (i.e. species). 
 
 ![image](sjSDM/vignettes/jSDM-structure.png)
 
@@ -74,18 +74,22 @@ SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates (no effect on spe
 
 This fits the standard SDM with environmental, spatial and covariance terms 
 
-```{r}
+```{r, results='hide'}
 model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=binomial("probit"), sampling = 100L)
+```
+
+```{r}
 summary(model)
 ```
 
-We can also plot the niche estimates, i.e the estimates in the environmental component
 
-```{r, echo=F}
+Plot the niche estimates, i.e the estimates in the environmental component:
+
+```{r, results='hide'}
 plot(model)
 ```
 
-We can also visualize the species-species association matrix
+Visualize the species-species association matrix
 
 ```{r}
 image(getCor(model))
@@ -98,12 +102,16 @@ image(getCor(model))
 
 As in other models, it can be interesting to analyze how much variation is explained by which parts of hte model. 
 
-![image](sjSDM/vignettes/jSDM-ANOVA.png)
+![image](sjSDM/vignettes/jSDM-ANOVA.png){{width=70%}}
 For the Env, Spatial, Covariance terms, this is implemented in 
 
-```{r,fig.height=7, fig.width=6.3}
+```{r, results='hide'}
 an = anova(model)
-print(an)
+```
+
+
+```{r,fig.height=7, fig.width=6.3}
+summary(an)
 plot(an)
 ```
 
@@ -114,14 +122,21 @@ The anova shows the relative changes in the R^2^ of the groups and their interse
 Following [Leibold et al., 2022](https://doi.org/10.1111/oik.08618) we can calculate and visualize the internal metacommunity structure (=partitioning of the three components for species and sites). The internal structure is already calculated by the ANOVA and we can visualize it with the plot method:
 
 ```{r,fig.height=7, fig.width=8, warning=FALSE}
-results = plotInternalStructure(an) # or plot(an, internal = TRUE)
+results = internalStructure(an) # or plot(an, internal = TRUE)
 ```
 
 The plot function returns the results for the internal metacommunity structure:
 
 ```{r}
-print(results$data$Species)
+plot(results)
 ```
+
+Which can be regressed against covariates to analyse assembly processes:
+
+```{r}
+plotAssemblyEffects(results)
+```
+
 
 ## Python Package
 
@@ -133,7 +148,7 @@ pip install sjSDM_py
 
 Python example
 
-```{python,eval=TRUE}
+```{python,eval=FALSE}
 import sjSDM_py as fa
 import numpy as np
 import torch
@@ -150,7 +165,7 @@ model.fit(Env, Occ, batch_size = 20, epochs = 10)
 
 Calculate Importance:
 
-```{python}
+```{python, eval=FALSE}
 Beta = np.transpose(model.env_weights[0])
 Sigma = ( model.sigma @ model.sigma.t() + torch.diag(torch.ones([1])) ).data.cpu().numpy()
 covX = fa.covariance( torch.tensor(Env).t() ).data.cpu().numpy()

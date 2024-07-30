@@ -1,0 +1,527 @@
+---
+title: "sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model"
+author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model}
+  %\VignetteEngine{knitr::rmarkdown}
+abstract: "A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response functions (including the traditional multivariate probit model). As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'PyTorch' and 'reticulate', which can be run on CPUs or GPUs. The package includes support for different response families, the ability to account for spatial autocorrelation, and the option to fit responses via deep neural networks instead of a standard linear predictor. In addition, you can perform variation partitioning (VP) / ANOVA on the fitted models for environmental, spatial, and co-association model components, and further subdivide these three components per species and sites (internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>). \n \n \n"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, echo = F, message = F}
+set.seed(123)
+```
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = FALSE)
+```
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = ""
+)
+```
+
+# Getting started
+
+## About sjSDM
+
+The sjSDM package is an R package for estimating so-called joint species distribution models. A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to the environment, space and a covariance term that models conditional (on the other terms) correlations between the outputs (i.e. species).
+
+![Figure 1: jSDM structure. jSDM uses a community matrix as response (rows = number of observations, columns = number of species) and tries to explain the occurrences in the community matrix as a function of environment and space. Moreover, compared to classical SDM, jSDM have an additional component, the biotic associations, that tries to account for unobservable species-species interactions. More precisely, the biotic association matrix is a variance-covariance matrix that accounts for co-occurrence patterns not explainable by environment and space.](jSDM-structure.png)
+
+A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, <https://www.doi.org/10.1111/2041-210X.13687>.
+
+The core code of sjSDM is implemented in Python / PyTorch, which is then wrapped into an R package. In principle, you can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.9 and pytorch must be installed (more details below). However, for most users, it will be more convenient to use sjSDM via the sjSDM R package, which also provides a large number of downstream functionalities.
+
+To get citation info for sjSDM when you use it for your reseach, type
+
+```{r,eval=TRUE}
+citation("sjSDM")
+```
+
+## Installing the R package
+
+sjSDM is distributed via [CRAN](https://cran.rstudio.com/web/packages/sjSDM/index.html). For most users, it will be best to install the package from CRAN
+
+```{r,eval=FALSE}
+install.packages("sjSDM")
+```
+
+Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly, the dependencies can be automatically installed from within R:
+
+```{r,eval=FALSE}
+sjSDM::install_sjSDM(version = "gpu") # or
+sjSDM::install_sjSDM(version = "cpu")
+```
+
+For advanced users: if you want to install the current (development) version from this repository, run
+
+```{r,eval=FALSE}
+devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
+```
+
+dependencies should be installed as above. If the installation fails, check out the help of `?install_sjSDM`, ?installation_help, and `vignette("Dependencies", package = "sjSDM")`.
+
+1.  Try `install_sjSDM()`
+2.  New session, if no 'PyTorch not found' appears it should work, otherwise see `?installation_help`
+3.  If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
+
+# Working with sjSDM
+
+We start with a dataset about eucalypt communities ([the dataset is from Pollock et a., 2014](https://doi.org/10.1111/2041-210x.12180))
+
+```{r}
+library(sjSDM)
+set.seed(42)
+Env = eucalypts$env # environment
+PA = eucalypts$PA # presence absence
+Coords = eucalypts$lat_lon # coordinates
+
+```
+
+Prepare data:
+
+-   scale numerical predictors/covariates
+
+```{r}
+Env$Rockiness = scale(Env$Rockiness)
+Env$PPTann = scale(Env$PPTann)
+Env$cvTemp = scale(Env$cvTemp)
+Env$T0 = scale(Env$T0)
+
+Coords = scale(Coords)
+```
+
+## Fit model
+
+The model is fit by the function `sjSDM()`. You have to provide predictors (can be also a data.frame) and response as matrices. For p-values, you have to set `se = TRUE` (however this can fail for underpowered data). The spatial model account for spatial autocorrelation and spatial trends/effects (trend surface model)
+
+```{r}
+model <- sjSDM(Y = PA, 
+               env = linear(data = Env, formula = ~.), 
+               spatial = linear(data = Coords, formula = ~0+latitude*longitude), 
+               family=binomial("probit"),
+               se = TRUE)
+```
+
+The linear means that you essentially fit a linear regression structure for the respective component. Alternatively, you could also fit a neural network (see later).
+
+## Interpreting the estimated model coefficients
+
+To get an overall summary of the model, type
+
+```{r}
+summary(model)
+```
+
+This output will show you the fitted environmental, spatial and covariance parameters (provided that those components were specified). Implemented S3 functions for a model object include
+
+```{r}
+# coef(model)
+# residuals(model)
+Rsquared(model)
+```
+
+### Environmental effects
+
+The environmental effects are displayed in the summary() table. To get a visual plot, you can use
+
+```{r, results='hide'}
+plot(model)
+```
+
+### Spatial effects
+
+The spatial effects are displayed in the `summary()` table. Currently, there are not additional options implemented to visualize the spatial effects
+
+### Species-species covariance (associations)
+
+The species-species associations are displayed in the `summary()` table. You can extract them as follows:
+
+```{r}
+association = getCor(model)
+sp = x = 1:ncol(PA)
+fields::image.plot(association)
+```
+
+## ANOVA and variation partitioning
+
+### Global ANOVA
+
+![Figure 2: ANOVA](jSDM-ANOVA.png){width=70%}
+
+ANOVA (Type II) will calculate the amount of variation explained by the three components (environment, associations, and space):
+
+```{r, results="hide"}
+an = anova(model)
+```
+
+Amount of variance explained is measured by
+
+```{r}
+plot(an)
+summary(an)
+```
+
+Environmental explains the most variance in the data, followed by the biotic association component. But we expect that these three processes differ in importance for species and sites.
+
+### Variation partitioning - Internal metacommunity structure 
+
+We can further partition the R^2^ for sites and species. We call this the internal metacommunity structure (only for models with space):
+
+```{r,eval=TRUE}
+results = internalStructure(an)
+plot(results)
+```
+
+The ternary plots report the relative importance of the components for sites and species. Leaning to one of the corners means that this corner is mot important (e.g. here Species and Sites lean more to the environmental corner).
+
+## Revealing assembly processes
+
+To reveal and explain assembly patterns in the internal metacommunity structure, we can regress the partial R^2^ against environmental and spatial distinctiveness, and richness:
+
+```{r, fig.cap="Environmental filtering increases for more distinct (extreme) environmental sites (first figure). Moreover, environmental filtering is less important for sites with high species richness (third figure)."}
+plotAssemblyEffects(results)
+```
+
+## Predictions 
+
+We can also make predictions with our model:
+
+```{r}
+pred = predict(model, newdata = Env, SP = Coords)
+```
+
+Moreover, we can make conditional predictions for new sites. We use focal species (species with known occurrences) to condition our other species on them:
+
+```{r}
+New_PA = PA
+New_PA[, 1:6] = NA
+head(New_PA)
+```
+
+We predict occurrences for the first 6 species and we will use species 7:12 as focal species:
+
+```{r}
+pred = predict(model, newdata = Env, SP = Coords, Y = New_PA)
+head(pred)
+```
+
+The predict function returns only predictions for species with NA in Y
+
+# Advanced topics
+
+## Fitting other distributions (e.g. species frequencies)
+
+sjSDM supports other responses than presence-absence data: Simulate non-presence-absence data:
+
+```{r,eval=TRUE}
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L,
+                   link = "identical", response = "count") 
+X = com$env_weights
+Y = com$response
+```
+
+### Poisson
+
+```{r,eval=TRUE}
+model = sjSDM(Y, env = linear(X, ~.), se = TRUE, 
+              iter = 50L, family = poisson("log"))
+summary(model)
+```
+
+
+### Negative Binomial
+
+```{r,eval=TRUE}
+model = sjSDM(Y, env = linear(X, ~.), se = TRUE, iter = 50L, family = "nbinom")
+summary(model)
+```
+
+### Normal (gaussian)
+
+```{r,eval=TRUE}
+model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE, 
+              iter = 50L, family = gaussian("identity"))
+summary(model)
+```
+
+## Modifying the spatial component
+
+jSDMs account for correlation between species within communities (sites), in real datasets, however, communities (sites) are often also correlated (== spatial autocorrelation). Usually conditional autoregressive (CAR) models are used to account for the spatial autocorrelation in the residuals, which we, however, do not support yet. A similar approach is to condition the model on space, which we can do by using space as predictors.
+
+Let's first simulate test data:
+
+1)  Simulate jSDM without a link (normal response)
+
+```{r,eval=TRUE}
+
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L, 
+                   link = "identical", response = "identical")
+X = com$env_weights
+Y = com$response
+```
+
+2)  add spatial residuals (create coordinates and use spatial distance matrix to draw autocorrelated residuals for each species)
+
+```{r,eval=TRUE}
+XYcoords = matrix(rnorm(200), 100, 2)+2
+WW = as.matrix(dist(XYcoords))
+spatialResiduals = mvtnorm::rmvnorm( 5L, sigma = exp(-WW))
+```
+
+3)  Finish test data
+
+```{r,eval=TRUE}
+Ysp = Y + t(spatialResiduals)
+Y = ifelse(Ysp < 0, 0, 1) # multivariate probit model
+```
+
+There are three options to condition our model on space:
+
+### Using Moran's eigenvector map predictors
+
+```{r,eval=TRUE}
+SPeigen = generateSpatialEV(XYcoords)
+
+model = sjSDM(Y, env = linear(X, ~.), 
+              spatial = linear(SPeigen, ~0+.), iter = 100L)
+summary(model)
+```
+
+### Trend surface model - linear
+
+The idea of the trend surface model is to use the spatial coordinates within a polynom:
+
+```{r,eval=FALSE}
+colnames(XYcoords) = c("XX", "YY")
+model = sjSDM(Y, 
+              env = linear(X, ~.), 
+              spatial = linear(XYcoords, ~0+XX+YY+XX:YY+I(XX^2)+I(YY^2)), 
+              iter = 100L)
+summary(model)
+```
+
+### Trend surface model - DNN
+
+Sometimes a linear model and a polynom is not flexible enough to account for space. We can use a "simple" DNN for space to condition our linear environmental model on the space:
+
+```{r,eval=TRUE}
+colnames(XYcoords) = c("XX", "YY")
+model = sjSDM(Y, 
+              env = linear(X, ~.), 
+              spatial = DNN(XYcoords, ~0+.), 
+              iter = 100L)
+summary(model)
+```
+
+
+## Adjusting regularization parameters
+
+### Regularization on abiotic coefficients
+
+sjSDM supports l1 (lasso) and l2 (ridge) regularization: \* alpha is the weighting between lasso and ridge \* alpha = 0.0 corresponds to pure lasso \* alpha = 1.0 corresponds to pure ridge
+
+```{r,eval=TRUE}
+model = sjSDM(Y = com$response, 
+              env = linear(data = com$env_weights, 
+                           formula = ~0+ I(X1^2),
+                           lambda = 0.5), 
+              iter = 50L)
+summary(model)
+```
+
+
+### Regularization on species-species associations
+
+We can do the same for the species associations:
+
+```{r,eval=TRUE}
+model = sjSDM(Y = com$response, 
+              env = linear(data = com$env_weights, 
+                           formula = ~0+ I(X1^2),
+                           lambda = 0.5),
+              biotic = bioticStruct(lambda =0.1),
+              iter = 50L)
+summary(model)
+```
+
+
+### Regularization on the spatial model:
+
+```{r,eval=TRUE}
+
+model = sjSDM(Y, 
+              env = linear(X, ~X1+X2), 
+              spatial = linear(XYcoords, ~0+XX:YY, lambda = 0.4))
+summary(model)
+```
+
+
+## Using deep neural networks
+
+```{r,eval=TRUE}
+com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+X = com$env_weights
+Y = com$response
+
+# three fully connected layers with relu as activation function
+model = sjSDM(Y = Y, 
+              env = DNN(data = X, 
+                        formula = ~., 
+                        hidden = c(10L, 10L, 10L), 
+                        activation = "relu"), 
+              iter = 50L, se = TRUE)
+summary(model)
+```
+
+
+The methods for sjSDM() work also for the non-linear model:
+
+```{r,eval=FALSE}
+association = getCor(model) # species association matrix
+pred = predict(model) # predict on fitted data
+pred = predict(model, newdata = X) # predict on new data
+```
+
+Extract and set weights of model:
+
+```{r,eval=FALSE}
+weights = getWeights(model) # get layer weights and sigma
+setWeights(model, weights)
+```
+
+Plot the training history:
+
+```{r,eval=FALSE}
+plot(model)
+```
+
+# Installation problems
+
+The `r knitr::inline_expr('sjSDM::install_sjSDM()')` function can install automatically all necessary 'python' dependencies but it can fail sometimes because of individual system settings or if other 'python'/'conda' installations get into the way.
+
+## PyTorch Installation - Before you start:
+
+A few notes before you start with the installation (skip this point if you do not know conda):
+
+-   existing 'conda' installations: make sure you have the latest 'conda' or 'miniconda' version and remove unnecessary 'conda' installations.
+-   existing 'conda' or 'virtualenv' environments (skip this point if you do not know 'conda'): we currently enforce the usage of a specific environment called 'r-sjsdm',so if you want use a custom environment it should be named 'r-sjsdm'
+
+## Windows - automatic installation:
+
+Sometimes the automatic 'miniconda' installation (via `r knitr::inline_expr('sjSDM::install_sjSDM()')` ).doesn't work because of white spaces in the user's name. But you can easily download and install 'conda' on your own:
+
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
+
+Afterwards run:
+
+```{r,eval=FALSE, purl=FALSE}
+install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
+```
+
+Reload the package and run the example, if this doesn't work:
+
+-   Restart RStudio
+-   Install manually pytorch, see the following section
+
+## Windows - manual installation:
+
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
+
+Open the command window (cmd.exe - hit windows key + r and write cmd)
+
+Run in cmd.exe:
+
+```{bash, eval=FALSE, purl=FALSE}
+conda create --name r-sjsdm python=3.10
+conda activate r-sjsdm
+conda install pytorch torchvision torchaudio cpuonly -c pytorch # cpu
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia #gpu
+python -m pip install pyro-ppl torch_optimizer madgrad
+```
+
+Restart R, try the example, and if it does not work:
+
+-   Restart RStudio
+-   See the 'Help and bugs' section
+
+## Linux - automatic installation:
+
+Run in R:
+
+```{r,eval=FALSE, purl=FALSE}
+install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
+```
+
+Restart R try to run the example, if this doesn't work:
+
+-   Restart RStudio
+-   Install manually 'PyTorch', see the following section
+
+## Linux - manual installation:
+
+We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
+
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
+
+Open your terminal and run:
+
+```{bash, eval=FALSE, purl=FALSE}
+conda create --name r-sjsdm python=3.10
+conda activate r-sjsdm
+conda install pytorch torchvision torchaudio cpuonly -c pytorch # cpu
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia #gpu
+python -m pip install pyro-ppl torch_optimizer madgrad
+```
+
+Restart R try to run the example, if this doesn't work:
+
+-   Restart RStudio
+-   See the 'Help and bugs' section
+
+## MacOS - automatic installation:
+
+Run in R:
+
+```{r,eval=FALSE, purl=FALSE}
+install_sjSDM()
+```
+
+Restart R try to run the example, if this doesn't work:
+
+-   Restart RStudio
+-   Install manually 'PyTorch', see the following section
+
+## MacOS - manual installation:
+
+We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
+
+Download and install the latest conda [conda version](https://www.anaconda.com/download/)
+
+Open your terminal and run:
+
+```{bash, eval=FALSE, purl=FALSE}
+conda create --name r-sjsdm python=3.10
+conda activate r-sjsdm
+conda install pytorch::pytorch torchvision torchaudio -c pytorch
+python -m pip install pyro-ppl torch_optimizer madgrad
+```
+
+Restart R, try the example, if it does not work:
+
+-   Restart RStudio
+-   See the 'Help and bugs' section
+
+## Help and bugs
+
+-   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `r knitr::inline_expr('sjSDM::install_diagnostic()')`as a quote.
+-   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-emple) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)
