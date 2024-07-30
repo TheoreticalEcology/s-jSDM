@@ -22,4 +22,4 @@ knitr::knit("sjSDM_Introduction.orig",
 )
 
 
-pkgdown::build_site()
+pkgdown::build_site(pkg = "sjSDM/")
