@@ -5,7 +5,8 @@
 #' @param object anova object from \code{\link{anova.sjSDM}}
 #' @param Rsquared which R squared should be used, McFadden or Nagelkerke (McFadden is default)
 #' @param fractions how to handle shared fractions
-#' @param suppress_plotting should the plots be suppressed or not.
+#' @param negatives how to handle negative R squareds
+#' @param plot should the plots be suppressed or not.
 #' 
 #' Plots and returns the internal metacommunity structure of species and sites (see Leibold et al., 2022). 
 #' Plots were heavily inspired by Leibold et al., 2022
@@ -18,7 +19,7 @@
 #' \item{plots}{ggplot objects for sites and species.}
 #' \item{data}{List of data.frames with the internal metacommunity structure.}
 #' 
-#' 
+#' @example /inst/examples/anova-example.R
 #' @references 
 #' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
 #' 
@@ -26,14 +27,14 @@
 internalStructure = function(object,  
                              Rsquared = c("McFadden", "Nagelkerke"), 
                              fractions = c("discard", "proportional", "equal"),
-                             standardize = c("scale", "floor"), # TODO - rounding ANOVA out, here all calculations to function with option
+                             negatives = c("floor", "scale"), # TODO - rounding ANOVA out, here all calculations to function with option
                              plot = FALSE) {
   
   fractions = match.arg(fractions)
   Rsquared = match.arg(Rsquared)
-  standardize = match.arg(standardize)
+  negatives = match.arg(negatives)
   
-  if(!object$spatial) warning("'internal=TRUE' currently only supported for spatial models.")  
+  if(!object$spatial) stop("'internal structure' currently only supported for spatial models.")  
   
   if(Rsquared == "Deviance") {type = "R2_McFadden"
   } else {
@@ -45,19 +46,21 @@ internalStructure = function(object,
   
   if(fractions == "discard") {
     df = data.frame(
-      env = ifelse(object$sites[[type]]$F_A<0, 0, object$sites[[type]]$F_A),
-      spa = ifelse(object$sites[[type]]$F_S<0, 0, object$sites[[type]]$F_S),
-      codist = ifelse(object$sites[[type]]$F_B<0, 0, object$sites[[type]]$F_B),
-      r2  = ifelse(object$sites[[type]]$Full<0, 0, object$sites[[type]]$Full)#/length(object$sites[[type]]$Full)
+      env = object$sites[[type]]$F_A,
+      spa = object$sites[[type]]$F_S,
+      codist = object$sites[[type]]$F_B,
+      r2  = object$sites[[type]]$Full #/length(object$sites[[type]]$Ful)
     )
+    
+    
     internals[[1]] = df
     names(internals)[1] = "Sites"
     
     df = data.frame(
-      env = ifelse(object$species[[type]]$F_A<0, 0, object$species[[type]]$F_A),
-      spa = ifelse(object$species[[type]]$F_S<0, 0, object$species[[type]]$F_S),
-      codist = ifelse(object$species[[type]]$F_B<0, 0, object$species[[type]]$F_B),
-      r2  = ifelse(object$species[[type]]$Full<0, 0, object$species[[type]]$Full)#/length(object$species[[type]]$Full)
+      env = object$species[[type]]$F_A,
+      spa = object$species[[type]]$F_S,
+      codist = object$species[[type]]$F_B,
+      r2  = object$species[[type]]$Full
     )
     
     internals[[2]] = df
@@ -67,44 +70,55 @@ internalStructure = function(object,
     if(fractions == "proportional") {
       
       df = data.frame(
-        env = ifelse(object$sites[[type]]$proportional$F_A<0, 0, object$sites[[type]]$proportional$F_A),
-        spa = ifelse(object$sites[[type]]$proportional$F_S<0, 0, object$sites[[type]]$proportional$F_S),
-        codist = ifelse(object$sites[[type]]$proportional$F_B<0, 0, object$sites[[type]]$proportional$F_B),
-        r2  = ifelse(object$sites[[type]]$proportional$R2<0, 0, object$sites[[type]]$proportional$R2)#/length(object$sites[[type]]$R2)
+        env = object$sites[[type]]$proportional$F_A,
+        spa = object$sites[[type]]$proportional$F_S,
+        codist = object$sites[[type]]$proportional$F_B,
+        r2  = object$sites[[type]]$proportional$R2 #/length(object$sites[[type]]$R2)
       )
+      
       internals[[1]] = df
       names(internals)[1] = "Sites"
       
       df = data.frame(
-        env = ifelse(object$species[[type]]$proportional$F_A<0, 0, object$species[[type]]$proportional$F_A),
-        spa = ifelse(object$species[[type]]$proportional$F_S<0, 0, object$species[[type]]$proportional$F_S),
-        codist = ifelse(object$species[[type]]$proportional$F_B<0, 0, object$species[[type]]$proportional$F_B),
-        r2  = ifelse(object$species[[type]]$proportional$R2<0, 0, object$species[[type]]$proportional$R2)#/length(object$species[[type]]$R2)
+        env = object$species[[type]]$proportional$F_A,
+        spa = object$species[[type]]$proportional$F_S,
+        codist = object$species[[type]]$proportional$F_B,
+        r2  = object$species[[type]]$proportional$R2 #/length(object$species[[type]]$R2)
       )
+      
+      
+      internals[[2]] = df
+      names(internals)[2] = "Species"
       
     } else {
       
       df = data.frame(
-        env = ifelse(object$sites[[type]]$equal$F_A<0, 0, object$sites[[type]]$equal$F_A),
-        spa = ifelse(object$sites[[type]]$equal$F_S<0, 0, object$sites[[type]]$equal$F_S),
-        codist = ifelse(object$sites[[type]]$equal$F_B<0, 0, object$sites[[type]]$equal$F_B),
-        r2  = ifelse(object$sites[[type]]$equal$R2<0, 0, object$sites[[type]]$equal$R2)#/length(object$sites[[type]]$R2)
+        env = object$sites[[type]]$equal$F_A ,
+        spa = object$sites[[type]]$equal$F_S ,
+        codist = object$sites[[type]]$equal$F_B ,
+        r2  = object$sites[[type]]$equal$R2 #/length(object$sites[[type]]$R2)
       )
+      
+
       internals[[1]] = df
       names(internals)[1] = "Sites"
       
       df = data.frame(
-        env = ifelse(object$species[[type]]$equal$F_A<0, 0, object$species[[type]]$equal$F_A),
-        spa = ifelse(object$species[[type]]$equal$F_S<0, 0, object$species[[type]]$equal$F_S),
-        codist = ifelse(object$species[[type]]$equal$F_B<0, 0, object$species[[type]]$equal$F_B),
-        r2  = ifelse(object$species[[type]]$equal$R2<0, 0, object$species[[type]]$equal$R2)#/length(object$species[[type]]$R2)
+        env = object$species[[type]]$equal$F_A,
+        spa = object$species[[type]]$equal$F_S,
+        codist = object$species[[type]]$equal$F_B,
+        r2  = object$species[[type]]$equal$R2 #/length(object$species[[type]]$R2)
       )
+      
+      
+      internals[[2]] = df
+      names(internals)[2] = "Species"
+    }
       
     }
     
-    internals[[2]] = df
-    names(internals)[2] = "Species"
-  }
+  internals[[1]] = standardize_df(internals[[1]], standardize = negatives )
+  internals[[2]] = standardize_df(internals[[2]], standardize = negatives )
   
   out = list()
   out$internals = internals
@@ -116,6 +130,22 @@ internalStructure = function(object,
   if(plot == T) plot(out)
   
   return(out)
+}
+
+
+standardize_df = function(df, standardize) {
+  if(standardize == "floor") {
+    tmp = df[,1:3]
+    tmp[tmp<0] = 0
+    df[,1:3] = tmp
+  } else if (standardize == "abs") {
+    df[,1:3] = abs(df[,1:3])
+  } else if(standardize == "scale" ){
+    tmp = df[,1:3]
+    tmp = scales::rescale(as.matrix(tmp), to = c(0, 1))
+    df[,1:3] = tmp[,1:3]
+  }
+  return(df)
 }
 
 
@@ -134,8 +164,13 @@ print.sjSDMinternalStruture <- function(x, ...){
 #' 
 #' Creates a ternary diagram of an object of class 
 #' 
-#' @param object and object of class sjSDMinternalStruture create by anova object from \code{\link{internalStructure}}
+#' @param x and object of class sjSDMinternalStruture create by anova object from \code{\link{internalStructure}}
+#' @param alpha alpha of points
+#' @param env_deviance environmental deviance/gradient (points will be colored)
+#' @param ... no function
 #' 
+#' 
+#' @example /inst/examples/anova-example.R
 #' @export
 #' 
 plot.sjSDMinternalStruture <- function(x, 
@@ -148,6 +183,12 @@ plot.sjSDMinternalStruture <- function(x,
   plots_internals = list()
   
   # Code taken from https://github.com/javirudolph/iStructureMetaco/blob/master/InternalStructureMetacommunities_2021_manuscript/Figures.R
+  
+  
+  if(min(internals[[1]][,1:3]) < 0 | min(internals[[2]][,1:3]) < 0) {
+    message("Negative partial R-square detected. Negative R-squareds can occur, but the ternary plots are not able to display them")
+  }
+  
   for(i in 1:length(internals)) {
     
     add_grad = FALSE
@@ -157,9 +198,16 @@ plot.sjSDMinternalStruture <- function(x,
     if(i > 1) top = 1
     if(is.null(env_deviance)) top = 1
     
+    negative_r2 = FALSE
+    if(min(internals[[i]]$r2) < 0) negative_r2 = TRUE
+    
     r2max = ceiling(max(internals[[i]]$r2)*1e2)/1e2
+    r2min = floor(min(internals[[i]]$r2)*1e2)/1e2
+    
+    color = if(!negative_r2) {NULL} else {"r2"}
+    
     plt = 
-      ggtern::ggtern(internals[[i]], ggplot2::aes_string(x = "env", z = "spa", y = "codist", size = "r2"))+
+      ggtern::ggtern(internals[[i]], ggplot2::aes_string(x = "env", z = "spa", y = "codist", size = abs(internals[[i]]$r2), color = color) ) +
       ggtern::scale_T_continuous(limits=c(0,1),
                                  breaks=seq(0, 1,by=0.2),
                                  labels=seq(0,1, by= 0.2)) +
@@ -194,14 +242,22 @@ plot.sjSDMinternalStruture <- function(x,
         plot.margin = unit(c(top,1,1,1)*0.2, "cm"),
         strip.background = ggplot2::element_rect(color = NA),
       ) +
-      ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1)) +
+      { if(!negative_r2) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1)) } +
       { if(!add_grad)ggplot2::geom_point(alpha = 0.7) }+
       { if(add_grad) ggplot2::geom_point(alpha = 0.7, aes(fill=env_deviance, color = env_deviance)) }+  
-      ggplot2::scale_size_continuous(range = c(0.1,5),limits = c(0, r2max), breaks = seq(0, r2max, length.out=5)) +
+      { if(!negative_r2)  ggplot2::scale_size_continuous(range = c(0.1,5),limits = c(r2min, r2max), breaks = seq(r2min, r2max, length.out=5)) } +
+      { if(negative_r2)   ggplot2::scale_color_gradient2(low = "red", mid = "grey50", high = "black", midpoint = 0, 
+                                                  breaks = c(r2min, 0, r2max), 
+                                                  labels = c(r2min, "0", r2max), 
+                                                  limits = c(r2min, r2max),
+                                                  guide = ggplot2::guide_colorbar(title = expression(R^2))) } +
+      { if(negative_r2)  ggplot2::scale_size_continuous(range = c(0.1,5), 
+                                               breaks =  seq(0, r2max, length.out = 5), guide = "none")  } +
+      
       { if(add_grad) ggplot2::scale_fill_gradient(low = "white", high = "black", guide = "none") } + 
       { if(add_grad) ggplot2::scale_color_gradient(low = "white", high = "black", limits = c(0, max(env_deviance))) } +
       ggplot2::theme(tern.axis.arrow.text = element_text(size = 7),legend.position = "bottom", legend.margin = margin(r = 30), legend.box="vertical") +
-      { if(!add_grad) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom")) } +
+      { if(!add_grad) { if(!negative_r2)  ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom")) } } +
       { if( add_grad) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom"),
                                       color = ggplot2::guide_colorbar(title = "Environmental deviation", title.position = "top", order = 2, barheight = 0.5, barwidth = 8)) } 
     plots_internals[[i]] = plt
@@ -214,13 +270,11 @@ plot.sjSDMinternalStruture <- function(x,
   return(invisible(out))
 }
 
-#' Plot Correlations between assembly processes and predictors or traits
+#' Plot correlations between assembly processes and predictors or traits
 #' 
 #' @param object An \code{sjSDManova} object from the \code{\link{anova.sjSDM}} function.
 #' @param env Predictor variable. If \code{NULL}, assembly processes are plotted against environment, spatial uniqueness, and richness.
 #' @param trait Trait variable. Plotted against species R-squared for the three processes.
-#' @param Rsquared Which R-squared should be used: "McFadden" (default) or "Nagelkerke".
-#' @param fractions how to handle shared fractions
 #' @param cols Colors for the three assembly processes.
 #' 
 #' Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
@@ -239,6 +293,7 @@ plot.sjSDMinternalStruture <- function(x,
 #' 
 #' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. *Oikos*, 2022(1).
 #' 
+#' @example /inst/examples/anova-example.R
 #' @export
 plotAssemblyEffects = function(object, 
                                env = NULL, 
@@ -254,6 +309,10 @@ plotAssemblyEffects = function(object,
   XYcoords = object$anova$object$settings$spatial$X
   Y = object$anova$object$data$Y
   rr = object
+  minR = min(rr$internals$Sites[,1:3])
+  maxR = max(rr$internals$Sites[,1:3])
+  minRS = min(rr$internals$Species[,1:3])
+  maxRS = max(rr$internals$Species[,1:3])
   
   out = list()
   
@@ -273,8 +332,11 @@ plotAssemblyEffects = function(object,
     out$space = list()
     out$codist = list()
     
+
+    
     graphics::plot(NULL, NULL, xlim = c(min(env_eigen_centered), max(env_eigen_centered)), 
-                   ylim = c(0, 0.6), xlab = "Env uniqueness",main = "", ylab = "R2", las =1)
+                   ylim = c(minR, maxR*1.5), xlab = "Env uniqueness",main = "", ylab = "R2", las =1)
+    
     for(i in 1:3) {
       graphics::points(env_eigen_centered, rr$internals$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
       g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
@@ -290,7 +352,7 @@ plotAssemblyEffects = function(object,
     graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
     graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
     
-    graphics::plot(NULL, NULL, xlim = c(min(spatial_eigen_centered), max(spatial_eigen_centered)), ylim = c(0, 0.6), xlab = "Spatial uniqueness",main = "", ylab = "R2", las =1)
+    graphics::plot(NULL, NULL, xlim = c(min(spatial_eigen_centered), max(spatial_eigen_centered)), ylim = c(minR, maxR*1.5), xlab = "Spatial uniqueness",main = "", ylab = "R2", las =1)
     for(i in 1:3) {
       graphics::points(spatial_eigen_centered, rr$internals$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
       g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
@@ -307,7 +369,7 @@ plotAssemblyEffects = function(object,
     graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
     
     
-    graphics::plot(NULL, NULL, xlim = c(min(richness_centered), max(richness_centered)), ylim = c(0, 0.6), xlab = "Richness",main = "", ylab = "R2", las =1)
+    graphics::plot(NULL, NULL, xlim = c(min(richness_centered), max(richness_centered)), ylim = c(minR, maxR*1.5), xlab = "Richness",main = "", ylab = "R2", las =1)
     for(i in 1:3) {
       graphics::points(richness_centered, rr$internals$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
       g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
@@ -337,7 +399,7 @@ plotAssemblyEffects = function(object,
         graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 1), xaxt= "s")
         pred = scale(env, center = TRUE, scale = FALSE)
         
-        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(0, 0.6), xlab = "Predictor",main = "", ylab = "R2", las =1)
+        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(minR, maxR*1.5), xlab = "Predictor",main = "", ylab = "R2", las =1)
         for(i in 1:3) {
           graphics::points(pred, rr$internals$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
           g = qgam::qgam( Y ~ pred, data = data.frame(Y = rr$internals$Sites[,i], pred = pred), qu = 0.5, control = list(progress="none"))
@@ -363,7 +425,7 @@ plotAssemblyEffects = function(object,
         graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 1), xaxt= "s")
         pred = scale(trait, center = TRUE, scale = FALSE)
         
-        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(0, 0.6), xlab = "Predictor",main = "", ylab = "R2", las =1)
+        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(minRS, maxRS*1.5), xlab = "Predictor",main = "", ylab = "R2", las =1)
         for(i in 1:3) {
           graphics::points(pred, rr$internals$Species[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
           g = qgam::qgam( Y ~ pred, data = data.frame(Y = rr$internals$Species[,i], pred = pred), qu = 0.5, control = list(progress="none"))

@@ -10,6 +10,8 @@
 \item{object}{a model fitted by \code{\link{sjSDM}}}
 
 \item{type}{residual type. Currently only supports raw}
+
+\item{...}{further arguments, not supported yet.}
 }
 \value{
 residuals in the format of the provided community matrix

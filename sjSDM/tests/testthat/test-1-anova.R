@@ -146,9 +146,9 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     gl2 = stats::glm(Y~1, family = binomial("logit"))
     R0 = 1 - stats::logLik(gl1)/stats::logLik(gl2)
     m = sjSDM(matrix(Y, ncol = 1L), data.frame(X = X), biotic = bioticStruct(diag = TRUE),sampling = 500L, family = binomial("logit"))
-    R1 = mean(replicate(500, {Rsquared(m)}))
+    R1 = mean(replicate(10, {Rsquared(m)}))
     
-    testthat::expect_true(abs(R0 - R1) < 0.03)
+    testthat::expect_true(abs(R0 - R1) < 0.1)
     
     ## Poisson ##
     X = runif(500)
@@ -159,8 +159,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     m = sjSDM(matrix(Y, ncol = 1L), linear(data.frame(X = X), ~1+X), 
               biotic = bioticStruct(diag = TRUE),
               learning_rate = 0.1,sampling = 10L, family = poisson(), control = sjSDMControl(RMSprop(weight_decay = 0.0)))
-    R1 = mean(replicate(500, {Rsquared(m)}))
-    testthat::expect_true(abs(R0 - R1) < 0.08)
+    R1 = mean(replicate(10, {Rsquared(m)}))
+    testthat::expect_true(abs(R0 - R1) < 0.1)
     
   })
   

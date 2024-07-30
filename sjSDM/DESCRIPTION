@@ -17,7 +17,7 @@ Authors@R:
              family = "Cai",
              role = "ctb",
              email = "caiwang0503@163.com"))
-Description: A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response functions (including the traditional multivariate probit model). As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'PyTorch' and 'reticulate', which can be run on CPUs or GPUs. The package includes support for different response families, the ability to account for spatial autocorrelation, and the option to fit responses via deep neural networks instead of a standard linear predictor. In addition, you can perform variation partitioning (VP) / ANOVA on the fitted models for environmental, spatial, and co-association model components, and further subdivide these three components per species and sites (internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>) 
+Description: A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response distributions (including the traditional multivariate probit model). The package allows to perform variation partitioning (VP) / ANOVA on the fitted models to separate the contribution of environmental, spatial, and biotic associations. In addition, the total R-squared can be further partitioned per species and site to reveal the internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>. The internal structure can then be regressed against environmental and spatial distinctiveness, richness, and traits to analyze metacommunity assembly processes.  The package includes support for accounting for spatial autocorrelation and the option to fit responses using deep neural networks instead of a standard linear predictor. As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'PyTorch' and 'reticulate', which can be run on CPUs or GPUs.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
@@ -42,14 +42,15 @@ Imports:
     mathjaxr,
     ggtern,
     beeswarm,
-    qgam
+    qgam,
+    scales
 Suggests:
     testthat,
     knitr,
     rmarkdown,
     iml,
     fields
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 URL: https://theoreticalecology.github.io/s-jSDM/
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
 Roxygen: list(old_usage = FALSE)

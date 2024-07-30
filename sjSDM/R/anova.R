@@ -27,7 +27,7 @@
 #' 
 #' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 #'  
-#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}, \code{\link{plotInternalStructure}}
+#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStruture}}
 #' 
 #' @example /inst/examples/anova-example.R
 #' 
@@ -71,7 +71,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     F_AB = full_wo - A_wo-B_wo
 
     anova_rows = c("Null", "F_A", "F_B", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Biotic", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Full")
     
     results_discard = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m)  + sum(F_B), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
@@ -158,7 +158,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
                        "Full"=-(full_m), "Saturated"= -(SAT_m), "Null"=-null_m)
     
     anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Biotic", "Spatial", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")
   }
   results = 
     lapply(list(results_discard, results_proportional, results_equal), function(res) {
@@ -191,8 +191,8 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind)
   R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites)
   
-  R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
-  R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
+  #R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
+  #R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
   
   # precalculates reduced ANOVA tables
   calculateResults <- function(res) {
@@ -205,9 +205,17 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     return(res)
   }
   
-  printFull = results[[1]][1:7,c(1, 4, 3,5,6)]
-  rownames(printFull) = printFull$models
-  printFull = printFull[,-1]
+  if(inherits(object, "spatial")) {
+    printFull = results[[1]][1:8,c(1, 4, 3,5,6)]
+    rownames(printFull) = printFull$models
+    printFull = printFull[,-1]
+    rownames(printFull) = c("Abiotic", "Associations","Spatial", "Shared Abiotic+Associations", "Shared Abiotic+Spatial", "Shared Spatial+Associations", "Shared Abiotic+Associations+Spatial", "Full")
+  } else {
+    printFull = results[[1]][1:4,c(1, 4, 3,5,6)]
+    rownames(printFull) = printFull$models
+    printFull = printFull[,-1]
+    rownames(printFull) = c("Abiotic", "Associations", "Shared Abiotic+Associations", "Full")
+  }
   
   toPrint = list(all = printFull,
        discard = calculateResults(results[[1]]), 
@@ -268,7 +276,7 @@ get_conditional_lls = function(m, null_m, ...) {
   rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(m$data$Y), ncol = ncol(m$data$Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
   
   ### Maximal/Minimal 0?
-  rescaled_conditional_lls[rescaled_conditional_lls<0] = 0
+  #rescaled_conditional_lls[rescaled_conditional_lls<0] = 0 does not work!
   
   return(rescaled_conditional_lls)
 }
@@ -399,26 +407,17 @@ print.sjSDManova = function(x,...) {
 #' @param x anova object from \code{\link{anova.sjSDM}}
 #' @param y unused argument
 #' @param type deviance, Nagelkerke or McFadden R-squared
-#' @param internal logical, plot internal or total structure
 #' @param fractions how to handle shared fractions
 #' @param cols colors for the groups
 #' @param alpha alpha for colors
 #' @param env_deviance environmental deviance
-#' @param suppress_plotting return plots but don't plot them
 #' @param ... Additional arguments to pass to \code{plot()}
 #' 
-#' The \code{internal = TRUE} plot was heavily inspired by Leibold et al., 2022
 #' 
 #' @return 
 #' 
 #' List with the following components:
 #' 
-#' If \code{internal=TRUE}:
-#' 
-#' \item{plots}{ggplot objects for sites and species.}
-#' \item{data}{List of data.frames with the shown results.}
-#' 
-#' else:
 #' \item{VENN}{Matrix of shown results.}
 #' 
 #' @references 

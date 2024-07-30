@@ -30,23 +30,11 @@
 
 \item{env_deviance}{environmental deviance}
 
-\item{...}{Additional arguments to pass to \code{plot()}
-
-The \code{internal = TRUE} plot was heavily inspired by Leibold et al., 2022}
-
-\item{internal}{logical, plot internal or total structure}
-
-\item{suppress_plotting}{return plots but don't plot them}
+\item{...}{Additional arguments to pass to \code{plot()}}
 }
 \value{
 List with the following components:
 
-If \code{internal=TRUE}:
-
-\item{plots}{ggplot objects for sites and species.}
-\item{data}{List of data.frames with the shown results.}
-
-else:
 \item{VENN}{Matrix of shown results.}
 }
 \description{

@@ -105,7 +105,16 @@ predict(model, newdata = com$env_weights, SP = SPV)
 
 ## Visualize internal meta-community structure
 an = anova(model)
-plot(an, internal=TRUE)
+
+internal = internalStructure(an)
+plot(internal)
+
+## Visualize community assemlby effects 
+
+plotAssemblyEffects(internal)
+
+### see ?anova.sjSDM for mroe details
+
 
 ## non-linear(deep neural network) model
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
@@ -144,8 +153,9 @@ result = anova(model)
 print(result)
 plot(result)
 
-## visualize meta-community structure
-plot(result, internal=TRUE)
+## visualize internal meta-community structure
+internal = internalStructure(an)
+plot(internal)
 
 
 

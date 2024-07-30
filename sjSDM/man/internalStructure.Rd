@@ -8,7 +8,7 @@ internalStructure(
   object,
   Rsquared = c("McFadden", "Nagelkerke"),
   fractions = c("discard", "proportional", "equal"),
-  standardize = c("scale", "floor"),
+  negatives = c("floor", "scale"),
   plot = FALSE
 )
 }
@@ -19,7 +19,9 @@ internalStructure(
 
 \item{fractions}{how to handle shared fractions}
 
-\item{suppress_plotting}{should the plots be suppressed or not.
+\item{negatives}{how to handle negative R squareds}
+
+\item{plot}{should the plots be suppressed or not.
 
 Plots and returns the internal metacommunity structure of species and sites (see Leibold et al., 2022). 
 Plots were heavily inspired by Leibold et al., 2022}
@@ -33,6 +35,49 @@ List with the following components:
 }
 \description{
 Plot internal metacommunity structure
+}
+\examples{
+library(sjSDM)
+# simulate community:
+community = simulate_SDM(env = 3L, species = 10L, sites = 100L)
+
+Occ <- community$response
+Env <- community$env_weights
+SP <- data.frame(matrix(rnorm(200, 0, 0.3), 100, 2)) # spatial coordinates
+
+
+# fit model:
+model <- sjSDM(Y = Occ, 
+               env = linear(data = Env, formula = ~X1+X2+X3), 
+               spatial = linear(data = SP, formula = ~0+X1*X2), 
+               family=binomial("probit"),
+               iter = 20) # increase iter for real analysis
+
+# Calculate ANOVA for env, space, associations, for details see ?anova.sjSDM
+an = anova(model, samples = 10) # increase iter for real analysis
+
+# Show anova fractions
+plot(an)
+
+# ANOVA tables with different way to handle fractions
+summary(an)
+summary(an, fractions = "discard")
+summary(an, fractions = "proportional")
+summary(an, fractions = "equal")
+
+# Internal structure
+int = internalStructure(an, fractions = "equal")
+
+print(int)
+
+plot(int)
+
+plotAssemblyEffects(int)
+plotAssemblyEffects(int, env = runif(100))
+plotAssemblyEffects(int, env = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(int, trait = runif(10))
+plotAssemblyEffects(int, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+
 }
 \references{
 Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).

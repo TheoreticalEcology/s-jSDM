@@ -82,5 +82,5 @@ plotAssemblyEffects(int, trait = as.factor(c(rep(1, 5), rep(2, 5))))
 
 }
 \seealso{
-\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}, \code{\link{plotInternalStructure}}
+\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStruture}}
 }

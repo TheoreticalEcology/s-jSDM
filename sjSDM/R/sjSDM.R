@@ -746,11 +746,12 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param type residual type. Currently only supports raw
+#' @param ... further arguments, not supported yet.
 #' @return residuals in the format of the provided community matrix
 #' 
 #' @export
 residuals.sjSDM <- function(object, type = "raw", ...){
-  raw = model$data$Y - predict(object, type = "raw")
+  raw = object$data$Y - predict(object, type = "raw")
   return(raw)
 }
 
