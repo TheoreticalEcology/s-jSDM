@@ -1,4 +1,4 @@
-#' importance 
+#' Importance of environmental, spatial and association components
 #' 
 #' Computes standardized variance components with respect to abiotic, biotic, and spatial effect groups. 
 #' 
@@ -6,10 +6,11 @@
 #' @param save_memory use torch backend to calculate importance with single precision floats
 #' @param ... additional arguments
 #' 
-#' @details 
+#' @details This approach is based on Ovaskainen et al., 2017, and also used in  Leibold et al., 2021. Unlike the \code{\link{anova.sjSDM}} function in the sjSDM package, importance is not calculated by explicitly switching a particular model component of and refitting the model, but essentially by setting it ineffective. 
 #' 
-#' This variance partitioning approach is based on Ovaskainen et al., 2017. For an example how to interpret the outputs, see Leibold et al., 2021.
-#' This function will be deprecated in the future. Please use \code{plot(anova(model), internal=TRUE)} (currently only supported for spatial models).
+#' Although we have no hard reasons to discourage the use of this function, we have decided in sjSDM to measure importance maninly based on a traditional ANOVA approach. We therefore recommend users to use the \code{\link{anova.sjSDM}}.
+#' 
+#' This function is maintained hidden for comparison / benchmarking purpose, and in case there is a need to use it in the future. If you want to access it, use sjSDM:::importance. 
 #' 
 #' @return
 #' 
@@ -30,7 +31,6 @@
 #' @seealso \code{\link{print.sjSDMimportance}}, \code{\link{plot.sjSDMimportance}}
 #' @example /inst/examples/importance-example.R
 #' @author Maximilian Pichler
-#' @export
 importance = function(x, save_memory = TRUE, ...) {
   model = x
   stopifnot(
@@ -190,7 +190,6 @@ plot.sjSDMimportance= function(x, y, col.points="#24526e",cex.points=1.2, ...) {
 #' @param covSP spatial covariance matrix
 #' 
 #' @author Maximilian Pichler
-
 getImportance = function(beta, sp=NULL, association, covX, covSP=NULL) {
   nsp = ncol(beta)
   nGroups = nrow(beta)

@@ -60,6 +60,10 @@ com = simulate_SDM(env = 3L, species = 7L, sites = 100L)
 model = sjSDM(Y = com$response,env = com$env_weights, iter = 50L) 
 # increase iter for your own data 
 
+# Default distribution is binomial("probit"). Alternatively, you can use
+# binomial(logit), poisson("log"), "nbinom" (with log, still somewhat 
+# experimental) and gaussian("identity")
+
 coef(model)
 summary(model)
 getCov(model)
@@ -121,7 +125,16 @@ predict(model, newdata = com$env_weights, SP = SPV)
 
 ## Visualize internal meta-community structure
 an = anova(model)
-plot(an, internal=TRUE)
+
+internal = internalStructure(an)
+plot(internal)
+
+## Visualize community assemlby effects 
+
+plotAssemblyEffects(internal)
+
+### see ?anova.sjSDM for mroe details
+
 
 ## non-linear(deep neural network) model
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
@@ -160,30 +173,10 @@ result = anova(model)
 print(result)
 plot(result)
 
-## visualize meta-community structure
-plot(result, internal=TRUE)
+## visualize internal meta-community structure
+internal = internalStructure(an)
+plot(internal)
 
-
-
-# Conditional predictions
-## Conditional predictions based on focal species
-com = simulate_SDM(sites = 200L)
-## first 100 observations are the training data
-model = sjSDM(com$response[1:100, ], com$env_weights[1:100,])
-## Assume that for the other 100 observations, only the first species is missing 
-## and we want to use the other 4 species to improve the predictions:
-Y_focal = com$response[101:200, ]
-Y_focal[,1] = NA # set to NA because occurrences are unknown
-
-pred_conditional = predict(model, newdata = com$env_weights[101:200,], Y = Y_focal)
-pred_unconditional = predict(model, newdata = com$env_weights[101:200,])[,1]
-
-## Compare performance:
-Metrics::auc(com$response[101:200, 1], pred_conditional)
-Metrics::auc(com$response[101:200, 1], pred_unconditional)
-
-## Conditional predictions are better, however, it only works if occurrences of
-## other species for new sites are known!
 
 
 # Deep neural networks

@@ -2,7 +2,7 @@
 % Please edit documentation in R/importance.R
 \name{importance}
 \alias{importance}
-\title{importance}
+\title{Importance of environmental, spatial and association components}
 \usage{
 importance(x, save_memory = TRUE, ...)
 }
@@ -26,8 +26,11 @@ Implemented S3 methods include \code{\link{print.sjSDMimportance}} and \code{\li
 Computes standardized variance components with respect to abiotic, biotic, and spatial effect groups.
 }
 \details{
-This variance partitioning approach is based on Ovaskainen et al., 2017. For an example how to interpret the outputs, see Leibold et al., 2021.
-This function will be deprecated in the future. Please use \code{plot(anova(model), internal=TRUE)} (currently only supported for spatial models).
+This approach is based on Ovaskainen et al., 2017, and also used in  Leibold et al., 2021. Unlike the \code{\link{anova.sjSDM}} function in the sjSDM package, importance is not calculated by explicitly switching a particular model component of and refitting the model, but essentially by setting it ineffective. 
+
+Although we have no hard reasons to discourage the use of this function, we have decided in sjSDM to measure importance maninly based on a traditional ANOVA approach. We therefore recommend users to use the \code{\link{anova.sjSDM}}.
+
+This function is maintained hidden for comparison / benchmarking purpose, and in case there is a need to use it in the future. If you want to access it, use sjSDM:::importance.
 }
 \examples{
 \dontrun{

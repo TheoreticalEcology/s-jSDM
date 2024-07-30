@@ -2,16 +2,14 @@
 % Please edit documentation in R/anova.R
 \name{anova.sjSDM}
 \alias{anova.sjSDM}
-\title{Anova}
+\title{Anova / Variation partitioning}
 \usage{
-\method{anova}{sjSDM}(object, samples = 5000L, fractional = c("proportional", "equal"), ...)
+\method{anova}{sjSDM}(object, samples = 5000L, ...)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
 
 \item{samples}{Number of Monte Carlo samples}
-
-\item{fractional}{how to distribute the shared partitions, proportional to the fractions' R2s or equal}
 
 \item{...}{optional arguments which are passed to the calculation of the logLikelihood}
 }
@@ -30,14 +28,59 @@ An S3 class of type 'sjSDManova' including the following components:
 Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 }
 \description{
-Calculates type II anova.
-
-Shared contributions (e.g. between space and environment) are also calculated (and divided proportionally) and can be optionally visualized via \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
-The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
+Compute variance explained by the three fractions env, space, associations
 }
 \details{
-Compute analysis of variance
+The ANOVA function removes each of the three fractions (Environment, Space, Associations) and measures the drop in variance explained, and thus the importance of the three fractions.
+
+Variance explained is measured by Deviance as well as the pseudo-R2 metrics of Nagelkerke and McFadden
+
+In downstream functions such as \code{\link{plot.sjSDManova}} or \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
+The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
+}
+\examples{
+library(sjSDM)
+# simulate community:
+community = simulate_SDM(env = 3L, species = 10L, sites = 100L)
+
+Occ <- community$response
+Env <- community$env_weights
+SP <- data.frame(matrix(rnorm(200, 0, 0.3), 100, 2)) # spatial coordinates
+
+
+# fit model:
+model <- sjSDM(Y = Occ, 
+               env = linear(data = Env, formula = ~X1+X2+X3), 
+               spatial = linear(data = SP, formula = ~0+X1*X2), 
+               family=binomial("probit"),
+               iter = 20) # increase iter for real analysis
+
+# Calculate ANOVA for env, space, associations, for details see ?anova.sjSDM
+an = anova(model, samples = 10) # increase iter for real analysis
+
+# Show anova fractions
+plot(an)
+
+# ANOVA tables with different way to handle fractions
+summary(an)
+summary(an, fractions = "discard")
+summary(an, fractions = "proportional")
+summary(an, fractions = "equal")
+
+# Internal structure
+int = internalStructure(an, fractions = "equal")
+
+print(int)
+
+plot(int)
+
+plotAssemblyEffects(int)
+plotAssemblyEffects(int, env = runif(100))
+plotAssemblyEffects(int, env = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(int, trait = runif(10))
+plotAssemblyEffects(int, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+
 }
 \seealso{
-\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}, \code{\link{plotInternalStructure}}
+\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStruture}}
 }

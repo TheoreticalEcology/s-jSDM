@@ -3,14 +3,13 @@ title: "sjSDM: Getting started with sjSDM - a scalable joint Species Distributio
 author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
 date: "`r Sys.Date()`"
 output: 
-
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model}
   %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{sjSDM: Getting started with the sjSDM package}
   %\VignetteEngine{knitr::rmarkdown}
-abstract: "sjSDM is a scalable joint species distribution model based on Monte-Carlo intergration of the joint likelihood. \n \n \n"
+abstract: "A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response functions (including the traditional multivariate probit model). As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'PyTorch' and 'reticulate', which can be run on CPUs or GPUs. The package includes support for different response families, the ability to account for spatial autocorrelation, and the option to fit responses via deep neural networks instead of a standard linear predictor. In addition, you can perform variation partitioning (VP) / ANOVA on the fitted models for environmental, spatial, and co-association model components, and further subdivide these three components per species and sites (internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>). \n \n \n"
 editor_options: 
   chunk_output_type: console
 ---
@@ -33,290 +32,199 @@ knitr::opts_chunk$set(
 
 # Getting started
 
-Load the package via
+## About sjSDM
 
-```{r,eval=FALSE}
-library(sjSDM)
-```
+The sjSDM package is an R package for estimating so-called joint species distribution models. A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to the environment, space and a covariance term that models conditional (on the other terms) correlations between the outputs (i.e. species). 
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-── Attaching sjSDM ──────────────────────────────────────── 1.0.4 ──
-✔ torch <environment> 
-✔ torch_optimizer  
-✔ pyro  
-✔ madgrad"
-)
-```
+![image](jSDM-structure.png)
 
-## Installing dependencies
+A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. 
 
-sjSDM depends on Anaconda which will be installed automatically if it is not available.
+The core code of sjSDM is implemented in Python / PyTorch, which is then wrapped into an R package. In principle, you can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.7 and pytorch must be installed (more details below). However, for most users, it will be more convenient to use sjSDM via the sjSDM R package, which also provides a large number of downstream functionalities. 
 
-To install the CPU version, run:
-
-```{r, eval = F, purl=FALSE}
-install_sjSDM()
-```
-
-For the GPU version (only NVIDIA GPUs are supported), run:
-
-```{r, eval = F, purl=FALSE}
-install_sjSDM(method = "gpu")
-```
-
-More details on and trouble-shooting for installing the necessary dependencies is explained in the vignette dependencies, call
-
-```{r,eval = F, purl=FALSE}
-vignette("Dependencies", package = "sjSDM")
-```
-
-## Citing sjSDM
-
-To cite sjSDM in a publication, use
+To get citation info for sjSDM when you use it for your reseach, type  
 
 ```{r,eval=FALSE}
 citation("sjSDM")
 ```
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
+## Installing the R package
 
-To cite sjSDM in publications use:
+sjSDM is distributed via [CRAN](https://cran.rstudio.com/web/packages/sjSDM/index.html). For most users, it will be best to install the package from CRAN
 
-  Pichler, M. and Hartig, F. (2021), A new joint species distribution model for faster and more accurate inference of species associations
-  from big community data. Methods in Ecology and Evolution. Accepted Author Manuscript. https://doi.org/10.1111/2041-210X.13687
-
-A BibTeX entry for LaTeX users is
-
-  @Article{,
-    title = {A new joint species distribution model for faster and more accurate inference of species associations from big community data},
-    author = {Maximilian Pichler and Florian Hartig},
-    journal = {Methods in Ecology and Evolution},
-    year = {2021},
-    doi = {10.1111/2041-210X.13687},
-  }
-
-"
-)
+```{r,eval=FALSE}
+install.packages("sjSDM")
 ```
+
+Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly, the dependencies can be automatically installed from within R:
+
+```{r,eval=FALSE}
+sjSDM::install_sjSDM(version = "gpu") # or
+sjSDM::install_sjSDM(version = "cpu")
+```
+
+For advanced users: if you want to install the current (development) version from this repository, run
+
+```{r,eval=FALSE}
+devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
+```
+
+dependencies should be installed as above. If the installation fails, check out the help of ?install_sjSDM, ?installation_help, and vignette("Dependencies", package = "sjSDM").
+
+1.  Try install_sjSDM()
+2.  New session, if no 'PyTorch not found' appears it should work, otherwise see ?installation_help
+3.  If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
 
 # Working with sjSDM
 
-sjSDM has a function to create test data: We create a dataset with 3 environmental predictors, 5 species and 100 sites.
+sjSDM has a function to create test data: We create a dataset with 3 environmental predictors, 100 species and 100 sites.
 
-```{r,eval=FALSE}
-com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
+```{r}
+library(sjSDM)
+set.seed(42)
+community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
+```
+
+For convenience, we extract the community matrix, the environmental matrix and the spatial position
+
+```{r}
+Occ <- community$response
+Env <- community$env_weights
+SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates
 ```
 
 ## Fit model
 
-The model is then fit with the function sjSDM(). You have to provide predictors (can be also a data.frame) and response as matrices.
+The model is then fit with the function sjSDM(). You have to provide predictors (can be also a data.frame) and response as matrices. If you want/need p-values, you have to set se = TRUE.
 
-```{r,eval=FALSE}
-model = sjSDM(Y = com$response, env = com$env_weights, iter = 100L, se=TRUE)
-```
-
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-Iter: 100/100 100%|██████████| [00:01, 55.40it/s, loss=2.845]
-
-Calculating standard errors...
-Species: 5/5 100%|██████████| [00:00,  7.02it/s]
-"
-)
-```
-
-## Interpreting model output
-
-Things you can do with the model output
-
-```{r,eval=FALSE}
-coef(model)
+```{r}
+model <- sjSDM(Y = Occ, 
+               env = linear(data = Env, formula = ~X1+X2+X3), 
+               spatial = linear(data = SP, formula = ~0+X1*X2), 
+               family=binomial("probit"),
+               se = TRUE)
 summary(model)
+```
+
+As you see, for environmental and spatial predictors, you can provide the dependency you want via the standard R formular syntax. E.g. for an interaction between X1 and X2, write 
+
+```{r, eval = F}
+env = linear(data = Env, formula = ~ X1*X2,)
+```
+
+or for a quadratic effect of X1, but without an intercept, write
+
+```{r, eval = F}
+env = linear(data = Env, formula = ~0+ I(X1^2)+X1)
+```
+
+The linear means that you essentially fit a linear regression structure for the respective component. Alternatively, you could also fit a neural network (see later). 
+
+## Interpreting the estimated model coefficients
+
+To get an overall summary of the model, type 
+
+```{r}
+summary(model)
+```
+
+This output will show you the fitted environmental, spatial and covariance parameters (provided that those components were specified). Implemented S3 functions for a model object include
+
+```{r, echo=F}
+coef(model)
+residuals(model)
 Rsquared(model)
 ```
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-[[1]]
-           [,1]       [,2]         [,3]       [,4]
-[1,]  0.2123860  0.1510233 -0.921597779 -0.8924292
-[2,]  0.1897056  0.9265483 -0.004749471  1.1936187
-[3,]  0.1862375 -0.4717873  1.039884210  1.9334294
-[4,] -0.2361571  1.3922049  0.119922511 -0.7957588
-[5,]  0.1032345  0.4762956  1.235011458 -0.7303844
-"
-)
+### Environmental effects
+
+The environmental effects are displayed in the summary() table. To get a visual plot, you can use 
+
+```{r}
+plot(model)
 ```
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-Family:  binomial 
+If you have species groups in your data, a bit nicer plot is produced by
 
-LogLik:  -283.4419 
-Regularization loss:  0 
-
-Species-species correlation matrix: 
-
-	sp1	 1.0000				
-	sp2	 0.2110	 1.0000			
-	sp3	 0.1020	 0.6660	 1.0000		
-	sp4	-0.2530	 0.2630	 0.4920	 1.0000	
-	sp5	 0.0130	 0.3430	 0.2780	-0.1490	 1.0000
-
-
-
-                Estimate  Std.Err Z value Pr(>|z|)    
-sp1 (Intercept)  0.21239  0.19224    1.10  0.26924    
-sp1 X1           0.15102  0.35645    0.42  0.67180    
-sp1 X2          -0.92160  0.33932   -2.72  0.00661 ** 
-sp1 X3          -0.89243  0.32367   -2.76  0.00583 ** 
-sp2 (Intercept)  0.18971  0.19152    0.99  0.32191    
-sp2 X1           0.92655  0.37360    2.48  0.01314 *  
-sp2 X2          -0.00475  0.34082   -0.01  0.98888    
-sp2 X3           1.19362  0.32748    3.64  0.00027 ***
-sp3 (Intercept)  0.18624  0.25774    0.72  0.46995    
-sp3 X1          -0.47179  0.49147   -0.96  0.33707    
-sp3 X2           1.03988  0.46161    2.25  0.02428 *  
-sp3 X3           1.93343  0.43018    4.49    7e-06 ***
-sp4 (Intercept) -0.23616  0.24017   -0.98  0.32547    
-sp4 X1           1.39220  0.45671    3.05  0.00230 ** 
-sp4 X2           0.11992  0.43325    0.28  0.78193    
-sp4 X3          -0.79576  0.39868   -2.00  0.04594 *  
-sp5 (Intercept)  0.10323  0.19424    0.53  0.59510    
-sp5 X1           0.47630  0.35038    1.36  0.17403    
-sp5 X2           1.23501  0.36023    3.43  0.00061 ***
-sp5 X3          -0.73038  0.33345   -2.19  0.02850 *  
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-"
-)
+```{r}
+species=c("sp1","sp2","sp3","sp4","sp5","sp6","sp7","sp8","sp9","sp10")
+group=c("mammal","bird","fish","fish","mammal","amphibian","amphibian", "fish","mammal","amphibian")
+group = data.frame(species=species,group=group)
+plot(model,group=group)
 ```
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-[1] 0.1833771
-"
-)
-```
 
-### Get species-species association matrix
+### Spatial effects 
 
-```{r,eval=FALSE}
+The spatial effects are displayed in the summary() table. Currently, there are not additional options implemented to visualize the spatial effects
+
+### Species-species covariance (associations)
+
+The species-species associations are displayed in the summary() table. You can extract them as follows:
+
+```{r}
 association = getCor(model)
-print(association)
+sp = x = 1:length(species)
+image(x = sp, y = sp, z= association, )
 ```
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-            [,1]      [,2]      [,3]       [,4]        [,5]
-[1,]  1.00000000 0.2107329 0.1017986 -0.2527094  0.01321193
-[2,]  0.21073294 1.0000000 0.6657167  0.2625644  0.34263917
-[3,]  0.10179862 0.6657167 1.0000000  0.4915384  0.27815582
-[4,] -0.25270941 0.2625644 0.4915384  1.0000000 -0.14870448
-[5,]  0.01321191 0.3426392 0.2781559 -0.1487045  1.00000000
-"
-)
+## ANOVA and variation partitioning
+
+### Global ANOVA
+
+![image](jSDM-ANOVA.png)
+
+ANOVA (Type II) will calculate the amount of variation explained by the three components (environment, associations, and space):
+
+```{r}
+an = anova(model)
 ```
 
-## Adding quadratic predictors and interactions
+Amount of variance explained is measured by 
 
-sjSDM supports the R formula syntax.
 
-E.g. interaction with intercept (if you want/need p-values, you have to set se = TRUE)
+
+```{r}
+plot(an)
+```
+
+
+print(an)
+
+
+
+### Internal metacommunity structure
+
+We can calculate and visualize the internal metacommunity structure for species and sites (only for models with space):
 
 ```{r,eval=FALSE}
-model = sjSDM(Y = com$response, 
-              env = linear(data = com$env_weights, formula = ~ X1*X2,), 
-              iter = 50L, se = TRUE)
-summary(model)
+results = plotInternalStructure(an)
+print(results$data$Species)
 ```
+
+![](internal.png)
 
 ```{r,  eval = TRUE,echo = FALSE, results = TRUE}
 cat("
-Family:  binomial 
-
-LogLik:  -302.3292 
-Regularization loss:  0 
-
-Species-species correlation matrix: 
-
-	sp1	 1.0000				
-	sp2	 0.0290	 1.0000			
-	sp3	-0.0630	 0.7200	 1.0000		
-	sp4	-0.1850	 0.1670	 0.3530	 1.0000	
-	sp5	 0.0730	 0.2410	 0.1370	-0.1400	 1.0000
-
-
-
-                Estimate Std.Err Z value Pr(>|z|)    
-sp1 (Intercept)   0.1986  0.1555    1.28  0.20144    
-sp1 X1           -0.0040  0.2802   -0.01  0.98861    
-sp1 X2           -0.8405  0.2730   -3.08  0.00208 ** 
-sp1 X1:X2         0.1894  0.4785    0.40  0.69227    
-sp2 (Intercept)   0.2243  0.2261    0.99  0.32113    
-sp2 X1            1.0708  0.4270    2.51  0.01215 *  
-sp2 X2            0.1217  0.3986    0.31  0.76008    
-sp2 X1:X2         0.8206  0.7316    1.12  0.26200    
-sp3 (Intercept)   0.1152  0.2414    0.48  0.63333    
-sp3 X1           -0.2812  0.4482   -0.63  0.53038    
-sp3 X2            1.1449  0.4289    2.67  0.00761 ** 
-sp3 X1:X2        -0.1565  0.7788   -0.20  0.84073    
-sp4 (Intercept)  -0.1829  0.1686   -1.09  0.27783    
-sp4 X1            0.8784  0.3126    2.81  0.00495 ** 
-sp4 X2            0.0364  0.2886    0.13  0.89955    
-sp4 X1:X2        -0.5055  0.5256   -0.96  0.33618    
-sp5 (Intercept)   0.0433  0.1542    0.28  0.77874    
-sp5 X1            0.3540  0.2772    1.28  0.20148    
-sp5 X2            0.9742  0.2885    3.38  0.00074 ***
-sp5 X1:X2        -1.0459  0.5089   -2.06  0.03987 *  
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+         env        spa     codist         r2
+1 0.20700207 0.06585441 0.06470110 0.06751152
+2 0.08447389 0.04961366 0.04666684 0.03615088
+3 0.12547761 0.05222821 0.00932909 0.03740698
+4 0.25344941 0.22698509 0.00000000 0.09249987
+5 0.14541311 0.05033103 0.00000000 0.03742124
 "
 )
 ```
 
-E.g. quadratic effect without intercept:
 
-```{r,eval=FALSE}
-model = update(model, env_formula = ~0+ I(X1^2)+X1)
-summary(model)
-```
 
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-Family:  binomial 
-
-LogLik:  -318.0733 
-Regularization loss:  0 
-
-Species-species correlation matrix: 
-
-	sp1	 1.0000				
-	sp2	-0.0230	 1.0000			
-	sp3	-0.1680	 0.7150	 1.0000		
-	sp4	-0.1660	 0.1260	 0.3010	 1.0000	
-	sp5	-0.1470	 0.2070	 0.2380	-0.0670	 1.0000
+## Predictions 
 
 
 
-            Estimate Std.Err Z value Pr(>|z|)   
-sp1 I(X1^2)   0.4843  0.3651    1.33   0.1846   
-sp1 X1        0.1387  0.2860    0.49   0.6276   
-sp2 I(X1^2)   0.0865  0.5380    0.16   0.8723   
-sp2 X1        1.0220  0.4157    2.46   0.0139 * 
-sp3 I(X1^2)  -0.3807  0.5516   -0.69   0.4901   
-sp3 X1       -0.4502  0.4267   -1.05   0.2915   
-sp4 I(X1^2)  -0.2723  0.4015   -0.68   0.4976   
-sp4 X1        0.8490  0.3105    2.73   0.0063 **
-sp5 I(X1^2)   0.6131  0.3653    1.68   0.0933 . 
-sp5 X1        0.1927  0.2886    0.67   0.5044   
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-"
-)
-```
+
+
+# Advanced topics
 
 ## Fitting other distributions (e.g. species frequencies)
 
@@ -329,7 +237,7 @@ X = com$env_weights
 Y = com$response
 ```
 
-## Poisson
+### Poisson
 
 ```{r,eval=FALSE}
 model = sjSDM(Y, env = linear(X, ~.), se = TRUE, 
@@ -381,7 +289,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 )
 ```
 
-## Negative Binomial
+### Negative Binomial
 
 ```{r,eval=FALSE}
 model = sjSDM(Y, env = linear(X, ~.), se = TRUE, iter = 50L, family = "nbinom")
@@ -434,7 +342,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 )
 ```
 
-## Normal (gaussian)
+### Normal (gaussian)
 
 ```{r,eval=FALSE}
 model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE, 
@@ -486,9 +394,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 )
 ```
 
-# Handling spatial autocorrelation
-
-## Simulating spatial data
+## Modifying the spatial component 
 
 jSDMs account for correlation between species within communities (sites), in real datasets, however, communities (sites) are often also correlated (== spatial autocorrelation). Usually conditional autoregressive (CAR) models are used to account for the spatial autocorrelation in the residuals, which we, however, do not support yet. A similar approach is to condition the model on space, which we can do by using space as predictors.
 
@@ -518,8 +424,6 @@ spatialResiduals = mvtnorm::rmvnorm( 5L, sigma = exp(-WW))
 Ysp = Y + t(spatialResiduals)
 Y = ifelse(Ysp < 0, 0, 1) # multivariate probit model
 ```
-
-## Fitting spatial jSDM
 
 There are three options to condition our model on space:
 
@@ -702,88 +606,10 @@ X3          -0.1201278 -0.2378207  0.6429102 -0.7199039  0.08894651
 )
 ```
 
-# VENN diagram and community analyses
 
-## Anova
+## Adjusting regularization parameters
 
-ANOVA (Type II) will separate the three components (environment, associations, and space):
-
-```{r,eval=FALSE}
-model = sjSDM(Y, 
-              env = linear(X, ~.), 
-              spatial = linear(XYcoords, ~0+XX+YY+XX:YY+I(XX^2)+I(YY^2)), 
-              iter = 100L)
-
-an = anova(model)
-print(an)
-plot(an)
-```
-
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-Iter: 100/100 100%|██████████| [00:01, 64.31it/s, loss=2.819]
-Iter: 100/100 100%|██████████| [00:01, 58.37it/s, loss=3.373]
-Iter: 100/100 100%|██████████| [00:01, 64.17it/s, loss=3.099]
-Iter: 100/100 100%|██████████| [00:01, 56.71it/s, loss=2.731]
-Iter: 100/100 100%|██████████| [00:01, 58.89it/s, loss=2.646]
-Iter: 100/100 100%|██████████| [00:01, 51.46it/s, loss=2.984]
-Iter: 100/100 100%|██████████| [00:02, 48.46it/s, loss=0.121]
-"
-)
-```
-
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-Analysis of Deviance Table
-
-         Deviance Residual deviance R2 Nagelkerke R2 McFadden
-Abiotic 135.46469         534.13894       0.74196      0.1954
-Biotic   24.48839         645.11523       0.21720      0.0353
-Spatial  91.44113         578.16250       0.59925      0.1319
-Full    187.83630         481.76733       0.84716      0.2710
-"
-)
-```
-
-![](VENN.png)
-
-## Internal metacommunity structure
-
-We can calculate and visualize the internal metacommunity structure for species and sites (only for models with space):
-
-```{r,eval=FALSE}
-results = plotInternalStructure(an)
-print(results$data$Species)
-```
-
-![](internal.png)
-
-```{r,  eval = TRUE,echo = FALSE, results = TRUE}
-cat("
-         env        spa     codist         r2
-1 0.20700207 0.06585441 0.06470110 0.06751152
-2 0.08447389 0.04961366 0.04666684 0.03615088
-3 0.12547761 0.05222821 0.00932909 0.03740698
-4 0.25344941 0.22698509 0.00000000 0.09249987
-5 0.14541311 0.05033103 0.00000000 0.03742124
-"
-)
-```
-
-## Importance
-
-We can also partition the effects of the different components. This function will be deprecated in future. Please use `plot(anova(model), internal = TRUE)`
-
-```{r,eval=FALSE}
-imp = importance(model)
-plot(imp)
-```
-
-![](importance.png)
-
-# Predictive modeling 
-
-## Regularization on abiotic coefficients
+### Regularization on abiotic coefficients
 
 sjSDM supports l1 (lasso) and l2 (ridge) regularization: \* alpha is the weighting between lasso and ridge \* alpha = 0.0 corresponds to pure lasso \* alpha = 1.0 corresponds to pure ridge
 
@@ -822,7 +648,7 @@ I(X1^2) 0.004259373 -0.01279781 -0.00810579 0.001065778 -0.007236504
 ```
 
 
-## Regularization on species-species associations
+### Regularization on species-species associations
 
 We can do the same for the species associations:
 
@@ -862,7 +688,7 @@ I(X1^2) -0.002930772 -0.01018739 0.0004073409 -0.01492386 -0.0006310232
 ```
 
 
-## Regularization on the spatial model:
+### Regularization on the spatial model:
 
 ```{r,eval=FALSE}
 
@@ -975,3 +801,136 @@ Plot the training history:
 ```{r,eval=FALSE}
 plot(model)
 ```
+
+# Installation problems
+
+The `r knitr::inline_expr('sjSDM::install_sjSDM()')` function can install automatically all necessary 'python' dependencies but it can fail sometimes because of individual system settings or if other 'python'/'conda' installations get into the way. 
+
+## PyTorch Installation - Before you start:
+
+A few notes before you start with the installation (skip this point if you 
+do not know conda):
+
+* existing 'conda' installations: make sure you have the latest 'conda' or 'miniconda' version and remove unnecessary 'conda' installations.
+* existing 'conda' or 'virtualenv' environments (skip this point if you do not know 'conda'): we currently enforce the usage of a specific environment called 'r-sjsdm',so if you want use a custom environment it should be named 'r-sjsdm'
+ 
+ 
+## Windows - automatic installation:
+ 
+Sometimes the automatic 'miniconda' installation (via 
+`r knitr::inline_expr('sjSDM::install_sjSDM()')` ).doesn't work because of white spaces in the user's name. But you can easily download and install 'conda' on your own:
+
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
+
+Afterwards run:
+```{r,eval=FALSE, purl=FALSE}
+install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
+```
+
+ 
+Reload the package and run the example, if this doesn't work:
+
+* Restart RStudio
+* Install manually pytorch, see the following section
+ 
+  
+## Windows - manual installation:
+ 
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
+
+Open the command window (cmd.exe - hit windows key + r and write cmd)
+
+Run in cmd.exe:
+
+```{bash, eval=FALSE, purl=FALSE}
+conda create --name r-sjsdm python=3.7
+conda activate r-sjsdm
+conda install pytorch torchvision cpuonly -c pytorch # cpu
+conda install pytorch torchvision cudatoolkit=11.3 -c pytorch #gpu
+python -m pip install pyro-ppl torch_optimizer madgrad
+```
+ 
+ 
+Restart R, try to run the example, and if this doesn't work:
+
+* Restart RStudio
+* See the 'Help and bugs' section
+ 
+    
+## Linux - automatic installation:
+ 
+Run in R: 
+```{r,eval=FALSE, purl=FALSE}
+install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
+```
+
+Restart R try to run the example, if this doesn't work:
+
+* Restart RStudio
+* Install manually 'PyTorch', see the following section
+
+  
+  
+## Linux - manual installation:
+ 
+We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
+
+Download and install the latest ['conda' version](https://www.anaconda.com/download/)
+
+Open your terminal and run:
+```{bash, eval=FALSE, purl=FALSE}
+conda create --name r-sjsdm python=3.7
+conda activate r-sjsdm
+conda install pytorch torchvision cpuonly -c pytorch # cpu
+conda install pytorch torchvision cudatoolkit=11.3 -c pytorch #gpu
+python -m pip install pyro-ppl torch_optimizer madgrad
+```
+ 
+ 
+Restart R try to run the example, if this doesn't work:
+
+* Restart RStudio
+* See the 'Help and bugs' section
+ 
+ 
+## MacOS - automatic installation:
+ 
+Run in R: 
+```{r,eval=FALSE, purl=FALSE}
+install_sjSDM()
+```
+
+Restart R try to run the example, if this doesn't work:
+
+* Restart RStudio
+* Install manually 'PyTorch', see the following section
+
+ 
+ 
+## MacOS - manual installation:
+ 
+We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
+
+Download and install the latest conda [conda version](https://www.anaconda.com/download/)
+
+Open your terminal and run:
+```{bash, eval=FALSE, purl=FALSE}
+conda create --name r-sjsdm python=3.7
+conda activate r-sjsdm
+python -m pip install torch torchvision torchaudio 
+python -m pip install pyro-ppl torch_optimizer madgrad
+```
+ 
+ 
+Restart R try to run the example, if this doesn't work:
+
+* Restart RStudio
+* See the 'Help and bugs' section
+
+## Help and bugs
+
+* ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of  `r knitr::inline_expr('sjSDM::install_diagnostic()')`as a quote. 
+* report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-emple)
+ via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)
+
+

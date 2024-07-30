@@ -69,7 +69,7 @@
 #' 
 #' \subsection{Supported distributions}{
 #' 
-#' Currently supported distributions and link functions:
+#' Currently supported distributions and link functions, which are :
 #' \itemize{
 #' \item \code{\link{binomial}}: \code{"probit"} or \code{"logit"}
 #' \item \code{\link{poisson}}: \code{"log"} 
@@ -348,6 +348,8 @@ print.sjSDM = function(x, ...) {
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' 
 #' @return Matrix of predictions (sites by species)
+#' 
+#' @example /inst/examples/predict-example.R
 #' 
 #' @import checkmate
 #' @export
@@ -736,3 +738,21 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
   )
   return(new_model)
 }
+
+
+#' Residuals for a sjSDM model
+#'
+#' Returns residuals for a fitted sjSDM model
+#'
+#' @param object a model fitted by \code{\link{sjSDM}}
+#' @param type residual type. Currently only supports raw
+#' @param ... further arguments, not supported yet.
+#' @return residuals in the format of the provided community matrix
+#' 
+#' @export
+residuals.sjSDM <- function(object, type = "raw", ...){
+  raw = object$data$Y - predict(object, type = "raw")
+  return(raw)
+}
+
+

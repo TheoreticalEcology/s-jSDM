@@ -1,6 +1,5 @@
 #' @title Installation help
 #' @name installation_help
-#' @docType package
 #' @description Trouble shooting guide for the installation of the sjSDM package
 #' 
 #' We provide a function \code{\link{install_sjSDM}} to install automatically 
@@ -148,4 +147,4 @@
 #' \href{https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example/}{reproducible example} 
 #' via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues/}{issue tracker} 
 #' with a copy of the \code{\link{install_diagnostic}} output as a quote. 
-NULL
+"_PACKAGE"

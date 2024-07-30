@@ -1,17 +1,16 @@
-#' Anova
+#' Anova / Variation partitioning
 #' 
-#' Compute analysis of variance
+#' Compute variance explained by the three fractions env, space, associations
 #' 
 #' @param object model of object \code{\link{sjSDM}}
 #' @param samples Number of Monte Carlo samples
-#' @param fractional how to distribute the shared partitions, proportional to the fractions' R2s or equal
 #' @param ... optional arguments which are passed to the calculation of the logLikelihood
 #' 
-#' @description
+#' @details The ANOVA function removes each of the three fractions (Environment, Space, Associations) and measures the drop in variance explained, and thus the importance of the three fractions.
 #' 
-#' Calculates type II anova.
+#' Variance explained is measured by Deviance as well as the pseudo-R2 metrics of Nagelkerke and McFadden
 #' 
-#' Shared contributions (e.g. between space and environment) are also calculated (and divided proportionally) and can be optionally visualized via \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
+#' In downstream functions such as \code{\link{plot.sjSDManova}} or \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
 #' The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
 #' 
 #' @return 
@@ -28,11 +27,14 @@
 #' 
 #' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 #'  
-#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}}, \code{\link{plotInternalStructure}}
+#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStruture}}
+#' 
+#' @example /inst/examples/anova-example.R
+#' 
 #' @import stats
 #' @export
 
-anova.sjSDM = function(object, samples = 5000L, fractional = c("proportional", "equal"), ...) {
+anova.sjSDM = function(object, samples = 5000L, ...) {
   out = list()
   individual = TRUE
   samples = as.integer(samples)
@@ -69,9 +71,23 @@ anova.sjSDM = function(object, samples = 5000L, fractional = c("proportional", "
     F_AB = full_wo - A_wo-B_wo
 
     anova_rows = c("Null", "F_A", "F_B", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Biotic", "Full")
-    results = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
+    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Full")
+    
+    results_discard = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m)  + sum(F_B), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
+    F_AA = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
+    F_BB = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
+
+    results_proportional = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
+                                 ll = -c(sum(null_m) + sum(F_AA), sum(null_m)  + sum(F_BB), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
+    
+    F_AA = F_A + F_AB*0.5
+    F_BB = F_B + F_AB*0.5
+    
+    results_equal = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
+                                 ll = -c(sum(null_m) + sum(F_AA), sum(null_m)  + sum(F_BB), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
+    
+    
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m +F_B), "F_AB"=-(null_m + F_AB), "A" = -A_m, "B" = -B_m, "Full"=-full_m, "Saturated"=-SAT_m, "Null"=-null_m)
     
   } else {
@@ -108,26 +124,55 @@ anova.sjSDM = function(object, samples = 5000L, fractional = c("proportional", "
     F_AS = full_wo - B_wo - F_A - F_S
     F_AB = full_wo - S_wo - F_A - F_B
     F_BS = full_wo - A_wo - F_S - F_B
-    F_ABS = full_wo - F_BS - F_AB- F_AS- F_A- F_B - F_S        
-    results = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
+    F_ABS = full_wo - F_BS - F_AB- F_AS- F_A- F_B - F_S
+    
+    ## discard
+    
+    results_discard = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m) + sum(F_B),sum(null_m) + sum(F_S), 
                                  sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
                                  sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
+    ## proportional
+    F_AA = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+    F_BB = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+    F_SS = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    results_proportional = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
+                                     ll = -c(sum(null_m) + sum(F_AA, na.rm = TRUE), sum(null_m) + sum(F_BB, na.rm = TRUE),sum(null_m) + sum(F_SS, na.rm = TRUE), 
+                                           sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
+                                          sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
+
+
+    
+    ## equal
+    F_AA = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
+    F_BB = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    F_SS = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    
+    results_equal = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
+                                      ll = -c(sum(null_m) + sum(F_AA), sum(null_m) + sum(F_BB),sum(null_m) + sum(F_SS), 
+                                              sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
+                                              sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
+    
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m + F_B),"F_S"=-(null_m +F_S), "F_AB"=-(null_m +F_AB),"F_AS"=-(null_m + F_AS), 
                        "F_BS"=-(null_m + F_BS), "F_ABS"=-(null_m + F_ABS), "A" = -A_m, "B" = -B_m, "S" = -S_m, AB = AB_m, AS = AS_m, BS = BS_m,
                        "Full"=-(full_m), "Saturated"= -(SAT_m), "Null"=-null_m)
     
     anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Biotic", "Spatial", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")
   }
-  
-  results$`Residual deviance` = -2*(results$ll - results$ll[which(results$models == "Saturated", arr.ind = TRUE)])
-  
-  results$Deviance = results$`Residual deviance`[which(results$models == "Null", arr.ind = TRUE)] - results$`Residual deviance`
-  R21 = function(a, b) return(1-exp(2/(nrow(object$data$Y))*(-a+b)))
-  results$`R2 Nagelkerke` = R21(rep(-results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), - results$ll)
-  R22 = function(a, b) 1 - (b/a)
-  results$`R2 McFadden`= R22(rep(results$ll[which(results$models == "Null", arr.ind = TRUE)], length(results$ll)), results$ll)
+  results = 
+    lapply(list(results_discard, results_proportional, results_equal), function(res) {
+      
+      res$`Residual deviance` = -2*(res$ll - res$ll[which(res$models == "Saturated", arr.ind = TRUE)])
+      
+      res$Deviance = res$`Residual deviance`[which(res$models == "Null", arr.ind = TRUE)] - res$`Residual deviance`
+      R21 = function(a, b) return(1-exp(2/(nrow(object$data$Y))*(-a+b)))
+      res$`R2 Nagelkerke` = R21(rep(-res$ll[which(res$models == "Null", arr.ind = TRUE)], length(res$ll)), - res$ll)
+      R22 = function(a, b) 1 - (b/a)
+      res$`R2 McFadden`= R22(rep(res$ll[which(res$models == "Null", arr.ind = TRUE)], length(res$ll)), res$ll)
+      return(res)
+    
+    })
   
   # individual
   Residual_deviance_ind = lapply(results_ind, function(r) r - results_ind$Saturated)
@@ -141,23 +186,44 @@ anova.sjSDM = function(object, samples = 5000L, fractional = c("proportional", "
   R2_McFadden_ind = lapply(results_ind, function(r) R222(colSums(results_ind$Null), colSums(r)))
   R2_McFadden_sites = lapply(results_ind, function(r) R222(rowSums(results_ind$Null), rowSums(r)))
   
-  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind, fractional = fractional)
-  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites, fractional = fractional)
-  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind, fractional = fractional)
-  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites, fractional = fractional)
+  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind)
+  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites)
+  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind)
+  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites)
   
-  R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
-  R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
+  #R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
+  #R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
   
-  to_print = results
-  rownames(to_print) = to_print$models
-  to_print = to_print[anova_rows,]
-  to_print$models = names(anova_rows)
-  to_print = to_print[-1,c(1, 4, 3,5,6)]
-  rownames(to_print) = to_print$models
-  to_print = to_print[,-1]
-  out$results = results
-  out$to_print = to_print
+  # precalculates reduced ANOVA tables
+  calculateResults <- function(res) {
+    rownames(res) = res$models
+    res = res[anova_rows,]
+    res$models = names(anova_rows)
+    res = res[-1,c(1, 4, 3,5,6)]
+    rownames(res) = res$models
+    res = res[,-1]
+    return(res)
+  }
+  
+  if(inherits(object, "spatial")) {
+    printFull = results[[1]][1:8,c(1, 4, 3,5,6)]
+    rownames(printFull) = printFull$models
+    printFull = printFull[,-1]
+    rownames(printFull) = c("Abiotic", "Associations","Spatial", "Shared Abiotic+Associations", "Shared Abiotic+Spatial", "Shared Spatial+Associations", "Shared Abiotic+Associations+Spatial", "Full")
+  } else {
+    printFull = results[[1]][1:4,c(1, 4, 3,5,6)]
+    rownames(printFull) = printFull$models
+    printFull = printFull[,-1]
+    rownames(printFull) = c("Abiotic", "Associations", "Shared Abiotic+Associations", "Full")
+  }
+  
+  toPrint = list(all = printFull,
+       discard = calculateResults(results[[1]]), 
+       proportional = calculateResults(results[[2]]), 
+       equal = calculateResults(results[[3]])) 
+  
+  out$results = results[[1]] # TODO Max: check - das hier sind doch die einzigen Resultate die wir brauchen, oder? Es gibt doch eigentlich nur eine Aufteilung
+  out$to_print = toPrint
   out$N = nrow(object$data$Y)
   out$species = list(Residual_deviance = Residual_deviance_ind,
                      Deviance = Deviance_ind,
@@ -176,6 +242,7 @@ anova.sjSDM = function(object, samples = 5000L, fractional = c("proportional", "
   return(out)
 }
 
+# TODO - scale instead of 
 correct_R2 = function(R2) {
   R2 = ifelse(R2 < 0, 0, R2)
   R2 = ifelse(R2 > 1.000, 0, R2)
@@ -209,27 +276,13 @@ get_conditional_lls = function(m, null_m, ...) {
   rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(m$data$Y), ncol = ncol(m$data$Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
   
   ### Maximal/Minimal 0?
-  rescaled_conditional_lls[rescaled_conditional_lls<0] = 0
+  #rescaled_conditional_lls[rescaled_conditional_lls<0] = 0 does not work!
   
   return(rescaled_conditional_lls)
 }
 
-get_shared_anova = function(R2objt, spatial = TRUE, fractional = c("proportional", "equal")) {
-  fractional = match.arg(fractional)
+get_shared_anova = function(R2objt, spatial = TRUE) {
   if(spatial) {
-    # F_BS = R2objt$Full-R2objt$A
-    # F_AB = R2objt$Full-R2objt$S
-    # F_AS = R2objt$Full-R2objt$B
-    # F_A = R2objt$Full- R2objt$BS
-    # F_B =  R2objt$Full-R2objt$AS
-    # F_S =  R2objt$Full-R2objt$AB
-    # F_BS = R2objt$Full-R2objt$A - F_B -F_S
-    # F_AB = F_AB - F_A -F_B
-    # F_AS = F_AS - F_A -F_S
-    # F_ABS = R2objt$Full - F_BS - F_AB- F_AS- F_A- F_B - F_S
-    # A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
-    # B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
-    # S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
     F_A <- R2objt$Full - R2objt$F_BS
     F_B <- R2objt$Full - R2objt$F_AB
     F_S <- R2objt$Full - R2objt$F_AS
@@ -237,15 +290,15 @@ get_shared_anova = function(R2objt, spatial = TRUE, fractional = c("proportional
     F_AB <- R2objt$Full - R2objt$F_S - (F_A + F_B)
     F_AS <- R2objt$Full - R2objt$F_B - (F_A + F_S)
     F_ABS <- R2objt$Full - (F_A + F_B + F_S + F_BS + F_AB + F_AS)
-    if(fractional == "proportional") {
-      A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
-      B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
-      S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
-    } else {
-      A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
-      B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
-      S = F_S + F_AS*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
-    }
+    A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+    B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+    S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    # R2 = correct_R2(R2objt$Full) TODO Check that this can be gone
+    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
+    A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
+    B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    S = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    equal = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
   } else {
     F_A = R2objt$Full-R2objt$B
     F_B =  R2objt$Full-R2objt$A
@@ -253,9 +306,13 @@ get_shared_anova = function(R2objt, spatial = TRUE, fractional = c("proportional
     A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
     S = 0
+    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
+    A = F_A + F_AB*0.5
+    B = F_B + F_AB*0.5
+    S = 0
+    equal = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
   }
-  R2 = correct_R2(R2objt$Full)
-  return(list(F_A = A, F_B = B, F_S = S, R2 = R2))
+  return(list(proportional = proportional, equal = equal))
 }
 
 get_null_ll = function(object, ...) {
@@ -293,244 +350,53 @@ get_null_ll = function(object, ...) {
 
 
 
-#' Print sjSDM anova
+#' Summary table of sjSDM anova
 #' 
-#' @param x an object of \code{\link{anova.sjSDM}}
+#' The function prints and returns invisible a summary table of an sjSDM ANOVA, created by \code{\link{anova.sjSDM}}
+#' 
+#' @param object an object of \code{\link{anova.sjSDM}}
+#' @param method method used to calculate the ANOVA 
+#' @param fractions how to handle the shared fractions. See details
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
 #' 
-#' @return The above matrix is silently returned
+#' @details The function returns a ANOVA table with Deviance as well as the pseudo-R2 metrics of Nagelkerke and McFadden
 #' 
+#' There are four options to handle shared ANOVA fractions, which is variance that can be explained, typically as a result of collinearity, by several of the fractions:
 #' 
+#' 1. "all" returns the shared fractions explicitly
+#' 2. "discard" discards the fractions, as typically in a type II Anova
+#' 3. "proportional" distributes shared fractions proportional to the unique fractions
+#' 4. "equal" distributions shared fractions equally to the unique fractions
+#' 
+#' @return The matrix that is printed out is silently returned
+#' 
+#' @example /inst/examples/anova-example.R
 #' @export
-print.sjSDManova = function(x, ...) {
+summary.sjSDManova = function(object, 
+                              method = c("ANOVA"),
+                              fractions = c("all","discard", "proportional", "equal"), ...) {
   cat("Analysis of Deviance Table\n\n")
-  stats::printCoefmat(x$to_print)
-  return(invisible(x$to_print))
-}
-
-#' Plot internal metacommunity structure
-#' 
-#' @param object anova object from \code{\link{anova.sjSDM}}
-#' @param Rsquared which R squared should be used, McFadden or Nagelkerke (McFadden is default)
-#' @param add_shared split shared components, default is TRUE 
-#' @param env_deviance environmental deviance
-#' @param suppress_plotting should the plots be suppressed or not.
-#' 
-#' Plots and returns the internal metacommunity structure of species and sites (see Leibold et al., 2022). 
-#' Plots were heavily inspired by Leibold et al., 2022
-#' 
-#' @return 
-#' 
-#' List with the following components:
-#' 
-#' 
-#' \item{plots}{ggplot objects for sites and species.}
-#' \item{data}{List of data.frames with the internal metacommunity structure.}
-#' 
-#' 
-#' @references 
-#' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
-#' 
-#' @export
-plotInternalStructure = function(object,  
-                                 Rsquared = c("McFadden", "Nagelkerke"), 
-                                 add_shared = FALSE,
-                                 env_deviance = NULL,
-                                 suppress_plotting = FALSE) {
-  Rsquared = match.arg(Rsquared)
-  out = 
-    plot.sjSDManova(x = object, 
-                    internal = TRUE, 
-                    add_shared = add_shared,
-                    type = Rsquared, 
-                    alpha = 0.15,
-                    env_deviance = env_deviance,
-                    suppress_plotting = suppress_plotting)
+  method = match.arg(method)
+  fractions = match.arg(fractions)
+  
+  out = object$to_print[[fractions]]
+  stats::printCoefmat(out)
   return(invisible(out))
+  
 }
 
 
-get_eigen = function(X, double_center = TRUE, full = FALSE) {
-  D = as.matrix(dist(scale(X)))
-  if(double_center) D = D - (diag(0.0, ncol(D)) + rowMeans(D)) - t(diag(0.0, ncol(D)) + colMeans(D)) + mean(D) # Double center
-  eig = eigen(D)
-  if(!full)return(abs(eig$vectors[,which.max(abs(eig$values))]))
-  else {
-    return(list(x = eig$vectors))
-  }
-}
-
-
-#' Plot Correlations between assembly processes and predictors or traits
-#' @param object An `anova` object from the `anova.sjSDM` function.
-#' @param env Predictor variable. If `NULL`, assembly processes are plotted against environment, spatial uniqueness, and richness.
-#' @param trait Trait variable. Plotted against species R-squared for the three processes.
-#' @param Rsquared Which R-squared should be used: "McFadden" (default) or "Nagelkerke".
-#' @param cols Colors for the three assembly processes.
+#' Print sjSDM anova object
 #' 
-#' Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
-#' 
-#' Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.
-#' 
-#' Regression lines are estimated by 50% quantile regression models.
-#' 
-#' @return
-#' A list with the following components:
+#' This is a wrapper for \code{\link{summary.sjSDManova}}, maintained for backwards compatibility - prefer to use summary() instead
 #'
-#' \item{env}{A list of summary tables for env, space, and codist R-squared.}
-#' \item{space}{A list of summary tables for env, space, and codist R-squared.}
-#' \item{codist}{A list of summary tables for env, space, and codist R-squared.}
+#' @param x an object of type sjSDManova created by \code{\link{anova.sjSDM}}
+#' @param ... additional arguments to \code{\link{summary.sjSDManova}}
 #' 
-#' @references
-#' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. *Oikos*, 2022(1).
-#' 
+#' @example /inst/examples/anova-example.R
 #' @export
-plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("McFadden", "Nagelkerke"), cols = c("#A38310", "#B42398", "#20A382")) {
-  
-  oldpar = par(no.readonly = TRUE)
-  on.exit(par(oldpar))
-  
-  Rsquared = match.arg(Rsquared)
-  out = 
-    sjSDM:::plot.sjSDManova(x = object, 
-                    internal = TRUE, 
-                    add_shared = add_shared,
-                    type = Rsquared, 
-                    env_deviance = env_deviance,
-                    suppress_plotting = TRUE)
-  
-  
-  lwd = 2
-  
-  X = object$object$settings$env$X
-  XYcoords = object$object$settings$spatial$X
-  Y = object$object$data$Y
-  rr = out
-  out = list()
-  
-  
-  if(is.null(env) & is.null(trait)) {
-  
-    graphics::par(mfrow = c(1, 3), mar = c(4, 4, 4, 1), xaxt= "s")
-    env_eigen = get_eigen(scale(X), FALSE)
-    spatial_eigen = get_eigen(scale(XYcoords),FALSE)
-    richness = rowSums(Y)
-    
-    env_eigen_centered = scale(env_eigen, center = TRUE, scale = FALSE)
-    spatial_eigen_centered = scale(spatial_eigen, center = TRUE, scale = FALSE)
-    richness_centered = scale(richness, center = TRUE, scale = FALSE)
-    
-    
-    out$env = list()
-    out$space = list()
-    out$codist = list()
-    
-    graphics::plot(NULL, NULL, xlim = c(min(env_eigen_centered), max(env_eigen_centered)), 
-         ylim = c(0, 0.6), xlab = "Env uniqueness",main = "", ylab = "R2", las =1)
-    for(i in 1:3) {
-      graphics::points(env_eigen_centered, rr$data$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
-      g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
-                data = data.frame(Y = rr$data$Sites[,i], 
-                                  env_eigen_centered = env_eigen_centered, 
-                                  spatial_eigen_centered = spatial_eigen_centered, 
-                                  richness_centered = richness_centered), 
-                qu = 0.5, control = list(progress="none"))
-      out$env[[colnames(rr$data$Sites)[i]]] = g 
-      graphics::abline(a = coef(g)[c(1, 2)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[2,4] > 0.05)+1 )
-      
-    }
-    graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
-    graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
-    
-    graphics::plot(NULL, NULL, xlim = c(min(spatial_eigen_centered), max(spatial_eigen_centered)), ylim = c(0, 0.6), xlab = "Spatial uniqueness",main = "", ylab = "R2", las =1)
-    for(i in 1:3) {
-      graphics::points(spatial_eigen_centered, rr$data$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
-      g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
-                data = data.frame(Y = rr$data$Sites[,i], 
-                                  env_eigen_centered = env_eigen_centered, 
-                                  spatial_eigen_centered = spatial_eigen_centered, 
-                                  richness_centered = richness_centered), 
-                qu = 0.5, control = list(progress="none"))
-      out$space[[colnames(rr$data$Sites)[i]]] = g 
-      graphics::abline(a = coef(g)[c(1, 3)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[3,4] > 0.05)+1 )
-      
-    }
-    graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
-    graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
-    
-    
-    graphics::plot(NULL, NULL, xlim = c(min(richness_centered), max(richness_centered)), ylim = c(0, 0.6), xlab = "Richness",main = "", ylab = "R2", las =1)
-    for(i in 1:3) {
-      graphics::points(richness_centered, rr$data$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
-      g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
-                data = data.frame(Y = rr$data$Sites[,i], 
-                                  env_eigen_centered = env_eigen_centered, 
-                                  spatial_eigen_centered = spatial_eigen_centered, 
-                                  richness_centered = richness_centered), 
-                qu = 0.5, control = list(progress="none"))
-      out$codist[[colnames(rr$data$Sites)[i]]] = g 
-      graphics::abline(a = coef(g)[c(1, 4)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[4,4] > 0.05)+1 )
-      
-    }
-    graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
-    graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
-  } else {
-    if(!is.null(env)) {
-      if(is.factor(env) || is.character(env)) {
-        group = env
-        df = data.frame(R2 = c(rr$data$Sites$env, rr$data$Sites$spa, rr$data$Sites$codist),
-                        part = rep(c("env", "spa", "codist"), each = nrow(rr$data$Sites)),
-                        group = rep(group, 3)
-        )
-        b = graphics::boxplot(R2~part+group, data =df,las = 2, col = alpha(cols[c(3, 1, 2)],0.7), xlab = "", main = "", notch = TRUE )
-        b = beeswarm::beeswarm(R2~part+group, data =df,las = 2, col = cols[c(3, 1, 2)], xlab = "", main = "" , add=TRUE, method = "center", spacing = 0.3)
-        graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
-      } else {
-        graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 1), xaxt= "s")
-        pred = scale(env, center = TRUE, scale = FALSE)
-        
-        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(0, 0.6), xlab = "Predictor",main = "", ylab = "R2", las =1)
-        for(i in 1:3) {
-          graphics::points(pred, rr$data$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
-          g = qgam::qgam( Y ~ pred, data = data.frame(Y = rr$data$Sites[,i], pred = pred), qu = 0.5, control = list(progress="none"))
-          graphics::abline(a = coef(g)[c(1, 2)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[2,4] > 0.05)+1 )
-          out$pred[[colnames(rr$data$Sites)[i]]] = g 
-        }
-        graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
-        graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
-      }
-    }
-    
-    if(!is.null(trait)) {
-      if(is.factor(trait) || is.character(trait)) {
-        group = trait
-        df = data.frame(R2 = c(rr$data$Species$env, rr$data$Species$spa, rr$data$Species$codist),
-                        part = rep(c("env", "spa", "codist"), each = nrow(rr$data$Species)),
-                        group = rep(group, 3)
-        )
-        b = graphics::boxplot(R2~part+group, data =df,las = 2, col = alpha(cols[c(3, 1, 2)],0.7), xlab = "", main = "", notch = TRUE )
-        b = beeswarm::beeswarm(R2~part+group, data =df,las = 2, col = cols[c(3, 1, 2)], xlab = "", main = "" , add=TRUE, method = "center", spacing = 0.3)
-        graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
-      } else {
-        graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 1), xaxt= "s")
-        pred = scale(trait, center = TRUE, scale = FALSE)
-        
-        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(0, 0.6), xlab = "Predictor",main = "", ylab = "R2", las =1)
-        for(i in 1:3) {
-          graphics::points(pred, rr$data$Species[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
-          g = qgam::qgam( Y ~ pred, data = data.frame(Y = rr$data$Species[,i], pred = pred), qu = 0.5, control = list(progress="none"))
-          graphics::abline(a = coef(g)[c(1, 2)], col = cols[i], lwd = lwd, lty =  1*(summary(g)$p.table[2,4] > 0.05)+1 )
-          out$pred[[colnames(rr$data$Species)[i]]] = g 
-        }
-        graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
-        graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
-      }
-      
-    }
-    
-
-}
-  
+print.sjSDManova = function(x,...) {
+  out = summary(x, ...)
   return(invisible(out))
 }
 
@@ -541,26 +407,17 @@ plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("M
 #' @param x anova object from \code{\link{anova.sjSDM}}
 #' @param y unused argument
 #' @param type deviance, Nagelkerke or McFadden R-squared
-#' @param internal logical, plot internal or total structure
-#' @param add_shared Add shared contributions when plotting the internal structure
+#' @param fractions how to handle shared fractions
 #' @param cols colors for the groups
 #' @param alpha alpha for colors
 #' @param env_deviance environmental deviance
-#' @param suppress_plotting return plots but don't plot them
 #' @param ... Additional arguments to pass to \code{plot()}
 #' 
-#' The \code{internal = TRUE} plot was heavily inspired by Leibold et al., 2022
 #' 
 #' @return 
 #' 
 #' List with the following components:
 #' 
-#' If \code{internal=TRUE}:
-#' 
-#' \item{plots}{ggplot objects for sites and species.}
-#' \item{data}{List of data.frames with the shown results.}
-#' 
-#' else:
 #' \item{VENN}{Matrix of shown results.}
 #' 
 #' @references 
@@ -570,13 +427,14 @@ plotAssemblyEffects = function(object, env = NULL, trait = NULL, Rsquared = c("M
 plot.sjSDManova = function(x, 
                            y, 
                            type = c( "McFadden", "Deviance", "Nagelkerke"), 
-                           internal = FALSE,
-                           add_shared = FALSE,
+                           fractions = c("discard", "proportional", "equal"),
                            cols = c("#7FC97F","#BEAED4","#FDC086"),
                            alpha=0.15, 
                            env_deviance = NULL,
-                           suppress_plotting = FALSE,
                            ...) {
+  
+  fractions = match.arg(fractions)
+  
   lineSeq = 0.3
   nseg = 100
   dr = 1.0
@@ -586,169 +444,49 @@ plot.sjSDManova = function(x,
   oldpar = par(no.readonly = TRUE)
   on.exit(par(oldpar))
   
-  if(!x$spatial && internal) {
-    internal=FALSE
-    warning("'internal=TRUE' currently only supported for spatial models.")
-  }
-  
-  if(!internal) {
-    
-    values = x$results
-    values$`R2 Nagelkerke` = ifelse(values$`R2 Nagelkerke`<0, 0, values$`R2 Nagelkerke`)
-    values$`R2 McFadden` = ifelse(values$`R2 McFadden`<0, 0, values$`R2 McFadden`)
-    select_rows = 
-      if(x$spatial) { 
-        sapply(c("F_A", "F_B", "F_AB","F_S", "F_AS", "F_BS", "F_ABS"), function(i) which(values$models == i, arr.ind = TRUE))
-      } else {
-        sapply(c("F_A", "F_B", "F_AB"), function(i) which(values$models == i, arr.ind = TRUE))
-      }
-    
-    values = values[select_rows,]
-    col_index = 
-      switch (type,
-        Deviance = 4,
-        Nagelkerke = 5,
-        McFadden = 6
-      )
-    
-    
-    graphics::plot(NULL, NULL, xlim = c(0,1), ylim =c(0,1),pty="s", axes = FALSE, xlab = "", ylab = "")
-    xx = 1.1*lineSeq*cos( seq(0,2*pi, length.out=nseg))
-    yy = 1.1*lineSeq*sin( seq(0,2*pi, length.out=nseg))
-    graphics::polygon(xx+lineSeq,yy+(1-lineSeq), col= addA(cols[1],alpha = alpha), border = "black", lty = 1, lwd = 1)
-    graphics::text(lineSeq-0.1, (1-lineSeq),labels = round(values[1,col_index],3))
-    graphics::text(mean(xx+lineSeq), 0.9,labels = "Environmental", pos = 3)
-    
-    graphics::polygon(xx+1-lineSeq,yy+1-lineSeq, col= addA(cols[2],alpha = alpha), border = "black", lty = 1, lwd = 1)
-    graphics::text(1-lineSeq+0.1, (1-lineSeq),labels = round(values[2,col_index],3))
-    graphics::text(1-mean(xx+lineSeq), 0.9,labels = "Associations", pos = 3)
-    graphics::text(0.5, (1-lineSeq),labels = round(values[3,col_index],3))
-    
-    if(x$spatial) {
-      graphics::polygon(xx+0.5,yy+lineSeq, col= addA(cols[3],alpha = alpha), border = "black", lty = 1, lwd = 1)
-      graphics::text(0.5, lineSeq+0.0,pos = 1,labels = round(values[4,col_index],3))
-      graphics::text(0.5, 0.1,labels = "Spatial", pos = 1)
-      graphics::text(0.3, 0.5,pos=1,labels   = round(values[5,col_index],3)) # AS
-      graphics::text(1-0.3, 0.5,pos=1,labels = round(values[6,col_index],3)) # BS
-      graphics::text(0.5, 0.5+0.05,labels    = round(values[7,col_index],3)) # ABS
-    }
-    out$VENN = values
-  } else { 
-  
-    if(type == "Deviance") {type = "R2_McFadden"
+  values = x$results
+
+  select_rows = 
+    if(x$spatial) { 
+      sapply(c("F_A", "F_B", "F_AB","F_S", "F_AS", "F_BS", "F_ABS"), function(i) which(values$models == i, arr.ind = TRUE))
     } else {
-      if(type == "McFadden") type = "R2_McFadden"
-      else type = "R2_Nagelkerke"
+      sapply(c("F_A", "F_B", "F_AB"), function(i) which(values$models == i, arr.ind = TRUE))
     }
-    internals = list()
-    
-    if(!add_shared) {
-      df = data.frame(
-          env = ifelse(x$sites[[type]]$F_A<0, 0, x$sites[[type]]$F_A),
-          spa = ifelse(x$sites[[type]]$F_S<0, 0, x$sites[[type]]$F_S),
-          codist = ifelse(x$sites[[type]]$F_B<0, 0, x$sites[[type]]$F_B),
-          r2  = ifelse(x$sites[[type]]$Full<0, 0, x$sites[[type]]$Full)#/length(x$sites[[type]]$Full)
-        )
-      internals[[1]] = df
-      names(internals)[1] = "Sites"
-      
-      df = data.frame(
-          env = ifelse(x$species[[type]]$F_A<0, 0, x$species[[type]]$F_A),
-          spa = ifelse(x$species[[type]]$F_S<0, 0, x$species[[type]]$F_S),
-          codist = ifelse(x$species[[type]]$F_B<0, 0, x$species[[type]]$F_B),
-          r2  = ifelse(x$species[[type]]$Full<0, 0, x$species[[type]]$Full)#/length(x$species[[type]]$Full)
-        )
-      
-      internals[[2]] = df
-      names(internals)[2] = "Species"
-    } else {
-      type = paste0(type, "_shared")
-      df = data.frame(
-        env = ifelse(x$sites[[type]]$F_A<0, 0, x$sites[[type]]$F_A),
-        spa = ifelse(x$sites[[type]]$F_S<0, 0, x$sites[[type]]$F_S),
-        codist = ifelse(x$sites[[type]]$F_B<0, 0, x$sites[[type]]$F_B),
-        r2  = ifelse(x$sites[[type]]$R2<0, 0, x$sites[[type]]$R2)#/length(x$sites[[type]]$R2)
-      )
-      internals[[1]] = df
-      names(internals)[1] = "Sites"
-      
-      df = data.frame(
-        env = ifelse(x$species[[type]]$F_A<0, 0, x$species[[type]]$F_A),
-        spa = ifelse(x$species[[type]]$F_S<0, 0, x$species[[type]]$F_S),
-        codist = ifelse(x$species[[type]]$F_B<0, 0, x$species[[type]]$F_B),
-        r2  = ifelse(x$species[[type]]$R2<0, 0, x$species[[type]]$R2)#/length(x$species[[type]]$R2)
-      )
-      
-      internals[[2]] = df
-      names(internals)[2] = "Species"
-    }
-    
-    
-    plots_internals = list()
-    
-    # Code taken from https://github.com/javirudolph/iStructureMetaco/blob/master/InternalStructureMetacommunities_2021_manuscript/Figures.R
-    for(i in 1:length(internals)) {
-        
-      add_grad = FALSE
-      if((i == 1) & !is.null(env_deviance)) add_grad = TRUE
-      
-      top = 7
-      if(i > 1) top = 1
-      if(is.null(env_deviance)) top = 1
-        
-        r2max = ceiling(max(internals[[i]]$r2)*1e2)/1e2
-        plt = 
-          ggtern::ggtern(internals[[i]], ggplot2::aes_string(x = "env", z = "spa", y = "codist", size = "r2"))+
-            ggtern::scale_T_continuous(limits=c(0,1),
-                                       breaks=seq(0, 1,by=0.2),
-                                       labels=seq(0,1, by= 0.2)) +
-            ggtern::scale_L_continuous(limits=c(0,1),
-                                       breaks=seq(0, 1,by=0.2),
-                                       labels=seq(0, 1,by=0.2)) +
-            ggtern::scale_R_continuous(limits=c(0,1),
-                                       breaks=seq(0, 1,by=0.2),
-                                       labels=seq(0, 1,by=0.2)) +
-            #ggplot2::scale_size_area( max_size = 3) +
-            ggplot2::labs(title = names(internals)[i],
-                          x = "E",
-                          xarrow = "Environment",
-                          y = "C",
-                          yarrow = "Species associations",
-                          z = "S", 
-                          zarrow = "Space") +
-            ggtern::theme_bw() +
-            ggtern::theme_showarrows() +
-            ggtern::theme_arrowlong() +
-            ggplot2::theme(
-              panel.grid = ggplot2::element_line(color = "darkgrey", size = 0.3),
-              plot.tag = ggplot2::element_text(size = 11),
-              plot.title = ggplot2::element_text(size = 11, hjust = 0.1 , margin = ggplot2::margin(t = 10, b = -20)),
-              tern.axis.arrow = ggplot2::element_line(size = 1),
-              tern.axis.arrow.text = ggplot2::element_text(size = 6),
-              axis.text = ggplot2::element_text(size = 4),
-              axis.title = ggplot2::element_text(size = 6),
-              legend.text = ggplot2::element_text(size = 6),
-              legend.title = ggplot2::element_text(size = 8),
-              strip.text = ggplot2::element_text(size = 8),
-              plot.margin = unit(c(top,1,1,1)*0.2, "cm"),
-            strip.background = ggplot2::element_rect(color = NA),
-          ) +
-          ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1)) +
-          { if(!add_grad)ggplot2::geom_point(alpha = 0.7) }+
-          { if(add_grad) ggplot2::geom_point(alpha = 0.7, aes(fill=env_deviance, color = env_deviance)) }+  
-          ggplot2::scale_size_continuous(range = c(0.1,5),limits = c(0, r2max), breaks = seq(0, r2max, length.out=5)) +
-          { if(add_grad) ggplot2::scale_fill_gradient(low = "white", high = "black", guide = "none") } + 
-          { if(add_grad) ggplot2::scale_color_gradient(low = "white", high = "black", limits = c(0, max(env_deviance))) } +
-          ggplot2::theme(tern.axis.arrow.text = element_text(size = 7),legend.position = "bottom", legend.margin = margin(r = 30), legend.box="vertical") +
-          { if(!add_grad) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom")) } +
-          { if( add_grad) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom"),
-                                          color = ggplot2::guide_colorbar(title = "Environmental deviation", title.position = "top", order = 2, barheight = 0.5, barwidth = 8)) } 
-        plots_internals[[i]] = plt
-      }
-    if(!suppress_plotting) ggtern::grid.arrange(plots_internals[[1]], plots_internals[[2]], nrow=1, widths = c(5.0/10, 5/10))
-    out$plots = plots_internals
-    out$data = internals
+  
+  values = values[select_rows,]
+  col_index = 
+    switch (type,
+            Deviance = 4,
+            Nagelkerke = 5,
+            McFadden = 6
+    )
+  
+  
+  graphics::plot(NULL, NULL, xlim = c(0,1), ylim =c(0,1),pty="s", axes = FALSE, xlab = "", ylab = "")
+  xx = 1.1*lineSeq*cos( seq(0,2*pi, length.out=nseg))
+  yy = 1.1*lineSeq*sin( seq(0,2*pi, length.out=nseg))
+  graphics::polygon(xx+lineSeq,yy+(1-lineSeq), col= addA(cols[1],alpha = alpha), border = "black", lty = 1, lwd = 1)
+  graphics::text(lineSeq-0.1, (1-lineSeq),labels = round(values[1,col_index],3))
+  graphics::text(mean(xx+lineSeq), 0.9,labels = "Environmental", pos = 3)
+  
+  graphics::polygon(xx+1-lineSeq,yy+1-lineSeq, col= addA(cols[2],alpha = alpha), border = "black", lty = 1, lwd = 1)
+  graphics::text(1-lineSeq+0.1, (1-lineSeq),labels = round(values[2,col_index],3))
+  graphics::text(1-mean(xx+lineSeq), 0.9,labels = "Associations", pos = 3)
+  graphics::text(0.5, (1-lineSeq),labels = round(values[3,col_index],3))
+  
+  if(x$spatial) {
+    graphics::polygon(xx+0.5,yy+lineSeq, col= addA(cols[3],alpha = alpha), border = "black", lty = 1, lwd = 1)
+    graphics::text(0.5, lineSeq+0.0,pos = 1,labels = round(values[4,col_index],3))
+    graphics::text(0.5, 0.1,labels = "Spatial", pos = 1)
+    graphics::text(0.3, 0.5,pos=1,labels   = round(values[5,col_index],3)) # AS
+    graphics::text(1-0.3, 0.5,pos=1,labels = round(values[6,col_index],3)) # BS
+    graphics::text(0.5, 0.5+0.05,labels    = round(values[7,col_index],3)) # ABS
   }
+  out$VENN = values
   return(invisible(out))
 }
+
+
+
+
 

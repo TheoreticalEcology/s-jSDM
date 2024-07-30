@@ -6,8 +6,8 @@ output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{sjSDM: Multispecies distribution modeling, Deep Neural Networks, and explainable AI}
   %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{sjSDM: Multispecies distribution modeling, Deep Neural Networks, and explainable AI}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: "sjSDM can be used to estimate multispecies distribution models based on DNN and we can use explainable AI (xAI) to study these black-box models  \n \n \n"
 editor_options: 
