@@ -1,0 +1,8 @@
+pandoc: 3.1.11
+pkgdown: 2.0.9
+pkgdown_sha: ~
+articles:
+  sjSDM_Introduction: sjSDM_Introduction.html
+  sjSDM_MSDM: sjSDM_MSDM.html
+last_built: 2024-07-30T14:51Z
+
