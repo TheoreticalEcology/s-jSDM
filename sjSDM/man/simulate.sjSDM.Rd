@@ -16,9 +16,9 @@
 \item{...}{optional arguments for compatibility with the generic function, no functionality implemented}
 }
 \value{
-Array of simulated species occurrences of dimension order [nsim, sites, species]
+Array of simulated species occurrences of dimension order \link{nsim, sites, species}
 }
 \description{
-Simulate nsim responses from the fitted model following a multivariate probit model. 
+Simulate nsim responses from the fitted model following a multivariate probit model.
 So currently only supported for \code{family = stats::binomial("probit")}
 }

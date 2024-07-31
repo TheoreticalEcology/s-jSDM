@@ -28,7 +28,7 @@
 #' 
 #' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 #'  
-#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStruture}}
+#' @seealso \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStructure}}
 #' 
 #' @example /inst/examples/anova-example.R
 #' 

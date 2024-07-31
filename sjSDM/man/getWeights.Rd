@@ -14,8 +14,8 @@ getWeights(object)
 }
 \value{
 \itemize{
- \item layers - list of layer weights
- \item sigma - weight to construct covariance matrix
+\item layers - list of layer weights
+\item sigma - weight to construct covariance matrix
 }
 }
 \description{

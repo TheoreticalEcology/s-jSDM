@@ -30,11 +30,12 @@ The function prints and returns invisible a summary table of an sjSDM ANOVA, cre
 The function returns a ANOVA table with Deviance as well as the pseudo-R2 metrics of Nagelkerke and McFadden
 
 There are four options to handle shared ANOVA fractions, which is variance that can be explained, typically as a result of collinearity, by several of the fractions:
-
-1. "all" returns the shared fractions explicitly
-2. "discard" discards the fractions, as typically in a type II Anova
-3. "proportional" distributes shared fractions proportional to the unique fractions
-4. "equal" distributions shared fractions equally to the unique fractions
+\enumerate{
+\item "all" returns the shared fractions explicitly
+\item "discard" discards the fractions, as typically in a type II Anova
+\item "proportional" distributes shared fractions proportional to the unique fractions
+\item "equal" distributions shared fractions equally to the unique fractions
+}
 }
 \examples{
 library(sjSDM)
@@ -66,16 +67,18 @@ summary(an, fractions = "proportional")
 summary(an, fractions = "equal")
 
 # Internal structure
-int = internalStructure(an, fractions = "equal")
+int = internalStructure(an, fractions = "proportional")
 
 print(int)
 
-plot(int)
+plot(int) # default is negative values will be set to 0
+plot(int, negatives = "scale") # global rescaling of all values to range 0-1
+plot(int, negatives = "raw") # negative values will be discarded
 
 plotAssemblyEffects(int)
-plotAssemblyEffects(int, env = runif(100))
-plotAssemblyEffects(int, env = as.factor(c(rep(1, 50), rep(2, 50))))
-plotAssemblyEffects(int, trait = runif(10))
-plotAssemblyEffects(int, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+plotAssemblyEffects(int, negatives = "floor")
+plotAssemblyEffects(int, response = "sites", pred = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(int, response = "species", pred = runif(10))
+plotAssemblyEffects(int, response = "species", pred = as.factor(c(rep(1, 5), rep(2, 5))))
 
 }

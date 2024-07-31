@@ -53,6 +53,6 @@ Suggests:
 RoxygenNote: 7.3.2
 URL: https://theoreticalecology.github.io/s-jSDM/
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
-Roxygen: list(old_usage = FALSE)
+Roxygen: list(old_usage = FALSE, markdown = TRUE)
 VignetteBuilder: knitr
 RdMacros: mathjaxr

@@ -2,30 +2,26 @@
 % Please edit documentation in R/internalStructure.R
 \name{plotAssemblyEffects}
 \alias{plotAssemblyEffects}
-\title{Plot correlations between assembly processes and predictors or traits}
+\title{Plot predictors of assembly processes}
 \usage{
 plotAssemblyEffects(
   object,
-  env = NULL,
-  trait = NULL,
+  response = c("sites", "species"),
+  pred = NULL,
   cols = c("#A38310", "#B42398", "#20A382"),
-  negatives = c("floor", "scale", "raw")
+  negatives = c("raw", "scale", "floor")
 )
 }
 \arguments{
 \item{object}{An \code{sjSDManova} object from the \code{\link{anova.sjSDM}} function.}
 
-\item{env}{Predictor variable. If \code{NULL}, assembly processes are plotted against environment, spatial uniqueness, and richness.}
+\item{response}{whether to use sites or species. Default is sites}
 
-\item{trait}{Trait variable. Plotted against species R-squared for the three processes.}
+\item{pred}{predictor variable. If \code{NULL}, environment uniqueness, spatial uniqueness, and richness is calculated from the fitted object and used as predictor.}
 
 \item{cols}{Colors for the three assembly processes.}
 
-\item{negatives}{how to handle negative R squareds
-
-Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
-Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.
-Regression lines are estimated by 50\% quantile regression models.}
+\item{negatives}{how to handle negative R squareds}
 }
 \value{
 A list with the following components:
@@ -35,7 +31,16 @@ A list with the following components:
 \item{codist}{A list of summary tables for env, space, and codist R-squared.}
 }
 \description{
-Plot correlations between assembly processes and predictors or traits
+The function plots correlations between assembly processes and predictors or traits
+}
+\details{
+Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
+
+Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.
+Regression lines are estimated by 50\\% quantile regression models.
+}
+\note{
+Defaults for negative values are different than for \link{plot.sjSDMinternalStructure}
 }
 \examples{
 library(sjSDM)
@@ -67,19 +72,21 @@ summary(an, fractions = "proportional")
 summary(an, fractions = "equal")
 
 # Internal structure
-int = internalStructure(an, fractions = "equal")
+int = internalStructure(an, fractions = "proportional")
 
 print(int)
 
-plot(int)
+plot(int) # default is negative values will be set to 0
+plot(int, negatives = "scale") # global rescaling of all values to range 0-1
+plot(int, negatives = "raw") # negative values will be discarded
 
 plotAssemblyEffects(int)
-plotAssemblyEffects(int, env = runif(100))
-plotAssemblyEffects(int, env = as.factor(c(rep(1, 50), rep(2, 50))))
-plotAssemblyEffects(int, trait = runif(10))
-plotAssemblyEffects(int, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+plotAssemblyEffects(int, negatives = "floor")
+plotAssemblyEffects(int, response = "sites", pred = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(int, response = "species", pred = runif(10))
+plotAssemblyEffects(int, response = "species", pred = as.factor(c(rep(1, 5), rep(2, 5))))
 
 }
 \references{
-Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. *Oikos*, 2022(1).
+Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. \emph{Oikos}, 2022(1).
 }

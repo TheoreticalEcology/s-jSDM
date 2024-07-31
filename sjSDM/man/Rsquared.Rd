@@ -11,7 +11,7 @@ Rsquared(model, method = c("McFadden", "Nagelkerke"), verbose = TRUE)
 
 \item{method}{McFadden or Nagelkerke}
 
-\item{verbose}{`TRUE` or `FALSE`, indicating whether progress should be printed or not}
+\item{verbose}{\code{TRUE} or \code{FALSE}, indicating whether progress should be printed or not}
 }
 \value{
 R-squared as numeric value
@@ -20,7 +20,7 @@ R-squared as numeric value
 calculate R-squared following McFadden or Nagelkerke
 }
 \details{
-\loadmathjax 
+\loadmathjax
 
 Calculate R-squared following Nagelkerke or McFadden:
 

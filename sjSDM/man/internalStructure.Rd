@@ -23,15 +23,11 @@ internalStructure(
 
 \item{plot}{should the plots be suppressed or not.
 
-Plots and returns the internal metacommunity structure of species and sites (see Leibold et al., 2022). 
+Plots and returns the internal metacommunity structure of species and sites (see Leibold et al., 2022).
 Plots were heavily inspired by Leibold et al., 2022}
 }
 \value{
-List with the following components:
-
-
-\item{plots}{ggplot objects for sites and species.}
-\item{data}{List of data.frames with the internal metacommunity structure.}
+An object of class sjSDMinternalStructure consisting of a list of data.frames with the internal structure.
 }
 \description{
 Plot internal metacommunity structure
@@ -66,19 +62,24 @@ summary(an, fractions = "proportional")
 summary(an, fractions = "equal")
 
 # Internal structure
-int = internalStructure(an, fractions = "equal")
+int = internalStructure(an, fractions = "proportional")
 
 print(int)
 
-plot(int)
+plot(int) # default is negative values will be set to 0
+plot(int, negatives = "scale") # global rescaling of all values to range 0-1
+plot(int, negatives = "raw") # negative values will be discarded
 
 plotAssemblyEffects(int)
-plotAssemblyEffects(int, env = runif(100))
-plotAssemblyEffects(int, env = as.factor(c(rep(1, 50), rep(2, 50))))
-plotAssemblyEffects(int, trait = runif(10))
-plotAssemblyEffects(int, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+plotAssemblyEffects(int, negatives = "floor")
+plotAssemblyEffects(int, response = "sites", pred = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(int, response = "species", pred = runif(10))
+plotAssemblyEffects(int, response = "species", pred = as.factor(c(rep(1, 5), rep(2, 5))))
 
 }
 \references{
 Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2022). The internal structure of metacommunities. Oikos, 2022(1).
+}
+\seealso{
+\link{plot.sjSDMinternalStructure}, \link{print.sjSDMinternalStructure}
 }

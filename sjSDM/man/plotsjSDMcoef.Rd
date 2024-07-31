@@ -11,7 +11,7 @@ plotsjSDMcoef(object, wrap_col = NULL, group = NULL, col = NULL, slist = NULL)
 
 \item{wrap_col}{Scales argument passed to wrap_col}
 
-\item{group}{Define the taxonomic characteristics of a species, you need to provide a dataframe with column1 named “species” and column2 named “group”, default is NULL. For example, group[1,1]== "sp1", group[1,2]== "Mammal".}
+\item{group}{Define the taxonomic characteristics of a species, you need to provide a dataframe with column1 named “species” and column2 named “group”, default is NULL. For example, group\link{1,1}== "sp1", group\link{1,2}== "Mammal".}
 
 \item{col}{Define colors for groups, default is NULL.}
 

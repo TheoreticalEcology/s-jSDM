@@ -11,7 +11,7 @@
 
 \item{samples}{Number of Monte Carlo samples}
 
-\item{verbose}{`TRUE` or `FALSE`, indicating whether progress should be printed or not}
+\item{verbose}{\code{TRUE} or \code{FALSE}, indicating whether progress should be printed or not}
 
 \item{...}{optional arguments which are passed to the calculation of the logLikelihood}
 }
@@ -70,19 +70,21 @@ summary(an, fractions = "proportional")
 summary(an, fractions = "equal")
 
 # Internal structure
-int = internalStructure(an, fractions = "equal")
+int = internalStructure(an, fractions = "proportional")
 
 print(int)
 
-plot(int)
+plot(int) # default is negative values will be set to 0
+plot(int, negatives = "scale") # global rescaling of all values to range 0-1
+plot(int, negatives = "raw") # negative values will be discarded
 
 plotAssemblyEffects(int)
-plotAssemblyEffects(int, env = runif(100))
-plotAssemblyEffects(int, env = as.factor(c(rep(1, 50), rep(2, 50))))
-plotAssemblyEffects(int, trait = runif(10))
-plotAssemblyEffects(int, trait = as.factor(c(rep(1, 5), rep(2, 5))))
+plotAssemblyEffects(int, negatives = "floor")
+plotAssemblyEffects(int, response = "sites", pred = as.factor(c(rep(1, 50), rep(2, 50))))
+plotAssemblyEffects(int, response = "species", pred = runif(10))
+plotAssemblyEffects(int, response = "species", pred = as.factor(c(rep(1, 5), rep(2, 5))))
 
 }
 \seealso{
-\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStruture}}
+\code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStructure}}
 }

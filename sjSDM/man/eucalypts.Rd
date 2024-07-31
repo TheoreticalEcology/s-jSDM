@@ -7,9 +7,9 @@
 \format{
 A 'list': List of 3.
 \describe{
- \item{env}{data.frame with 7 environmental covariates}
- \item{PA}{Presence-absence data for 12 eucalypts species}
- \item{lat_lon}{Coordinates for the sites}
+\item{env}{data.frame with 7 environmental covariates}
+\item{PA}{Presence-absence data for 12 eucalypts species}
+\item{lat_lon}{Coordinates for the sites}
 }
 }
 \source{
