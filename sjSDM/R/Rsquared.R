@@ -3,6 +3,7 @@
 #' calculate R-squared following McFadden or Nagelkerke
 #' @param model model
 #' @param method McFadden or Nagelkerke
+#' @param verbose `TRUE` or `FALSE`, indicating whether progress should be printed or not
 #' 
 #' @details
 #' \loadmathjax 
@@ -22,11 +23,11 @@
 #' @import stats
 #' @export
 
-Rsquared = function(model, method = c("McFadden","Nagelkerke")) {
+Rsquared = function(model, method = c("McFadden","Nagelkerke"), verbose = TRUE) {
   
   method = match.arg(method)
   
-  N0 = sum(get_null_ll(model))
+  N0 = sum(get_null_ll(model, verbose = verbose))
   
   N1 = -sum(logLik(model, individual=TRUE )[[1]])
   

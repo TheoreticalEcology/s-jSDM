@@ -109,7 +109,8 @@ model <- sjSDM(Y = PA,
                env = linear(data = Env, formula = ~.), 
                spatial = linear(data = Coords, formula = ~0+latitude*longitude), 
                family=binomial("probit"),
-               se = TRUE)
+               se = TRUE,
+               verbose = FALSE)
 ```
 
 The linear means that you essentially fit a linear regression structure for the respective component. Alternatively, you could also fit a neural network (see later).
@@ -127,7 +128,7 @@ This output will show you the fitted environmental, spatial and covariance param
 ```{r}
 # coef(model)
 # residuals(model)
-Rsquared(model)
+Rsquared(model, verbose = FALSE)
 ```
 
 ### Environmental effects
@@ -160,8 +161,8 @@ fields::image.plot(association)
 
 ANOVA (Type II) will calculate the amount of variation explained by the three components (environment, associations, and space):
 
-```{r, results="hide"}
-an = anova(model)
+```{r}
+an = anova(model, verbose = FALSE)
 ```
 
 Amount of variance explained is measured by
@@ -225,7 +226,7 @@ sjSDM supports other responses than presence-absence data: Simulate non-presence
 
 ```{r,eval=TRUE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L,
-                   link = "identical", response = "count") 
+                   link = "identical", response = "count", verbose = FALSE) 
 X = com$env_weights
 Y = com$response
 ```
@@ -234,7 +235,7 @@ Y = com$response
 
 ```{r,eval=TRUE}
 model = sjSDM(Y, env = linear(X, ~.), se = TRUE, 
-              iter = 50L, family = poisson("log"))
+              iter = 50L, family = poisson("log"), verbose = FALSE)
 summary(model)
 ```
 
@@ -242,7 +243,7 @@ summary(model)
 ### Negative Binomial
 
 ```{r,eval=TRUE}
-model = sjSDM(Y, env = linear(X, ~.), se = TRUE, iter = 50L, family = "nbinom")
+model = sjSDM(Y, env = linear(X, ~.), se = TRUE, iter = 50L, family = "nbinom", verbose = FALSE)
 summary(model)
 ```
 
@@ -250,7 +251,7 @@ summary(model)
 
 ```{r,eval=TRUE}
 model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE, 
-              iter = 50L, family = gaussian("identity"))
+              iter = 50L, family = gaussian("identity"), verbose = FALSE)
 summary(model)
 ```
 
@@ -293,7 +294,7 @@ There are three options to condition our model on space:
 SPeigen = generateSpatialEV(XYcoords)
 
 model = sjSDM(Y, env = linear(X, ~.), 
-              spatial = linear(SPeigen, ~0+.), iter = 100L)
+              spatial = linear(SPeigen, ~0+.), iter = 100L, verbose=FALSE)
 summary(model)
 ```
 
@@ -306,7 +307,7 @@ colnames(XYcoords) = c("XX", "YY")
 model = sjSDM(Y, 
               env = linear(X, ~.), 
               spatial = linear(XYcoords, ~0+XX+YY+XX:YY+I(XX^2)+I(YY^2)), 
-              iter = 100L)
+              iter = 100L, verbose = FALSE)
 summary(model)
 ```
 
@@ -319,7 +320,7 @@ colnames(XYcoords) = c("XX", "YY")
 model = sjSDM(Y, 
               env = linear(X, ~.), 
               spatial = DNN(XYcoords, ~0+.), 
-              iter = 100L)
+              iter = 100L, verbose = FALSE)
 summary(model)
 ```
 
@@ -335,7 +336,7 @@ model = sjSDM(Y = com$response,
               env = linear(data = com$env_weights, 
                            formula = ~0+ I(X1^2),
                            lambda = 0.5), 
-              iter = 50L)
+              iter = 50L, verbose = FALSE)
 summary(model)
 ```
 
@@ -350,7 +351,7 @@ model = sjSDM(Y = com$response,
                            formula = ~0+ I(X1^2),
                            lambda = 0.5),
               biotic = bioticStruct(lambda =0.1),
-              iter = 50L)
+              iter = 50L, verbose = FALSE)
 summary(model)
 ```
 
@@ -361,7 +362,7 @@ summary(model)
 
 model = sjSDM(Y, 
               env = linear(X, ~X1+X2), 
-              spatial = linear(XYcoords, ~0+XX:YY, lambda = 0.4))
+              spatial = linear(XYcoords, ~0+XX:YY, lambda = 0.4), verbose = FALSE)
 summary(model)
 ```
 
@@ -379,7 +380,7 @@ model = sjSDM(Y = Y,
                         formula = ~., 
                         hidden = c(10L, 10L, 10L), 
                         activation = "relu"), 
-              iter = 50L, se = TRUE)
+              iter = 50L, se = TRUE, verbose = FALSE)
 summary(model)
 ```
 

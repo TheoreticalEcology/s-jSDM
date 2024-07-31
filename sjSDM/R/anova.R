@@ -4,6 +4,7 @@
 #' 
 #' @param object model of object \code{\link{sjSDM}}
 #' @param samples Number of Monte Carlo samples
+#' @param verbose `TRUE` or `FALSE`, indicating whether progress should be printed or not
 #' @param ... optional arguments which are passed to the calculation of the logLikelihood
 #' 
 #' @details The ANOVA function removes each of the three fractions (Environment, Space, Associations) and measures the drop in variance explained, and thus the importance of the three fractions.
@@ -34,7 +35,7 @@
 #' @import stats
 #' @export
 
-anova.sjSDM = function(object, samples = 5000L, ...) {
+anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
   out = list()
   individual = TRUE
   samples = as.integer(samples)
@@ -46,7 +47,7 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   
   object$settings$se = FALSE
   
-  null_m = -get_null_ll(object, ...)
+  null_m = -get_null_ll(object, verbose = verbose)
   
   full_m = get_conditional_lls(object, null_m, sampling = samples, ...)
   
@@ -55,11 +56,11 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
   if(!inherits(object, "spatial")) {
     out$spatial = FALSE
     
-    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ))
+    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ), verbose = verbose)
     A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE))
+    m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE),  verbose = verbose)
     B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ))
+    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ),  verbose = verbose)
     SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     
     A_wo = A_m - null_m
@@ -94,19 +95,19 @@ anova.sjSDM = function(object, samples = 5000L, ...) {
     out$spatial = TRUE
     
     s_form = stats::as.formula(paste0(as.character(object$settings$spatial$formula), collapse = ""))
-    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ))
+    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ),  verbose = verbose)
     A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE))
+    m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE), verbose = verbose)
     B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE))
+    m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE), verbose = verbose)
     S_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ))
+    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
     AB_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = NULL, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE ))
+    m = update(object, env_formula = NULL, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE ), verbose = verbose)
     AS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = FALSE ))
+    m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
     BS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ))
+    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
     SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     
     
@@ -315,13 +316,13 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
   return(list(proportional = proportional, equal = equal))
 }
 
-get_null_ll = function(object, ...) {
+get_null_ll = function(object, verbose = TRUE, ...) {
   
   object_tmp = object
   object_tmp$settings$se = FALSE
   
-  if(inherits(object, "spatial ")) null_pred = predict(update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE)))
-  else null_pred = predict(update(object_tmp, env_formula = ~1, biotic = bioticStruct(diag = TRUE)))
+  if(inherits(object, "spatial ")) null_pred = predict(update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE), verbose = verbose))
+  else null_pred = predict(update(object_tmp, env_formula = ~1, biotic = bioticStruct(diag = TRUE), verbose = verbose))
   
   if(object$family$family$family == "binomial") {
     null_m = stats::dbinom( object$data$Y, 1, null_pred, log = TRUE)

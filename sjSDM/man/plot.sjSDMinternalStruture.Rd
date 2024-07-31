@@ -4,7 +4,13 @@
 \alias{plot.sjSDMinternalStruture}
 \title{Plot internal structure}
 \usage{
-\method{plot}{sjSDMinternalStruture}(x, alpha = 0.15, env_deviance = NULL, ...)
+\method{plot}{sjSDMinternalStruture}(
+  x,
+  alpha = 0.15,
+  env_deviance = NULL,
+  negatives = c("floor", "scale", "raw"),
+  ...
+)
 }
 \arguments{
 \item{x}{and object of class sjSDMinternalStruture create by anova object from \code{\link{internalStructure}}}
@@ -12,6 +18,8 @@
 \item{alpha}{alpha of points}
 
 \item{env_deviance}{environmental deviance/gradient (points will be colored)}
+
+\item{negatives}{how to handle negative R squareds}
 
 \item{...}{no function}
 }

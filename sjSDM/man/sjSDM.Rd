@@ -20,7 +20,8 @@ sjSDM(
   control = sjSDMControl(),
   device = "cpu",
   dtype = "float32",
-  seed = 758341678
+  seed = 758341678,
+  verbose = TRUE
 )
 
 sjSDM.tune(object)
@@ -55,6 +56,8 @@ sjSDM.tune(object)
 \item{dtype}{which data type, most GPUs support only 32 bit floats.}
 
 \item{seed}{seed for random operations}
+
+\item{verbose}{`TRUE` or `FALSE`, indicating whether progress should be printed or not}
 
 \item{object}{object of type \code{\link{sjSDM_cv}}}
 }

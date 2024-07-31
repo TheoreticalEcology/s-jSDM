@@ -4,12 +4,14 @@
 \alias{anova.sjSDM}
 \title{Anova / Variation partitioning}
 \usage{
-\method{anova}{sjSDM}(object, samples = 5000L, ...)
+\method{anova}{sjSDM}(object, samples = 5000L, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
 
 \item{samples}{Number of Monte Carlo samples}
+
+\item{verbose}{`TRUE` or `FALSE`, indicating whether progress should be printed or not}
 
 \item{...}{optional arguments which are passed to the calculation of the logLikelihood}
 }

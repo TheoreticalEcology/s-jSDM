@@ -75,7 +75,7 @@ SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates (no effect on spe
 This fits the standard SDM with environmental, spatial and covariance terms 
 
 ```{r, results='hide'}
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=binomial("probit"), sampling = 100L)
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = FALSE)
 ```
 
 ```{r}
@@ -106,7 +106,7 @@ As in other models, it can be interesting to analyze how much variation is expla
 For the Env, Spatial, Covariance terms, this is implemented in 
 
 ```{r, results='hide'}
-an = anova(model)
+an = anova(model, verbose = FALSE)
 ```
 
 

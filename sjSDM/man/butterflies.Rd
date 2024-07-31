@@ -19,7 +19,7 @@ A 'list': List of 3.
 butterflies
 }
 \description{
-This data set comes from \doi{10.1111/2041-210X.13106} and is about butterfly communities
+This dataset is from \doi{10.1111/2041-210X.13106}.
 }
 \details{
 This is a dataset about butterfly communities. It consists of 2609 sites and 55 species.

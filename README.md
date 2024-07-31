@@ -112,7 +112,7 @@ This fits the standard SDM with environmental, spatial and covariance
 terms
 
 ``` r
-model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=binomial("probit"), sampling = 100L)
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = FALSE)
 ```
 
 ``` r
@@ -219,7 +219,7 @@ is explained by which parts of hte model.
 Spatial, Covariance terms, this is implemented in
 
 ``` r
-an = anova(model)
+an = anova(model, verbose = FALSE)
 ```
 
 ``` r

@@ -19,7 +19,7 @@ A 'list': List of 3.
 eucalypts
 }
 \description{
-This data set comes from \doi{10.1111/2041-210x.12180} and is about Eucalypt communities
+This dataset is from \doi{10.1111/2041-210x.12180}.
 }
 \details{
 This is a dataset about butterfly communities. It consists of 458 sites and 12 species.

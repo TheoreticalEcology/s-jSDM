@@ -21,6 +21,7 @@
 #' @param device which device to be used, "cpu" or "gpu"
 #' @param dtype which data type, most GPUs support only 32 bit floats.
 #' @param seed seed for random operations
+#' @param verbose `TRUE` or `FALSE`, indicating whether progress should be printed or not
 #' 
 #' @details 
 #' \loadmathjax
@@ -159,7 +160,8 @@ sjSDM = function(Y = NULL,
                  control = sjSDMControl(),
                  device = "cpu", 
                  dtype = "float32",
-                 seed = 758341678) {
+                 seed = 758341678,
+                 verbose = TRUE) {
   
   assertMatrix(Y)
   assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
@@ -278,7 +280,8 @@ sjSDM = function(Y = NULL,
     time = system.time({model$fit(env$X, Y, batch_size = step_size, 
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
-                                  early_stopping_training=control$early_stopping_training)})[3]
+                                  early_stopping_training=control$early_stopping_training,
+                                  verbose = verbose)})[3]
     out$logLik = force_r( model$logLik(env$X, Y,batch_size = step_size,parallel = parallel) )
     if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(env$X, Y, batch_size = step_size, parallel = parallel)),along=0L)) })
   
@@ -286,9 +289,10 @@ sjSDM = function(Y = NULL,
     time = system.time({model$fit(env$X, Y=Y,SP=spatial$X, batch_size = step_size, 
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
-                                  early_stopping_training=control$early_stopping_training)})[3]
+                                  early_stopping_training=control$early_stopping_training,
+                                  verbose = verbose)})[3]
     out$logLik = force_r( model$logLik(env$X, Y, SP=spatial$X, batch_size = step_size,parallel = parallel) )
-    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(env$X, Y, SP=spatial$X,batch_size = step_size, parallel = parallel)),along=0L)) })
+    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(env$X, Y, SP=spatial$X,batch_size = step_size, parallel = parallel, verbose = verbose)),along=0L)) })
     
   }
 
@@ -734,7 +738,8 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
                     control = object$settings$control,
                     device = object$settings$device, 
                     dtype = object$settings$dtype,
-                    se = object$settings$se
+                    se = object$settings$se,
+                    ...
   )
   return(new_model)
 }

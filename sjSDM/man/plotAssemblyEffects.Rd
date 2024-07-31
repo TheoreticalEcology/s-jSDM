@@ -8,7 +8,8 @@ plotAssemblyEffects(
   object,
   env = NULL,
   trait = NULL,
-  cols = c("#A38310", "#B42398", "#20A382")
+  cols = c("#A38310", "#B42398", "#20A382"),
+  negatives = c("floor", "scale", "raw")
 )
 }
 \arguments{
@@ -18,7 +19,9 @@ plotAssemblyEffects(
 
 \item{trait}{Trait variable. Plotted against species R-squared for the three processes.}
 
-\item{cols}{Colors for the three assembly processes.
+\item{cols}{Colors for the three assembly processes.}
+
+\item{negatives}{how to handle negative R squareds
 
 Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
 Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.

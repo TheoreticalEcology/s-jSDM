@@ -27,7 +27,7 @@
 internalStructure = function(object,  
                              Rsquared = c("McFadden", "Nagelkerke"), 
                              fractions = c("discard", "proportional", "equal"),
-                             negatives = c("floor", "scale"), # TODO - rounding ANOVA out, here all calculations to function with option
+                             negatives = c("floor", "scale", "raw"), # TODO - rounding ANOVA out, here all calculations to function with option
                              plot = FALSE) {
   
   fractions = match.arg(fractions)
@@ -117,10 +117,10 @@ internalStructure = function(object,
       
     }
     
+  out = list()
+  out$raws = internals
   internals[[1]] = standardize_df(internals[[1]], standardize = negatives )
   internals[[2]] = standardize_df(internals[[2]], standardize = negatives )
-  
-  out = list()
   out$internals = internals
   out$Rsquared = Rsquared
   out$fractions = fractions
@@ -144,7 +144,7 @@ standardize_df = function(df, standardize) {
     tmp = df[,1:3]
     tmp = scales::rescale(as.matrix(tmp), to = c(0, 1))
     df[,1:3] = tmp[,1:3]
-  }
+  } 
   return(df)
 }
 
@@ -167,6 +167,7 @@ print.sjSDMinternalStruture <- function(x, ...){
 #' @param x and object of class sjSDMinternalStruture create by anova object from \code{\link{internalStructure}}
 #' @param alpha alpha of points
 #' @param env_deviance environmental deviance/gradient (points will be colored)
+#' @param negatives how to handle negative R squareds
 #' @param ... no function
 #' 
 #' 
@@ -176,17 +177,20 @@ print.sjSDMinternalStruture <- function(x, ...){
 plot.sjSDMinternalStruture <- function(x, 
                                        alpha = 0.15,
                                        env_deviance = NULL,
+                                       negatives = c("floor", "scale", "raw"),
                                        ...){
   
-  internals = x$internals
-  
+  negatives = match.arg(negatives)
+  internals = x$raws
+  internals[[1]] = standardize_df(internals[[1]], negatives)
+  internals[[2]] = standardize_df(internals[[2]], negatives)
   plots_internals = list()
   
   # Code taken from https://github.com/javirudolph/iStructureMetaco/blob/master/InternalStructureMetacommunities_2021_manuscript/Figures.R
   
   
   if(min(internals[[1]][,1:3]) < 0 | min(internals[[2]][,1:3]) < 0) {
-    message("Negative partial R-square detected. Negative R-squareds can occur, but the ternary plots are not able to display them")
+    message("Negative partial R-square detected. Negative R-squareds can occur but they cannot be displayed by the ternary plot.")
   }
   
   for(i in 1:length(internals)) {
@@ -276,6 +280,7 @@ plot.sjSDMinternalStruture <- function(x,
 #' @param env Predictor variable. If \code{NULL}, assembly processes are plotted against environment, spatial uniqueness, and richness.
 #' @param trait Trait variable. Plotted against species R-squared for the three processes.
 #' @param cols Colors for the three assembly processes.
+#' @param negatives how to handle negative R squareds
 #' 
 #' Correlation and plots of the three assembly processes (environment, space, and codist) against environmental and spatial uniqueness and richness. The importance of the three assembly processes is measured by the partial R-squared (shown in the internal structure plots).
 #' Importances are available for species and sites. Custom environmental predictors or traits can be specified. Environmental predictors are plotted against site R-squared and traits are plotted against species R-squared.
@@ -298,10 +303,16 @@ plot.sjSDMinternalStruture <- function(x,
 plotAssemblyEffects = function(object, 
                                env = NULL, 
                                trait = NULL, 
-                               cols = c("#A38310", "#B42398", "#20A382")) {
+                               cols = c("#A38310", "#B42398", "#20A382"),
+                               negatives = c("floor", "scale", "raw")
+                               ) {
   
   oldpar = par(no.readonly = TRUE)
   on.exit(par(oldpar))
+  
+  negatives = match.arg(negatives)
+  object$internals$Sites = standardize_df(object$raws$Sites, negatives)
+  object$internals$Species = standardize_df(object$raws$Species, negatives)
 
   lwd = 2
   
@@ -335,7 +346,7 @@ plotAssemblyEffects = function(object,
 
     
     graphics::plot(NULL, NULL, xlim = c(min(env_eigen_centered), max(env_eigen_centered)), 
-                   ylim = c(minR, maxR*1.5), xlab = "Env uniqueness",main = "", ylab = "R2", las =1)
+                   ylim = c(minR, maxR), xlab = "Env uniqueness",main = "", ylab = "R2", las =1)
     
     for(i in 1:3) {
       graphics::points(env_eigen_centered, rr$internals$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
@@ -352,7 +363,7 @@ plotAssemblyEffects = function(object,
     graphics::legend("topright", legend = c("env", "spa", "codist"), col = cols, pch = 15, bty = "n")
     graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
     
-    graphics::plot(NULL, NULL, xlim = c(min(spatial_eigen_centered), max(spatial_eigen_centered)), ylim = c(minR, maxR*1.5), xlab = "Spatial uniqueness",main = "", ylab = "R2", las =1)
+    graphics::plot(NULL, NULL, xlim = c(min(spatial_eigen_centered), max(spatial_eigen_centered)), ylim = c(minR, maxR), xlab = "Spatial uniqueness",main = "", ylab = "R2", las =1)
     for(i in 1:3) {
       graphics::points(spatial_eigen_centered, rr$internals$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
       g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
@@ -369,7 +380,7 @@ plotAssemblyEffects = function(object,
     graphics::legend("topleft", legend = c("significant", "non-significant"), col = c("black", "black"),  bty = "n", lty = c(1,2))
     
     
-    graphics::plot(NULL, NULL, xlim = c(min(richness_centered), max(richness_centered)), ylim = c(minR, maxR*1.5), xlab = "Richness",main = "", ylab = "R2", las =1)
+    graphics::plot(NULL, NULL, xlim = c(min(richness_centered), max(richness_centered)), ylim = c(minR, maxR), xlab = "Richness",main = "", ylab = "R2", las =1)
     for(i in 1:3) {
       graphics::points(richness_centered, rr$internals$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
       g = qgam::qgam( Y ~ env_eigen_centered + spatial_eigen_centered + richness_centered, 
@@ -399,7 +410,7 @@ plotAssemblyEffects = function(object,
         graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 1), xaxt= "s")
         pred = scale(env, center = TRUE, scale = FALSE)
         
-        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(minR, maxR*1.5), xlab = "Predictor",main = "", ylab = "R2", las =1)
+        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(minR, maxR), xlab = "Predictor",main = "", ylab = "R2", las =1)
         for(i in 1:3) {
           graphics::points(pred, rr$internals$Sites[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
           g = qgam::qgam( Y ~ pred, data = data.frame(Y = rr$internals$Sites[,i], pred = pred), qu = 0.5, control = list(progress="none"))
@@ -425,7 +436,7 @@ plotAssemblyEffects = function(object,
         graphics::par(mfrow = c(1, 1), mar = c(4, 4, 4, 1), xaxt= "s")
         pred = scale(trait, center = TRUE, scale = FALSE)
         
-        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(minRS, maxRS*1.5), xlab = "Predictor",main = "", ylab = "R2", las =1)
+        graphics::plot(NULL, NULL, xlim = c(min(pred), max(pred)), ylim = c(minRS, maxRS), xlab = "Predictor",main = "", ylab = "R2", las =1)
         for(i in 1:3) {
           graphics::points(pred, rr$internals$Species[,i], col = ggplot2::alpha(cols[i], 0.2), pch = 16)
           g = qgam::qgam( Y ~ pred, data = data.frame(Y = rr$internals$Species[,i], pred = pred), qu = 0.5, control = list(progress="none"))

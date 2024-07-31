@@ -15,11 +15,11 @@
 # pkgdown::build_site()
 # file.remove(paste0("vignettes/", paths))
 
-
-setwd("sjSDM/vignettes/")
-knitr::knit("sjSDM_Introduction.orig",
-            output = "sjSDM_Introduction.Rmd"
-)
-
-
-pkgdown::build_site(pkg = "sjSDM/")
+# 
+# setwd("sjSDM/vignettes/")
+# knitr::knit("sjSDM_Introduction.orig",
+#             output = "sjSDM_Introduction.Rmd"
+# )
+# 
+# 
+# pkgdown::build_site(pkg = "sjSDM/")
