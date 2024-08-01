@@ -965,7 +965,7 @@ class Model_sjSDM:
 
             elif self.link == "normal":
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
-                    return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0]))).log_prob(Ys).neg()
+                    return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0]), device=device, dtype=dtype )).log_prob(Ys).neg()
 
         return tmp
 

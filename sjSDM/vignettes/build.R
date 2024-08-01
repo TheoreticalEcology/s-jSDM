@@ -17,9 +17,8 @@
 
 # 
 # setwd("sjSDM/vignettes/")
-# knitr::knit("sjSDM_Introduction.orig",
-#             output = "sjSDM_Introduction.Rmd"
-# )
+# knitr::knit("sjSDM_Introduction.orig", output = "sjSDM_Introduction.Rmd")
+# 
 # 
 # 
 # pkgdown::build_site(pkg = "sjSDM/")

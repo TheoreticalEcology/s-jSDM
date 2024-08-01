@@ -622,7 +622,7 @@ summary.sjSDM = function(object, ...) {
 #' @param seed seed for random number generator
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
 #' 
-#' @return Array of simulated species occurrences of dimension order [nsim, sites, species]
+#' @return Array of simulated species occurrences of dimension order (nsim, sites, species)
 #' 
 #' @importFrom stats simulate
 #' @export
@@ -636,9 +636,9 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
   pred = predict(object)
   
   if(object$family$family$family == "binomial") {
-    sim = apply(pred, 1:2, function(p) stats::rbinom(sim, 1, p))
+    sim = apply(pred, 1:2, function(p) stats::rbinom(nsim, 1, p))
   } else if(object$family$family$family == "poisson") {
-    sim = apply(pred, 1:2, function(p) stats::rpois(sim, p))
+    sim = apply(pred, 1:2, function(p) stats::rpois(nsim, p))
   } else if(object$family$family$family == "nbinom") {
     theta = 1/(softplus(object$theta)+0.00001)
     

@@ -11,7 +11,7 @@ plotsjSDMcoef(object, wrap_col = NULL, group = NULL, col = NULL, slist = NULL)
 
 \item{wrap_col}{Scales argument passed to wrap_col}
 
-\item{group}{Define the taxonomic characteristics of a species, you need to provide a dataframe with column1 named “species” and column2 named “group”, default is NULL. For example, group\link{1,1}== "sp1", group\link{1,2}== "Mammal".}
+\item{group}{Define the taxonomic characteristics of a species, you need to provide a dataframe with column1 named “species” and column2 named “group”, default is NULL. For example, \code{group[1,1]== "sp1"}, \code{group[1,2]== "Mammal"}.}
 
 \item{col}{Define colors for groups, default is NULL.}
 
@@ -25,6 +25,7 @@ Plotting coefficients returned by sjSDM model.
 This function only for model fitted by linear, fitted by DNN is not yet supported.
 }
 \examples{
+\dontrun{
 library(sjSDM)
 # simulate community:
 com = simulate_SDM(env = 6L, species = 7L, sites = 100L)
@@ -42,6 +43,7 @@ group=c("mammal","bird","fish","fish","mammal","amphibian","amphibian")
 group = data.frame(species=species,group=group)
 
 plot(model,group=group)
+}
 }
 \author{
 CAI Wang

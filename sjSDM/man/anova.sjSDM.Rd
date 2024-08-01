@@ -41,6 +41,7 @@ In downstream functions such as \code{\link{plot.sjSDManova}} or \code{\link{plo
 The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
 }
 \examples{
+\dontrun{
 library(sjSDM)
 # simulate community:
 community = simulate_SDM(env = 3L, species = 10L, sites = 100L)
@@ -84,7 +85,7 @@ plotAssemblyEffects(int, negatives = "floor")
 plotAssemblyEffects(int, response = "sites", pred = as.factor(c(rep(1, 50), rep(2, 50))))
 plotAssemblyEffects(int, response = "species", pred = runif(10))
 plotAssemblyEffects(int, response = "species", pred = as.factor(c(rep(1, 5), rep(2, 5))))
-
+}
 }
 \seealso{
 \code{\link{plot.sjSDManova}}, \code{\link{print.sjSDManova}},\code{\link{summary.sjSDManova}}, \code{\link{plot.sjSDMinternalStructure}}

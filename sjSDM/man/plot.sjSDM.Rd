@@ -19,6 +19,7 @@ Plotting coefficients returned by sjSDM model.
 This function only for model fitted by linear, fitted by DNN is not yet supported.
 }
 \examples{
+\dontrun{
 library(sjSDM)
 # simulate community:
 com = simulate_SDM(env = 6L, species = 7L, sites = 100L)
@@ -36,6 +37,7 @@ group=c("mammal","bird","fish","fish","mammal","amphibian","amphibian")
 group = data.frame(species=species,group=group)
 
 plot(model,group=group)
+}
 }
 \seealso{
 \code{\link{plotsjSDMcoef}}

@@ -18,6 +18,7 @@ No return value, called for side effects.
 Plot training loss history
 }
 \examples{
+\dontrun{
 library(sjSDM)
 # simulate community:
 com = simulate_SDM(env = 6L, species = 7L, sites = 100L)
@@ -35,4 +36,5 @@ group=c("mammal","bird","fish","fish","mammal","amphibian","amphibian")
 group = data.frame(species=species,group=group)
 
 plot(model,group=group)
+}
 }

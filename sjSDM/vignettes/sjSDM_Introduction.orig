@@ -18,15 +18,19 @@ editor_options:
 set.seed(123)
 ```
 
-```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = FALSE)
-```
-
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = ""
+  fig.width=7, fig.height=4.5, fig.align='center', warning=FALSE, message=FALSE, cache = FALSE,
+  comment = "#>",
+  #dpi=32,
+  #out.width="400px",
+  fig.align="center",
+  fig.path = '',
+  fig.cap = ""
 )
+options("progress_enabled" = FALSE)
+```
 ```
 
 # Getting started
@@ -51,13 +55,13 @@ citation("sjSDM")
 
 ## Installing the R package
 
-sjSDM is distributed via [CRAN](https://cran.rstudio.com/web/packages/sjSDM/index.html). For most users, it will be best to install the package from CRAN
+sjSDM is distributed via [CRAN](https://cran.r-project.org/package=sjSDM). For most users, it will be best to install the package from CRAN
 
 ```{r,eval=FALSE}
 install.packages("sjSDM")
 ```
 
-Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly, the dependencies can be automatically installed from within R:
+Depencies for the package can be installed before or after installing the package. Detailed explanations of the can be found below. Very briefly, the dependencies can be automatically installed from within R:
 
 ```{r,eval=FALSE}
 sjSDM::install_sjSDM(version = "gpu") # or
