@@ -16,7 +16,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           family=!!family, 
                                           control = control,
                                           device = device,
-                                          sampling = 5L)}, NA)
+                                          sampling = 5L, verbose = FALSE)}, NA)
     testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
     testthat::expect_error({ .k = testthat::capture_output(coef(model)) }, NA)
     testthat::expect_error({.k = testthat::capture_output(print(model))}, NA)
@@ -217,28 +217,28 @@ testthat::test_that("sjSDM reload model", {
   device = is_gpu_available()
   
   com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
-  model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L, device=device)
+  model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L, device=device, verbose = FALSE)
   saveRDS(model, "test_model.RDS")
   model = readRDS("test_model.RDS")
   testthat::expect_error(predict(model), NA)
   testthat::expect_error(predict(model, newdata = com$env_weights), NA)
   
   SP = matrix(rnorm(200), 100, 2)
-  model = sjSDM(Y = com$response,env = com$env_weights,spatial = linear(SP), iter = 2L, device="cpu")
+  model = sjSDM(Y = com$response,env = com$env_weights,spatial = linear(SP), iter = 2L, device="cpu", verbose = FALSE)
   saveRDS(model, "test_model.RDS")
   model = readRDS("test_model.RDS")
   testthat::expect_error(predict(model), NA)
   testthat::expect_error(predict(model, newdata = com$env_weights, SP = SP), NA)
   
   com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
-  model = sjSDM(Y =com$response,env = DNN(com$env_weights), iter = 2L, device=device)
+  model = sjSDM(Y =com$response,env = DNN(com$env_weights), iter = 2L, device=device, verbose = FALSE)
   saveRDS(model, "test_model.RDS")
   model2 = readRDS("test_model.RDS")
   testthat::expect_error(predict(model2), NA)
   testthat::expect_error(predict(model2, newdata = com$env_weights), NA)
   
   SP = matrix(rnorm(200), 100, 2)
-  model = sjSDM(Y = com$response,env = DNN(com$env_weights, bias = TRUE),spatial = DNN(SP), iter = 2L, device=device)
+  model = sjSDM(Y = com$response,env = DNN(com$env_weights, bias = TRUE),spatial = DNN(SP), iter = 2L, device=device, verbose = FALSE)
   saveRDS(model, "test_model.RDS")
   model2 = readRDS("test_model.RDS")
   testthat::expect_error(predict(model2), NA)
@@ -247,7 +247,7 @@ testthat::test_that("sjSDM reload model", {
   
   
   SP = matrix(rnorm(200), 100, 2)
-  model = sjSDM(Y = com$response,env = DNN(com$env_weights, bias = c(TRUE, FALSE, TRUE, FALSE)),spatial = DNN(SP), iter = 2L, device=device)
+  model = sjSDM(Y = com$response,env = DNN(com$env_weights, bias = c(TRUE, FALSE, TRUE, FALSE)),spatial = DNN(SP), iter = 2L, device=device, verbose = FALSE)
   saveRDS(model, "test_model.RDS")
   model2 = readRDS("test_model.RDS")
   testthat::expect_error(predict(model2), NA)
@@ -267,7 +267,7 @@ testthat::test_that("Changing weights", {
   sjSDM:::check_module()
   XY = matrix(rnorm(100*2), 100L, 2L)
   com = simulate_SDM(env = 3L, species = 5L, sites = 100L)
-  model = sjSDM(Y = com$response,env = com$env_weights, spatial = linear(XY), iter = 2L)
+  model = sjSDM(Y = com$response,env = com$env_weights, spatial = linear(XY), iter = 2L, verbose = FALSE)
   
   setWeights(model, list(matrix(1.0, 5, 4)))
   testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 1)

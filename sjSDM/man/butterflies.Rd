@@ -35,7 +35,8 @@ This is a dataset about butterfly communities. It consists of 2609 sites and 55 
             spatial = DNN(scale(LatLon), formula = ~0+.), 
             se = TRUE,
             iter = 20L, # increase to 100
-            step_size = 200L)
+            step_size = 200L,
+            verbose = FALSE)
   summary(m)
   plot(m)
 

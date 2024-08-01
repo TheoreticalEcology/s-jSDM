@@ -13,9 +13,9 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           se = !!se,
                                           family = !!family,
                                           device = device,
-                                          sampling = 10L)}, NA)
+                                          sampling = 10L, verbose = FALSE)}, NA)
     testthat::expect_false(any(is.na(model$history)))
-    testthat::expect_error({res = anova(model)}, NA)
+    testthat::expect_error({res = anova(model, verbose = FALSE)}, NA)
     testthat::expect_error({plot(res)}, NA)
 }
 
@@ -145,8 +145,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     gl1 = stats::glm(Y~X, family = binomial("logit"))
     gl2 = stats::glm(Y~1, family = binomial("logit"))
     R0 = 1 - stats::logLik(gl1)/stats::logLik(gl2)
-    m = sjSDM(matrix(Y, ncol = 1L), data.frame(X = X), biotic = bioticStruct(diag = TRUE),sampling = 500L, family = binomial("logit"))
-    R1 = mean(replicate(10, {Rsquared(m)}))
+    m = sjSDM(matrix(Y, ncol = 1L), data.frame(X = X), biotic = bioticStruct(diag = TRUE),sampling = 500L, family = binomial("logit"), verbose = FALSE)
+    R1 = mean(replicate(10, {Rsquared(m, verbose = FALSE)}))
     
     testthat::expect_true(abs(R0 - R1) < 0.1)
     
@@ -158,8 +158,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     R0 = 1 - stats::logLik(gl1)/stats::logLik(gl2)
     m = sjSDM(matrix(Y, ncol = 1L), linear(data.frame(X = X), ~1+X), 
               biotic = bioticStruct(diag = TRUE),
-              learning_rate = 0.1,sampling = 10L, family = poisson(), control = sjSDMControl(RMSprop(weight_decay = 0.0)))
-    R1 = mean(replicate(10, {Rsquared(m)}))
+              learning_rate = 0.1,sampling = 10L, family = poisson(), control = sjSDMControl(RMSprop(weight_decay = 0.0)), verbose = FALSE)
+    R1 = mean(replicate(10, {Rsquared(m, verbose = FALSE)}))
     testthat::expect_true(abs(R0 - R1) < 0.1)
     
   })

@@ -52,7 +52,8 @@ define biotic (species-species) association (interaction) structure
 com = simulate_SDM(env = 3L, species = 7L, sites = 100L)
 
 ## fit model:
-model = sjSDM(Y = com$response,env = com$env_weights, iter = 50L) 
+model = sjSDM(Y = com$response,env = com$env_weights, iter = 50L,
+              verbose = FALSE) 
 # increase iter for your own data 
 
 # Default distribution is binomial("probit"). Alternatively, you can use
@@ -76,18 +77,21 @@ summary(p)
 ## or turn on the option in the sjSDM function:
 model = sjSDM(Y = com$response, env = com$env_weights, se = TRUE, 
               family = binomial("probit"), 
-              iter = 2L)
+              iter = 2L,
+              verbose = FALSE)
 summary(model)
 
 ## fit model with interactions:
 model = sjSDM(Y = com$response,
               env = linear(data = com$env_weights, formula = ~X1:X2 + X3), 
               se = TRUE,
-              iter = 2L) # increase iter for your own data 
+              iter = 2L,
+              verbose = FALSE) # increase iter for your own data 
 summary(model)
 
 ## without intercept:
-model = update(model, env_formula = ~0+X1:X2 + X3)
+model = update(model, env_formula = ~0+X1:X2 + X3,
+               verbose = FALSE)
 
 summary(model)
 
@@ -103,7 +107,8 @@ print(R2)
 XY = matrix(rnorm(200), 100, 2)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(XY, ~0+X1:X2),
-              iter = 50L) # increase iter for your own data 
+              iter = 50L,
+              verbose = FALSE) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = XY)
 R2 = Rsquared(model)
@@ -114,12 +119,14 @@ print(R2)
 SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(SPV, ~0+., lambda = 0.1),
-              iter = 50L) # increase iter for your own data 
+              iter = 50L,
+              verbose = FALSE) # increase iter for your own data 
 summary(model)
 predict(model, newdata = com$env_weights, SP = SPV)
 
 ## Visualize internal meta-community structure
-an = anova(model)
+an = anova(model,
+           verbose = FALSE)
 
 internal = internalStructure(an)
 plot(internal)
@@ -134,7 +141,8 @@ plotAssemblyEffects(internal)
 ## non-linear(deep neural network) model
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = DNN(SPV,hidden = c(5L, 5L), ~0+.),
-              iter = 2L) # increase iter for your own data 
+              iter = 2L,# increase iter for your own data 
+              verbose = FALSE) 
 summary(model)
 predict(model, newdata = com$env_weights, SP = SPV)
 
@@ -149,7 +157,8 @@ model = sjSDM(Y = com$response,
               env = linear(com$env_weights, lambda = 0.01, alpha = 0.5), 
               # we can do the same for the species-species associations
               biotic = bioticStruct(lambda = 0.01, alpha = 0.5),
-              iter = 2L) # increase iter for your own data 
+              iter = 2L,# increase iter for your own data 
+              verbose = FALSE) 
 summary(model)
 coef(model)
 getCov(model)
@@ -163,8 +172,9 @@ XY = matrix(rnorm(400), 200, 2)
 SPV = generateSpatialEV(XY)
 model = sjSDM(Y = com$response, env = linear(com$env_weights), 
               spatial = linear(SPV, ~0+.), 
+              verbose = FALSE,
               iter = 50L) # increase iter for your own data 
-result = anova(model)
+result = anova(model, verbose = FALSE)
 print(result)
 plot(result)
 
@@ -178,6 +188,7 @@ plot(internal)
 ## we can fit also a deep neural network instead of a linear model:
 model = sjSDM(Y = com$response,
               env = DNN(com$env_weights, hidden = c(10L, 10L, 10L)),
+              verbose = FALSE,
               iter = 2L) # increase iter for your own data 
 summary(model)
 getCov(model)
@@ -195,6 +206,7 @@ model = sjSDM(Y = com$response,
               env = DNN(com$env_weights, lambda = 0.01, alpha = 0.5), 
               # we can do the same for the species-species associations
               biotic = bioticStruct(lambda = 0.01, alpha = 0.5),
+              verbose = FALSE,
               iter = 2L) # increase iter for your own data 
 getCov(model)
 getWeights(model)

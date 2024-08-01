@@ -12,7 +12,7 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
                                           se = !!se,
                                           family = !!family,
                                           device=device,
-                                          sampling=10L)}, NA)
+                                          sampling=10L, verbose = FALSE)}, NA)
     testthat::expect_error({imp = importance(model)}, NA)
     testthat::expect_error({plot(imp)}, NA)
 }

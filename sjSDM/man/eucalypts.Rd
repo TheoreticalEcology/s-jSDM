@@ -33,7 +33,8 @@ This is a dataset about butterfly communities. It consists of 458 sites and 12 s
   m = sjSDM(PA, 
             scale(E), 
             spatial = DNN(scale(LatLon), formula = ~0+.), 
-            se = TRUE)
+            se = TRUE,
+            verbose = FALSE)
   summary(m)
   plot(m)
   

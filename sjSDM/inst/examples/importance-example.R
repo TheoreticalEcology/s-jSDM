@@ -11,7 +11,7 @@ Y = ifelse(Y > 0, 1, 0)
 
 model = sjSDM(Y = Y,env = linear(com$env_weights, lambda = 0.001), 
               spatial = linear(SP,formula = ~0+X1:X2, lambda = 0.001), 
-              biotic = bioticStruct(lambda = 0.001),iter = 40L)
+              biotic = bioticStruct(lambda = 0.001),iter = 40L, verbose = FALSE)
 imp = importance(model)
 plot(imp)
 }

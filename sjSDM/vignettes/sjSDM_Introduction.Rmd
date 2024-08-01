@@ -1,7 +1,7 @@
 ---
 title: "sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model"
 author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
-date: "2024-07-31"
+date: "2024-08-01"
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -24,7 +24,9 @@ editor_options:
 
 ## About sjSDM
 
-The sjSDM package is an R package for estimating so-called joint species distribution models. A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to the environment, space and a covariance term that models conditional (on the other terms) correlations between the outputs (i.e. species).
+The sjSDM package provides R functions for estimating so-called joint species distribution models.
+
+A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to the environment, space and a covariance term that models conditional (on the other terms) correlations between the outputs (i.e. species). In other research domains, the covariance component is also known as the multivariate probit model.
 
 ![Figure 1: jSDM structure. jSDM uses a community matrix as response (rows = number of observations, columns = number of species) and tries to explain the occurrences in the community matrix as a function of environment and space. Moreover, compared to classical SDM, jSDM have an additional component, the biotic associations, that tries to account for unobservable species-species interactions. More precisely, the biotic association matrix is a variance-covariance matrix that accounts for co-occurrence patterns not explainable by environment and space.](jSDM-structure.png)
 
@@ -110,9 +112,13 @@ Env$T0 = scale(Env$T0)
 Coords = scale(Coords)
 ```
 
-## Fit model
+## Fit a basic jSDM
 
-The model is fit by the function `sjSDM()`. You have to provide predictors (can be also a data.frame) and response as matrices. For p-values, you have to set `se = TRUE` (however this can fail for underpowered data). The spatial model account for spatial autocorrelation and spatial trends/effects (trend surface model)
+The model is fit by the function `sjSDM()`. You have to provide all predictors and response as matrices or data frames. Here, we specify all three predictor components of an SDM:
+
+1.  An environmental component, which essentially fits an SDM for each species. The "." tells the model to use all predictors that are not otherwise used
+2.  A spatial model account for spatial autocorrelation and spatial trends/effects (trend surface model)
+3.  The covariance component is automatically added. If you don't want this, you can set `biotic = bioticStruct(diag = TRUE)`, which would result in a standard MSDM.
 
 
 ``` r
@@ -126,7 +132,9 @@ model <- sjSDM(Y = PA,
 Calculating standard errors...
 ```
 
-The linear means that you essentially fit a linear regression structure for the respective component. Alternatively, you could also fit a neural network (see later).
+The "linear" expression used in the environmental and spatial component means that you essentially fit a linear regression structure for the respective component. Alternatively, you could also fit a neural network (see later).
+
+The option `se = TRUE` tells the model to calculate CIs and p-values. Note that these are approximated based on Wald CIs, which may have a certain amount of error for small data and if regularization is applied.
 
 ## Interpreting the estimated model coefficients
 
@@ -268,13 +276,12 @@ This output will show you the fitted environmental, spatial and covariance param
 
 
 ``` r
-# coef(model)
-# residuals(model)
+coef(model)
+residuals(model)
 Rsquared(model, verbose = FALSE)
-[1] 0.3192844
 ```
 
-### Environmental effects
+### Interpreting the environmental component
 
 The environmental effects are displayed in the summary() table. To get a visual plot, you can use
 
@@ -288,13 +295,13 @@ plot(model)
 <p class="caption">plot of chunk unnamed-chunk-12</p>
 </div>
 
-### Spatial effects
+### Interpreting the spatial component
 
 The spatial effects are displayed in the `summary()` table. Currently, there are not additional options implemented to visualize the spatial effects
 
-### Species-species covariance (associations)
+### Interpreting the species-species covariance (associations) component
 
-The species-species associations are displayed in the `summary()` table. You can extract them as follows:
+The species-species associations are displayed in the `summary()` table. You can extract and visualize them as follows:
 
 
 ``` r
@@ -308,20 +315,26 @@ fields::image.plot(association)
 <p class="caption">plot of chunk unnamed-chunk-13</p>
 </div>
 
+Note that these associations are to be interpreted as correlations in species presence or abundance after accounting for environmental and spatial effects.
+
 ## ANOVA and variation partitioning
+
+ANOVA or variation partitioning means that we want to calculate how much variation (=signal) is explained by the different model components.
+
+![Figure 2: ANOVA](jSDM-ANOVA.png){width="70%"}
+
+The sjSDM package includes several functions for this purpose.
 
 ### Global ANOVA
 
-![Figure 2: ANOVA](jSDM-ANOVA.png){width=70%}
-
-ANOVA (Type II) will calculate the amount of variation explained by the three components (environment, associations, and space):
+The first option is a global ANOVA, which will calculate the amount of variation explained by the three components (environment, associations, and space):
 
 
 ``` r
 an = anova(model, verbose = FALSE)
 ```
 
-Amount of variance explained is measured by
+The resulting object is of class sjSDManova, and you can use the standard summary and plot function on this object:
 
 
 ``` r
@@ -348,28 +361,50 @@ Shared Abiotic+Associations+Spatial -1361.34035        5037.56415     -18.53795 
 Full                                 1317.53455        2358.68924       0.94368      0.3237
 ```
 
-Environmental explains the most variance in the data, followed by the biotic association component. But we expect that these three processes differ in importance for species and sites.
+We see that the environmental component explains the most variance in the data, followed by the biotic association component. As in any ANOVA, there are unique and shared fractions for each component. The shared fractions depict variation that can be explained from either of the components (e.g. due to collinearity).
 
-### Variation partitioning - Internal metacommunity structure 
+Different ANOVA strategies deal differently with these shared fractions. For example, in type II/III ANOVA, the shared fractions are usually discarded. The default here is to display all fractions. Alternatively (more on this see `?summary.sjSDManova`):
 
-We can further partition the R^2^ for sites and species. We call this the internal metacommunity structure (only for models with space):
+-   `summary(an, fractions = "discard")` discards shared fractions, as in a type II/III ANOVA
+-   `summary(an, fractions = "proportional")` distributes shared fractions to the unique fractions proportional to the unique fractions
+-   `summary(an, fractions = "equal")` distributes shared fractions evenly to the unique fractions
+
+Note that in VP, some fractions can get negative. For more discussion on this and how to interpret it see [here](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.13800) and [here](https://r.qcbs.ca/workshop10/book-en/index.html).
+
+### Calculating the internal metacommunity structure
+
+An interesting feature of jSDMs is that we can further partition the global VP discussed just before to sites and species. This idea was first presented in
+
+Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., \... & Chase, J. M. (2022). The internal structure of metacommunities. *Oikos*, *2022*(1).
+
+We have implemented this feature call the calculation for this "internal metacommunity structure" via
 
 
 ``` r
 results = internalStructure(an)
+```
+
+The resulting object contains R2 values for each of the three components (Env, Space, Associations) for each species and site. Note the comments in `?internalStructure`, especially about how to deal with negative values.
+
+The results can be plotted via
+
+
+``` r
 plot(results)
 ```
 
 <div class="figure" style="text-align: center">
-<img src="figure/unnamed-chunk-16-1.png" alt="plot of chunk unnamed-chunk-16"  />
-<p class="caption">plot of chunk unnamed-chunk-16</p>
+<img src="figure/unnamed-chunk-17-1.png" alt="plot of chunk unnamed-chunk-17"  />
+<p class="caption">plot of chunk unnamed-chunk-17</p>
 </div>
 
 The ternary plots report the relative importance of the components for sites and species. Leaning to one of the corners means that this corner is mot important (e.g. here Species and Sites lean more to the environmental corner).
 
-## Revealing assembly processes
+### Testing for predictors of the assembly processes
 
-To reveal and explain assembly patterns in the internal metacommunity structure, we can regress the partial R^2^ against environmental and spatial distinctiveness, and richness:
+A attractive feature of the internal metacommunity structure calculations is that we can now regress the partial R^2^ of sites and species against predictors, to see how the strength of the three assembly components (Environment, Space, Associations) changes with these predictors.
+
+The default plot will plot the assembly processes per plot against environmental and spatial distinctiveness, and richness:
 
 
 ``` r
@@ -377,20 +412,24 @@ plotAssemblyEffects(results)
 ```
 
 <div class="figure" style="text-align: center">
-<img src="figure/unnamed-chunk-17-1.png" alt="Environmental filtering increases for more distinct (extreme) environmental sites (first figure). Moreover, environmental filtering is less important for sites with high species richness (third figure)."  />
+<img src="figure/unnamed-chunk-18-1.png" alt="Environmental filtering increases for more distinct (extreme) environmental sites (first figure). Moreover, environmental filtering is less important for sites with high species richness (third figure)."  />
 <p class="caption">Environmental filtering increases for more distinct (extreme) environmental sites (first figure). Moreover, environmental filtering is less important for sites with high species richness (third figure).</p>
 </div>
 
-## Predictions 
+However, you can use your own predictors, and also switch between looking at sites or species as a response. For more on this, see `?plotAssemblyEffects`.
 
-We can also make predictions with our model:
+## Predictions
+
+To predict with an sjSDM object, use
 
 
 ``` r
 pred = predict(model, newdata = Env, SP = Coords)
 ```
 
-Moreover, we can make conditional predictions for new sites. We use focal species (species with known occurrences) to condition our other species on them:
+The standard predictions are marginal, i.e. assume that we have no information about what species exist on a site we predict to.
+
+As jSDMs fit correlations between species, predictions of jSDM improve if we can provide information for some of the species on a new site. This is known as a conditional prediction. As an example, let's assume that the first 6 species in this data are unknown, whereas the P/A of the rest is known to us.
 
 
 ``` r
@@ -406,7 +445,7 @@ head(New_PA)
 [6,]  NA  NA  NA  NA  NA  NA   0   0   1   1   0       0
 ```
 
-We predict occurrences for the first 6 species and we will use species 7:12 as focal species:
+We can then predict occurrences for the first 6 species, conditioning on the rest of the species (7:12):
 
 
 ``` r
@@ -421,7 +460,7 @@ head(pred)
 [6,] 0.06529714 0.0008642071 0.2183885 0.0005441471 0.0231352945 0.0005368480
 ```
 
-The predict function returns only predictions for species with NA in Y
+Note that the predict function returns only predictions for species with NA in Y
 
 # Advanced topics
 
@@ -449,7 +488,7 @@ model = sjSDM(Y, env = linear(X, ~.), se = TRUE,
               iter = 50L, family = poisson("log"), verbose = FALSE)
 
 Calculating standard errors...
-Species: 0/5   0%|          | [00:00, ?it/s]Species: 5/5 100%|██████████| [00:00, 68.41it/s]
+Species: 0/5   0%|          | [00:00, ?it/s]Species: 5/5 100%|██████████| [00:00, 70.24it/s]
 ```
 
 ``` r
@@ -492,7 +531,6 @@ sp5 X3            0.3583  0.2642    1.36   0.1751
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
-
 ### Negative Binomial
 
 
@@ -500,7 +538,7 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 model = sjSDM(Y, env = linear(X, ~.), se = TRUE, iter = 50L, family = "nbinom", verbose = FALSE)
 
 Calculating standard errors...
-Species: 0/5   0%|          | [00:00, ?it/s]Species: 4/5  80%|████████  | [00:00, 35.83it/s]Species: 5/5 100%|██████████| [00:00, 35.72it/s]
+Species: 0/5   0%|          | [00:00, ?it/s]Species: 4/5  80%|████████  | [00:00, 35.63it/s]Species: 5/5 100%|██████████| [00:00, 35.67it/s]
 ```
 
 ``` r
@@ -553,7 +591,7 @@ model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE,
               iter = 50L, family = gaussian("identity"), verbose = FALSE)
 
 Calculating standard errors...
-Species: 0/5   0%|          | [00:00, ?it/s]Species: 5/5 100%|██████████| [00:00, 100.08it/s]
+Species: 0/5   0%|          | [00:00, ?it/s]Species: 5/5 100%|██████████| [00:00, 103.79it/s]
 ```
 
 ``` r
@@ -766,7 +804,6 @@ X2          -0.9150876 -1.0131743 -1.4604577 0.1831825 -0.7714042
 X3          -0.1305014 -0.9790275 -1.0794477 0.2074351  0.7390681
 ```
 
-
 ## Adjusting regularization parameters
 
 ### Regularization on abiotic coefficients
@@ -802,7 +839,6 @@ Coefficients (beta):
 I(X1^2) -0.006264385 0.003685245 0.001822939 0.002570815 -0.004510595
 ```
 
-
 ### Regularization on species-species associations
 
 We can do the same for the species associations:
@@ -836,7 +872,6 @@ Coefficients (beta):
                 sp1         sp2          sp3         sp4          sp5
 I(X1^2) 0.004043286 -0.01592334 0.0009968621 -0.00259049 -0.000491824
 ```
-
 
 ### Regularization on the spatial model:
 
@@ -875,7 +910,6 @@ Coefficients (beta):
 X1           0.2522318  0.8311911  0.8095985 0.16383290 -0.7471617
 X2          -1.0196984 -0.8113096 -1.1551344 0.32080224 -0.9682363
 ```
-
 
 ## Using deep neural networks
 
@@ -920,7 +954,6 @@ Layer_7:	 (10, 5)
 ===================================
 Weights :	 290
 ```
-
 
 The methods for sjSDM() work also for the non-linear model:
 

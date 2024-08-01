@@ -8,7 +8,8 @@
             spatial = DNN(scale(LatLon), formula = ~0+.), 
             se = TRUE,
             iter = 20L, # increase to 100
-            step_size = 200L)
+            step_size = 200L,
+            verbose = FALSE)
   summary(m)
   plot(m)
 

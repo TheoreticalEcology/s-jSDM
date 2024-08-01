@@ -52,10 +52,11 @@ model <- sjSDM(Y = Occ,
                env = linear(data = Env, formula = ~X1+X2+X3), 
                spatial = linear(data = SP, formula = ~0+X1*X2), 
                family=binomial("probit"),
+               verbose = FALSE,
                iter = 20) # increase iter for real analysis
 
 # Calculate ANOVA for env, space, associations, for details see ?anova.sjSDM
-an = anova(model, samples = 10) # increase iter for real analysis
+an = anova(model, samples = 10, verbose = FALSE) # increase iter for real analysis
 
 # Show anova fractions
 plot(an)

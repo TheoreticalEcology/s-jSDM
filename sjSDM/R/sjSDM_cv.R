@@ -169,9 +169,9 @@ sjSDM_cv = function(Y,
          if(length(n_gpu) == 1) dist = cbind(nodes,(n_gpu-1):0)
          else dist = cbind(nodes,n_gpu)
          device2 = as.integer(as.numeric(dist[which(dist[,1] %in% myself, arr.ind = TRUE), 2]))
-         model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2,sampling=sampling, ...)
+         model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2,sampling=sampling, verbose = FALSE, ...)
       } else {
-        model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device, sampling=sampling,...)
+        model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device, sampling=sampling, verbose = FALSE, ...)
       }
       
       mean_func = function(f) apply(abind::abind(lapply(1:50, function(i) f() ),along = -1), 2:3, mean)

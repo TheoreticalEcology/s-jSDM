@@ -3,7 +3,8 @@ library(sjSDM)
 com = simulate_SDM(env = 6L, species = 7L, sites = 100L)
 
 # fit model:
-model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L, se = TRUE) 
+model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L, se = TRUE,
+              verbose = FALSE) 
 
 # normal plot
 plot(model)

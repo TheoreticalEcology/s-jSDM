@@ -58,8 +58,9 @@ cor(X1, X2)
 X1 = scale(X1)
 X2 = scale(X2)
 X3 = scale(X3)
-prob = plogis(5*X1 + 5*X3)
+prob = plogis(1*X1 + -1*X3)
 Y = rbinom(1000, 1, prob)
+df = data.frame(Y = Y, X1= X1, X2 = X2, X3 = X3)
 
 m = glm(Y~X1+X2+X3, family = binomial(), data = df)
 rsq::rsq.partial(m, type = "n")
@@ -67,6 +68,43 @@ car::Anova(m)
 anova(m)
 summary(m)
 df = data.frame(Y = Y, X1= X1, X2 = X2, X3 = X3)
+
+
+rrs = (diag(marginalEffects.glm(m, df)$mean))
+sum( rrs / sum(rrs) )
+
+
+
+
+
+
+marginalEffects.glm= function(object, data = NULL, interactions=TRUE, epsilon = 0.1, max_indices = NULL, ...) {
+  if(is.null(data)) data = object$model
+  Y_name = as.character(object$terms[[2]])
+  data = data[,-which( colnames(data) %in% Y_name)]
+  predict_lm = function(model, newdata) {
+    return(predict(model, data.frame(newdata), type = "response"))
+  }
+  result = AME(
+    data = data, 
+    predict_f = predict_lm, 
+    model = object, 
+    obs_level = TRUE, interactions=interactions, 
+    epsilon = epsilon,
+    max_indices = max_indices
+  )
+  out = list()
+  out$result = result
+  out$mean = apply(result, 2:3, mean)
+  colnames(out$mean) = colnames(data)[1:ncol(out$mean)]
+  rownames(out$mean) = colnames(data)[1:ncol(out$mean)]
+  out$abs = apply(result, 2:3, function(d) mean(abs(d)))
+  out$sd = apply(result, 2:3, function(d) sd(d))
+  class(out) = "marginalEffects"
+  return(out)
+}
+
+
 
 imp_glm = function(df) {
   model =  glm(Y~X1+X2+X3, family = binomial(), data = df)

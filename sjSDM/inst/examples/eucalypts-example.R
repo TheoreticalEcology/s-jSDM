@@ -6,7 +6,8 @@
   m = sjSDM(PA, 
             scale(E), 
             spatial = DNN(scale(LatLon), formula = ~0+.), 
-            se = TRUE)
+            se = TRUE,
+            verbose = FALSE)
   summary(m)
   plot(m)
   
