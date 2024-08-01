@@ -166,7 +166,7 @@ with a copy of the \code{\link{install_diagnostic}} output as a quote.
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://theoreticalecology.github.io/s-jSDM/}
+  \item \url{https://github.com/TheoreticalEcology/s-jSDM/}
   \item Report bugs at \url{https://github.com/TheoreticalEcology/s-jSDM/issues}
 }
 

@@ -51,7 +51,7 @@ Suggests:
     iml,
     fields
 RoxygenNote: 7.3.2
-URL: https://theoreticalecology.github.io/s-jSDM/
+URL: https://github.com/TheoreticalEcology/s-jSDM/
 BugReports: https://github.com/TheoreticalEcology/s-jSDM/issues
 Roxygen: list(old_usage = FALSE, markdown = TRUE)
 VignetteBuilder: knitr
