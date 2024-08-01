@@ -18,7 +18,7 @@ The sjSDM package is an R package for estimating joint species
 distribution models. A jSDM is a GLMM that models a multivariate (i.e. a
 many-species) response to the environment, space and a covariance term
 that models conditional (on the other terms) correlations between the
-outputs (i.e. species).
+outputs (i.e. species).
 
 <figure>
 <img src="sjSDM/vignettes/jSDM-structure.png" alt="image" />
