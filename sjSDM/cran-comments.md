@@ -1,5 +1,5 @@
 # Version 1.0.6
-### Submission 1, 01/08/2024
+### Submission 1, 02/08/2024
 This is a minor update. Support for conditional predictions, inference of 
 metacommunity assembly processes, and handling of negative R2s in the anova 
 were added.
@@ -7,23 +7,23 @@ were added.
 ### Successfull R CMD checks under
 * Locally: MacOS Sonoma 14.5 (R x86_64 version)
 * Github actions: 
-  - MacOS Catalina 10.15 R-release 
-  - Ubuntu 20.04 R-release, and R-development
+  - Ubuntu 20.04 R-release
   - Windows-latest R-release
-* Rhub:
-  - fedora, ubuntu
 * Win-builder R-release, R-development, and R-oldrelease
 
 
 URL and DOI are correct.
 
-Possibly mis-spelled words in DESCRIPTION:
-  GPUs (20:271)
-  Hartig (20:320)
-  Pichler (20:310)
-  Scalable (3:8)
-  jSDMs (20:79, 20:565)
-  scalable (20:16)
+Possibly misspelled words in DESCRIPTION:
+  ANOVA (20:348)
+  Leibold (20:589)
+  al (20:600)
+  biotic (20:435)
+  eDNA (20:132)
+  et (20:597)
+  jSDM (20:190)
+  metacommunity (20:560, 20:758)
+  probit (20:273)
 
 The spelling is intended.
 

@@ -1,7 +1,7 @@
 ---
 title: "sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model"
 author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
-date: "2024-08-01"
+date: "2024-08-02"
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -17,7 +17,6 @@ editor_options:
 
 
 
-```
 
 # Getting started
 
@@ -622,7 +621,7 @@ plot(model)
 
 # Installation problems
 
-The `r sjSDM::install_sjSDM()` function can install automatically all necessary 'python' dependencies but it can fail sometimes because of individual system settings or if other 'python'/'conda' installations get into the way.
+The `sjSDM::install_sjSDM()` function can install automatically all necessary 'python' dependencies but it can fail sometimes because of individual system settings or if other 'python'/'conda' installations get into the way.
 
 ## PyTorch Installation - Before you start:
 
@@ -633,7 +632,7 @@ A few notes before you start with the installation (skip this point if you do no
 
 ## Windows - automatic installation:
 
-Sometimes the automatic 'miniconda' installation (via `r sjSDM::install_sjSDM()` ).doesn't work because of white spaces in the user's name. But you can easily download and install 'conda' on your own:
+Sometimes the automatic 'miniconda' installation (via `sjSDM::install_sjSDM()` ).doesn't work because of white spaces in the user's name. But you can easily download and install 'conda' on your own:
 
 Download and install the latest ['conda' version](https://www.anaconda.com/download/)
 
@@ -744,5 +743,5 @@ Restart R, try the example, if it does not work:
 
 ## Help and bugs
 
--   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `r sjSDM::install_diagnostic()`as a quote.
+-   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `sjSDM::install_diagnostic()`as a quote.
 -   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-emple) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)
