@@ -1,5 +1,5 @@
 # Version 1.0.6
-### Submission 1, 02/08/2024
+### Submission 1, 19/08/2024
 This is a minor update. Support for conditional predictions, inference of 
 metacommunity assembly processes, and handling of negative R2s in the anova 
 were added.
