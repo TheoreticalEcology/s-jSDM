@@ -140,6 +140,8 @@ def MVP_logLik(Y, X, sigma, device, dtype, batch_size=25, alpha = 1.0, sampling=
         link_func = lambda value: torch.exp(value)
     elif link=="nbinom":
         link_func = lambda value: torch.exp(value)
+    elif link=="normal":
+        link_func = lambda value: value
     
     if theta is not None:
         theta = torch.tensor(theta, dtype=dtype, device=torch.device(device))
@@ -158,6 +160,8 @@ def MVP_logLik(Y, X, sigma, device, dtype, batch_size=25, alpha = 1.0, sampling=
             logprob = E.log().mul(y).add((1.0 - E).log().mul(1.0 - y)).neg().sum(dim = 2).neg()
         elif link == "count":
             logprob = torch.distributions.Poisson(rate=E).log_prob(y).sum(2)
+        elif link == "normal":
+            logprob = torch.distributions.Normal(E, theta.exp()).log_prob(y).sum(2)            
         elif link == "nbinom":
             eps = 0.0001
             theta_tmp = 1.0/(torch.nn.functional.softplus(theta)+eps)

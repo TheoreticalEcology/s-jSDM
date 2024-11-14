@@ -42,8 +42,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
   object = checkModel(object)
   
   pkg.env$fa$set_seed(object$seed)
-  
-  if(object$family$family$family == "gaussian") stop("gaussian not yet supported")
+#   if(object$family$family$family == "gaussian") stop("gaussian not yet supported")
   
   object$settings$se = FALSE
   
@@ -291,9 +290,9 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     F_AB <- R2objt$Full - R2objt$F_S - (F_A + F_B)
     F_AS <- R2objt$Full - R2objt$F_B - (F_A + F_S)
     F_ABS <- R2objt$Full - (F_A + F_B + F_S + F_BS + F_AB + F_AS)
-    A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
-    B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
-    S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A)) + F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+    B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B)) + F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+    S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B)) + F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
     # R2 = correct_R2(R2objt$Full) TODO Check that this can be gone
     proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
     A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
@@ -321,8 +320,15 @@ get_null_ll = function(object, verbose = TRUE, ...) {
   object_tmp = object
   object_tmp$settings$se = FALSE
   
-  if(inherits(object, "spatial ")) null_pred = predict(update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE), verbose = verbose))
-  else null_pred = predict(update(object_tmp, env_formula = ~1, biotic = bioticStruct(diag = TRUE), verbose = verbose))
+
+  
+  if(inherits(object, "spatial ")) {
+    null_model = update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE), verbose = verbose)
+    null_pred = predict(null_model)
+  } else {
+    null_model = update(object_tmp, env_formula = ~1, biotic = bioticStruct(diag = TRUE), verbose = verbose)
+    null_pred = predict(null_model)
+  }
   
   if(object$family$family$family == "binomial") {
     null_m = stats::dbinom( object$data$Y, 1, null_pred, log = TRUE)
@@ -342,8 +348,8 @@ get_null_ll = function(object, verbose = TRUE, ...) {
     YT = torch$tensor(object$data$Y, dtype = torch$float32)
     null_m = force_r(torch$distributions$NegativeBinomial(total_count=theta, probs=probs)$log_prob(YT)$cpu()$data$numpy())
   } else if(object$family$family$family == "gaussian") {
-    warning("family = gaussian() is not fully supported yet.")
-    null_m = stats::dnorm(object$data$Y, mean = null_pred, log = TRUE)
+    #warning("family = gaussian() is not fully supported yet.")
+    null_m = sapply(1:ncol(object$data$Y), function(i) stats::dnorm(object$data$Y[,i], null_pred[,i],sd = exp(null_model$theta)[i], log = TRUE))
   }
     
   return(null_m)

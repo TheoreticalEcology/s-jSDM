@@ -360,6 +360,10 @@ class Model_sjSDM:
             self.theta = torch.ones([r_dim], requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
             self.params.append([self.theta])
             
+        if link == "normal":
+            self.theta = torch.zeros([r_dim], requires_grad = True, dtype = self.dtype, device = self.device).to(self.device)
+            self.params.append([self.theta])               
+            
         if not diag:
             low = -np.sqrt(6.0/(r_dim+df)) # type: ignore
             high = np.sqrt(6.0/(r_dim+df)) # type: ignore      
@@ -893,8 +897,19 @@ class Model_sjSDM:
                     return Eprob.log().neg().sub(maxlogprob)          
 
             elif self.link == "normal":
+                #def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
+                #    return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0], device=torch.device(device), dtype=dtype))).log_prob(Ys).neg()
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
-                    return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0], device=torch.device(device), dtype=dtype))).log_prob(Ys).neg()
+                    # return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0], device=device, dtype=dtype ))).log_prob(Ys).neg()
+                    noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
+                    #noise = torch.distributions.Normal(loc = torch.zeros_like(self.theta), scale = self.theta.exp()).sample([sampling, batch_size]).to(device=torch.device(device),dtype=dtype)
+                    E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu)#.exp()
+
+                    logprob = torch.distributions.Normal(E, self.theta.exp()).log_prob(Ys)#.sum(2)
+                    logprob = logprob.sum(dim = 2)# .neg()
+                    maxlogprob = logprob.max(dim = 0).values
+                    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                    return Eprob.log().neg().sub(maxlogprob)
         else:
             if self.link == "probit": 
                 link_func = lambda value: torch.distributions.Normal(0.0, 1.0).cdf(value)
@@ -965,7 +980,15 @@ class Model_sjSDM:
 
             elif self.link == "normal":
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
-                    return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0]), device=device, dtype=dtype )).log_prob(Ys).neg()
+                    # return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma.matmul(sigma.t()).add(torch.eye(sigma.shape[0], device=device, dtype=dtype ))).log_prob(Ys).neg()
+                    noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
+                    #noise = torch.distributions.Normal(loc = torch.zeros_like(self.theta), scale = self.theta.exp()).sample([sampling, batch_size]).to(device=torch.device(device),dtype=dtype)
+                    E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu)#.exp()
+                    logprob = torch.distributions.Normal(E, self.theta.exp()).log_prob(Ys)#.sum(2)
+                    logprob = logprob.sum(dim = 2)# .neg()
+                    maxlogprob = logprob.max(dim = 0).values
+                    Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
+                    return Eprob.log().neg().sub(maxlogprob).reshape([batch_size, 1])
 
         return tmp
 
