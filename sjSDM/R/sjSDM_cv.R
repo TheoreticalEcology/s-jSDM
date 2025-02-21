@@ -227,11 +227,14 @@ sjSDM_cv = function(Y,
     if(length(ellip) > 0 ) parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
     else parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling"), envir = environment())
     
+    # TODO: check again!
     for(i in 1:length(unique(blocks_run))){
       ind = blocks_run == unique(blocks_run)[i]
       sub_tune_samples = tune_samples[ind, ]
       
-      result_list[[i]] = parallel::parLapply(cl, 1:nrow(sub_tune_samples), tune_func)
+      ind_integer = which(ind, arr.ind = TRUE)
+      
+      result_list[[i]] = parallel::parLapply(cl, ind_integer, tune_func)
     }
     result = do.call(rbind, result_list)
     parallel::stopCluster(cl)
