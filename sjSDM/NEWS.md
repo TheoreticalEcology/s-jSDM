@@ -1,3 +1,9 @@
+# sjSDM 1.0.7
+## Bug fixes
+* cv function, use correct indices in parallel block modus #155, thanks to @jannebor
+
+
+
 # sjSDM 1.0.6
 ## New features
 * Datasets: butterflies and eucalypt species
