@@ -178,7 +178,7 @@ sjSDM = function(Y = NULL,
   
   seed = as.integer(seed)
   
-  if( any(apply(Y, 2, var) < .Machine$double.eps) ) warning("No variation in at least one of Y columns detected!")
+  if( any(apply(Y, 2, function(x) var(x, na.rm = TRUE)) < .Machine$double.eps) ) warning("No variation in at least one of Y columns detected!")
   
   if(inherits(family, "character")) {
     if(family == "nbinom") {

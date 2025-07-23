@@ -861,7 +861,10 @@ class Model_sjSDM:
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
                     E = torch.sigmoid(   torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha)   ).mul(0.999999).add(0.0000005)
-                    logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
+                    mask_Ys = Ys
+                    mask_Ys.masked_fill_(Ys.isnan(), 0.0)
+                    logprob = E.log().mul(mask_Ys).add((1.0 - E).log().mul(1.0 - mask_Ys))#.neg().sum(dim = 2).neg()
+                    logprob = logprob.masked_fill_(logprob.isnan(), 0.0).neg().sum(dim=2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     loss = Eprob.log().neg().sub(maxlogprob)
@@ -871,7 +874,8 @@ class Model_sjSDM:
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
                     E = torch.clamp(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha), 0.0, 1.0).mul(0.999999).add(0.0000005)
-                    logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys)).neg().sum(dim = 2).neg()
+                    logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys))#.neg().sum(dim = 2).neg()
+                    logprob = logprob.masked_fill_(logprob.isnan(), 0.0).neg().sum(dim=2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     loss = Eprob.log().neg().sub(maxlogprob)
