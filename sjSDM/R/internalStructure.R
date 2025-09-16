@@ -228,16 +228,16 @@ plot.sjSDMinternalStructure <- function(x,
     if(!negative_r2) {
       points(x = seq(-0.05, 0.25, length.out = 4), y = rep(0.86, 4),cex = sizes_legend, xpd = NA, pch = 16)
       text(x = seq(-0.05, 0.25, length.out = 4), y = rep(0.852, 4), labels = labels_sizes, xpd = NA, pos = 1, cex = 0.7)
-      text(x = -0.1, y = 0.89, labels = "R²:", xpd = NA, cex = 0.9)
+      text(x = -0.1, y = 0.89, labels = "R\u00B2:", xpd = NA, cex = 0.9)
       cols = "#000000AA"
     } else {
-      cols1 =  colorRampPalette(c("#FF1010", "#FFA4B5"))(10)
-      cols2 =  colorRampPalette(c("grey70", "black"))(10)
+      cols1 =  grDevices::colorRampPalette(c("#FF1010", "#FFA4B5"))(10)
+      cols2 =  grDevices::colorRampPalette(c("grey70", "black"))(10)
       image(x=seq(-0.05, 0.2, length.out = 20), y=c(0.86, 0.885), z=matrix(seq(-0.05, 0.2, length.out=20), ncol=1),
             col=c(cols1, cols2), axes=FALSE, xlab="", ylab="", add = TRUE)
       r2s = internals[[i]]$r2
       text(x = c(-0.05, 0.075, 0.2), y = rep(0.852, 3), labels = c(min(r2s) |> round(3), 0, max(r2s) |> round(3)), xpd = NA, pos = 1, cex = 0.7)
-      text(x = -0.1, y = 0.89, labels = "R²:", xpd = NA, cex = 0.9)
+      text(x = -0.1, y = 0.89, labels = "R\u00B2:", xpd = NA, cex = 0.9)
       names(r2s)[r2s<0] = cols1[as.integer(cut(r2s[r2s<0], breaks = 10))]
       names(r2s)[r2s>0] = cols2[as.integer(cut(r2s[r2s>0], breaks = 10))]
       cols = names(r2s)

@@ -1,3 +1,30 @@
+# Version 1.0.7
+### Submission 1, 17/09/2025
+This is a minor update. ggtern was removed. Small bugfix in CV function
+
+### Successfull R CMD checks under
+* Locally: MacOS Sequoia 15.5 (R arm version)
+* Github actions: 
+  - Ubuntu 24.04 R-release
+  - Windows-latest R-release
+* Win-builder R-release, R-development, and R-oldrelease
+
+
+URL and DOI are correct.
+
+Possibly misspelled words in DESCRIPTION:
+  ANOVA (20:348)
+  Leibold (20:589)
+  al (20:600)
+  biotic (20:435)
+  eDNA (20:132)
+  et (20:597)
+  jSDM (20:190)
+  metacommunity (20:560, 20:758)
+  probit (20:273)
+
+The spelling is intended.
+
 # Version 1.0.6
 ### Submission 1, 19/08/2024
 This is a minor update. Support for conditional predictions, inference of 

@@ -127,7 +127,7 @@ results = internalStructure(an) # or plot(an, internal = TRUE)
 
 The plot function returns the results for the internal metacommunity structure:
 
-```{r}
+```{r,fig.height=7, fig.width=12}
 plot(results)
 ```
 

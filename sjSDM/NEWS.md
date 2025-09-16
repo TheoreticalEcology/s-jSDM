@@ -1,7 +1,10 @@
 # sjSDM 1.0.7
+
+* importance function was removed (deprecated)
+
 ## Bug fixes
 * cv function, use correct indices in parallel block modus #155, thanks to @jannebor
-
+* remove ggtern dependency
 
 
 # sjSDM 1.0.6
