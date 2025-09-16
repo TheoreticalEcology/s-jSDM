@@ -40,10 +40,10 @@ Imports:
     ggplot2,
     checkmate,
     mathjaxr,
-    ggtern,
     beeswarm,
     qgam,
-    scales
+    scales,
+    viridis
 Suggests:
     testthat,
     knitr,
