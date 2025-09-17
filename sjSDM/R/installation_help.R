@@ -29,7 +29,7 @@
 #' your own:
 #' 
 #' Download and install the latest 
-#' \href{https://www.anaconda.com/download/}{'conda' version}
+#' \href{https://www.anaconda.com/download/success}{'conda' version}
 #' 
 #' Afterwards run:\cr
 #' \code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
@@ -46,7 +46,7 @@
 #' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/download/}{'conda' version}
+#' \href{https://www.anaconda.com/download/success}{'conda' version}
 #' \item Open the command window (cmd.exe - hit windows key + r and write cmd)
 #' }
 #' Run in cmd.exe:\cr
@@ -87,7 +87,7 @@
 #' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/download/}{'conda' version}
+#' \href{https://www.anaconda.com/download/success}{'conda' version}
 #' \item Open your terminal 
 #' }
 #' 
@@ -124,7 +124,7 @@
 #' Download and install the latest 'conda' version:
 #' \itemize{
 #' \item Install the latest 
-#' \href{https://www.anaconda.com/download/}{'conda' version}
+#' \href{https://www.anaconda.com/download/success}{'conda' version}
 #' \item Open your terminal 
 #' }
 #' 

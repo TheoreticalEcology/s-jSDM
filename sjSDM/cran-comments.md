@@ -1,16 +1,16 @@
 # Version 1.0.7
 ### Submission 1, 17/09/2025
-This is a minor update. ggtern was removed. Small bugfix in CV function
+This is a hotfix. Alternative implementation for ggtern that 
+will be taken down from CRAN. Small bug fix in the CV function.
 
 ### Successfull R CMD checks under
 * Locally: MacOS Sequoia 15.5 (R arm version)
-* Github actions: 
-  - Ubuntu 24.04 R-release
-  - Windows-latest R-release
+* Locally: Ubuntu 24.04 R-release
+* Locally: Windows-latest R-release
 * Win-builder R-release, R-development, and R-oldrelease
 
 
-URL and DOI are correct.
+URLs and DOIs are correct.
 
 Possibly misspelled words in DESCRIPTION:
   ANOVA (20:348)

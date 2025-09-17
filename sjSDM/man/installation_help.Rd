@@ -37,7 +37,7 @@ spaces in the user's name. But you can easily download and install 'conda' on
 your own:
 
 Download and install the latest
-\href{https://www.anaconda.com/download/}{'conda' version}
+\href{https://www.anaconda.com/download/success}{'conda' version}
 
 Afterwards run:\cr
 \code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
@@ -55,7 +55,7 @@ Reload the package and run the example , if this doesn't work:
 Download and install the latest 'conda' version:
 \itemize{
 \item Install the latest
-\href{https://www.anaconda.com/download/}{'conda' version}
+\href{https://www.anaconda.com/download/success}{'conda' version}
 \item Open the command window (cmd.exe - hit windows key + r and write cmd)
 }
 Run in cmd.exe:\cr
@@ -97,7 +97,7 @@ work. The only requirement is that it is named 'r-sjsdm'
 Download and install the latest 'conda' version:
 \itemize{
 \item Install the latest
-\href{https://www.anaconda.com/download/}{'conda' version}
+\href{https://www.anaconda.com/download/success}{'conda' version}
 \item Open your terminal
 }
 
@@ -136,7 +136,7 @@ Restart R try to run the example, if this doesn't work:
 Download and install the latest 'conda' version:
 \itemize{
 \item Install the latest
-\href{https://www.anaconda.com/download/}{'conda' version}
+\href{https://www.anaconda.com/download/success}{'conda' version}
 \item Open your terminal
 }
 
