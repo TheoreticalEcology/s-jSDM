@@ -45,21 +45,21 @@ jobs:
       
       - name: TinyTex for non Windows
         if: runner.os != 'Windows'
-        uses: r-lib/actions/setup-tinytex@v4
+        uses: r-lib/actions/setup-tinytex@v2
         env:
           TINYTEX_INSTALLER: TinyTeX
           #TINYTEX_VERSION: '2023.03'
 
       - name: TinyTex for Windows
         if: runner.os == 'Windows'
-        uses: r-lib/actions/setup-tinytex@v4
+        uses: r-lib/actions/setup-tinytex@v2
         env:
           TINYTEX_INSTALLER: TinyTeX
           TINYTEX_VERSION: '2023.03'
           
       - name: TinyTex2 for Windows
         if: runner.os == 'Windows'
-        uses: teatimeguest/setup-texlive-action@v4
+        uses: teatimeguest/setup-texlive-action@v2
       
       - name: Install makeindex
         run: |
