@@ -217,8 +217,8 @@ plot.sjSDMinternalStructure <- function(x,
     color = if(!negative_r2) {NULL} else {"r2"}
     
 
-    min_s = c(internals[[1]]$r2, internals[[2]]$r2) |> abs() |> min()
-    max_s = c(internals[[1]]$r2, internals[[2]]$r2) |> abs() |> max()
+    min_s = c(internals[[i]]$r2) |> abs() |> min()
+    max_s = c(internals[[i]]$r2) |> abs() |> max()
     labels_sizes = round(seq(min_s, max_s, length.out = 4), 3)
     sizes_legend = scales::rescale(labels_sizes, to = c(0.2, 2.0) )
 
@@ -255,6 +255,12 @@ plot.sjSDMinternalStructure <- function(x,
     }
     
     plot_tern(internals[[i]], cex = scales::rescale(abs(internals[[i]]$r2), to = c(0.4, 2.0), from = c(min_s, max_s) ), col = cols, bg = bg)
+    
+    if(i == 1) {
+      text(x = -0.1, y = 1.0, label = "Sites", font = 2, xpd = NA)
+    } else {
+      text(x = -0.1, y = 1.0, label = "Species", font = 2, xpd = NA)
+    }
     
     
   #   plt = 
