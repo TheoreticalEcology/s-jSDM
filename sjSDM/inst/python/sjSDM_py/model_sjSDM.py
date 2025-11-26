@@ -5,6 +5,7 @@ import sys
 import random
 from .utils_fa import covariance
 from .utils_fa import set_seed
+from .dist_mvp import MVP_logLik
 from typing import Union, Tuple, List, Optional, Callable
 from tqdm import tqdm
 from torch import nn, optim
@@ -392,7 +393,7 @@ class Model_sjSDM:
             SP: Optional[np.ndarray] = None, 
             batch_size: int = 25, 
             epochs: int = 100, 
-            sampling: int = 100, 
+            sampling: int = 1000, 
             parallel: int = 0,
             early_stopping_training: int = -1,
             verbose: bool = True) -> None:
@@ -588,10 +589,11 @@ class Model_sjSDM:
     def predict(self, 
                 newdata: Optional[np.ndarray] = None,
                 SP: Optional[np.ndarray] = None,
+                Y: Optional[np.ndarray] = None,
                 train: bool = False, 
                 batch_size: int = 25, 
                 parallel: int = 0, 
-                sampling: int = 100, 
+                sampling: int = 1000,
                 link: bool = True,
                 dropout: bool = False,
                 simulate: bool = False) -> np.ndarray:
@@ -600,9 +602,11 @@ class Model_sjSDM:
         Args:
             newdata (Optional[np.ndarray], optional): (New) environment, n*p matrix. Defaults to None.
             SP (Optional[np.ndarray], optional): Spatial predictor matrix, n*sp matrix. Defaults to None.
+            Y (Optional[np.ndarray], optional): Observed species presence absence matrix, can be used for conditional predictions, species that should be predicted must have NA columns (and the indicator species no NAs!).
             train (bool, optional): train or evaluation mode. Defaults to False.
             batch_size (int, optional): Batch size. Defaults to 25.
             parallel (int, optional): Parallelization of DataLoader. Defaults to 0.
+            sampling (int, optional): Number of MC samples for each species. Defaults to 100.
             sampling (int, optional): Number of MC-samples for each species. Defaults to 100.
             link (bool, optional): Linear or response scale. Defaults to True.
             dropout (bool, optional): Use dropout during predictions or not. Defaults to False.
@@ -652,7 +656,48 @@ class Model_sjSDM:
         cat_dim = 0
         if simulate:
             cat_dim = 1
-        return torch.cat(pred, dim = cat_dim).data.cpu().numpy()
+        predictions = torch.cat(pred, dim = cat_dim).data.cpu().numpy()
+        
+        if type(Y) is np.ndarray:
+            Y = Y.copy()
+            cols_w_na = np.unique(np.where(np.isnan(Y))[1])
+            focal_species = np.unique(np.where(~np.isnan(Y))[1])
+            condition_Y = np.column_stack((np.ones( shape=(Y.shape[0], 1)), Y[:,focal_species]))
+            for K in cols_w_na:
+                ind = np.concatenate((np.array([K]), focal_species))
+                joint_ll = MVP_logLik(condition_Y,
+                                      predictions[:, ind ],
+                                      self.get_sigma[ind,:],
+                                      device=self.device,
+                                      individual=True,
+                                      dtype=self.dtype,
+                                      batch_size=batch_size,
+                                      alpha=self.alpha,
+                                      link=self.link,
+                                      sampling=sampling,
+                                      )
+                raw_ll = MVP_logLik(Y[:,focal_species], 
+                                    predictions[:, focal_species ],
+                                    self.get_sigma[focal_species,:],
+                                    device=self.device,
+                                    individual=True,
+                                    dtype=self.dtype,
+                                    batch_size=batch_size,
+                                    alpha=self.alpha,
+                                    link=self.link,
+                                    sampling=sampling,
+                                    )
+                raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
+                pred_prob = np.exp(-raw_conditional_ll)
+                pred_prob[pred_prob> 1] = 1.0
+                pred_prob[pred_prob<0] = 0
+                Y[:,K] = pred_prob.reshape((-1))
+            
+            predictions = Y[:,cols_w_na]
+            
+            ind = np.concatenate((np.array([K]), focal_species))
+        
+        return predictions 
 
     def se(self, 
            X: np.ndarray, 
@@ -861,10 +906,12 @@ class Model_sjSDM:
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
                     E = torch.sigmoid(   torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha)   ).mul(0.999999).add(0.0000005)
-                    mask_Ys = Ys
-                    mask_Ys.masked_fill_(Ys.isnan(), 0.0)
-                    logprob = E.log().mul(mask_Ys).add((1.0 - E).log().mul(1.0 - mask_Ys))#.neg().sum(dim = 2).neg()
-                    logprob = logprob.masked_fill_(logprob.isnan(), 0.0).neg().sum(dim=2).neg()
+                    Ys_masked = Ys.clone()
+                    Ys_masked.masked_fill_(Ys.isnan(), 0.0)
+                    # necessary to calculate the likelihood
+                    logprob = E.log().mul(Ys_masked).add((1.0 - E).log().mul(1.0 - Ys_masked))#.neg().sum(dim = 2).neg()
+                    # cut gradients with the mask
+                    logprob = logprob.neg().masked_fill_(Ys.isnan(), 0.0).sum(dim=2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     loss = Eprob.log().neg().sub(maxlogprob)
@@ -874,8 +921,12 @@ class Model_sjSDM:
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device), dtype=dtype)
                     E = torch.clamp(torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).mul(alpha), 0.0, 1.0).mul(0.999999).add(0.0000005)
-                    logprob = E.log().mul(Ys).add((1.0 - E).log().mul(1.0 - Ys))#.neg().sum(dim = 2).neg()
-                    logprob = logprob.masked_fill_(logprob.isnan(), 0.0).neg().sum(dim=2).neg()
+                    Ys_masked = Ys.clone()
+                    Ys_masked.masked_fill_(Ys.isnan(), 0.0)
+                    # necessary to calculate the likelihood
+                    logprob = E.log().mul(Ys_masked).add((1.0 - E).log().mul(1.0 - Ys_masked))#.neg().sum(dim = 2).neg()
+                    # cut gradients with the mask
+                    logprob = logprob.neg().masked_fill_(Ys.isnan(), 0.0).sum(dim=2).neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     loss = Eprob.log().neg().sub(maxlogprob)
@@ -884,7 +935,9 @@ class Model_sjSDM:
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
                     E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).exp()
-                    logprob = torch.distributions.Poisson(rate=E).log_prob(Ys).sum(2)
+                    Ys_masked = Ys.clone()
+                    Ys_masked.masked_fill_(Ys.isnan(), 0.0)
+                    logprob = torch.distributions.Poisson(rate=E).log_prob(Ys_masked).masked_fill_(Ys.isnan(), 0.0).sum(dim=2)
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     return Eprob.log().neg().sub(maxlogprob)
@@ -892,10 +945,12 @@ class Model_sjSDM:
                 def tmp(mu: torch.Tensor, Ys: torch.Tensor, sigma: torch.Tensor, batch_size: int, sampling: int, df: int, alpha: float, device: str, dtype: torch.dtype):
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
                     E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu).exp()
+                    Ys_masked = Ys.clone()
+                    Ys_masked.masked_fill_(Ys.isnan(), 0.0)
                     eps = 0.0001
                     theta = 1.0/(torch.nn.functional.softplus(self.theta)+eps)
                     probs = torch.clamp((1.0 - theta/(theta+E)) + eps, 0.0, 1.0-eps)
-                    logprob = torch.distributions.NegativeBinomial(total_count=theta, probs=probs).log_prob(Ys).sum(2)
+                    logprob = torch.distributions.NegativeBinomial(total_count=theta, probs=probs).log_prob(Ys_masked).masked_fill_(Ys.isnan(), 0.0).sum(2)
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     return Eprob.log().neg().sub(maxlogprob)          
@@ -908,9 +963,10 @@ class Model_sjSDM:
                     noise = torch.randn(size = [sampling, batch_size, df], device=torch.device(device),dtype=dtype)
                     #noise = torch.distributions.Normal(loc = torch.zeros_like(self.theta), scale = self.theta.exp()).sample([sampling, batch_size]).to(device=torch.device(device),dtype=dtype)
                     E = torch.einsum("ijk, lk -> ijl", [noise, sigma]).add(mu)#.exp()
-
-                    logprob = torch.distributions.Normal(E, self.theta.exp()).log_prob(Ys)#.sum(2)
-                    logprob = logprob.sum(dim = 2)# .neg()
+                    Ys_masked = Ys.clone()
+                    Ys_masked.masked_fill_(Ys.isnan(), 0.0)
+                    logprob = torch.distributions.Normal(E, self.theta.exp()).log_prob(Ys_masked)#.sum(2)
+                    logprob = logprob.masked_fill_(Ys.isnan(), 0.0).sum(dim = 2)# .neg()
                     maxlogprob = logprob.max(dim = 0).values
                     Eprob = logprob.sub(maxlogprob).exp().mean(dim = 0)
                     return Eprob.log().neg().sub(maxlogprob)
