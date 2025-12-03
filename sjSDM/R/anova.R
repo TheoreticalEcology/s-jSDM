@@ -283,22 +283,43 @@ get_conditional_lls = function(m, null_m, ...) {
 
 get_shared_anova = function(R2objt, spatial = TRUE) {
   if(spatial) {
-    F_A <- R2objt$Full - R2objt$F_BS
-    F_B <- R2objt$Full - R2objt$F_AB
-    F_S <- R2objt$Full - R2objt$F_AS
-    F_BS <- R2objt$Full - R2objt$F_A - (F_B + F_S)
-    F_AB <- R2objt$Full - R2objt$F_S - (F_A + F_B)
-    F_AS <- R2objt$Full - R2objt$F_B - (F_A + F_S)
+    F_A <- R2objt$Full - R2objt$BS
+    F_B <- R2objt$Full - R2objt$AS
+    F_S <- R2objt$Full - R2objt$AB
+    F_BS <- R2objt$Full - R2objt$A - (F_B + F_S)
+    F_AB <- R2objt$Full - R2objt$S - (F_A + F_B)
+    F_AS <- R2objt$Full - R2objt$B - (F_A + F_S)
     F_ABS <- R2objt$Full - (F_A + F_B + F_S + F_BS + F_AB + F_AS)
-    A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A)) + F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
-    B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B)) + F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
-    S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B)) + F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
-    # R2 = correct_R2(R2objt$Full) TODO Check that this can be gone
-    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
+    
     A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
     B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
     S = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
     equal = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
+    
+    # 3F on 2F:
+    
+    m_f = function(x) abs(x)
+    
+    shared_total = (m_f(F_AB)+m_f(F_BS)+m_f(F_AS))
+    F_AB = F_AB + F_ABS*m_f(F_AB)/shared_total
+    F_BS = F_BS + F_ABS*m_f(F_BS)/shared_total
+    F_AS = F_AS + F_ABS*m_f(F_AS)/shared_total
+    
+    # 2F on 1F:
+    A = F_A + F_AB*m_f(F_A)/(m_f(F_A)+m_f(F_B)) + F_AS*m_f(F_A)/(m_f(F_S)+m_f(F_A))
+    
+    B = F_B + F_AB*m_f(F_B)/(m_f(F_A)+m_f(F_B)) + F_BS*m_f(F_B)/(m_f(F_S)+m_f(F_B))
+    
+    S = F_S + F_AS*m_f(F_S)/(m_f(F_S)+m_f(F_A)) + F_BS*m_f(F_S)/(m_f(F_S)+m_f(F_B))
+    
+    # 
+    # 
+    # A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A)) + F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
+    # B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B)) + F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
+    # S = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B)) + F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
+    # R2 = correct_R2(R2objt$Full) TODO Check that this can be gone
+    proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
+
   } else {
     F_A = R2objt$Full-R2objt$B
     F_B =  R2objt$Full-R2objt$A
