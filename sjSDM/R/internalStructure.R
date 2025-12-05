@@ -24,7 +24,7 @@
 #' @export
 internalStructure = function(object,  
                              Rsquared = c("McFadden", "Nagelkerke"), 
-                             fractions = c("discard", "proportional", "equal"),
+                             fractions = c("discard", "proportional", "equal", "mvp", "mvp_proportional"),
                              negatives = c("floor", "scale", "raw"), # TODO - rounding ANOVA out, here all calculations to function with option
                              plot = FALSE) {
   
@@ -65,53 +65,27 @@ internalStructure = function(object,
     names(internals)[2] = "Species"
   } else {
     type = paste0(type, "_shared")
-    if(fractions == "proportional") {
+    fraction_type = fractions
       
       df = data.frame(
-        env = object$sites[[type]]$proportional$F_A,
-        spa = object$sites[[type]]$proportional$F_S,
-        codist = object$sites[[type]]$proportional$F_B,
-        r2  = object$sites[[type]]$proportional$R2 #/length(object$sites[[type]]$R2)
+        env = object$sites[[type]][[fraction_type]]$F_A,
+        spa = object$sites[[type]][[fraction_type]]$F_S,
+        codist = object$sites[[type]][[fraction_type]]$F_B,
+        r2  = object$sites[[type]][[fraction_type]]$R2 #/length(object$sites[[type]]$R2)
       )
       
       internals[[1]] = df
       names(internals)[1] = "Sites"
       
       df = data.frame(
-        env = object$species[[type]]$proportional$F_A,
-        spa = object$species[[type]]$proportional$F_S,
-        codist = object$species[[type]]$proportional$F_B,
-        r2  = object$species[[type]]$proportional$R2 #/length(object$species[[type]]$R2)
+        env = object$species[[type]][[fraction_type]]$F_A,
+        spa = object$species[[type]][[fraction_type]]$F_S,
+        codist = object$species[[type]][[fraction_type]]$F_B,
+        r2  = object$species[[type]][[fraction_type]]$R2 #/length(object$species[[type]]$R2)
       )
-      
       
       internals[[2]] = df
       names(internals)[2] = "Species"
-      
-    } else {
-      
-      df = data.frame(
-        env = object$sites[[type]]$equal$F_A ,
-        spa = object$sites[[type]]$equal$F_S ,
-        codist = object$sites[[type]]$equal$F_B ,
-        r2  = object$sites[[type]]$equal$R2 #/length(object$sites[[type]]$R2)
-      )
-      
-
-      internals[[1]] = df
-      names(internals)[1] = "Sites"
-      
-      df = data.frame(
-        env = object$species[[type]]$equal$F_A,
-        spa = object$species[[type]]$equal$F_S,
-        codist = object$species[[type]]$equal$F_B,
-        r2  = object$species[[type]]$equal$R2 #/length(object$species[[type]]$R2)
-      )
-      
-      
-      internals[[2]] = df
-      names(internals)[2] = "Species"
-    }
       
     }
     

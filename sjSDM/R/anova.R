@@ -70,22 +70,23 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     F_B = full_wo - A_wo
     F_AB = full_wo - A_wo-B_wo
 
-    anova_rows = c("Null", "F_A", "F_B", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Full")
+    
+    R2object = list(A = sum(A_m), B = sum(B_m), AB = sum(AB_m), Full = sum(full_m))
+    R2object = lapply(R2object, function(l) l - sum(null_m))
+    R2s = get_shared_anova(R2object, "2")
     
     results_discard = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m)  + sum(F_B), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
-    F_AA = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
-    F_BB = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
+    
+    
 
     results_proportional = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
-                                 ll = -c(sum(null_m) + sum(F_AA), sum(null_m)  + sum(F_BB), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
-    
-    F_AA = F_A + F_AB*0.5
-    F_BB = F_B + F_AB*0.5
+                                 ll = -c(sum(null_m) + sum(R2s$proportional$F_A, na.rm = TRUE), 
+                                         sum(null_m) + sum(R2s$proportional$F_B, na.rm = TRUE), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
     
     results_equal = data.frame(models = c("F_A", "F_B","F_AB","Full", "Saturated", "Null"),
-                                 ll = -c(sum(null_m) + sum(F_AA), sum(null_m)  + sum(F_BB), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
+                               ll = -c(sum(null_m) + sum(R2s$equal$F_A, na.rm = TRUE), 
+                                       sum(null_m) + sum(R2s$equal$F_B, na.rm = TRUE), sum(null_m)  + sum(F_AB), sum(full_m), sum(SAT_m), sum(null_m)))
     
     
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m +F_B), "F_AB"=-(null_m + F_AB), "A" = -A_m, "B" = -B_m, "Full"=-full_m, "Saturated"=-SAT_m, "Null"=-null_m)
@@ -94,18 +95,31 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     out$spatial = TRUE
     
     s_form = stats::as.formula(paste0(as.character(object$settings$spatial$formula), collapse = ""))
+    # A only model
     m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ),  verbose = verbose)
     A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    
+    # B only model
     m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE), verbose = verbose)
     B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    
+    # S only model
     m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE), verbose = verbose)
     S_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    
+    # AB
     m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
     AB_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    
+    # AS
     m = update(object, env_formula = NULL, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE ), verbose = verbose)
     AS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    
+    # BS
     m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
     BS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    
+    # Saturated, do we really need it?
     m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
     SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     
@@ -126,42 +140,62 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     F_BS = full_wo - A_wo - F_S - F_B
     F_ABS = full_wo - F_BS - F_AB- F_AS- F_A- F_B - F_S
     
-    ## discard
+    R2object = list(A = sum(A_m), B = sum(B_m), S = sum(S_m), AB = sum(AB_m), BS = sum(BS_m), AS = sum(AS_m), Full = sum(full_m))
+    R2object = lapply(R2object, function(l) l - sum(null_m))
+    R2s = get_shared_anova(R2object, "3")
     
     results_discard = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
                          ll = -c(sum(null_m) + sum(F_A), sum(null_m) + sum(F_B),sum(null_m) + sum(F_S), 
                                  sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
                                  sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
     ## proportional
-    F_AA = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B)) + F_AS*abs(F_A)/(abs(F_S)+abs(F_A))+ F_ABS*abs(F_A)/(abs(F_A)+abs(F_B)+abs(F_S))
-    F_BB = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B)) + F_BS*abs(F_B)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_B)/(abs(F_A)+abs(F_B)+abs(F_S))
-    F_SS = F_S + F_AS*abs(F_S)/(abs(F_S)+abs(F_A)) + F_BS*abs(F_S)/(abs(F_S)+abs(F_B))+ F_ABS*abs(F_S)/(abs(F_A)+abs(F_B)+abs(F_S))
     results_proportional = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
-                                     ll = -c(sum(null_m) + sum(F_AA, na.rm = TRUE), sum(null_m) + sum(F_BB, na.rm = TRUE),sum(null_m) + sum(F_SS, na.rm = TRUE), 
+                                     ll = -c(sum(null_m) + sum(R2s$proportional$F_A, na.rm = TRUE), 
+                                             sum(null_m) + sum(R2s$proportional$F_B, na.rm = TRUE),
+                                             sum(null_m) + sum(R2s$proportional$F_S, na.rm = TRUE), 
                                            sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
                                           sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
-
-
     
-    ## equal
-    F_AA = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
-    F_BB = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
-    F_SS = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    results_mvp = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
+                             ll = -c(sum(null_m) + sum(R2s$mvp$F_A, na.rm = TRUE), 
+                                     sum(null_m) + sum(R2s$mvp$F_B, na.rm = TRUE),
+                                     sum(null_m) + sum(R2s$mvp$F_S, na.rm = TRUE), 
+                                     sum(null_m) + NA, 
+                                     sum(null_m) + sum(R2object$AS-R2s$mvp$F_A-R2s$mvp$F_S, na.rm = TRUE), 
+                                     sum(null_m) + NA, 
+                                     sum(null_m) + NA, 
+                                     sum(null_m) + sum(full_wo), 
+                                     sum(SAT_m), 
+                                     sum(null_m)))
+    
+    results_mvp_proportional = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
+                             ll = -c(sum(null_m) + sum(R2s$mvp_proportional$F_A, na.rm = TRUE), 
+                                     sum(null_m) + sum(R2s$mvp_proportional$F_B, na.rm = TRUE),
+                                     sum(null_m) + sum(R2s$mvp_proportional$F_S, na.rm = TRUE), 
+                                     sum(null_m) + NA, 
+                                     sum(null_m) + NA, 
+                                     sum(null_m) + NA, 
+                                     sum(null_m) + NA, 
+                                     sum(null_m) + sum(full_wo), 
+                                     sum(SAT_m), 
+                                     sum(null_m)))
+
     
     results_equal = data.frame(models = c("F_A", "F_B","F_S","F_AB","F_AS", "F_BS", "F_ABS", "Full", "Saturated", "Null"),
-                                      ll = -c(sum(null_m) + sum(F_AA), sum(null_m) + sum(F_BB),sum(null_m) + sum(F_SS), 
+                                      ll = -c(sum(null_m) + sum(R2s$equal$F_A, na.rm = TRUE), 
+                                              sum(null_m) + sum(R2s$equal$F_B, na.rm = TRUE),
+                                              sum(null_m) + sum(R2s$equal$F_S, na.rm = TRUE), 
                                               sum(null_m) + sum(F_AB), sum(null_m) + sum(F_AS), sum(null_m) + sum(F_BS), sum(null_m) + sum(F_ABS), 
                                               sum(null_m) + sum(full_wo), sum(SAT_m), sum(null_m)))
-    
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m + F_B),"F_S"=-(null_m +F_S), "F_AB"=-(null_m +F_AB),"F_AS"=-(null_m + F_AS), 
-                       "F_BS"=-(null_m + F_BS), "F_ABS"=-(null_m + F_ABS), "A" = -A_m, "B" = -B_m, "S" = -S_m, AB = AB_m, AS = AS_m, BS = BS_m,
+                       "F_BS"=-(null_m + F_BS), "F_ABS"=-(null_m + F_ABS), "A" = -A_m, "B" = -B_m, "S" = -S_m, AB = -AB_m, AS = -AS_m, BS = -BS_m,
                        "Full"=-(full_m), "Saturated"= -(SAT_m), "Null"=-null_m)
     
     anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
     names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")
   }
   results = 
-    lapply(list(results_discard, results_proportional, results_equal), function(res) {
+    lapply(list(results_discard, results_proportional, results_equal, results_mvp, results_mvp_proportional), function(res) {
       
       res$`Residual deviance` = -2*(res$ll - res$ll[which(res$models == "Saturated", arr.ind = TRUE)])
       
@@ -186,16 +220,19 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
   R2_McFadden_ind = lapply(results_ind, function(r) R222(colSums(results_ind$Null), colSums(r)))
   R2_McFadden_sites = lapply(results_ind, function(r) R222(rowSums(results_ind$Null), rowSums(r)))
   
-  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind)
-  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites)
-  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind)
-  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites)
+  if( out$spatial ) fractions = "3"
+  else fractions = "2"
+  
+  R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind, fractions = fractions)
+  R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites, fractions = fractions)
+  R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind, fractions = fractions)
+  R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites, fractions = fractions)
   
   #R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
   #R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
   
   # precalculates reduced ANOVA tables
-  calculateResults <- function(res) {
+  calculateResults <- function(res, anova_rows) {
     rownames(res) = res$models
     res = res[anova_rows,]
     res$models = names(anova_rows)
@@ -210,17 +247,42 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     rownames(printFull) = printFull$models
     printFull = printFull[,-1]
     rownames(printFull) = c("Abiotic", "Associations","Spatial", "Shared Abiotic+Associations", "Shared Abiotic+Spatial", "Shared Spatial+Associations", "Shared Abiotic+Associations+Spatial", "Full")
+    
+    anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")
+    
+    toPrint = list(all = printFull)
+    toPrint$discard = calculateResults(results[[1]], anova_rows)
+    toPrint$proportional = calculateResults(results[[2]], anova_rows)
+    toPrint$equal = calculateResults(results[[3]], anova_rows)
+    
+    anova_rows = c("Null", "F_A", "F_B", "F_S","F_AS", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Shared Abiotic+Spatial", "Full")   
+    toPrint$mvp = calculateResults(results[[4]], anova_rows)
+    anova_rows = c("Null", "F_A", "F_B", "F_S","Full")
+    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")   
+    toPrint$mvp_proportional = calculateResults(results[[5]], anova_rows)
+    
   } else {
+    
+    anova_rows = c("Null", "F_A", "F_B", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Full")
+    
     printFull = results[[1]][1:4,c(1, 4, 3,5,6)]
     rownames(printFull) = printFull$models
     printFull = printFull[,-1]
     rownames(printFull) = c("Abiotic", "Associations", "Shared Abiotic+Associations", "Full")
+    
+    toPrint = list(all = printFull)
+    toPrint$discard = calculateResults(results[[1]], anova_rows)
+    toPrint$proportional = calculateResults(results[[2]], anova_rows)
+    toPrint$equal = calculateResults(results[[3]], anova_rows)
+    toPrint$mvp = calculateResults(results[[4]], anova_rows)
+    toPrint$mvp_proportional = calculateResults(results[[5]], anova_rows)
   }
   
-  toPrint = list(all = printFull,
-       discard = calculateResults(results[[1]]), 
-       proportional = calculateResults(results[[2]]), 
-       equal = calculateResults(results[[3]])) 
+  
+
   
   out$results = results[[1]] # TODO Max: check - das hier sind doch die einzigen Resultate die wir brauchen, oder? Es gibt doch eigentlich nur eine Aufteilung
   out$to_print = toPrint
@@ -281,8 +343,9 @@ get_conditional_lls = function(m, null_m, ...) {
   return(rescaled_conditional_lls)
 }
 
-get_shared_anova = function(R2objt, spatial = TRUE) {
-  if(spatial) {
+get_shared_anova = function(R2objt, fractions = c("2", "3")) {
+  fractions = match.arg(fractions)
+  if(fractions == "3") {
     F_A <- R2objt$Full - R2objt$BS
     F_B <- R2objt$Full - R2objt$AS
     F_S <- R2objt$Full - R2objt$AB
@@ -295,6 +358,19 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
     S = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
     equal = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
+    
+    FF_A = R2objt$AS - R2objt$S
+    FF_S = R2objt$AS - R2objt$A
+    FF_AS = R2objt$AS - FF_A - FF_S
+    FF_B = R2objt$Full - R2objt$AS
+    
+    
+    mvp = list(F_A = FF_A, F_B = FF_B, F_S = FF_S, R2 = R2objt$Full)
+    
+    mvp_proportional = list(F_A = FF_A+FF_AS*abs(FF_A)/(abs(FF_A)+abs(FF_S)), 
+                            F_B = FF_B, 
+                            F_S = FF_S+FF_AS*abs(FF_S)/(abs(FF_A)+abs(FF_S)), 
+                            R2 = R2objt$Full)
     
     # 3F on 2F:
     
@@ -327,13 +403,16 @@ get_shared_anova = function(R2objt, spatial = TRUE) {
     A = F_A + F_AB*abs(F_A)/(abs(F_A)+abs(F_B))
     B = F_B + F_AB*abs(F_B)/(abs(F_A)+abs(F_B))
     S = 0
+    
+    mvp = list(F_A = R2objt$A, F_B = R2objt$Full - R2objt$A, F_S = S, R2 = R2objt$Full)
+    mvp_shared = mvp
     proportional = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
     A = F_A + F_AB*0.5
     B = F_B + F_AB*0.5
     S = 0
     equal = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
   }
-  return(list(proportional = proportional, equal = equal))
+  return(list(proportional = proportional, equal = equal, mvp = mvp, mvp_proportional = mvp_proportional))
 }
 
 get_null_ll = function(object, verbose = TRUE, ...) {
@@ -343,7 +422,7 @@ get_null_ll = function(object, verbose = TRUE, ...) {
   
 
   
-  if(inherits(object, "spatial ")) {
+  if(inherits(object, "spatial")) {
     null_model = update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE), verbose = verbose)
     null_pred = predict(null_model)
   } else {
@@ -402,7 +481,7 @@ get_null_ll = function(object, verbose = TRUE, ...) {
 #' @export
 summary.sjSDManova = function(object, 
                               method = c("ANOVA"),
-                              fractions = c("all","discard", "proportional", "equal"), ...) {
+                              fractions = c("all","discard", "proportional", "equal", "mvp", "mvp_proportional"), ...) {
   cat("Analysis of Deviance Table\n\n")
   method = match.arg(method)
   fractions = match.arg(fractions)
