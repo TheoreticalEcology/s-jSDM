@@ -24,7 +24,7 @@
 #' @export
 internalStructure = function(object,  
                              Rsquared = c("McFadden", "Nagelkerke"), 
-                             fractions = c("mvp", "mvp_proportional", "discard", "proportional", "equal"),
+                             fractions = c("mvp_proportional", "mvp", "discard", "proportional", "equal"),
                              negatives = c("floor", "scale", "raw"), # TODO - rounding ANOVA out, here all calculations to function with option
                              plot = FALSE) {
   

@@ -479,7 +479,7 @@ get_null_ll = function(object, verbose = TRUE, ...) {
 #' @export
 summary.sjSDManova = function(object, 
                               method = c("ANOVA"),
-                              fractions = c("mvp", "mvp_proportional", "all","discard", "proportional", "equal"), ...) {
+                              fractions = c("mvp_proportional", "mvp", "all","discard", "proportional", "equal"), ...) {
   cat("Analysis of Deviance Table\n\n")
   method = match.arg(method)
   fractions = match.arg(fractions)
