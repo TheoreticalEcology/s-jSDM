@@ -24,7 +24,7 @@
 #' @export
 internalStructure = function(object,  
                              Rsquared = c("McFadden", "Nagelkerke"), 
-                             fractions = c("discard", "proportional", "equal", "mvp", "mvp_proportional"),
+                             fractions = c("mvp", "mvp_proportional", "discard", "proportional", "equal"),
                              negatives = c("floor", "scale", "raw"), # TODO - rounding ANOVA out, here all calculations to function with option
                              plot = FALSE) {
   
@@ -172,8 +172,6 @@ plot.sjSDMinternalStructure <- function(x,
   for(i in 1:length(internals)) {
     
     
-
-    
     
     add_grad = FALSE
     if((i == 1) & !is.null(env_deviance)) add_grad = TRUE
@@ -236,66 +234,7 @@ plot.sjSDMinternalStructure <- function(x,
       text(x = -0.1, y = 1.0, label = "Species", font = 2, xpd = NA)
     }
     
-    
-  #   plt = 
-  #     ggtern::ggtern(internals[[i]], ggplot2::aes_string(x = "env", z = "spa", y = "codist", size = abs(internals[[i]]$r2), color = color) ) +
-  #     ggtern::scale_T_continuous(limits=c(0,1),
-  #                                breaks=seq(0, 1,by=0.2),
-  #                                labels=seq(0,1, by= 0.2)) +
-  #     ggtern::scale_L_continuous(limits=c(0,1),
-  #                                breaks=seq(0, 1,by=0.2),
-  #                                labels=seq(0, 1,by=0.2)) +
-  #     ggtern::scale_R_continuous(limits=c(0,1),
-  #                                breaks=seq(0, 1,by=0.2),
-  #                                labels=seq(0, 1,by=0.2)) +
-  #     #ggplot2::scale_size_area( max_size = 3) +
-  #     ggplot2::labs(title = names(internals)[i],
-  #                   x = "E",
-  #                   xarrow = "Environment",
-  #                   y = "C",
-  #                   yarrow = "Species associations",
-  #                   z = "S", 
-  #                   zarrow = "Space") +
-  #     ggtern::theme_bw() +
-  #     ggtern::theme_showarrows() +
-  #     ggtern::theme_arrowlong() +
-  #     ggplot2::theme(
-  #       panel.grid = ggplot2::element_line(color = "darkgrey", size = 0.3),
-  #       plot.tag = ggplot2::element_text(size = 11),
-  #       plot.title = ggplot2::element_text(size = 11, hjust = 0.1 , margin = ggplot2::margin(t = 10, b = -20)),
-  #       tern.axis.arrow = ggplot2::element_line(size = 1),
-  #       tern.axis.arrow.text = ggplot2::element_text(size = 6),
-  #       axis.text = ggplot2::element_text(size = 4),
-  #       axis.title = ggplot2::element_text(size = 6),
-  #       legend.text = ggplot2::element_text(size = 6),
-  #       legend.title = ggplot2::element_text(size = 8),
-  #       strip.text = ggplot2::element_text(size = 8),
-  #       plot.margin = unit(c(top,1,1,1)*0.2, "cm"),
-  #       strip.background = ggplot2::element_rect(color = NA),
-  #     ) +
-  #     { if(!negative_r2) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1)) } +
-  #     { if(!add_grad)ggplot2::geom_point(alpha = 0.7) }+
-  #     { if(add_grad) ggplot2::geom_point(alpha = 0.7, aes(fill=env_deviance, color = env_deviance)) }+  
-  #     { if(!negative_r2)  ggplot2::scale_size_continuous(range = c(0.1,5),limits = c(r2min, r2max), breaks = seq(r2min, r2max, length.out=5)) } +
-  #     { if(negative_r2)   ggplot2::scale_color_gradient2(low = "red", mid = "grey50", high = "black", midpoint = 0, 
-  #                                                 breaks = c(r2min, 0, r2max), 
-  #                                                 labels = c(r2min, "0", r2max), 
-  #                                                 limits = c(r2min, r2max),
-  #                                                 guide = ggplot2::guide_colorbar(title = expression(R^2))) } +
-  #     { if(negative_r2)  ggplot2::scale_size_continuous(range = c(0.1,5), 
-  #                                              breaks =  seq(0, r2max, length.out = 5), guide = "none")  } +
-  #     
-  #     { if(add_grad) ggplot2::scale_fill_gradient(low = "white", high = "black", guide = "none") } + 
-  #     { if(add_grad) ggplot2::scale_color_gradient(low = "white", high = "black", limits = c(0, max(env_deviance))) } +
-  #     ggplot2::theme(tern.axis.arrow.text = element_text(size = 7),legend.position = "bottom", legend.margin = margin(r = 30), legend.box="vertical") +
-  #     { if(!add_grad) { if(!negative_r2)  ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom")) } } +
-  #     { if( add_grad) ggplot2::guides(size = ggplot2::guide_legend(title = expression(R^2), order = 1, nrow = 1, label.position = "bottom"),
-  #                                     color = ggplot2::guide_colorbar(title = "Environmental deviation", title.position = "top", order = 2, barheight = 0.5, barwidth = 8)) } 
-  #   plots_internals[[i]] = plt
-   }
-  # 
-  # ggtern::grid.arrange(plots_internals[[1]], plots_internals[[2]], nrow=1, widths = c(5.0/10, 5/10))
-  
+  }
   out = list()
   #out$plots = plots_internals
   return(invisible(out))

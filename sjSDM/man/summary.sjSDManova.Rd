@@ -7,7 +7,7 @@
 \method{summary}{sjSDManova}(
   object,
   method = c("ANOVA"),
-  fractions = c("all", "discard", "proportional", "equal", "mvp", "mvp_proportional"),
+  fractions = c("mvp", "mvp_proportional", "all", "discard", "proportional", "equal"),
   ...
 )
 }

@@ -225,11 +225,9 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
   
   R2_McFadden_ind_shared = get_shared_anova(R2_McFadden_ind, fractions = fractions)
   R2_McFadden_sites_shared = get_shared_anova(R2_McFadden_sites, fractions = fractions)
+  
   R2_Nagelkerke_ind_shared = get_shared_anova(R2_Nagelkerke_ind, fractions = fractions)
   R2_Nagelkerke_sites_shared = get_shared_anova(R2_Nagelkerke_sites, fractions = fractions)
-  
-  #R2_McFadden_ind$Full = correct_R2(R2_McFadden_ind$Full)
-  #R2_McFadden_sites$Full = correct_R2(R2_McFadden_sites$Full)
   
   # precalculates reduced ANOVA tables
   calculateResults <- function(res, anova_rows) {
@@ -313,7 +311,7 @@ correct_R2 = function(R2) {
 
 get_conditional_lls = function(m, null_m, ...) {
   joint_ll = rowSums( logLik(m, individual = TRUE, ...)[[1]] )
- 
+    
    raw_ll = 
     sapply(1:ncol(m$data$Y), function(i) {
       
@@ -481,7 +479,7 @@ get_null_ll = function(object, verbose = TRUE, ...) {
 #' @export
 summary.sjSDManova = function(object, 
                               method = c("ANOVA"),
-                              fractions = c("all","discard", "proportional", "equal", "mvp", "mvp_proportional"), ...) {
+                              fractions = c("mvp", "mvp_proportional", "all","discard", "proportional", "equal"), ...) {
   cat("Analysis of Deviance Table\n\n")
   method = match.arg(method)
   fractions = match.arg(fractions)
