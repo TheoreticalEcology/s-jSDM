@@ -13,7 +13,10 @@
 
 \item{verbose}{\code{TRUE} or \code{FALSE}, indicating whether progress should be printed or not}
 
-\item{...}{optional arguments which are passed to the calculation of the logLikelihood}
+\item{...}{optional arguments which are passed to the calculation of the logLikelihood,
+including \code{mc_batch}, the number of sites whose Monte-Carlo draws are held in
+memory at once. It defaults to the model's \code{step_size}, lowered if that would
+exceed roughly 2.5 GB; lower it by hand on a device with less memory.}
 }
 \value{
 An S3 class of type 'sjSDManova' including the following components:

@@ -76,7 +76,12 @@ mvp_response = function(eta, link, guard = TRUE) {
   if (guard && f$bounded) mvp_guard(E) else E
 }
 
-#' Monte-Carlo joint negative log-likelihood
+#' Per-species log-probability of the MC draws
+#'
+#' Every link is elementwise in the species index, including the per-species `theta` and the
+#' NA mask, so column j of the result depends on `sigma[j, ]` and `mu[, j]` alone. Dropping
+#' species therefore drops columns and leaves the rest bit for bit unchanged, which is what
+#' `anova()` leans on to get all leave-one-out likelihoods out of one forward pass.
 #'
 #' @param mu linear predictor, `(sites, species)` tensor
 #' @param Y responses, `(sites, species)` tensor, may contain NaN
@@ -88,13 +93,13 @@ mvp_response = function(eta, link, guard = TRUE) {
 #' @param noise optional fixed `(sampling, sites, df)` tensor, for reproducibility
 #' @param na_rm mask NaN responses out of the likelihood
 #' @param legacy_guard reproduce the python probability guard on unbounded links
-#' @return `(sites)` tensor of negative log-likelihoods
+#' @return `(sampling, sites, species)` tensor of log-probabilities
 #' @noRd
-mvp_logLik = function(mu, Y, sigma, link = "probit", alpha = 1.0, sampling = 100L,
-                      theta = NULL, noise = NULL, na_rm = TRUE, legacy_guard = FALSE) {
+mvp_species_logprob = function(mu, Y, sigma, link = "probit", alpha = 1.0, sampling = 100L,
+                               theta = NULL, noise = NULL, na_rm = TRUE, legacy_guard = FALSE) {
   f = if (is.list(link)) link else sjsdm_family(link)
-  batch = mu$shape[1]
-  if (is.null(noise)) noise = mvp_noise(sampling, batch, sigma$shape[2], mu$device, mu$dtype)
+  if (is.null(noise))
+    noise = mvp_noise(sampling, mu$shape[1], sigma$shape[2], mu$device, mu$dtype)
   E = f$response(mvp_eta(mu, sigma, noise, alpha))
   if (f$bounded || legacy_guard) E = mvp_guard(E)
 
@@ -108,10 +113,24 @@ mvp_logLik = function(mu, Y, sigma, link = "probit", alpha = 1.0, sampling = 100
   }
   lp = f$logprob(E, Y, theta)
   if (!is.null(na_mask)) lp = lp$masked_fill(na_mask, 0.0)
-  lp = lp$sum(dim = 3)
-  # -log( mean_s exp(logprob) ). torch_logsumexp does the max-shift internally, so this is
-  # the same stabilised reduction the hand-rolled version did, in one kernel instead of seven
-  torch::torch_logsumexp(lp, dim = 1)$neg()$add(log(lp$shape[1]))
+  lp
+}
+
+# -log( mean_s exp(logprob) ) over the sampling dimension. torch_logsumexp does the max-shift
+# internally, so this is the same stabilised reduction the hand-rolled version did, in one
+# kernel instead of seven
+mvp_mc_nll = function(lp) torch::torch_logsumexp(lp, dim = 1)$neg()$add(log(lp$shape[1]))
+
+#' Monte-Carlo joint negative log-likelihood
+#'
+#' @inheritParams mvp_species_logprob
+#' @return `(sites)` tensor of negative log-likelihoods
+#' @noRd
+mvp_logLik = function(mu, Y, sigma, link = "probit", alpha = 1.0, sampling = 100L,
+                      theta = NULL, noise = NULL, na_rm = TRUE, legacy_guard = FALSE) {
+  mvp_mc_nll(mvp_species_logprob(mu, Y, sigma, link = link, alpha = alpha, sampling = sampling,
+                                 theta = theta, noise = noise, na_rm = na_rm,
+                                 legacy_guard = legacy_guard)$sum(dim = 3))
 }
 
 # The loss owns sigma and theta. They appear nowhere outside the likelihood, and as

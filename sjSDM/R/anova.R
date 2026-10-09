@@ -5,7 +5,10 @@
 #' @param object model of object \code{\link{sjSDM}}
 #' @param samples Number of Monte Carlo samples
 #' @param verbose `TRUE` or `FALSE`, indicating whether progress should be printed or not
-#' @param ... optional arguments which are passed to the calculation of the logLikelihood
+#' @param ... optional arguments which are passed to the calculation of the logLikelihood,
+#'   including \code{mc_batch}, the number of sites whose Monte-Carlo draws are held in
+#'   memory at once. It defaults to the model's \code{step_size}, lowered if that would
+#'   exceed roughly 2.5 GB; lower it by hand on a device with less memory.
 #' 
 #' @details The ANOVA function removes each of the three fractions (Environment, Space, Associations) and measures the drop in variance explained, and thus the importance of the three fractions.
 #' 
@@ -339,7 +342,7 @@ correct_R2 = function(R2) {
   return(R2)
 }
 
-get_conditional_lls = function(m, null_m, ...) {
+get_conditional_lls = function(m, null_m, mc_batch = NULL, ...) {
   
   predictions = predict(m, type = "raw")  
   args = list(...)
@@ -357,35 +360,45 @@ get_conditional_lls = function(m, null_m, ...) {
                                   dtype = m$model$dtype, device = m$model$device)
   theta = m$model$theta
 
-  # in row batches: the response-scale tensor is [samples, rows, species], so evaluating
-  # every row at once needs samples * n * species floats. For a large community that is
-  # tens of GB. Batching costs nothing -- the noise is indexed by row, so the per-row
-  # result is identical however the rows are grouped.
-  bs = max(1L, as.integer(m$settings$step_size))
-  ll = function(Y, mu, sig, th) {
-    n = nrow(mu)
-    out = numeric(n)
-    for (start in seq(1L, n, by = bs)) {
-      k = start:min(start + bs - 1L, n)
-      out[k] = as.numeric(mvp_logLik(tt(mu[k, , drop = FALSE]), tt(Y[k, , drop = FALSE]),
-                                     sig, link = m$family$link, alpha = m$model$alpha,
-                                     sampling = as.integer(samples), theta = th,
-                                     noise = MC_samples[, k, , drop = FALSE])$cpu())
-    }
-    out
+  n = nrow(predictions)
+  S = ncol(m$data$Y)
+
+  # Row batches. The default stays at step_size because the batched matmul is not bitwise
+  # invariant to the row grouping (one float32 ulp on eta), so changing it silently moves
+  # every anova that has already been run. Memory only ever lowers it: about five
+  # [samples, rows, species] float32 tensors are alive at the peak, capped here at ~2.5 GB.
+  if (is.null(mc_batch))
+    mc_batch = min(as.integer(m$settings$step_size),
+                   as.integer(2.5e9 / (24 * as.numeric(samples) * S)))
+  mc_batch = max(1L, as.integer(mc_batch))
+
+  joint_ll = numeric(n)
+  raw_ll = matrix(0, n, S)
+  for (start in seq(1L, n, by = mc_batch)) {
+    k = start:min(start + mc_batch - 1L, n)
+    lp = mvp_species_logprob(tt(predictions[k, , drop = FALSE]),
+                             tt(m$data$Y[k, , drop = FALSE]), sigma,
+                             link = m$family$link, alpha = m$model$alpha,
+                             sampling = as.integer(samples), theta = theta,
+                             noise = MC_samples[, k, , drop = FALSE])
+    # Every link is elementwise in the species index, so column j of lp is what a refit
+    # without the other species would have produced. All S leave-one-out sums come from a
+    # forward and a backward cumulative sum: LOO_j = sum_{k<j} + sum_{k>j}. Subtracting
+    # column j from the total instead is one kernel cheaper but cancels catastrophically --
+    # a species log-probability of order 1 against a sum over S of order S -- and moved the
+    # result by 0.1% at S = 150. Slicing S-1 columns per species is exact but costs S times
+    # as much.
+    cf = lp$cumsum(dim = 3)
+    cb = lp$flip(3)$cumsum(dim = 3)$flip(3)
+    # the joint stays a plain sum reduction: cf's last column is the same quantity but
+    # accumulated in a different order, and it feeds every fraction
+    joint_ll[k] = as.numeric(mvp_mc_nll(lp$sum(dim = 3))$cpu())
+    z = torch::torch_zeros_like(cf$select(3, 1)$unsqueeze(3))
+    left = torch::torch_cat(list(z, cf$narrow(3, 1, S - 1L)), dim = 3)
+    right = torch::torch_cat(list(cb$narrow(3, 2, S - 1L), z), dim = 3)
+    raw_ll[k, ] = as.matrix(mvp_mc_nll(left$add(right))$cpu())
   }
 
-  joint_ll = ll(m$data$Y, predictions, sigma, theta)
-
-  # positive indices only: torch follows python's negative indexing, so sigma[-i, ] would
-  # be the i-th row counted from the end instead of every row but the i-th
-  S = ncol(m$data$Y)
-  raw_ll =
-    sapply(seq_len(S), function(i) {
-      k = seq_len(S)[-i]
-      ll(m$data$Y[, k, drop = FALSE], predictions[, k, drop = FALSE],
-         sigma[k, , drop = FALSE], if (is.null(theta)) NULL else theta[k])
-    })
   raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
   diff_ll = colSums(null_m - raw_conditional_ll)
   rates = diff_ll/sum(diff_ll)
