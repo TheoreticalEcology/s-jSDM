@@ -36,3 +36,10 @@ sjSDM/vignettes/sjSDM_Introduction.R
 .DS_Store
 .DS_Store
 .DS_Store
+
+# The backend parity golden master (dev/parity/reference/) must be committed: it can only
+# be regenerated with the retired PyTorch backend and a working r-sjsdm conda environment,
+# which no new machine will have. ~1.7 MB.
+!dev/parity/reference/
+!dev/parity/reference/*.RDS
+!dev/parity/reference/*.csv

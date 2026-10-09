@@ -1,150 +1,67 @@
 #' @title Installation help
 #' @name installation_help
 #' @description Trouble shooting guide for the installation of the sjSDM package
-#' 
-#' We provide a function \code{\link{install_sjSDM}} to install automatically 
-#' all necessary python dependencies but it can fail sometimes because of 
-#' individual system settings or if other python/conda installations get into 
-#' the way. 
-#' 
-#' @section 'PyTorch' Installation - Before you start:
-#' 
-#' A few notes before you start with the installation (skip this point if you 
-#' do not know 'conda'):
-#'\itemize{
-#'  \item existing 'conda' installations:
-#'   make sure you have the latest conda3/miniconda3 version and 
-#'   remove unnecessary 'conda' installations.
-#'  \item existing 'conda'/'virtualenv' environments (skip this point if you do not know 'conda'): 
-#'  we currently enforce the usage of a specific environment called 'r-sjsdm', 
-#'  so if you want use a custom environment it should be named 'r-sjsdm'
-#' }
-#' 
-#' 
-#' @section Windows - automatic installation:
-#' 
-#' Sometimes the automatic 'miniconda' installation 
-#' (via \code{\link{install_sjSDM}}) doesn't work because of white
-#' spaces in the user's name. But you can easily download and install 'conda' on
-#' your own:
-#' 
-#' Download and install the latest 
-#' \href{https://www.anaconda.com/download/success}{'conda' version}
-#' 
-#' Afterwards run:\cr
-#' \code{install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device }
-#' 
-#' Reload the package and run the example , if this doesn't work:
-#' \itemize{
-#' \item Restart RStudio
-#' \item Install manually 'pytorch', see the following section
-#' }
-#' 
-#'  
-#' @section Windows - manual installation:
-#' 
-#' Download and install the latest 'conda' version:
-#' \itemize{
-#' \item Install the latest 
-#' \href{https://www.anaconda.com/download/success}{'conda' version}
-#' \item Open the command window (cmd.exe - hit windows key + r and write cmd)
-#' }
-#' Run in cmd.exe:\cr
+#'
+#' Since version 1.1.0 sjSDM runs on the 'torch' package (libtorch) and no longer needs
+#' 'python', 'conda', 'reticulate' or 'PyTorch'. Installing sjSDM from CRAN pulls in
+#' 'torch', and 'torch' then downloads the libtorch and liblantern binaries on first use.
+#' Almost every installation problem is a problem with that download.
+#'
+#' @section Before you start:
+#'
+#' Check what is missing:
 #' \preformatted{
-#' $ conda create --name r-sjsdm python=3.7
-#' $ conda activate r-sjsdm
-#' $ conda install pytorch torchvision cpuonly -c pytorch # cpu
-#' $ conda install pytorch torchvision cudatoolkit=11.3 -c pytorch #gpu
-#' $ python -m pip install pyro-ppl torch_optimizer madgrad
+#' sjSDM::install_diagnostic()
 #' }
-#' 
-#' Restart R, try to run the example, and if this doesn't work:
-#' \itemize{
-#' \item Restart RStudio
-#' \item See the 'Help and bugs' section
-#' }
-#' 
-#'    
-#' @section Linux - automatic installation:
-#' 
-#' Run in R:\cr
-#' \code{install_sjSDM(version = c("gpu")) # or "cpu" if 
-#' you do not have a proper 'gpu' device }
-#' 
-#' Restart R try to run the example, if this doesn't work:
-#' \itemize{
-#' \item Restart RStudio
-#' \item Install manually 'PyTorch', see the following section
-#' }
-#'  
-#'  
-#' @section Linux - manual installation:
-#' 
-#' We strongly advise to use a 'conda' environment but a virtual env should also 
-#' work. The only requirement is that it is named 'r-sjsdm'
-#' 
-#' 
-#' Download and install the latest 'conda' version:
-#' \itemize{
-#' \item Install the latest 
-#' \href{https://www.anaconda.com/download/success}{'conda' version}
-#' \item Open your terminal 
-#' }
-#' 
-#' Run in your terminal:\cr
+#' If it reports \code{libtorch installed: FALSE}, the binaries are missing. Get them with
 #' \preformatted{
-#' $ conda create --name r-sjsdm python=3.7
-#' $ conda activate r-sjsdm
-#' $ conda install pytorch torchvision cpuonly -c pytorch # cpu
-#' $ conda install pytorch torchvision cudatoolkit=11.3 -c pytorch #gpu
-#' $ python -m pip install pyro-ppl torch_optimizer madgrad
+#' torch::install_torch()
+#' # or, equivalently
+#' sjSDM::install_sjSDM()
 #' }
-#' 
-#' Restart R try to run the example, if this doesn't work:
-#' \itemize{
-#' \item Restart RStudio
-#' \item See the 'Help and bugs' section
-#' }
-#' 
-#' 
-#' @section MacOS - automatic installation:
-#' 
-#' Run in R:\cr
-#' \code{install_sjSDM(version = c("cpu"))}
-#' 
-#' Restart R try to run the example, if this doesn't work:
-#' \itemize{
-#' \item Restart RStudio
-#' \item Install manually 'PyTorch', see the following section
-#' }
-#' 
-#' 
-#' @section MacOS - manual installation:
-#' 
-#' Download and install the latest 'conda' version:
-#' \itemize{
-#' \item Install the latest 
-#' \href{https://www.anaconda.com/download/success}{'conda' version}
-#' \item Open your terminal 
-#' }
-#' 
-#' Run in your terminal:\cr
+#' and restart R afterwards.
+#'
+#' @section Behind a proxy or without an internet connection:
+#'
+#' 'torch' can be installed from local files. Download the libtorch and liblantern
+#' archives matching your platform on a machine that has access, then point 'torch' at
+#' them before loading it:
 #' \preformatted{
-#' $ conda create --name r-sjsdm python=3.7
-#' $ conda activate r-sjsdm
-#' $ python -m pip install torch torchvision torchaudio 
-#' $ python -m pip install pyro-ppl torch_optimizer madgrad
+#' Sys.setenv(TORCH_URL = "/path/to/libtorch.zip")
+#' Sys.setenv(LANTERN_URL = "/path/to/liblantern.zip")
+#' torch::install_torch()
 #' }
-#' Restart R try to run the example from, if this doesn't work:
+#' See \code{?torch::install_torch} for the current variable names and the download URLs.
+#'
+#' @section GPU support:
+#'
+#' There is no separate 'gpu' version of sjSDM any more, and \code{install_sjSDM()} has no
+#' \code{version} argument. Whether the GPU can be used is decided entirely by the 'torch'
+#' installation:
 #' \itemize{
-#' \item Restart RStudio
-#' \item See the 'Help and bugs' section
+#'  \item CUDA: install a CUDA enabled 'torch' build, then check
+#'    \code{torch::cuda_is_available()}. Pass \code{device = "gpu"} or
+#'    \code{device = 0L} (the CUDA device index) to \code{\link{sjSDM}}.
+#'  \item Apple silicon: \code{torch::backends_mps_is_available()}, then
+#'    \code{device = "mps"}.
+#'  \item otherwise everything runs on the CPU, which is the default.
+#' }
+#'
+#' @section Migrating from sjSDM 1.0.x:
+#'
+#' The 'r-sjsdm' conda environment is no longer used and can be deleted. Model code does
+#' not change. Two things behave differently:
+#' \itemize{
+#'  \item results are not bit-identical to the 'PyTorch' backend. The two use different
+#'    random number streams, so weight initialisation and the Monte-Carlo draws differ.
+#'    Estimates agree within Monte-Carlo noise, they do not agree to the last digit.
+#'  \item \code{sjSDMControl(mixed = TRUE)} (half precision) is accepted but ignored.
 #' }
 #'
 #' @section Help and bugs:
-#' 
-#' To report bugs or ask for help, post a 
-#' \href{https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example/}{reproducible example} 
-#' via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues/}{issue tracker} 
-#' with a copy of the \code{\link{install_diagnostic}} output as a quote. 
+#'
+#' To report bugs or ask for help, post a
+#' \href{https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example/}{reproducible example}
+#' via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues/}{issue tracker}
+#' with a copy of the \code{\link{install_diagnostic}} output as a quote.
 "_PACKAGE"

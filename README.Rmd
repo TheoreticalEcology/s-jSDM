@@ -19,7 +19,7 @@ The sjSDM package is an R package for estimating joint species distribution mode
 
 A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. 
 
-The core code of sjSDM is implemented in Python / PyTorch, which is then wrapped into an R package. In principle, you can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.7 and pytorch must be installed (more details below). However, for most users, it will be more convenient to use sjSDM via the sjSDM R package, which also provides a large number of downstream functionalities. 
+Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation. Models and results are unchanged apart from Monte-Carlo noise, see `news(package = "sjSDM")`.
 
 To get citation info for sjSDM when you use it for your reseach, type  
 
@@ -35,12 +35,13 @@ sjSDM is distributed via [CRAN](https://cran.rstudio.com/web/packages/sjSDM/inde
 install.packages("sjSDM")
 ```
 
-Depencies for the package can be installed before or after installing the package. Detailed explanations of the dependencies are provided in vignette("Dependencies", package = "sjSDM"), source code [here](https://github.com/TheoreticalEcology/s-jSDM/blob/master/sjSDM/vignettes/Dependencies.Rmd). Very briefly, the dependencies can be automatically installed from within R:
+The only dependency that is not an ordinary R package is the libtorch binary, which `torch` downloads on first use. If that has not happened yet, run
 
 ```{r,eval=FALSE}
-sjSDM::install_sjSDM(version = "gpu") # or
-sjSDM::install_sjSDM(version = "cpu")
+sjSDM::install_sjSDM()   # wrapper around torch::install_torch()
 ```
+
+There is no separate CPU and GPU build any more: whether the GPU can be used follows from the `torch` installation (`torch::cuda_is_available()`, or `torch::backends_mps_is_available()` on Apple silicon). Pass `device = "gpu"` or `device = "mps"` to `sjSDM()` to use it.
 
 For advanced users: if you want to install the current (development) version from this repository, run
 
@@ -48,11 +49,11 @@ For advanced users: if you want to install the current (development) version fro
 devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
 ```
 
-dependencies should be installed as above. If the installation fails, check out the help of ?install_sjSDM, ?installation_help, and vignette("Dependencies", package = "sjSDM").
+If the installation fails, check out the help of ?install_sjSDM and ?installation_help.
 
-1.  Try install_sjSDM()
-2.  New session, if no 'PyTorch not found' appears it should work, otherwise see ?installation_help
-3.  If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
+1.  Run `sjSDM::install_diagnostic()` and check whether libtorch is installed
+2.  If not, run `torch::install_torch()` and restart R
+3.  If you still do not get the pkg to run, create an issue on the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
 
 ## Basic Workflow
 
@@ -138,37 +139,3 @@ plotAssemblyEffects(results)
 ```
 
 
-## Python Package
-
-If you want to use sjSDM from python (as said, not encouraged because all help and downstream functions are in R), install via 
-
-```{bash,eval=FALSE}
-pip install sjSDM_py
-```
-
-Python example
-
-```{python,eval=FALSE}
-import sjSDM_py as fa
-import numpy as np
-import torch
-Env = np.random.randn(100, 5)
-Occ = np.random.binomial(1, 0.5, [100, 10])
-
-model = fa.Model_sjSDM(device=torch.device("cpu"), dtype=torch.float32)
-model.add_env(5, 10)
-model.build(5, optimizer=fa.optimizer_adamax(0.001),scheduler=False)
-model.fit(Env, Occ, batch_size = 20, epochs = 10)
-# print(model.weights)
-# print(model.covariance)
-```
-
-Calculate Importance:
-
-```{python, eval=FALSE}
-Beta = np.transpose(model.env_weights[0])
-Sigma = ( model.sigma @ model.sigma.t() + torch.diag(torch.ones([1])) ).data.cpu().numpy()
-covX = fa.covariance( torch.tensor(Env).t() ).data.cpu().numpy()
-
-fa.importance(beta=Beta, covX=covX, sigma=Sigma)
-```

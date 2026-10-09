@@ -82,34 +82,18 @@ setWeights = function(object, weights) UseMethod("setWeights")
 #' @rdname setWeights
 #' @export
 setWeights.sjSDM= function(object, weights = NULL) {
-  if(is.null(weights)) weights = list(env = object$weights, spatial = object$spatial_weights)
+  if(is.null(weights)) weights = list(env = object$weights, spatial = object$spatial_weights,
+                                      sigma = object$sigma)
   
-  e = weights[[1]]
-  if(!is.null(e)){
-    if(!inherits(e, "list")) e = list(e)
-    object$model$set_env_weights(w = e)
-  }
-  if(inherits(object, "spatial")) {
-    if(length(weights) > 1){
-      s = weights[[2]]
-      if(!is.null(s)){
-        if(!inherits(s, "list")) s = list(s)
-        object$model$set_spatial_weights(w = s)
-      }
-    }
-    if(length(weights) > 2) {
-      sig = weights[[3]]
-      if(inherits(sig, "list")) sig = unlist(sig)
-      object$model$set_sigma(w = sig)
-    }
-    return(invisible(NULL))
-  }
-  if(length(weights) > 1) {
+  if(!is.null(weights[[1]])) set_state(object$model$env, weights[[1]])
+  
+  if(inherits(object, "spatial") && length(weights) > 1 && !is.null(weights[[2]]))
+    set_state(object$model$spatial, weights[[2]])
+  
+  if(length(weights) > 2 && !is.null(weights[[3]])) {
     sig = weights[[3]]
-    if(!is.null(sig)) {
-      if(inherits(sig, "list")) sig = unlist(sig)
-      object$model$set_sigma(w = sig)
-    }
+    if(inherits(sig, "list")) sig = unlist(sig)
+    set_state(object$model$loss, list(sigma = sig))
   }
-
+  invisible(NULL)
 }

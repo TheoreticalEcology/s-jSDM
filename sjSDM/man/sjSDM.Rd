@@ -68,7 +68,7 @@ An S3 class of type 'sjSDM' including the following components:
 \item{formula}{Formula object for environmental covariates.}
 \item{names}{Names of environmental covariates.}
 \item{species}{Names of species (can be \code{NULL} if columns of Y are not named).}
-\item{get_model}{Method which builds and returns the underlying 'python' model.}
+\item{get_model}{Method which builds and returns the underlying 'torch' model.}
 \item{logLik}{negative log-Likelihood of the model and the regularization loss.}
 \item{model}{The actual model.}
 \item{settings}{List of model settings, see arguments of \code{\link{sjSDM}}.}
@@ -128,9 +128,8 @@ of the \mjseqn{M} samples are used to get an approximation of the integral:
 
 with \mjseqn{ \zeta_m \sim MVN(0, \Sigma)}.
 
-\code{sjSDM} uses 'PyTorch' to run optionally the model on the graphical processing unit (GPU). Python dependencies needs to be
-installed before being able to use the \code{sjSDM} function. We provide a function which installs automatically python and the python dependencies.
-See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
+\code{sjSDM} uses 'torch' (libtorch) and can optionally run the model on the graphical
+processing unit (GPU), see \code{\link{installation_help}} for how to enable that.
 
 See Pichler and Hartig, 2020 for benchmark results.
 }
@@ -175,7 +174,7 @@ It is important to set the intercept to 0 in the spatial term (e.g. via \code{~0
 
 \subsection{Installation}{
 
-\code{\link{install_sjSDM}} should be theoretically able to install conda and 'PyTorch' automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this on your following our trouble shooting guide \code{\link{installation_help}}.
+sjSDM needs the 'torch' binaries, which \code{\link{install_sjSDM}} (a wrapper around \code{torch::install_torch}) downloads. If \code{\link{sjSDM}} still does not work after restarting R, follow the trouble shooting guide \code{\link{installation_help}}.
 If the problem remains, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with a copy of the \code{\link{install_diagnostic}} output as a quote.
 }
 }

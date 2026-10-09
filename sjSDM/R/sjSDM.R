@@ -61,9 +61,8 @@
 #' 
 #' with \mjseqn{ \zeta_m \sim MVN(0, \Sigma)}. 
 #' 
-#' \code{sjSDM} uses 'PyTorch' to run optionally the model on the graphical processing unit (GPU). Python dependencies needs to be  
-#' installed before being able to use the \code{sjSDM} function. We provide a function which installs automatically python and the python dependencies.
-#' See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
+#' \code{sjSDM} uses 'torch' (libtorch) and can optionally run the model on the graphical
+#' processing unit (GPU), see \code{\link{installation_help}} for how to enable that.
 #' 
 #' See Pichler and Hartig, 2020 for benchmark results.
 #' }
@@ -108,7 +107,7 @@
 #' 
 #' \subsection{Installation}{
 #' 
-#' \code{\link{install_sjSDM}} should be theoretically able to install conda and 'PyTorch' automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this on your following our trouble shooting guide \code{\link{installation_help}}.
+#' sjSDM needs the 'torch' binaries, which \code{\link{install_sjSDM}} (a wrapper around \code{torch::install_torch}) downloads. If \code{\link{sjSDM}} still does not work after restarting R, follow the trouble shooting guide \code{\link{installation_help}}.
 #' If the problem remains, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with a copy of the \code{\link{install_diagnostic}} output as a quote. 
 #' }
 #' 
@@ -119,7 +118,7 @@
 #' \item{formula}{Formula object for environmental covariates.}
 #' \item{names}{Names of environmental covariates.}
 #' \item{species}{Names of species (can be \code{NULL} if columns of Y are not named).}
-#' \item{get_model}{Method which builds and returns the underlying 'python' model.}
+#' \item{get_model}{Method which builds and returns the underlying 'torch' model.}
 #' \item{logLik}{negative log-Likelihood of the model and the regularization loss.}
 #' \item{model}{The actual model.}
 #' \item{settings}{List of model settings, see arguments of \code{\link{sjSDM}}.}
@@ -197,6 +196,8 @@ sjSDM = function(Y = NULL,
   
   if(device == "gpu") device = 0L
   
+  device = check_device(device)
+  
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
   
   out$cl = match.call()
@@ -217,63 +218,37 @@ sjSDM = function(Y = NULL,
   input = as.integer(ncol(env$X))
   intercept = "(Intercept)" %in% colnames(env$X)
   
-  out$get_model = function(){
-    model = pkg.env$fa$Model_sjSDM( device = device, dtype = dtype, seed = seed)
-    
-    if(inherits(env, "DNN")) {
-      activation=env$activation
-      hidden = as.integer(env$hidden)
-      bias = env$bias
-    } else {
-      hidden = list()
-      activation = c("linear")
-      bias = list(FALSE)
-    }
-    
-    if(!is.null(env$dropout)) dropout_env = env$dropout
-    else dropout_env = -99
-    
-    model$add_env(input, output, hidden = hidden, activation = activation,bias = bias, l1 = env$l1, l2=env$l2, dropout=dropout_env, intercept=intercept)
-    
-    if(!is.null(spatial)) {
-      
-      if(!is.null(spatial$dropout)) dropout_sp = spatial$dropout
-      else dropout_sp = -99
-      
-      if(inherits(spatial, "DNN")) {
-        activation_spatial=spatial$activation
-        hidden_spatial = spatial$hidden
-        bias_spatial = spatial$bias
-        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, hidden = hidden_spatial, activation = activation_spatial, bias = bias_spatial, l1 = spatial$l1, l2= spatial$l2, dropout=dropout_sp)
-      } 
-      if(inherits(spatial, "linear")) {
-        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, l1 = spatial$l1, l2= spatial$l2)
-      }
-    }
-    
-    control$optimizer$params$lr = learning_rate
-    optimizer = do.call(control$optimizer$ff(), control$optimizer$params)
-    alpha = 1.0
-    link = family$link
-    if(link == "probit") alpha = 1.70169
-    
-    model$build(df = biotic$df, 
-                l1 = biotic$l1_cov, 
-                l2 = biotic$l2_cov, 
-                reg_on_Diag = biotic$on_diag,
-                inverse = biotic$inverse,
-                reg_on_Cov = biotic$reg_on_Cov,
-                optimizer = optimizer, 
-                link = link,
-                alpha = alpha,
-                diag=biotic$diag,
-                scheduler=control$scheduler_boolean,
-                patience=control$scheduler_patience,
-                mixed = control$mixed,
-                factor=control$lr_reduce_factor)
-    
-    return(model)
+  # one block per predictor term, env first; a block carries its shape, its architecture and
+  # its own penalty
+  block = function(config, in_shape, intercept = FALSE) {
+    dnn = inherits(config, "DNN")
+    list(input_shape = in_shape, output_shape = output,
+         hidden = if(dnn) as.integer(config$hidden) else list(),
+         activation = if(dnn) config$activation else "linear",
+         bias = if(dnn) config$bias else list(FALSE),
+         dropout = config$dropout,
+         l1 = config$l1_coef, l2 = config$l2_coef, intercept = intercept)
   }
+  blocks = list(block(env, input, intercept))
+  if(!is.null(spatial)) blocks[[2]] = block(spatial, as.integer(ncol(spatial$X)))
+  
+  control$optimizer$params$lr = learning_rate
+  link = family$link
+  
+  out$model_properties = list(blocks = blocks, optimizer = control$optimizer,
+                              scheduler = control$scheduler_boolean,
+                              patience = control$scheduler_patience,
+                              factor = control$lr_reduce_factor, mixed = control$mixed,
+                              device = device, dtype = dtype, seed = seed)
+  out$loss_properties = list(link = link, species = output, df = biotic$df,
+                             alpha = if(link == "probit") 1.70169 else 1.0,
+                             diag = biotic$diag, l1 = biotic$l1_cov, l2 = biotic$l2_cov,
+                             reg_on_Cov = biotic$reg_on_Cov, reg_on_Diag = biotic$on_diag,
+                             inverse = biotic$inverse)
+  
+  mp = out$model_properties
+  lp = out$loss_properties
+  out$get_model = function() sjsdm_model(mp, lp)
   model = out$get_model()
   
   if(is.null(spatial)) {
@@ -323,7 +298,9 @@ sjSDM = function(Y = NULL,
   out$spatial = spatial
   out$Null = NULL # ?????
   out$seed = seed
-  .n = pkg.env$torch$cuda$empty_cache()
+  out$version = sjsdm_backend_version
+  out$state = torch::torch_serialize(model$state_dict())
+  if(torch::cuda_is_available()) torch::cuda_empty_cache()
   return(out)
 }
 
@@ -349,15 +326,24 @@ print.sjSDM = function(x, ...) {
 #' @param Y Known occurrences of species, must be a matrix of the original size, species to be predicted must consist of NAs
 #' @param type raw or link
 #' @param dropout use dropout for predictions or not, only supported for DNNs
+#' @param marginal integrate the latent factor out of the prediction. The species associations
+#'   are generated by an unobserved latent factor z, so a marginal prediction is
+#'   \eqn{E_z[\mathrm{link}(\mu + z\Sigma')]} and not \eqn{\mathrm{link}(\mu)}, which is the
+#'   prediction at \eqn{z = 0}. The two differ whenever the associations are non-zero: for the
+#'   probit link the marginal is \eqn{\Phi(\mu / \sqrt{\mathrm{diag}(\Sigma\Sigma' + I)})}.
+#'   The integral is approximated by Monte Carlo, so predictions are stochastic; raise
+#'   \code{sampling} for more stable values. \code{marginal = FALSE} restores the behaviour of
+#'   sjSDM <= 1.1.0 and is only there for reproducing older results.
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
-#' 
+#'
 #' @return Matrix of predictions (sites by species)
-#' 
+#'
 #' @example /inst/examples/predict-example.R
-#' 
+#'
 #' @import checkmate
 #' @export
-predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("link", "raw"), dropout = FALSE,...) {
+predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("link", "raw"),
+                         dropout = FALSE, marginal = TRUE, ...) {
   object = checkModel(object)
   
   assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata) )
@@ -382,86 +368,33 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("
     
     
     if(is.null(newdata)) {
-      return(force_r( object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link, dropout = dropout, ...)))
+      return(force_r( object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link, dropout = dropout, marginal = marginal, ...)))
     } else {
       
-      if(is.data.frame(newdata)) {
-        newdata = stats::model.matrix(object$formula, newdata)
-      } else {
-        newdata = stats::model.matrix(object$formula, data.frame(newdata))
-      }
-      
-      if(is.data.frame(SP)) {
-        sp = stats::model.matrix(object$spatial$formula, SP)
-      } else {
-        sp = stats::model.matrix(object$spatial$formula, data.frame(SP))
-      }
+      newdata = sjsdm_newdata(object$settings$env, newdata)
+      sp = sjsdm_newdata(object$spatial, SP)
       
     }
-    pred = force_r(object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, ...))
+    pred = force_r(object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, marginal = marginal, ...))
     
     
   } else {
     
     if(is.null(newdata)) {
-      return(force_r(object$model$predict(newdata = object$data$X, link=link, ...)))
+      return(force_r(object$model$predict(newdata = object$data$X, link=link, marginal = marginal, ...)))
     } else {
-      if(is.data.frame(newdata)) {
-        newdata = stats::model.matrix(object$formula, newdata)
-      } else {
-        newdata = stats::model.matrix(object$formula, data.frame(newdata))
-      }
+      newdata = sjsdm_newdata(object$settings$env, newdata)
     }
-    pred = force_r(object$model$predict(newdata = newdata, link=link, dropout = dropout, ...))
+    pred = force_r(object$model$predict(newdata = newdata, link=link, dropout = dropout, marginal = marginal, ...))
   }
   
   if(!is.null(Y)) {
-    predictions = pred
-    to_predict = which(apply(Y,2,  function(i) any(is.na(i))))
-    focal = which(apply(Y,2,  function(i) any(!is.na(i))))
-    Y_copy = matrix(NA, nrow(Y), length(to_predict))
-    counter = 1
-    for(K in to_predict) {
-      joint_ll = reticulate::py_to_r(
-        pkg.env$fa$MVP_logLik(cbind(1, Y[, focal]), 
-                              predictions[,c(K, focal)], 
-                              reticulate::py_to_r(object$model$get_sigma)[c(K, focal),],
-                              device = object$model$device,
-                              individual = TRUE,
-                              dtype = object$model$dtype,
-                              batch_size = as.integer(object$settings$step_size),
-                              alpha = object$model$alpha,
-                              link = object$family$link,
-                              theta = object$theta[c(K, focal)], ...
-        )
-      )
-      raw_ll = 
-        reticulate::py_to_r(
-          pkg.env$fa$MVP_logLik(Y[,focal], 
-                                predictions[,focal], 
-                                reticulate::py_to_r(object$model$get_sigma)[focal,],
-                                device = object$model$device,
-                                individual = TRUE,
-                                dtype = object$model$dtype,
-                                batch_size = as.integer(object$settings$step_size),
-                                alpha = object$model$alpha,
-                                link = object$family$link,
-                                theta = object$theta[focal], ...
-          )
-        ) 
-      raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
-      pred_prob = exp(-raw_conditional_ll)
-      pred_prob[pred_prob> 1] = 1.0
-      pred_prob[pred_prob<0] = 0
-      Y_copy[,counter] = pred_prob
-      counter = counter + 1
-      
-    }
-    
-    pred = Y_copy
+    args = list(...)
+    sampling = if(is.null(args[["sampling"]])) object$settings$sampling else args[["sampling"]]
+    pred = sjsdm_conditional(object$model, pred, Y, sampling)
   }
-  
-  
+
+
   return(pred)
 }
 
@@ -494,11 +427,17 @@ coef.sjSDM = function(object, ...) {
 #' @export
 getSe = function(object, step_size = NULL, parallel = 0L){
   if(!inherits(object, "sjSDM")) stop("object must be of class sjSDM")
+  if(inherits(object$settings$env, "DNN"))
+    stop("standard errors are only available for linear environmental models", call. = FALSE)
   object = checkModel(object)
   if(is.null(step_size)) step_size = object$settings$step_size
   else step_size = as.integer(step_size)
-  if(!inherits(object, "spatialRE")) try({ object$se = t(abind::abind(force_r(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel)),along=0L)) })
-  else try({ object$se = t(abind::abind(force_r(object$model$se(object$data$X, object$data$Y, object$spatial$re, batch_size = step_size, parallel = parallel)),along=0L)) })
+  # the spatial predictors have to go in, otherwise the Hessian is taken for a model
+  # without the spatial term
+  SP = if(inherits(object, "spatial")) object$spatial$X else NULL
+  object$se = t(abind::abind(object$model$se(object$data$X, object$data$Y, SP = SP,
+                                             batch_size = step_size, parallel = parallel),
+                             along = 0L))
   return(object)
 }
 
@@ -628,11 +567,7 @@ summary.sjSDM = function(object, ...) {
 #' @export
 simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
   object = checkModel(object)
-  if(!is.null(seed)) {
-    set.seed(seed)
-    pkg.env$torch$cuda$manual_seed(seed)
-    pkg.env$torch$manual_seed(seed)
-  }
+  if(!is.null(seed)) sjsdm_set_seed(seed)
   pred = predict(object)
   
   if(object$family$family$family == "binomial") {
@@ -716,12 +651,12 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
   
   env = object$settings$env
   env$formula = env_formula
-  env$X = stats::model.matrix(env_formula, env$data)
+  env[c("X", "terms", "xlevels")] = design(env_formula, env$data)
   
   if(inherits(object, "spatial")) {
     spatial = object$settings$spatial
     spatial$formula = spatial_formula
-    spatial$X = stats::model.matrix(spatial_formula, spatial$data)
+    spatial[c("X", "terms", "xlevels")] = design(spatial_formula, spatial$data)
   } else {
     spatial = NULL
   }

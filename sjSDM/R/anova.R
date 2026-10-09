@@ -43,7 +43,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
   object$samples = samples
   object$settings$sampling = samples
   
-  pkg.env$fa$set_seed(object$seed)
+  sjsdm_set_seed(object$seed)
   #   if(object$family$family$family == "gaussian") stop("gaussian not yet supported")
   
   object$settings$se = FALSE
@@ -328,48 +328,42 @@ get_conditional_lls = function(m, null_m, ...) {
     samples = m$settings$sampling
   }
   
-  # MC samples
-  MC_samples = pkg.env$torch$torch$randn(size = c(as.integer(samples),
-                                                  nrow(predictions), 
-                                                  ncol(reticulate::py_to_r(m$model$get_sigma))), 
-                                         dtype=pkg.env$torch$torch$float32)
-  
-  
-  joint_ll = 
-    reticulate::py_to_r(
-      pkg.env$fa$MVP_logLik(m$data$Y, 
-                            predictions, 
-                            reticulate::py_to_r(m$model$get_sigma),
-                            device = m$model$device,
-                            individual = TRUE,
-                            dtype = m$model$dtype,
-                            batch_size = as.integer(m$settings$step_size),
-                            alpha = m$model$alpha,
-                            link = m$family$link,
-                            theta = m$theta,
-                            noise = MC_samples,
-                            ...
-      )
-    ) |> rowSums() 
-  
-  raw_ll = 
-    sapply(1:ncol(m$data$Y), function(i) {
-      
-      reticulate::py_to_r(
-        pkg.env$fa$MVP_logLik(m$data$Y[,-i], 
-                              predictions[,-i], 
-                              reticulate::py_to_r(m$model$get_sigma)[-i,],
-                              device = m$model$device,
-                              individual = TRUE,
-                              dtype = m$model$dtype,
-                              batch_size = as.integer(m$settings$step_size),
-                              alpha = m$model$alpha,
-                              link = m$family$link,
-                              theta = m$theta[-i],
-                              noise = MC_samples,
-                              ...
-        )
-      ) 
+  # one shared set of MC samples, so the joint and the leave-one-out likelihoods
+  # are compared under the same noise
+  sigma = m$model$sigma$detach()
+  tt = function(x) sjsdm_tensor(x, m$model$dtype, m$model$device)
+  MC_samples = torch::torch_randn(c(as.integer(samples), nrow(predictions), ncol(sigma)),
+                                  dtype = m$model$dtype, device = m$model$device)
+  theta = m$model$theta
+
+  # in row batches: the response-scale tensor is [samples, rows, species], so evaluating
+  # every row at once needs samples * n * species floats. For a large community that is
+  # tens of GB. Batching costs nothing -- the noise is indexed by row, so the per-row
+  # result is identical however the rows are grouped.
+  bs = max(1L, as.integer(m$settings$step_size))
+  ll = function(Y, mu, sig, th) {
+    n = nrow(mu)
+    out = numeric(n)
+    for (start in seq(1L, n, by = bs)) {
+      k = start:min(start + bs - 1L, n)
+      out[k] = as.numeric(mvp_logLik(tt(mu[k, , drop = FALSE]), tt(Y[k, , drop = FALSE]),
+                                     sig, link = m$family$link, alpha = m$model$alpha,
+                                     sampling = as.integer(samples), theta = th,
+                                     noise = MC_samples[, k, , drop = FALSE])$cpu())
+    }
+    out
+  }
+
+  joint_ll = ll(m$data$Y, predictions, sigma, theta)
+
+  # positive indices only: torch follows python's negative indexing, so sigma[-i, ] would
+  # be the i-th row counted from the end instead of every row but the i-th
+  S = ncol(m$data$Y)
+  raw_ll =
+    sapply(seq_len(S), function(i) {
+      k = seq_len(S)[-i]
+      ll(m$data$Y[, k, drop = FALSE], predictions[, k, drop = FALSE],
+         sigma[k, , drop = FALSE], if (is.null(theta)) NULL else theta[k])
     })
   raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
   diff_ll = colSums(null_m - raw_conditional_ll)
@@ -474,17 +468,15 @@ get_null_ll = function(object, verbose = TRUE, ...) {
     null_m = stats::dpois( object$data$Y, null_pred, log = TRUE)
   } else if(object$family$family$family == "nbinom") {
     check_module()
-    torch = pkg.env$torch
     theta = object$theta
     theta = 1.0/(softplus(theta)+0.0001)
     theta = matrix(theta, nrow = nrow(null_pred), ncol = ncol(null_pred), byrow = TRUE)
-    probs = (1.0 - theta/(theta+null_pred))+0.0001 
+    probs = (1.0 - theta/(theta+null_pred))+0.0001
     probs = ifelse(probs < 0.0, 0.0, probs)
     probs = ifelse(probs > 1.0, 1.0-0.0001, probs )
-    theta = torch$tensor(theta, dtype = torch$float32)
-    probs = torch$tensor(probs, dtype = torch$float32)
-    YT = torch$tensor(object$data$Y, dtype = torch$float32)
-    null_m = force_r(torch$distributions$NegativeBinomial(total_count=theta, probs=probs)$log_prob(YT)$cpu()$data$numpy())
+    Y = object$data$Y
+    null_m = lgamma(theta + Y) - lgamma(Y + 1) - lgamma(theta) +
+      theta * log1p(-probs) + Y * log(probs)
   } else if(object$family$family$family == "gaussian") {
     #warning("family = gaussian() is not fully supported yet.")
     null_m = sapply(1:ncol(object$data$Y), function(i) stats::dnorm(object$data$Y[,i], null_pred[,i],sd = exp(null_model$theta)[i], log = TRUE))

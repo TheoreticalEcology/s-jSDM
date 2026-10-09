@@ -9,7 +9,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
   %\VignetteIndexEntry{sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model}
   %\VignetteEngine{knitr::rmarkdown}
-abstract: "A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response functions (including the traditional multivariate probit model). As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'PyTorch' and 'reticulate', which can be run on CPUs or GPUs. The package includes support for different response families, the ability to account for spatial autocorrelation, and the option to fit responses via deep neural networks instead of a standard linear predictor. In addition, you can perform variation partitioning (VP) / ANOVA on the fitted models for environmental, spatial, and co-association model components, and further subdivide these three components per species and sites (internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>). \n \n \n"
+abstract: "A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response functions (including the traditional multivariate probit model). As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'torch', which can be run on CPUs or GPUs. The package includes support for different response families, the ability to account for spatial autocorrelation, and the option to fit responses via deep neural networks instead of a standard linear predictor. In addition, you can perform variation partitioning (VP) / ANOVA on the fitted models for environmental, spatial, and co-association model components, and further subdivide these three components per species and sites (internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>). \n \n \n"
 editor_options: 
   chunk_output_type: console
 ---
@@ -30,7 +30,7 @@ A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to th
 
 A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, <https://www.doi.org/10.1111/2041-210X.13687>.
 
-The core code of sjSDM is implemented in Python / PyTorch, which is then wrapped into an R package. In principle, you can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.9 and pytorch must be installed (more details below). However, for most users, it will be more convenient to use sjSDM via the sjSDM R package, which also provides a large number of downstream functionalities.
+Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation.
 
 To get citation info for sjSDM when you use it for your reseach, type
 
@@ -66,8 +66,7 @@ Depencies for the package can be installed before or after installing the packag
 
 
 ``` r
-sjSDM::install_sjSDM(version = "gpu") # or
-sjSDM::install_sjSDM(version = "cpu")
+sjSDM::install_sjSDM()   # wrapper around torch::install_torch()
 ```
 
 For advanced users: if you want to install the current (development) version from this repository, run
@@ -77,10 +76,10 @@ For advanced users: if you want to install the current (development) version fro
 devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
 ```
 
-dependencies should be installed as above. If the installation fails, check out the help of `?install_sjSDM`, ?installation_help, and `vignette("Dependencies", package = "sjSDM")`.
+If the installation fails, check out the help of `?install_sjSDM` and `?installation_help`.
 
-1.  Try `install_sjSDM()`
-2.  New session, if no 'PyTorch not found' appears it should work, otherwise see `?installation_help`
+1.  Run `sjSDM::install_diagnostic()` and check whether libtorch is installed
+2.  If not, run `torch::install_torch()` and restart R
 3.  If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
 
 # Working with sjSDM
@@ -621,127 +620,57 @@ plot(model)
 
 # Installation problems
 
-The `sjSDM::install_sjSDM()` function can install automatically all necessary 'python' dependencies but it can fail sometimes because of individual system settings or if other 'python'/'conda' installations get into the way.
+Since version 1.1.0 sjSDM runs on the R 'torch' package (libtorch) and no longer needs
+'python', 'conda', 'reticulate' or 'PyTorch'. Installing sjSDM pulls in 'torch', and
+'torch' downloads the libtorch and liblantern binaries on first use. Almost every
+installation problem is a problem with that download.
 
-## PyTorch Installation - Before you start:
+## Check what is missing
 
-A few notes before you start with the installation (skip this point if you do not know conda):
-
--   existing 'conda' installations: make sure you have the latest 'conda' or 'miniconda' version and remove unnecessary 'conda' installations.
--   existing 'conda' or 'virtualenv' environments (skip this point if you do not know 'conda'): we currently enforce the usage of a specific environment called 'r-sjsdm',so if you want use a custom environment it should be named 'r-sjsdm'
-
-## Windows - automatic installation:
-
-Sometimes the automatic 'miniconda' installation (via `sjSDM::install_sjSDM()` ).doesn't work because of white spaces in the user's name. But you can easily download and install 'conda' on your own:
-
-Download and install the latest ['conda' version](https://www.anaconda.com/download/success)
-
-Afterwards run:
-
-
-``` r
-install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
+```{r,eval=FALSE}
+sjSDM::install_diagnostic()
 ```
 
-Reload the package and run the example, if this doesn't work:
+If it reports `libtorch installed: FALSE`, get the binaries and restart R:
 
--   Restart RStudio
--   Install manually pytorch, see the following section
-
-## Windows - manual installation:
-
-Download and install the latest ['conda' version](https://www.anaconda.com/download/success)
-
-Open the command window (cmd.exe - hit windows key + r and write cmd)
-
-Run in cmd.exe:
-
-
-``` bash
-conda create --name r-sjsdm python=3.10
-conda activate r-sjsdm
-conda install pytorch torchvision torchaudio cpuonly -c pytorch # cpu
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia #gpu
-python -m pip install pyro-ppl torch_optimizer madgrad
+```{r,eval=FALSE}
+torch::install_torch()      # or, equivalently, sjSDM::install_sjSDM()
 ```
 
-Restart R, try the example, and if it does not work:
+## Behind a proxy or without an internet connection
 
--   Restart RStudio
--   See the 'Help and bugs' section
+'torch' can be installed from local files. Download the archives for your platform on a
+machine that has access, then point 'torch' at them before loading it:
 
-## Linux - automatic installation:
-
-Run in R:
-
-
-``` r
-install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
+```{r,eval=FALSE}
+Sys.setenv(TORCH_URL = "/path/to/libtorch.zip")
+Sys.setenv(LANTERN_URL = "/path/to/liblantern.zip")
+torch::install_torch()
 ```
 
-Restart R try to run the example, if this doesn't work:
+See `?torch::install_torch` for the current variable names and the download URLs.
 
--   Restart RStudio
--   Install manually 'PyTorch', see the following section
+## GPU support
 
-## Linux - manual installation:
+There is no separate CPU and GPU build of sjSDM any more, and `install_sjSDM()` has no
+`version` argument. Whether the GPU can be used follows from the 'torch' installation:
 
-We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
-
-Download and install the latest ['conda' version](https://www.anaconda.com/download/success)
-
-Open your terminal and run:
-
-
-``` bash
-conda create --name r-sjsdm python=3.10
-conda activate r-sjsdm
-conda install pytorch torchvision torchaudio cpuonly -c pytorch # cpu
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia #gpu
-python -m pip install pyro-ppl torch_optimizer madgrad
+```{r,eval=FALSE}
+torch::cuda_is_available()             # CUDA
+torch::backends_mps_is_available()     # Apple silicon
 ```
 
-Restart R try to run the example, if this doesn't work:
+Pass `device = "gpu"` (or the CUDA device index, e.g. `device = 0L`) or `device = "mps"`
+to `sjSDM()`. The default is the CPU.
 
--   Restart RStudio
--   See the 'Help and bugs' section
+## Migrating from sjSDM 1.0.x
 
-## MacOS - automatic installation:
-
-Run in R:
-
-
-``` r
-install_sjSDM()
-```
-
-Restart R try to run the example, if this doesn't work:
-
--   Restart RStudio
--   Install manually 'PyTorch', see the following section
-
-## MacOS - manual installation:
-
-We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
-
-Download and install the latest conda [conda version](https://www.anaconda.com/download/success)
-
-Open your terminal and run:
-
-
-``` bash
-conda create --name r-sjsdm python=3.10
-conda activate r-sjsdm
-conda install pytorch::pytorch torchvision torchaudio -c pytorch
-python -m pip install pyro-ppl torch_optimizer madgrad
-```
-
-Restart R, try the example, if it does not work:
-
--   Restart RStudio
--   See the 'Help and bugs' section
+The 'r-sjsdm' conda environment is no longer used and can be deleted. Model code does not
+change. Results are not bit-identical to the old backend: the two use different random
+number streams, so weight initialisation and the Monte-Carlo draws differ, and estimates
+agree within Monte-Carlo noise rather than to the last digit.
 
 ## Help and bugs
 
--   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `sjSDM::install_diagnostic()`as a quote.
+-   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `sjSDM::install_diagnostic()` as a quote.
 -   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-emple) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)

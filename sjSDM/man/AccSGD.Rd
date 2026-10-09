@@ -7,11 +7,11 @@
 AccSGD(kappa = 1000, xi = 10, small_const = 0.7, weight_decay = 0)
 }
 \arguments{
-\item{kappa}{long step}
+\item{kappa}{long step, ignored}
 
-\item{xi}{advantage parameter}
+\item{xi}{advantage parameter, ignored}
 
-\item{small_const}{small constant}
+\item{small_const}{small constant, ignored}
 
 \item{weight_decay}{l2 penalty on weights}
 }
@@ -19,7 +19,7 @@ AccSGD(kappa = 1000, xi = 10, small_const = 0.7, weight_decay = 0)
 Anonymous function that returns optimizer when called.
 }
 \description{
-accelerated stochastic gradient, see Kidambi et al., 2018 for details
+Deprecated. 'torch' has no AccSGD implementation, so this redirects to \code{\link{SGD}}.
 }
 \references{
 Kidambi, R., Netrapalli, P., Jain, P., & Kakade, S. (2018, February). On the insufficiency of existing momentum schemes for stochastic optimization. In 2018 Information Theory and Applications Workshop (ITA) (pp. 1-9). IEEE.

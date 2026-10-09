@@ -58,6 +58,11 @@ sjSDM_cv = function(Y,
                     blocks = 1L,
                     ...) {
   
+  # the inner sjSDM calls set verbose themselves, so a user supplied verbose in ...
+  # would be matched twice
+  dots = list(...)
+  dots[["verbose"]] = NULL
+
   assertMatrix(Y)
   assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
   assert(checkClass(spatial, "DNN"), checkClass(spatial, "linear"), checkNull(spatial))
@@ -148,6 +153,11 @@ sjSDM_cv = function(Y,
       biotic$l1_cov =  (1-a_cov)*l_cov
       biotic$l2_cov =  (a_cov)*l_cov
       new_env$formula = stats::as.formula("~0+.")
+      # the fold refits on the already expanded design, so the stored terms from the original
+      # linear()/DNN() call no longer describe new_env$X -- rebuild them or predict(newdata=)
+      # evaluates the wrong variables
+      new_env$data = data.frame(new_env$X)
+      new_env[c("X", "terms", "xlevels")] = design(new_env$formula, new_env$data)
 
       if(!is.null(spatial)) {
         new_spatial = spatial
@@ -156,6 +166,8 @@ sjSDM_cv = function(Y,
         new_spatial$l1_coef = (1-a_sp)*l_sp
         new_spatial$l2_coef = (a_sp)*l_sp
         new_spatial$formula = stats::as.formula("~0+.")
+        new_spatial$data = data.frame(new_spatial$X)
+        new_spatial[c("X", "terms", "xlevels")] = design(new_spatial$formula, new_spatial$data)
       } else {
         new_spatial = NULL
         SP_test = NULL
@@ -169,9 +181,9 @@ sjSDM_cv = function(Y,
          if(length(n_gpu) == 1) dist = cbind(nodes,(n_gpu-1):0)
          else dist = cbind(nodes,n_gpu)
          device2 = as.integer(as.numeric(dist[which(dist[,1] %in% myself, arr.ind = TRUE), 2]))
-         model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device2,sampling=sampling, verbose = FALSE, ...)
+         model = do.call(sjSDM, c(list(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial, device = device2, sampling = sampling, verbose = FALSE), dots))
       } else {
-        model = sjSDM(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial,device=device, sampling=sampling, verbose = FALSE, ...)
+        model = do.call(sjSDM, c(list(Y = Y_train, env = new_env, biotic = biotic, spatial = new_spatial, device = device, sampling = sampling, verbose = FALSE), dots))
       }
       
       mean_func = function(f) apply(abind::abind(lapply(1:50, function(i) f() ),along = -1), 2:3, mean)
@@ -204,7 +216,7 @@ sjSDM_cv = function(Y,
                                  auc_macro_test = auc_macro_test,
                                  auc_macro_train = auc_macro_train)
       rm(model)
-      pkg.env$torch$cuda$empty_cache()
+      if(torch::cuda_is_available()) torch::cuda_empty_cache()
     }
     return(cv_step_result)
   }
@@ -223,9 +235,12 @@ sjSDM_cv = function(Y,
     cl = parallel::makeCluster(n_cores)
     nodes = unlist(parallel::clusterEvalQ(cl, paste(Sys.info()[['nodename']], Sys.getpid(), sep='-')))
     #print(nodes)
-    control = parallel::clusterEvalQ(cl, {library(sjSDM)})
-    if(length(ellip) > 0 ) parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling","..."), envir = environment())
-    else parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env","spatial", "Y", "nodes","n_gpu","n_cores","device","sampling"), envir = environment())
+    # torch has to be attached in every worker, loading sjSDM alone does not
+    # initialise lantern
+    control = parallel::clusterEvalQ(cl, {library(torch); library(sjSDM)})
+    parallel::clusterExport(cl, list("tune_samples", "test_indices","biotic", "CV", "env",
+                                     "spatial", "Y", "nodes","n_gpu","n_cores","device",
+                                     "sampling","dots"), envir = environment())
     
     # TODO: check again!
     for(i in 1:length(unique(blocks_run))){

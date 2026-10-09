@@ -1,70 +1,39 @@
-#' Install sjSDM and its dependencies
+#' Install sjSDM's dependencies
 #'
-#' @param conda path to conda
-#' @param version version = "cpu" for CPU version, or "gpu" for GPU version. (note MacOS users have to install 'cuda' binaries by themselves)
-#' @param restart_session Restart R session after installing (note this will
-#'   only occur within RStudio).
-#' @param ... not supported
-#' 
-#' @return 
-#' 
-#' No return value, called for side effects (installation of 'python' dependencies).
+#' @param ... ignored, kept for backward compatibility (e.g. \code{version = "gpu"})
 #'
+#' @details
+#'
+#' Since version 1.1.0 sjSDM runs on 'torch' (libtorch) and no longer needs 'python',
+#' 'conda' or 'PyTorch'. The only remaining dependency is the libtorch binary, which is
+#' downloaded by \code{\link[torch]{install_torch}}. This function is a thin wrapper
+#' around it so that existing scripts keep working. Whether the GPU is used is decided
+#' by the torch installation, not by an argument here.
+#'
+#' @return
+#'
+#' No return value, called for side effects (installation of the 'torch' binaries).
+#'
+#' @seealso \code{\link{installation_help}}, \code{\link{install_diagnostic}}
 #' @export
-install_sjSDM = function(conda = "auto",
-                         version = c("cpu", "gpu"),
-                         restart_session = TRUE, ...) {
-  
-  version = match.arg(version)
-  
-  method = "conda"
-  envname = "r-sjsdm"
-  
-  # install conda if not installed 
-  conda = tryCatch(reticulate::conda_binary(), error = function(e) e)
-  if(inherits(conda, "error")) {
-    reticulate::install_miniconda(update = TRUE)
+install_sjSDM = function(...) {
+
+  args = list(...)
+  if("version" %in% names(args))
+    cli::cli_alert_info("'version' is ignored, GPU support is decided by the torch installation")
+
+  if(is_torch_available()) {
+    cli::cli_alert_success("libtorch is already installed, nothing to do.")
+    return(invisible(NULL))
   }
-  
-  # get python dependencies
-  pkgs = get_pkgs(version = version)
-  
-  # torch will be installed via pip on macOS because of mkl dependencies
-  pip = FALSE
-  channel = "pytorch"
-  
-  # install dependencies
-  error = tryCatch({
-    
-    reticulate::py_install(
-      pkgs$conda,
-      envname = envname,
-      method = "conda",
-      conda = "auto",
-      python_version = "3.10",
-      channel = channel,
-      pip = pip
-    )
-    
-    reticulate::py_install(
-      c("numpy", "pyro-ppl", "torch_optimizer", "madgrad"),
-      envname = envname,
-      method = "conda",
-      conda = "auto",
-      pip = TRUE
-    )
-  }, error = function(e) e)
-  
-  # check if instllation was successfull
+
+  error = tryCatch(torch::install_torch(), error = function(e) e)
+
   if(!inherits(error, "error")) {
     cli::cli_alert_success("\nInstallation complete.\n\n")
-    
-    if (restart_session && rstudioapi::hasFun("restartSession"))
-      rstudioapi::restartSession()
-    
     invisible(NULL)
   } else {
-    cli::cli_alert_danger("\nInstallation failed... try to install manually PyTorch (install instructions: https://github.com/TheoreticalEcology/s-jSDM\n")
+    cli::cli_alert_danger("\nInstallation failed, see ?installation_help\n")
     cli::cli_alert_info("If the installation still fails, please report the following error on https://github.com/TheoreticalEcology/s-jSDM/issues\n")
     cli::cli_alert(error$message)
   }
@@ -88,61 +57,31 @@ is_linux = function() {
   identical(tolower(Sys.info()[["sysname"]]), "linux")
 }
 
-get_pkgs = function(version="cpu") {
-  
-  channel = "pytorch"
-  if(is_windows() || is_linux() || is_unix()) {
-    package = list()
-    package$conda =
-      switch(version,
-             cpu = "pytorch torchvision torchaudio cpuonly",
-             gpu = "pytorch torchvision torchaudio cudatoolkit=11.8 -c nvidia")
-   }
-
-  if(is_osx()) {
-    package = list()
-    package$conda = "pytorch::pytorch torchvision torchaudio"
-    if(version == "gpu") message("PyTorch does not provide cuda binaries for macOS, installing CPU version...\n")
-  }
-  
-  packages = strsplit(unlist(package), " ", fixed = TRUE)
-  return(packages)
-}
 
 #' @title install diagnostic
-#' 
-#' @description Print information about available conda environments, python configs, and pytorch versions. 
-#' @details If the trouble shooting guide \code{\link{installation_help}} did not help with the installation, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with the output of this function as a quote. 
-#' 
+#'
+#' @description Print information about the 'torch' installation and the compute devices.
+#' @details If the trouble shooting guide \code{\link{installation_help}} did not help with
+#'   the installation, please create an issue on
+#'   \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with the
+#'   output of this function as a quote.
+#'
 #' @seealso \code{\link{installation_help}}, \code{\link{install_sjSDM}}
-#' 
+#'
 #' @return
-#' 
+#'
 #' No return value, called to extract dependency information.
-#' 
+#'
 #' @export
 install_diagnostic = function() {
-  conda_envs = reticulate::conda_list()
-  
-  conda = reticulate::conda_binary()
-  
-  configs = ""
-  conda_info = ""
-  suppressWarnings({
-    try({
-      for(n in conda_envs$name) {
-        configs = paste0(configs, "\n\n\nENV: ", n)
-        configs = paste0(configs, "\n\n\ntorch:\n", paste0(system(paste0(conda, " list -n" ,n, " torch*"), intern = TRUE) ,collapse = "\n" ))
-        configs = paste0(configs, "\n\n\nnumpy:\n", paste0(system(paste0(conda, " list -n" ,n, " numpy*"),  intern = TRUE)  ,collapse = "\n" )   )
-      }
-      conda_info = paste0(system(paste0(conda, " info"), intern=TRUE), collapse = "\n")
-    }, silent = TRUE)})
-  
-  print(conda_envs)
-  cat(configs)
+  cat("sjSDM:              ", as.character(utils::packageVersion("sjSDM")), "\n")
+  cat("torch:              ", as.character(utils::packageVersion("torch")), "\n")
+  cat("libtorch installed: ", is_torch_available(), "\n")
+  if(is_torch_available()) {
+    cat("CUDA available:     ", torch::cuda_is_available(), "\n")
+    if(torch::cuda_is_available()) cat("CUDA devices:       ", torch::cuda_device_count(), "\n")
+    cat("MPS available:      ", torch::backends_mps_is_available(), "\n")
+  }
   cat("\n\n\n")
-  print(reticulate::py_config())
-  cat("\n\n\n")
-  cat(conda_info)
+  print(utils::sessionInfo())
 }
-

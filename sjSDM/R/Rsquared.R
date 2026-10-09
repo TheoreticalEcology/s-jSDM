@@ -36,7 +36,7 @@ Rsquared = function(model, method = c("McFadden","Nagelkerke"), verbose = TRUE) 
   } else {
     R2 = 1-exp(2/(nrow(model$data$Y))*(-N1+N0))
   }
-  print(R2)
+  if(verbose) print(R2)
   return(invisible(R2))
 }
 

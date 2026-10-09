@@ -7,7 +7,7 @@
 madgrad(momentum = 0.9, weight_decay = 0, eps = 1e-06)
 }
 \arguments{
-\item{momentum}{strength of momentum}
+\item{momentum}{strength of momentum, ignored}
 
 \item{weight_decay}{l2 penalty on weights}
 
@@ -17,7 +17,7 @@ madgrad(momentum = 0.9, weight_decay = 0, eps = 1e-06)
 Anonymous function that returns optimizer when called.
 }
 \description{
-stochastic gradient descent optimizer
+Deprecated. 'torch' has no MADGRAD implementation, so this redirects to \code{\link{Adam}}.
 }
 \references{
 Defazio, A., & Jelassi, S. (2021). Adaptivity without Compromise: A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic Optimization. arXiv preprint arXiv:2101.11075.

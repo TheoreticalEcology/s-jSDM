@@ -10,10 +10,13 @@ install_diagnostic()
 No return value, called to extract dependency information.
 }
 \description{
-Print information about available conda environments, python configs, and pytorch versions.
+Print information about the 'torch' installation and the compute devices.
 }
 \details{
-If the trouble shooting guide \code{\link{installation_help}} did not help with the installation, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with the output of this function as a quote.
+If the trouble shooting guide \code{\link{installation_help}} did not help with
+the installation, please create an issue on
+\href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with the
+output of this function as a quote.
 }
 \seealso{
 \code{\link{installation_help}}, \code{\link{install_sjSDM}}

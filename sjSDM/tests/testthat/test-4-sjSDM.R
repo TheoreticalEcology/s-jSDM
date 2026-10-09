@@ -80,7 +80,8 @@ test_model = function(occ = NULL, env, spatial=NULL, biotic = bioticStruct(),
     sjSDMControl(optimizer = Adamax()),
     sjSDMControl(optimizer = AdaBound()),
     sjSDMControl(optimizer = AccSGD()),
-    sjSDMControl(optimizer = AdaBound()),
+    sjSDMControl(optimizer = SGD()),
+    sjSDMControl(optimizer = madgrad()),
     sjSDMControl(optimizer = RMSprop(), scheduler = 2, lr_reduce_factor = 0.1),
     sjSDMControl(optimizer = RMSprop(), scheduler = 2, lr_reduce_factor = 0.99),
     sjSDMControl(optimizer = RMSprop(), early_stopping_training = 2L)
@@ -260,6 +261,122 @@ testthat::test_that("sjSDM reload model", {
 })
 
 
+testthat::test_that("marginal predictions integrate the latent factor out", {
+  testthat::skip_on_cran()
+  testthat::skip_on_ci()
+  skip_if_no_torch()
+  # predict() used to return link(mu), the value at latent z = 0, which is not the marginal
+  # whenever the associations are non-zero. The marginal is E_z[link(mu + z sigma')]; for
+  # probit that is pnorm(mu / sqrt(diag(sigma sigma' + I))) and for a log link
+  # exp(mu + rowSums(sigma^2)/2).
+  set.seed(42)
+  n = 60L; sp = 4L; df = 2L
+  X = matrix(rnorm(n * 2), n, 2)
+  sig = matrix(c(rep(0.8, sp), rep(-0.5, sp)), sp, df)
+  guard = function(p) p * 0.999999 + 0.0000005
+
+  Y = matrix(rbinom(n * sp, 1, 0.4), n, sp)
+  m = sjSDM(Y = Y, env = linear(X, ~.), biotic = bioticStruct(df = df), iter = 5L,
+            sampling = 50L, verbose = FALSE, seed = 7L, family = stats::binomial("probit"))
+  m$model$set_sigma(sig)
+  raw = predict(m, newdata = X, type = "raw")
+  sd_k = sqrt(diag(getCov(m)))
+  testthat::expect_equal(as.numeric(predict(m, newdata = X)),
+                         as.numeric(guard(stats::pnorm(sweep(raw, 2, sd_k, "/")))),
+                         tolerance = 1e-5)
+  # the old behaviour is still reachable, and is link(mu)
+  testthat::expect_equal(as.numeric(predict(m, newdata = X, marginal = FALSE)),
+                         as.numeric(guard(stats::pnorm(raw))), tolerance = 1e-5)
+  # the two differ, otherwise this test would pass on the broken code
+  testthat::expect_gt(max(abs(predict(m, newdata = X) -
+                                predict(m, newdata = X, marginal = FALSE))), 0.02)
+  # closed form, so repeated calls agree exactly
+  testthat::expect_equal(predict(m, newdata = X), predict(m, newdata = X))
+
+  Yp = matrix(rpois(n * sp, 2), n, sp)
+  mp = sjSDM(Y = Yp, env = linear(X, ~.), biotic = bioticStruct(df = df), iter = 5L,
+             sampling = 50L, verbose = FALSE, seed = 7L, family = stats::poisson())
+  mp$model$set_sigma(sig)
+  rawp = predict(mp, newdata = X, type = "raw")
+  testthat::expect_equal(as.numeric(predict(mp, newdata = X)),
+                         as.numeric(exp(sweep(rawp, 2, rowSums(sig^2) / 2, "+"))),
+                         tolerance = 1e-5)
+
+  Yg = matrix(rnorm(n * sp), n, sp)
+  mg = sjSDM(Y = Yg, env = linear(X, ~.), biotic = bioticStruct(df = df), iter = 5L,
+             sampling = 50L, verbose = FALSE, seed = 7L, family = stats::gaussian())
+  mg$model$set_sigma(sig)
+  # E[mu + z sigma'] = mu, so the gaussian marginal must be untouched
+  testthat::expect_equal(predict(mg, newdata = X),
+                         predict(mg, newdata = X, marginal = FALSE), tolerance = 1e-6)
+
+  # with no associations there is nothing to integrate out and the two must coincide
+  m$model$set_sigma(matrix(0, sp, df))
+  testthat::expect_equal(predict(m, newdata = X),
+                         predict(m, newdata = X, marginal = FALSE), tolerance = 1e-5)
+})
+
+testthat::test_that("conditional predictions work with only two species", {
+  testthat::skip_on_cran()
+  testthat::skip_on_ci()
+  skip_if_no_torch()
+  # sjSDM 1.0.7 died here with "IndexError: tuple index out of range": conditioning on a
+  # single species made Y[, focal], predictions[, focal] and sigma[focal, ] drop to
+  # vectors, so the backend read sigma.shape[1] on a 1-d tensor. Three or more species hid
+  # it, because then the conditioning set is never a single column.
+  set.seed(42)
+  n = 80L
+  X = matrix(rnorm(n * 2), n, 2)
+  fams = list(stats::binomial("probit"), stats::binomial("logit"), stats::poisson(),
+              stats::gaussian(), "nbinom")
+  for (fam in fams) {
+    Y = if (identical(fam, "nbinom")) matrix(rnbinom(n * 2, mu = 2, size = 2), n, 2)
+        else if (is.character(fam)) matrix(rbinom(n * 2, 1, 0.4), n, 2)
+        else switch(fam$family,
+                    poisson  = matrix(rpois(n * 2, 2), n, 2),
+                    gaussian = matrix(rnorm(n * 2), n, 2),
+                    matrix(rbinom(n * 2, 1, 0.4), n, 2))
+    m = sjSDM(Y = Y, env = linear(X, ~.), iter = 5L, sampling = 50L, verbose = FALSE,
+              seed = 7L, family = fam)
+    for (napos in 1:2) {
+      Yc = Y; Yc[, napos] = NA
+      p = suppressWarnings(predict(m, newdata = X, Y = Yc, sampling = 200L))
+      testthat::expect_equal(nrow(as.matrix(p)), n)
+      testthat::expect_equal(ncol(as.matrix(p)), 1L)
+      testthat::expect_false(anyNA(p))
+    }
+  }
+})
+
+testthat::test_that("conditioning on a species uses the association matrix", {
+  testthat::skip_on_cran()
+  testthat::skip_on_ci()
+  skip_if_no_torch()
+  # A crash is the obvious failure; silently ignoring the conditioning is the dangerous
+  # one. sigma is injected so both cases have a known answer: with sigma = 0 the species
+  # are independent and conditioning must change nothing, and with both species loading on
+  # one latent they are positively associated and it must.
+  set.seed(11)
+  n = 150L
+  X = matrix(rnorm(n * 2), n, 2)
+  Y = matrix(rbinom(n * 2, 1, 0.4), n, 2)
+  m = sjSDM(Y = Y, env = linear(X, ~.), biotic = bioticStruct(df = 2L), iter = 5L,
+            sampling = 50L, verbose = FALSE, seed = 3L)
+  cond = function(y2) {
+    Yc = Y; Yc[, 1] = NA; Yc[, 2] = y2
+    as.numeric(predict(m, newdata = X, Y = Yc, sampling = 10000L))
+  }
+
+  m$model$set_sigma(matrix(0, 2, 2))
+  indep = max(abs(cond(1) - cond(0)))
+  testthat::expect_lt(indep, 0.02)
+
+  m$model$set_sigma(matrix(c(1.5, 1.5, 0, 0), 2, 2))
+  assoc = max(abs(cond(1) - cond(0)))
+  testthat::expect_gt(assoc, 0.05)
+  testthat::expect_gt(assoc, indep)
+})
+
 testthat::test_that("Changing weights", {
   testthat::skip_on_cran()
   testthat::skip_on_ci()
@@ -270,47 +387,47 @@ testthat::test_that("Changing weights", {
   model = sjSDM(Y = com$response,env = com$env_weights, spatial = linear(XY), iter = 2L, verbose = FALSE)
   
   setWeights(model, list(matrix(1.0, 5, 4)))
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 1)
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  testthat::expect_equal(mean(model$model$env_weights[[1]]), 1)
+  testthat::expect_equal(dim(model$model$env_weights[[1]]), c(5, 4))
   setWeights(model, list(matrix(2.0, 5, 4)))
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 2)
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
+  testthat::expect_equal(mean(model$model$env_weights[[1]]), 2)
+  testthat::expect_equal(dim(model$model$env_weights[[1]]), c(5, 4))
   
   setWeights(model, list(matrix(3.0, 5, 4), matrix(4.0, 5, 3)))
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 3)
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 4)
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
+  testthat::expect_equal(mean(model$model$env_weights[[1]]), 3)
+  testthat::expect_equal(mean(model$model$spatial_weights[[1]]), 4)
+  testthat::expect_equal(dim(model$model$env_weights[[1]]), c(5, 4))
+  testthat::expect_equal(dim(model$model$spatial_weights[[1]]), c(5, 3))
   
   setWeights(model, list(matrix(5.0, 5, 4), list(matrix(6.0, 5, 3))))
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 5)
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 6)
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
+  testthat::expect_equal(mean(model$model$env_weights[[1]]), 5)
+  testthat::expect_equal(mean(model$model$spatial_weights[[1]]), 6)
+  testthat::expect_equal(dim(model$model$env_weights[[1]]), c(5, 4))
+  testthat::expect_equal(dim(model$model$spatial_weights[[1]]), c(5, 3))
   
   setWeights(model, list(matrix(5.0, 5, 4), list(matrix(6.0, 5, 3)), matrix(1.0, 5, 5)))
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 5)
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 6)
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), 1)
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), c(5, 5))
+  testthat::expect_equal(mean(model$model$env_weights[[1]]), 5)
+  testthat::expect_equal(mean(model$model$spatial_weights[[1]]), 6)
+  testthat::expect_equal(mean(model$model$get_sigma), 1)
+  testthat::expect_equal(dim(model$model$env_weights[[1]]), c(5, 4))
+  testthat::expect_equal(dim(model$model$spatial_weights[[1]]), c(5, 3))
+  testthat::expect_equal(dim(model$model$get_sigma), c(5, 5))
   
   setWeights(model, list(matrix(5.0, 5, 4), NULL, matrix(1.0, 5, 5)))
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 5)
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 6)
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), 1)
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), c(5, 5))
+  testthat::expect_equal(mean(model$model$env_weights[[1]]), 5)
+  testthat::expect_equal(mean(model$model$spatial_weights[[1]]), 6)
+  testthat::expect_equal(mean(model$model$get_sigma), 1)
+  testthat::expect_equal(dim(model$model$env_weights[[1]]), c(5, 4))
+  testthat::expect_equal(dim(model$model$spatial_weights[[1]]), c(5, 3))
+  testthat::expect_equal(dim(model$model$get_sigma), c(5, 5))
   
   setWeights(model, list(NULL, NULL, matrix(1.0, 5, 5)))
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$env_weights[[0]])), 5)
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$spatial_weights[[0]])), 6)
-  testthat::expect_equal(mean(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), 1)
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$env_weights[[0]])), c(5, 4))
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$spatial_weights[[0]])), c(5, 3))
-  testthat::expect_equal(dim(reticulate::py_to_r(model$model$sigma$data$cpu()$numpy() )), c(5, 5))
+  testthat::expect_equal(mean(model$model$env_weights[[1]]), 5)
+  testthat::expect_equal(mean(model$model$spatial_weights[[1]]), 6)
+  testthat::expect_equal(mean(model$model$get_sigma), 1)
+  testthat::expect_equal(dim(model$model$env_weights[[1]]), c(5, 4))
+  testthat::expect_equal(dim(model$model$spatial_weights[[1]]), c(5, 3))
+  testthat::expect_equal(dim(model$model$get_sigma), c(5, 5))
   
 })
 

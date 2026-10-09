@@ -29,7 +29,6 @@
 #' Leibold, M. A., Rudolph, F. J., Blanchet, F. G., De Meester, L., Gravel, D., Hartig, F., ... & Chase, J. M. (2021). The internal structure of metacommunities. Oikos.
 #' 
 #' @seealso \code{\link{print.sjSDMimportance}}, \code{\link{plot.sjSDMimportance}}
-#' @example /inst/examples/importance-example.R
 #' @author Maximilian Pichler
 importance = function(x, save_memory = TRUE, ...) {
   model = x
@@ -75,13 +74,13 @@ importance = function(x, save_memory = TRUE, ...) {
       sp = t(coef.sjSDM(model)[[2]][[1]])
       covSP = stats::cov(model$settings$spatial$X)
       
-      vp = force_r( pkg.env$fa$importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP, ...) )
+      vp = sjsdm_importance(beta = beta, betaSP = sp, sigma = model$sigma, covX = covX, covSP = covSP)
       colnames(vp$spatial) = attributes(model$settings$spatial$X)$dimnames[[2]]
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), spatial = rowSums(vp$spatial), biotic = vp$biotic))
     } else {
-      vp = force_r( pkg.env$fa$importance(beta = beta,  sigma = model$sigma, covX = covX, ...) )
+      vp = sjsdm_importance(beta = beta, sigma = model$sigma, covX = covX)
       colnames(vp$env) = model$names
       res = list(split = vp, 
                  total = list(env = rowSums(vp$env), biotic = vp$biotic))

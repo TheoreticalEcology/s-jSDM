@@ -32,25 +32,6 @@ Although we have no hard reasons to discourage the use of this function, we have
 
 This function is maintained hidden for comparison / benchmarking purpose, and in case there is a need to use it in the future. If you want to access it, use sjSDM:::importance.
 }
-\examples{
-\dontrun{
-library(sjSDM)
-com = simulate_SDM(sites = 300L, species = 12L, 
-                   link = "identical", response = "identical")
-Raw = com$response
-SP = matrix(rnorm(300*2), 300, 2)
-SPweights = matrix(rnorm(12L), 1L)
-SPweights[1,1:6] = 0
-Y = Raw + (SP[,1,drop=FALSE]*SP[,2,drop=FALSE]) \%*\% SPweights
-Y = ifelse(Y > 0, 1, 0)
-
-model = sjSDM(Y = Y,env = linear(com$env_weights, lambda = 0.001), 
-              spatial = linear(SP,formula = ~0+X1:X2, lambda = 0.001), 
-              biotic = bioticStruct(lambda = 0.001),iter = 40L, verbose = FALSE)
-imp = importance(model)
-plot(imp)
-}
-}
 \references{
 Ovaskainen, O., Tikhonov, G., Norberg, A., Guillaume Blanchet, F., Duan, L., Dunson, D., ... & Abrego, N. (2017). How to make more out of community data? A conceptual framework and its implementation as models and software. Ecology letters, 20(5), 561-576.
 
