@@ -39,6 +39,20 @@ Variance explained is measured by Deviance as well as the pseudo-R2 metrics of N
 
 In downstream functions such as \code{\link{plot.sjSDManova}} or \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
 The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
+
+\code{anova} is not defined for a model with random-effect bars in the environmental formula and raises
+an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed
+instead of cancelling from the difference. Use \code{\link{getRE}} for the group variances.
+
+The \code{species} and \code{sites} components are not the printed table restricted to a species or a
+site, and they are read differently. The table composes the fractions on the log-likelihood scale and
+forms a single ratio at the end. The per-species and per-site values form a ratio for each component
+model first and apply the inclusion-exclusion formula to those ratios. A difference of ratios is
+unbounded in both directions, so a per-species or per-site fraction can fall below 0 or rise above 1,
+and 1 is not a boundary for it. A value above 1 says that the comparison model fits that site worse
+than the null, i.e. the component is unusually important there; it does not say that the fit is bad.
+This is common rather than exceptional: on simulated data a single-model per-site R-squared reached
+-1.54, and 193 of 200 sites carried a negative shared abiotic-associations-spatial fraction.
 }
 \examples{
 \dontrun{

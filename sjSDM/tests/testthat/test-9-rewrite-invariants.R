@@ -170,3 +170,24 @@ testthat::test_that("a saved and reloaded model reproduces its values, not just 
   testthat::expect_equal(coef(m2), cf, tolerance = 1e-6)
   testthat::expect_equal(m2$model$get_sigma, sg, tolerance = 1e-6)
 })
+
+
+# out$state is the only thing a reloaded object can be rebuilt from, and setWeights() used to
+# change the live module alone, so the new weights were silently undone by the next round trip.
+testthat::test_that("setWeights survives a save and reload", {
+  testthat::skip_on_cran()
+  skip_if_no_torch()
+  m = fit_small()
+  w = getWeights(m)
+  w$env[[1]] = w$env[[1]] + 0.25
+  setWeights(m, w)
+  p = predict(m, marginal = FALSE)
+
+  f = tempfile(fileext = ".RDS")
+  saveRDS(m, f)
+  m2 = sjSDM:::checkModel(readRDS(f))
+  unlink(f)
+
+  testthat::expect_equal(predict(m2, marginal = FALSE), p, tolerance = 1e-6)
+  testthat::expect_equal(coef(m2), coef(m), tolerance = 1e-6)
+})

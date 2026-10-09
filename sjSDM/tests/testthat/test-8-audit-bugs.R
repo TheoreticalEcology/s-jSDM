@@ -4,10 +4,11 @@
 testthat::test_that("the environmental penalty skips an intercept-only design", {
   sjSDM:::check_module()
   pen = function(P, intercept) {
-    m = sjSDM:::Model_sjSDM$new(device = "cpu", dtype = "float32", seed = 42L)
-    m$add_env(P, 3L, l1 = 0.5, l2 = -99, intercept = intercept)
-    m$set_env_weights(matrix(rep(seq_len(P), each = 3L), nrow = 3L, ncol = P))
-    as.numeric(m$losses[[1]]()$cpu())
+    m = sjSDM:::Model_sjSDM(blocks = list(list(input_shape = P, output_shape = 3L, l1 = 0.5,
+                                               l2 = -99, intercept = intercept)),
+                            loss = list(link = "probit", species = 3L, df = 2L), seed = 42L)
+    sjSDM:::set_state(m$env, matrix(rep(seq_len(P), each = 3L), nrow = 3L, ncol = P))
+    as.numeric(m$net$penalty()[[1]]$cpu())
   }
   # python penalises p[:,1:], so an intercept-only [3, 1] weight contributes exactly 0.
   # update.sjSDM carries l1/l2 into every ~1 refit, so this reaches get_null_ll() and anova().
@@ -24,7 +25,7 @@ testthat::test_that("se() reports NaN rather than a plausible number off a maxim
                    se = FALSE, sampling = 10L, verbose = FALSE)
   # a point far from the optimum: the Hessian is not positive definite there, so inv(H) has
   # negative diagonal entries and sqrt() must be NaN. abs()$sqrt() hid that behind a finite SE.
-  m$model$set_env_weights(matrix(20, nrow = 3L, ncol = ncol(m$data$X)))
+  sjSDM:::set_state(m$model$env, matrix(20, nrow = 3L, ncol = ncol(m$data$X)))
   se = do.call(rbind, m$model$se(m$data$X, sim$response, sampling = 10L, verbose = FALSE))
   testthat::expect_true(anyNA(se))
 })

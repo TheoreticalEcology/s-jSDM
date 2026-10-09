@@ -2,11 +2,6 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^.travis\.yml$
-inst/python/.pytest_cache
-inst/.pytest_cache
-inst/python/.vscode
-inst/python/.eggs
-inst/python/build
 ^doc$
 ^Meta$
 ^cran-comments\.md$

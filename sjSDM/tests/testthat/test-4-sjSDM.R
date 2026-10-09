@@ -278,7 +278,7 @@ testthat::test_that("marginal predictions integrate the latent factor out", {
   Y = matrix(rbinom(n * sp, 1, 0.4), n, sp)
   m = sjSDM(Y = Y, env = linear(X, ~.), biotic = bioticStruct(df = df), iter = 5L,
             sampling = 50L, verbose = FALSE, seed = 7L, family = stats::binomial("probit"))
-  m$model$set_sigma(sig)
+  sjSDM:::set_state(m$model$loss, list(sigma = sig))
   raw = predict(m, newdata = X, type = "raw")
   sd_k = sqrt(diag(getCov(m)))
   testthat::expect_equal(as.numeric(predict(m, newdata = X)),
@@ -296,7 +296,7 @@ testthat::test_that("marginal predictions integrate the latent factor out", {
   Yp = matrix(rpois(n * sp, 2), n, sp)
   mp = sjSDM(Y = Yp, env = linear(X, ~.), biotic = bioticStruct(df = df), iter = 5L,
              sampling = 50L, verbose = FALSE, seed = 7L, family = stats::poisson())
-  mp$model$set_sigma(sig)
+  sjSDM:::set_state(mp$model$loss, list(sigma = sig))
   rawp = predict(mp, newdata = X, type = "raw")
   testthat::expect_equal(as.numeric(predict(mp, newdata = X)),
                          as.numeric(exp(sweep(rawp, 2, rowSums(sig^2) / 2, "+"))),
@@ -305,13 +305,13 @@ testthat::test_that("marginal predictions integrate the latent factor out", {
   Yg = matrix(rnorm(n * sp), n, sp)
   mg = sjSDM(Y = Yg, env = linear(X, ~.), biotic = bioticStruct(df = df), iter = 5L,
              sampling = 50L, verbose = FALSE, seed = 7L, family = stats::gaussian())
-  mg$model$set_sigma(sig)
+  sjSDM:::set_state(mg$model$loss, list(sigma = sig))
   # E[mu + z sigma'] = mu, so the gaussian marginal must be untouched
   testthat::expect_equal(predict(mg, newdata = X),
                          predict(mg, newdata = X, marginal = FALSE), tolerance = 1e-6)
 
   # with no associations there is nothing to integrate out and the two must coincide
-  m$model$set_sigma(matrix(0, sp, df))
+  sjSDM:::set_state(m$model$loss, list(sigma = matrix(0, sp, df)))
   testthat::expect_equal(predict(m, newdata = X),
                          predict(m, newdata = X, marginal = FALSE), tolerance = 1e-5)
 })
@@ -367,11 +367,11 @@ testthat::test_that("conditioning on a species uses the association matrix", {
     as.numeric(predict(m, newdata = X, Y = Yc, sampling = 10000L))
   }
 
-  m$model$set_sigma(matrix(0, 2, 2))
+  sjSDM:::set_state(m$model$loss, list(sigma = matrix(0, 2, 2)))
   indep = max(abs(cond(1) - cond(0)))
   testthat::expect_lt(indep, 0.02)
 
-  m$model$set_sigma(matrix(c(1.5, 1.5, 0, 0), 2, 2))
+  sjSDM:::set_state(m$model$loss, list(sigma = matrix(c(1.5, 1.5, 0, 0), 2, 2)))
   assoc = max(abs(cond(1) - cond(0)))
   testthat::expect_gt(assoc, 0.05)
   testthat::expect_gt(assoc, indep)

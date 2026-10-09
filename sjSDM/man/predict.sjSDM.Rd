@@ -45,6 +45,14 @@ Matrix of predictions (sites by species)
 \description{
 Predict from a fitted sjSDM model
 }
+\details{
+For a model with random-effect bars the prediction for a group the fit saw is taken at the posterior
+mean of that group. A group it did not see - a level of the grouping factor that was not in the training
+data, or \code{NA} - contributes no mean, and its group effect is integrated over the prior
+instead. That widens the prediction rather than shifting it, and for the \code{logit} and
+\code{linear} links the prior variance is added by sampling, so those predictions carry one more source
+of Monte-Carlo noise.
+}
 \examples{
 \dontrun{
 

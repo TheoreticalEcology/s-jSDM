@@ -5,19 +5,25 @@
 \alias{getCor.sjSDM}
 \title{getCor}
 \usage{
-getCor(object)
+getCor(object, which = c("residual", "re"))
 
-\method{getCor}{sjSDM}(object)
+\method{getCor}{sjSDM}(object, which = c("residual", "re"))
 }
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}, or \code{\link{sjSDM}} with \code{\link{DNN}} object}
+
+\item{which}{\code{"residual"}, the default, for the residual association matrix.
+\code{"re"} for the correlation a random-effect bar induces, one entry per bar; see
+\code{\link{getCov}} for the shape. Not defined for a bar with
+\code{\link{re}(loading = "shared")}, where it is 1 by construction.}
 }
 \value{
-Matrix of dimensions species by species corresponding to the covariance (occurrence) matrix.
+Matrix of dimensions species by species corresponding to the covariance (occurrence) matrix,
+or for \code{which = "re"} a named list with one correlation matrix per random-effect bar.
 }
 \description{
 get species-species association correlation matrix
 }
 \seealso{
-\code{\link{sjSDM}},\code{\link{DNN}}
+\code{\link{sjSDM}},\code{\link{DNN}},\code{\link{getRE}}
 }

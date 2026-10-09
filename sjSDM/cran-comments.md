@@ -1,3 +1,37 @@
+# Version 1.1.0
+### Submission 1, <date>
+
+This release replaces the package's computational backend. Up to 1.0.7 sjSDM wrapped a
+bundled 'Python'/'PyTorch' package through 'reticulate'; it now runs natively on the R
+'torch' package. 'reticulate' has been removed from Imports, 'torch' and 'R6' added, and
+`inst/python/` has been deleted from the package. The user-facing API is unchanged.
+
+Consequences for the check environment: the package no longer needs 'python', 'conda' or
+any 'pip'/'conda' install step. It does need the libtorch binaries, which 'torch'
+downloads on first use (`torch::install_torch()`); tests and examples that fit a model
+skip themselves via `skip_if_no_torch()` when those binaries are absent, so the package
+checks cleanly on a machine without them.
+
+Results differ from 1.0.7 within Monte-Carlo noise, because the two backends draw from
+different random number streams. This is documented in NEWS.md and in
+`?installation_help`.
+
+`install_sjSDM()` no longer accepts a `version` argument; it is now a thin wrapper around
+`torch::install_torch()` and is kept only so that existing user scripts keep working.
+
+### Successfull R CMD checks under
+* Locally: macOS (R 4.6.0, arm64) - 0 errors, 0 warnings, 0 notes
+
+<remaining check environments to be filled in before submission>
+
+URLs and DOIs are correct.
+
+Possibly misspelled words in DESCRIPTION:
+  ANOVA, Leibold, al, biotic, eDNA, et, jSDM, metacommunity, probit
+
+The spelling is intended.
+
+
 # Version 1.0.7
 ### Submission 1, 17/09/2025
 This is a hotfix. Alternative implementation for ggtern that 

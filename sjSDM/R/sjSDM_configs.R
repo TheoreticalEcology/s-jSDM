@@ -4,8 +4,12 @@
 design = function(formula, data) {
   mf = stats::model.frame(formula, data)
   tt = stats::terms(mf)
-  list(X = stats::model.matrix(formula, mf), terms = tt,
-       xlevels = stats::.getXlevels(tt, mf))
+  X = stats::model.matrix(formula, mf)
+  # carried as a field, never re-derived from a column name downstream: data.frame() renames
+  # "(Intercept)" and the model.matrix of an already expanded design backquotes it, which is
+  # how the unpenalised intercept was lost twice
+  list(X = X, terms = tt, xlevels = stats::.getXlevels(tt, mf),
+       intercept = "(Intercept)" %in% colnames(X))
 }
 
 #' Linear model of environmental response 
@@ -16,6 +20,38 @@ design = function(formula, data) {
 #' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}
 #' 
+#' @details
+#' The formula is the usual model formula with two additions, and a formula that uses neither is
+#' parsed exactly as before.
+#' 
+#' \code{\link{NN}(soil + ndvi, hidden = c(50, 50))} marks a group of covariates as a non-linear
+#' block. The block is a network from its own covariates to the species and its output is added to
+#' the linear predictor, so the parametric terms beside it keep their interpretation. Several blocks
+#' are allowed.
+#' 
+#' A bar adds a grouping-factor random effect with 'lme4' semantics: \code{(1 | plot)},
+#' \code{(temp | plot)}, \code{(0 + temp | plot)}, \code{(temp || plot)}, \code{(1 | plot/subplot)}.
+#' \code{\link{re}(1 | plot, df = 2)} is the explicit form where a bar needs arguments. The group
+#' effect is a design-level latent factor with its own species covariance, see \code{\link{sjSDM}}.
+#' 
+#' Rejected while the formula is parsed, each with an error naming the offending term:
+#' \itemize{
+#'  \item a covariate in both the parametric part and an \code{\link{NN}} block, or in two blocks.
+#'    A linear output layer represents a linear term exactly, so the likelihood is flat along the
+#'    split and only the ratio of the two penalties decides it. \code{~ temp + NN(.)} is an error,
+#'    not a shorthand.
+#'  \item \code{\link{NN}} inside an interaction. Put both covariates inside the block instead.
+#'  \item \code{df} below the number of columns the bar produces, which would force the
+#'    intercept-slope correlation to \eqn{\pm 1}, and \code{df} together with
+#'    \code{loading = "shared"}, which has no latent rank to choose.
+#'  \item \code{\link{re}} wrapping a \code{||} or a nested \code{g/h} bar. The formula parser then
+#'    either drops its arguments or leaves the bar unexpanded, so the bars have to be written out:
+#'    \code{re(1 | g, df = 2) + re(0 + x | g, df = 2)}.
+#' }
+#' 
+#' Neither blocks nor bars are available in the spatial formula or in \code{\link{DNN}}, and
+#' \code{\link{sjSDM_cv}} does not support them.
+#' 
 #' @return
 #' An S3 class of type 'linear' including the following components:
 #' 
@@ -24,10 +60,15 @@ design = function(formula, data) {
 #' \item{data}{Raw data}
 #' \item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
 #' \item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
+#' \item{nn}{List of the \code{\link{NN}} blocks the formula asks for, empty for a purely
+#' parametric formula. \code{X} stays the parametric design.}
+#' \item{re}{List of the random-effect blocks the formula's bars ask for, empty when it has
+#' none. Each holds the bar's design \code{X}, the group index, the levels, \code{df} and
+#' \code{loading}.}
 #' 
 #' Implemented S3 methods include \code{\link{print.linear}}
 #' 
-#' @seealso \code{\link{DNN}}, \code{\link{sjSDM}}
+#' @seealso \code{\link{DNN}}, \code{\link{NN}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @import checkmate
 #' @export
@@ -53,7 +94,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   
   out = list()
   out$formula = formula
-  out[c("X", "terms", "xlevels")] = design(formula, data)
+  out[c("X", "terms", "xlevels", "intercept", "nn", "re")] = design_blocks(formula, data)
   out$data = data
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
@@ -101,7 +142,15 @@ print.linear = function(x, ...) {
 #' 
 #' Implemented S3 methods include \code{\link{print.DNN}}
 #' 
-#' @seealso \code{\link{linear}}, \code{\link{sjSDM}}
+#' @details
+#' \code{DNN} replaces the linear predictor by one network over all covariates, so the model has no
+#' interpretable coefficients left. Use \code{\link{linear}} with an \code{\link{NN}} block instead
+#' when a flexible term should sit beside interpretable linear terms.
+#' 
+#' A \code{DNN} formula is a plain model formula. \code{\link{NN}} blocks and random-effect bars are
+#' a \code{\link{linear}} formula's business and are rejected here.
+#' 
+#' @seealso \code{\link{linear}}, \code{\link{NN}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @import checkmate
 #' @export
@@ -127,7 +176,11 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
   if(!is.data.frame(data)) data = data.frame(data)
   out = list()
   out$formula = formula
-  out[c("X", "terms", "xlevels")] = design(formula, data)
+  out[c("X", "terms", "xlevels", "intercept", "nn", "re")] = design_blocks(formula, data)
+  if(length(out$nn)) stop("NN() is a block of a linear() formula, DNN() is already a network",
+                          call. = FALSE)
+  if(length(out$re)) stop("random-effect bars are a block of a linear() formula, not of DNN()",
+                          call. = FALSE)
   out$data = data
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
@@ -214,11 +267,11 @@ print.bioticStruct = function(x, ...) {
 
 #' sjSDM control object
 #' 
-#' @param optimizer object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, \code{\link{madgrad}}, or \code{\link{AdaBound}}
+#' @param optimizer object of type \code{\link{Adam}}, \code{\link{AdamW}}, \code{\link{Adagrad}}, \code{\link{RMSprop}}, or \code{\link{SGD}}. \code{\link{Adamax}}, \code{\link{AccSGD}}, \code{\link{madgrad}} and \code{\link{AdaBound}} have no 'torch' counterpart, redirect to one of the above with a message, and will be removed in 1.2.0
 #' @param scheduler reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)
 #' @param lr_reduce_factor factor to reduce learning rate in scheduler
 #' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
-#' @param mixed mixed (half-precision) training or not. Only recommended for GPUs > 2000 series
+#' @param mixed mixed (half-precision) training. Accepted and ignored, 'torch' has no equivalent
 #' 
 #' @return
 #' List with the following fields:

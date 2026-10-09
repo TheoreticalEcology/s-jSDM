@@ -20,6 +20,12 @@
 #' @param blocks blocks of parallel tuning steps
 #' @param ... arguments passed to sjSDM, see \code{\link{sjSDM}}
 #' 
+#' @details
+#' Each fold refits on the already expanded design matrix, which the \code{\link{NN}} blocks and the
+#' random-effect bars of an environmental formula do not survive. A model with either raises an error on
+#' the resulting row-count mismatch rather than silently dropping them, so cross-validation of such a
+#' model is not available.
+#' 
 #' @return 
 #' An S3 class of type 'sjSDM_cv' including the following components:
 #' 
@@ -157,7 +163,9 @@ sjSDM_cv = function(Y,
       # linear()/DNN() call no longer describe new_env$X -- rebuild them or predict(newdata=)
       # evaluates the wrong variables
       new_env$data = data.frame(new_env$X)
-      new_env[c("X", "terms", "xlevels")] = design(new_env$formula, new_env$data)
+      new_env[c("X", "terms", "xlevels", "intercept")] = design(new_env$formula, new_env$data)
+      # the expanded design still carries the fitted intercept column, under a mangled name
+      new_env$intercept = isTRUE(env$intercept)
 
       if(!is.null(spatial)) {
         new_spatial = spatial
@@ -167,7 +175,7 @@ sjSDM_cv = function(Y,
         new_spatial$l2_coef = (a_sp)*l_sp
         new_spatial$formula = stats::as.formula("~0+.")
         new_spatial$data = data.frame(new_spatial$X)
-        new_spatial[c("X", "terms", "xlevels")] = design(new_spatial$formula, new_spatial$data)
+        new_spatial[c("X", "terms", "xlevels", "intercept")] = design(new_spatial$formula, new_spatial$data)
       } else {
         new_spatial = NULL
         SP_test = NULL

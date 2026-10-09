@@ -29,7 +29,8 @@ sjSDM.tune(object)
 \arguments{
 \item{Y}{matrix of species occurrences/responses in range}
 
-\item{env}{matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}}
+\item{env}{matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}. A
+\code{\link{linear}} formula may contain \code{\link{NN}} blocks and random-effect bars, see details}
 
 \item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}}
 
@@ -41,7 +42,7 @@ sjSDM.tune(object)
 
 \item{step_size}{batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}}
 
-\item{learning_rate}{learning rate for Adamax optimizer}
+\item{learning_rate}{learning rate for the optimizer, see \code{\link{sjSDMControl}}}
 
 \item{se}{calculate standard errors for environmental coefficients}
 
@@ -51,7 +52,8 @@ sjSDM.tune(object)
 
 \item{control}{control parameters for optimizer, see \code{\link{sjSDMControl}}}
 
-\item{device}{which device to be used, "cpu" or "gpu"}
+\item{device}{which device to be used, \code{"cpu"}, \code{"gpu"}, \code{"mps"}, or the integer index of a
+CUDA device. A GPU request falls back to the CPU with a warning when no CUDA device is present}
 
 \item{dtype}{which data type, most GPUs support only 32 bit floats.}
 
@@ -89,6 +91,8 @@ Implemented S3 methods include \code{\link{summary.sjSDM}}, \code{\link{plot.sjS
 \code{sjSDM} is used to fit joint Species Distribution models (jSDMs) using the central processing unit (CPU) or the graphical processing unit (GPU).
 The default is a multivariate probit model based on a Monte-Carlo approximation of the joint likelihood.
 \code{sjSDM} can be used to fit linear but also deep neural networks and supports the well known formula syntax.
+The environmental formula carries structure: it may hold \code{\link{NN}} blocks and 'lme4' random-effect bars
+beside the parametric terms, see the details.
 }
 \details{
 \loadmathjax
@@ -170,6 +174,64 @@ Then we use, for example, the first 20 spatial eigenvectors:
 
 It is important to set the intercept to 0 in the spatial term (e.g. via \code{~0+.}) because the intercept is already set in the environmental object.
 
+}
+
+\subsection{Structure in the environmental formula}{
+
+A \code{\link{linear}} formula is not restricted to parametric terms. It may in addition hold
+\code{\link{NN}} blocks and random-effect bars:
+
+\code{linear(X, ~ temp + NN(soil + ndvi, hidden = c(50, 50)) + (temp | plot))}
+
+Every block is summed on the scale of the linear predictor,
+
+\mjsdeqn{g(Z_{ij}) = \bf{X}_i\beta_j + f(\bf{X}^{NN}_i)_j + \Sigma_b \Sigma_k Z^b_{ik} \bf{u}^b_{g(i)}\Lambda^b_{jk} + e_{ij}}
+
+so the parametric part keeps its meaning: \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}} and the
+standard errors describe \mjseqn{\beta} and nothing else.
+
+\code{\link{NN}(soil + ndvi)} is a feed-forward network from its own covariates to the species. It sits
+beside the interpretable terms rather than replacing them, which is the difference to \code{\link{DNN}}.
+The block itself has no interpretable coefficients, and the standard errors are conditional on the fitted
+block: they ignore its uncertainty, and a warning says so. \code{\link{update.sjSDM}} with
+\code{env_blocks} refits with a subset of the blocks, which is how a block is switched off.
+
+A bar is written in 'lme4' syntax and carries 'lme4' semantics, through the 'reformulas' package:
+\code{(1 | plot)}, \code{(temp | plot)} for a correlated intercept and slope, \code{(0 + temp | plot)},
+\code{(temp || plot)} and \code{(1 | plot/subplot)}. \code{\link{re}} is the explicit form where a bar
+needs arguments, \code{re(1 | plot, df = 2)}.
+
+A bar is a design-level latent factor, not a scalar shift. One group effect
+\mjseqn{\bf{u}_g \sim N(0, \bf{I}_d)} is drawn per group and loaded onto the species by
+\mjseqn{\Lambda}, so the group effect has its own species-species covariance
+\mjseqn{\Lambda\Lambda'} of rank \code{df} and species may respond to a plot with different magnitude
+and sign. \code{df} defaults to \code{max(q, 5)}, with \mjseqn{q} the number of columns of the bar, and
+must not be smaller than \mjseqn{q}: below that the intercept-slope correlation is forced to
+\mjseqn{\pm 1}. \code{re(loading = "shared")} gives the classical mixed-model case instead, one shift per
+group identical for every species.
+
+The bars are integrated out by a stochastic variational approximation. Each group gets a Gaussian
+posterior, drawn with the reparameterisation trick, and the Kullback-Leibler term to the
+\mjseqn{N(0, \bf{I})} prior supplies the shrinkage; the Monte-Carlo likelihood itself is unchanged.
+\code{\link{getRE}} reports the group effects, \code{\link{getCov}} and \code{\link{getCor}} with
+\code{which = "re"} the covariance the bar induces.
+}
+
+\subsection{Limitations of blocks and bars}{
+
+\itemize{
+\item \code{\link{anova.sjSDM}} refuses on a model with a bar. The random block is re-estimated in every
+refit, so it absorbs the fraction that was removed instead of cancelling from the difference, and the
+per-species rescaling is recomputed with it. Use \code{\link{getRE}} for the group variances.
+\item \code{\link{logLik.sjSDM}} for a model with a bar is the conditional value at the posterior means,
+neither the evidence lower bound nor a marginal likelihood. It is not comparable with the
+log-likelihood of a model fitted without the bar, and neither are information criteria built from it.
+\item \code{\link{sjSDM_cv}} supports neither blocks nor bars. It raises an error rather than dropping
+them.
+\item Neither is available in the spatial formula.
+\item The reported group variance grows with \code{df}, because the Kullback-Leibler term constrains the
+posterior and not the loadings. Report the rank alongside the variance, and prefer a small \code{df}.
+}
 }
 
 \subsection{Installation}{
@@ -352,7 +414,7 @@ Chen, D., Xue, Y., & Gomes, C. P. (2018). End-to-end learning for the deep multi
 Pichler, M., & Hartig, F. (2021). A new joint species distribution model for faster and more accurate inference of species associations from big community data. Methods in Ecology and Evolution, 12(11), 2159-2173.
 }
 \seealso{
-\code{\link{getCor}},  \code{\link{getCov}}, \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
+\code{\link{getCor}},  \code{\link{getCov}}, \code{\link{getRE}}, \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{NN}}, \code{\link{re}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 }
 \author{
 Maximilian Pichler

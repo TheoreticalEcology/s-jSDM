@@ -1,12 +1,8 @@
 # Monte-Carlo multivariate probit likelihood, R torch implementation.
 # Port of inst/python/sjSDM_py/dist_mvp.py and Model_sjSDM._build_loss_function.
 
-# One object per link, replacing the four parallel switch(link, ...) tables the port carried:
-# the likelihood response, the log density, the prediction response and the marginal.
-# `response` and `predict_response` differ for probit on purpose -- the likelihood uses the
-# logistic approximation sigmoid(1.70169 eta), predict() the exact normal CDF. The gap is
-# ~0.02 nats on a two-species case and predates the torch backend; see
-# BACKEND_rewrite_plan.md 6.4. It is now one line instead of two tables.
+# `response` and `predict_response` differ for probit on purpose: the likelihood uses
+# sigmoid(1.70169 eta), predict() the exact normal CDF (BACKEND_rewrite_plan.md 6.4).
 sjsdm_family = function(link) {
   f = list(link = link, bounded = link %in% c("probit", "logit", "linear"))
 
@@ -160,12 +156,11 @@ mvp_loss = torch::nn_module(
                sampling = as.integer(sampling), theta = self$theta, noise = noise)
   },
 
-  # Marginal response: the latent factor z is not observed, so E_z[link(mu + z sigma')],
-  # not link(mu), which is the value at z = 0. Var(z sigma') = rowSums(sigma^2) per species,
-  # i.e. diag(sigma sigma' + I) - 1. Four of the six links have an exact closed form, which
-  # keeps predict() deterministic for the default family; logit and linear fall back to
-  # sampling.
-  response = function(mu, link = TRUE, marginal = TRUE, sampling = 1000L) {
+  # z is not observed, so the marginal is E_z[link(mu + z sigma')], not link(mu); logit and
+  # linear have no closed form and fall back to sampling.
+  # `extra_v` is the per-site latent variance a random block contributes for a group the fit
+  # never saw: there the group effect is integrated over its prior rather than plugged in.
+  response = function(mu, link = TRUE, marginal = TRUE, sampling = 1000L, extra_v = NULL) {
     if (!link) return(mu)
     if (!marginal) {
       E = self$family$predict_response(mu, self$alpha)
@@ -174,15 +169,18 @@ mvp_loss = torch::nn_module(
     if (is.null(self$family$marginal)) {
       noise = mvp_noise(as.integer(sampling), mu$shape[1], self$sigma$shape[2],
                         mu$device, mu$dtype)
-      return(self$response(mvp_eta(mu, self$sigma, noise, 1.0), TRUE, FALSE)$mean(dim = 1))
+      eta = mvp_eta(mu, self$sigma, noise, 1.0)
+      if (!is.null(extra_v))
+        eta = eta$add(torch::torch_randn_like(eta)$mul(extra_v$sqrt()))
+      return(self$response(eta, TRUE, FALSE)$mean(dim = 1))
     }
-    E = self$family$marginal(mu, self$sigma$pow(2)$sum(dim = 2))
+    v = self$sigma$pow(2)$sum(dim = 2)
+    if (!is.null(extra_v)) v = extra_v$add(v)
+    E = self$family$marginal(mu, v)
     if (self$family$bounded) E = mvp_guard(E)
     E
   },
 
-  # a list, not a sum: the fit loop adds the terms one at a time and the order is what the
-  # float result depends on
   penalty = function() {
     r = self$reg
     if (r$l1 <= 0.0 && r$l2 <= 0.0) return(list())
@@ -209,19 +207,12 @@ mvp_loss = torch::nn_module(
   },
 
   active = list(
-    covariance = function(value) {
-      if (!missing(value)) stop("read only")
+    covariance = function() {
       s = self$sigma$detach()
       as.matrix(s$matmul(s$t())$add(torch::torch_eye(s$shape[1], dtype = s$dtype,
                                                      device = s$device))$cpu())
     },
-    get_sigma = function(value) {
-      if (!missing(value)) stop("read only")
-      as.matrix(self$sigma$detach()$cpu())
-    },
-    get_theta = function(value) {
-      if (!missing(value)) stop("read only")
-      if (is.null(self$theta)) NULL else as.numeric(self$theta$detach()$cpu())
-    }
+    get_sigma = function() as.matrix(self$sigma$detach()$cpu()),
+    get_theta = function() if (is.null(self$theta)) NULL else as.numeric(self$theta$detach()$cpu())
   )
 )

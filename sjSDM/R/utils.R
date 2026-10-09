@@ -26,22 +26,19 @@ model_is_alive = function(m) {
   !inherits(try(m$state_dict(), silent = TRUE), "try-error")
 }
 
-# device = 0L or "gpu" on a machine without CUDA used to fail deep inside torch instead of
-# warning and falling back
+# normalises what gets stored in model_properties, so a fit that fell back to the CPU does not
+# re-warn on every rebuild. The validation itself lives in sjsdm_device().
 check_device = function(device) {
-  wants_cuda = is.numeric(device) || identical(device, "gpu") || identical(device, "cuda")
-  if (wants_cuda && !torch::cuda_is_available()) {
-    warning("CUDA is not available, falling back to the CPU", call. = FALSE)
-    return("cpu")
-  }
-  device
+  if (sjsdm_device(device)$type == "cpu") "cpu" else device
 }
 
 # predict() has to reuse the fitted design: model.matrix(formula, newdata) re-derives poly(),
 # ns() or scale() from the new rows. The terms object carries predvars, which does not.
+# One design per block, in the order the net adds them.
 sjsdm_newdata = function(config, newdata) {
   if (!is.data.frame(newdata)) newdata = data.frame(newdata)
-  stats::model.matrix(stats::delete.response(config$terms), newdata, xlev = config$xlevels)
+  lapply(c(list(config), config$nn), function(b)
+    stats::model.matrix(stats::delete.response(b$terms), newdata, xlev = b$xlevels))
 }
 
 addA = function(col, alpha = 0.25) apply(sapply(col, grDevices::col2rgb)/255, 2, function(x) grDevices::rgb(x[1], x[2], x[3], alpha=alpha))
@@ -61,7 +58,7 @@ checkModel = function(object) {
          " and cannot be restored by backend ", sjsdm_backend_version, call. = FALSE)
   
   object$model = object$get_model()
-  object$model$load_state_dict(torch::torch_load(object$state))
+  object$model$load_state_dict(torch::torch_load(object$state$raw))
   return(object)
 }
 

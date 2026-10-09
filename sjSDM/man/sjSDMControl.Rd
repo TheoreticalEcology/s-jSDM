@@ -13,7 +13,7 @@ sjSDMControl(
 )
 }
 \arguments{
-\item{optimizer}{object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, \code{\link{madgrad}}, or \code{\link{AdaBound}}}
+\item{optimizer}{object of type \code{\link{Adam}}, \code{\link{AdamW}}, \code{\link{Adagrad}}, \code{\link{RMSprop}}, or \code{\link{SGD}}. \code{\link{Adamax}}, \code{\link{AccSGD}}, \code{\link{madgrad}} and \code{\link{AdaBound}} have no 'torch' counterpart, redirect to one of the above with a message, and will be removed in 1.2.0}
 
 \item{scheduler}{reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)}
 
@@ -21,7 +21,7 @@ sjSDMControl(
 
 \item{early_stopping_training}{number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping).}
 
-\item{mixed}{mixed (half-precision) training or not. Only recommended for GPUs > 2000 series}
+\item{mixed}{mixed (half-precision) training. Accepted and ignored, 'torch' has no equivalent}
 }
 \value{
 List with the following fields:

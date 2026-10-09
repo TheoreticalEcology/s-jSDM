@@ -181,10 +181,10 @@ testthat::test_that("gradients reach sigma and the coefficients", {
 
 testthat::test_that("the optimizers minimise a quadratic", {
   skip_if_no_torch()
-  gens = list(torch::optim_ignite_rmsprop, torch::optim_ignite_sgd,
-              sjSDM:::optim_sjsdm_adamax, sjSDM:::optim_sjsdm_diffgrad,
-              sjSDM:::optim_sjsdm_adabound, sjSDM:::optim_sjsdm_accsgd,
-              sjSDM:::optim_sjsdm_madgrad)
+  # the five torch constructors the factories in backend_optim.R wire to; nothing is
+  # hand-written any more, so this is the complete set the package can build
+  gens = list(torch::optim_ignite_rmsprop, torch::optim_ignite_sgd, torch::optim_ignite_adam,
+              torch::optim_ignite_adamw, torch::optim_ignite_adagrad)
   for (g in gens) {
     p = torch::torch_tensor(c(5, -5, 5), requires_grad = TRUE)
     o = g(list(p), lr = 0.1)
@@ -196,22 +196,53 @@ testthat::test_that("the optimizers minimise a quadratic", {
 
 testthat::test_that("the optimizer factories build the optimizer they name", {
   skip_if_no_torch()
-  # the config objects in sjSDM_configs.R call these; three of them are reached by no test
-  # that fits a model, so they are exercised here directly
+  # the config objects in sjSDM_configs.R reach the backend only through these, and four of
+  # the five are the default of no fitted model, so they are exercised here directly. Each
+  # factory is one line forwarding to one torch constructor, so the class is the assertion
+  # that carries the block's title: it is what catches AdamW() wired to optim_ignite_adam.
   factories = list(
-    optimizer_RMSprop  = sjSDM:::optimizer_RMSprop(lr = 0.01, momentum = 0.1, centered = TRUE),
-    optimizer_SGD      = sjSDM:::optimizer_SGD(lr = 0.01, momentum = 0.5, nesterov = TRUE),
-    optimizer_adamax   = sjSDM:::optimizer_adamax(lr = 0.01),
-    optimizer_DiffGrad = sjSDM:::optimizer_DiffGrad(lr = 0.01),
-    optimizer_AdaBound = sjSDM:::optimizer_AdaBound(lr = 0.01, amsbound = TRUE),
-    optimizer_AccSGD   = sjSDM:::optimizer_AccSGD(lr = 0.01),
-    optimizer_madgrad  = sjSDM:::optimizer_madgrad(lr = 0.01, momentum = 0.9)
+    optimizer_RMSprop = sjSDM:::optimizer_RMSprop(lr = 0.01, momentum = 0.1, centered = TRUE),
+    optimizer_SGD     = sjSDM:::optimizer_SGD(lr = 0.01, momentum = 0.5, nesterov = TRUE),
+    optimizer_Adam    = sjSDM:::optimizer_Adam(lr = 0.01, amsgrad = TRUE),
+    optimizer_AdamW   = sjSDM:::optimizer_AdamW(lr = 0.01),
+    optimizer_Adagrad = sjSDM:::optimizer_Adagrad(lr = 0.01)
   )
+  built = c(optimizer_RMSprop = "optim_ignite_rmsprop", optimizer_SGD = "optim_ignite_sgd",
+            optimizer_Adam = "optim_ignite_adam", optimizer_AdamW = "optim_ignite_adamw",
+            optimizer_Adagrad = "optim_ignite_adagrad")
   for (nm in names(factories)) {
     p = torch::torch_tensor(c(5, -5, 5), requires_grad = TRUE)
     o = factories[[nm]](list(p))
+    testthat::expect_true(inherits(o, built[[nm]]), label = nm)
     start = as.numeric(p$detach()$pow(2)$sum())
     for (i in 1:60) { o$zero_grad(); p$pow(2)$sum()$backward(); o$step() }
+    testthat::expect_lt(as.numeric(p$detach()$pow(2)$sum()), start, label = nm)
+  }
+})
+
+testthat::test_that("the deprecated optimizer names still build a working optimizer", {
+  skip_if_no_torch()
+  # Adamax, AdaBound, AccSGD and madgrad are exported CRAN API from 1.0.7 that no longer has
+  # an implementation; they redirect with a message. Each used to be covered by its own
+  # factory above, and this is what is left of that coverage: a redirect that mistranslates
+  # an argument (AdaBound's amsbound -> Adam's amsgrad) fails only when a model is fitted.
+  deprecated = c(Adamax = "optim_ignite_adam", AdaBound = "optim_ignite_adam",
+                 AccSGD = "optim_ignite_sgd", madgrad = "optim_ignite_adam",
+                 DiffGrad = "optim_ignite_adam")
+  for (nm in names(deprecated)) {
+    build = get(nm, envir = asNamespace("sjSDM"))
+    testthat::expect_message(build(), "deprecated")
+    cfg = suppressMessages(build())
+    cfg$params$lr = 0.05
+    p = torch::torch_tensor(c(5, -5, 5), requires_grad = TRUE)
+    o = do.call(cfg$ff(), cfg$params)(list(p))
+    testthat::expect_true(inherits(o, deprecated[[nm]]), label = nm)
+    start = as.numeric(p$detach()$pow(2)$sum())
+    for (i in 1:60) {
+      o$zero_grad()
+      p$pow(2)$sum()$backward()
+      o$step()
+    }
     testthat::expect_lt(as.numeric(p$detach()$pow(2)$sum()), start, label = nm)
   }
 })
@@ -223,9 +254,10 @@ testthat::test_that("the optimizer branches that the defaults never reach", {
     rmsprop_centered = sjSDM:::optimizer_RMSprop(lr = 0.01, centered = TRUE),
     sgd_nesterov     = sjSDM:::optimizer_SGD(lr = 0.01, momentum = 0.9, nesterov = TRUE),
     sgd_dampening    = sjSDM:::optimizer_SGD(lr = 0.01, momentum = 0.9, dampening = 0.5),
-    adabound_ams     = function(p) sjSDM:::optim_sjsdm_adabound(p, lr = 0.05, amsbound = TRUE),
-    adabound_plain   = function(p) sjSDM:::optim_sjsdm_adabound(p, lr = 0.05, amsbound = FALSE),
-    madgrad_nomom    = function(p) sjSDM:::optim_sjsdm_madgrad(p, lr = 0.05, momentum = 0)
+    adam_amsgrad     = sjSDM:::optimizer_Adam(lr = 0.05, amsgrad = TRUE),
+    adamw_decay      = sjSDM:::optimizer_AdamW(lr = 0.05, weight_decay = 0.1),
+    adagrad_decay    = sjSDM:::optimizer_Adagrad(lr = 0.05, lr_decay = 0.01,
+                                                 initial_accumulator_value = 0.1)
   )
   for (nm in names(variants)) {
     p = torch::torch_tensor(c(5, -5, 5), requires_grad = TRUE)
@@ -239,27 +271,33 @@ testthat::test_that("the optimizer branches that the defaults never reach", {
 
 testthat::test_that("zero column design matrices build", {
   skip_if_no_torch()
-  m = sjSDM:::Model_sjSDM$new(device = "cpu", dtype = "float32", seed = 1L)
-  m$add_env(0L, 3L)
-  m$build(df = 2L, optimizer = sjSDM:::optimizer_RMSprop(lr = 0.01), scheduler = FALSE)
+  m = sjSDM:::Model_sjSDM(blocks = list(list(input_shape = 0L, output_shape = 3L)),
+                          loss = list(link = "probit", species = 3L, df = 2L),
+                          optimizer = RMSprop(), seed = 1L)
   X = matrix(0, 10, 0)
   Y = matrix(rbinom(30, 1, 0.5), 10, 3)
   m$fit(X, Y, batch_size = 5L, epochs = 2L, sampling = 5L, verbose = FALSE)
   testthat::expect_true(is.finite(m$logLik(X, Y, batch_size = 5L, sampling = 5L)[[1]]))
 })
 
-testthat::test_that("device and dtype strings resolve without touching a device", {
+testthat::test_that("every CUDA request is validated at the one funnel a rebuild goes through", {
   skip_if_no_torch()
   d = sjSDM:::sjsdm_device
   testthat::expect_equal(as.character(d("cpu")$type), "cpu")
-  for (alias in c("gpu", "cuda")) {
-    testthat::expect_equal(as.character(d(alias)$type), "cuda")
-    testthat::expect_equal(d(alias)$index, 0)
-  }
-  # a bare integer selects the CUDA card of that index, which is what sjSDM(device = 1L) means
-  testthat::expect_equal(as.character(d(2L)$type), "cuda")
-  testthat::expect_equal(d(2L)$index, 2)
   testthat::expect_equal(as.character(d("mps")$type), "mps")
+  # "cuda:0" as a string and an out-of-range index used to reach libtorch and die there
+  if (torch::cuda_is_available()) {
+    for (alias in list("gpu", "cuda", "cuda:0", 0L)) {
+      testthat::expect_equal(as.character(d(alias)$type), "cuda")
+      testthat::expect_equal(d(alias)$index, 0)
+    }
+    n = torch::cuda_device_count()
+    testthat::expect_error(d(n), "CUDA device")
+    testthat::expect_error(d(paste0("cuda:", n)), "CUDA device")
+  } else {
+    for (alias in list("gpu", "cuda", "cuda:0", 0L, 3L))
+      testthat::expect_warning(testthat::expect_equal(as.character(d(alias)$type), "cpu"))
+  }
 
   dt = sjSDM:::sjsdm_dtype
   testthat::expect_true(dt("float32") == torch::torch_float32())
@@ -272,11 +310,10 @@ testthat::test_that("the association matrix carries the unit diagonal", {
   skip_if_no_torch()
   set.seed(19)
   sp = 5L; df = 3L
-  m = sjSDM:::Model_sjSDM$new(device = "cpu", dtype = "float32", seed = 1L)
-  m$add_env(2L, sp)
-  m$build(df = df, optimizer = sjSDM:::optimizer_RMSprop(lr = 0.01), scheduler = FALSE)
+  m = sjSDM:::Model_sjSDM(blocks = list(list(input_shape = 2L, output_shape = sp)),
+                          loss = list(link = "probit", species = sp, df = df), seed = 1L)
   s = matrix(rnorm(sp * df, sd = 0.4), sp, df)
-  m$set_sigma(s)
+  sjSDM:::set_state(m$loss, list(sigma = s))
   testthat::expect_equal(m$get_sigma, s, tolerance = 1e-6)
   # sigma %*% t(sigma) + I, not sigma %*% t(sigma) -- getCov() reads this binding
   testthat::expect_equal(m$covariance, s %*% t(s) + diag(sp), tolerance = 1e-5)
@@ -284,7 +321,8 @@ testthat::test_that("the association matrix carries the unit diagonal", {
 
 testthat::test_that("sjsdm_tensor refuses arrays it would silently flatten", {
   skip_if_no_torch()
-  testthat::expect_error(sjSDM:::sjsdm_tensor(array(1:8, c(2, 2, 2))), "3 dimensions")
+  testthat::expect_error(sjSDM:::sjsdm_tensor(array(1:8, c(2, 2, 2))), "dimension 3")
+  testthat::expect_equal(sjSDM:::sjsdm_tensor(array(1:4, 4))$shape, c(4, 1))
   testthat::expect_equal(sjSDM:::sjsdm_tensor(1:4)$shape, c(4, 1))
 })
 
