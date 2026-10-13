@@ -85,8 +85,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE),  verbose = verbose)
     B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ),  verbose = verbose)
-    SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    SAT_m = saturated_nll(object$data$Y, object$family$link, object$theta)
     
     A_wo = A_m - null_m
     B_wo = B_m - null_m
@@ -152,9 +151,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
     BS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
     
-    # Saturated, do we really need it?
-    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
-    SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    SAT_m = saturated_nll(object$data$Y, object$family$link, object$theta)
     
     
     A_wo = A_m - null_m
@@ -340,6 +337,35 @@ correct_R2 = function(R2) {
   R2 = ifelse(R2 < 0, 0, R2)
   R2 = ifelse(R2 > 1.000, 0, R2)
   return(R2)
+}
+
+# Negative log-likelihood of the saturated model, which `~as.factor(1:n)` was fitted to
+# approximate until 1.1.0. One free mean per site x species makes the likelihood factorise
+# over cells, so mu = Y and the maximum is closed form. theta is held at the fitted value
+# rather than maximised with it: the supremum over theta is degenerate (normal diverges as
+# sd -> 0, nbinom only reaches the Poisson value as r -> Inf), and a deviance conditional on
+# the fitted dispersion is the GLM convention.
+#
+# SAT_m cancels from Deviance (= RD[Null] - RD) and appears in neither R2, so it feeds only
+# the `Residual deviance` column -- and the SGD fit got that column wrong: on a 100 x 8
+# binomial example the refit returned -204.2 where the answer is 0, a value set by `iter`,
+# `learning_rate` and `weight_decay` of a nuisance model. Dropping the fit removes the
+# single largest phase of anova(), 31 % at 775 x 201.
+saturated_nll = function(Y, link, theta = NULL) {
+  theta_m = function() matrix(theta, nrow(Y), ncol(Y), byrow = TRUE)
+  ll = switch(link,
+              probit = ,
+              logit  = ,
+              linear = matrix(0.0, nrow(Y), ncol(Y)),
+              count  = Y * log(pmax(Y, 1)) - Y - lgamma(Y + 1.0),
+              nbinom = {
+                r = 1.0 / (softplus(theta_m()) + 0.0001)
+                p = pmin(pmax((1.0 - r / (r + Y)) + 0.0001, 0.0), 1.0 - 0.0001)
+                lgamma(r + Y) - lgamma(Y + 1.0) - lgamma(r) + r * log1p(-p) + Y * log(p)
+              },
+              normal = -theta_m() - 0.5 * log(2 * pi))
+  ll[is.na(Y)] = 0.0
+  -ll
 }
 
 get_conditional_lls = function(m, null_m, mc_batch = NULL, ...) {
