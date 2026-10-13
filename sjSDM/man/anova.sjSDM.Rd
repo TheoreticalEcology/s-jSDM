@@ -4,12 +4,24 @@
 \alias{anova.sjSDM}
 \title{Anova / Variation partitioning}
 \usage{
-\method{anova}{sjSDM}(object, samples = 5000L, verbose = TRUE, ...)
+\method{anova}{sjSDM}(
+  object,
+  samples = 5000L,
+  proposal = c("prior", "laplace"),
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
 
 \item{samples}{Number of Monte Carlo samples}
+
+\item{proposal}{distribution the latent factors are drawn from. \code{"prior"} (the default) draws
+from \code{N(0, I)}, which is what every released version did. \code{"laplace"} draws from a Gaussian
+fitted to the per-site mode of the integrand and reweights the draws, which leaves the
+estimator exact in expectation but raises the effective sample size by orders of magnitude
+at many species. See Details.}
 
 \item{verbose}{\code{TRUE} or \code{FALSE}, indicating whether progress should be printed or not}
 
@@ -28,6 +40,11 @@ An S3 class of type 'sjSDManova' including the following components:
 \item{species}{individual species R2s.}
 \item{sites}{individual site R2s.}
 \item{lls}{individual site by species negative-log-likelihood values.}
+\item{proposal}{the sampler the latent factors were drawn from.}
+\item{ess}{sites-by-sub-model matrix of effective sample sizes, as a fraction of \code{samples}.
+One column per fitted sub-model, so a low column shows which model's likelihood rests on few
+draws. \code{attr(, "newton_maxgrad")} carries the largest gradient the Laplace mode-finder left
+behind, per sub-model.}
 \item{model}{model}
 
 Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
@@ -42,6 +59,17 @@ Variance explained is measured by Deviance as well as the pseudo-R2 metrics of N
 
 In downstream functions such as \code{\link{plot.sjSDManova}} or \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
 The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
+
+The default \code{proposal = "prior"} draws the latent factors blind and weights them by the likelihood.
+At many species almost every draw lands where the observed community is implausible, so the effective
+sample size collapses -- measured at 100 species it is 3 draws out of 1000 -- and \code{-log(mean(exp(lp)))}
+is biased downwards by an amount that grows with the variance of the per-draw log-probability. That
+variance differs between the sub-models \code{anova} compares: the association-only model has no fixed
+effects and leans entirely on the latent factors, so its likelihood is depressed most and the environment
+fraction comes out too large. \code{proposal = "laplace"} removes this by sampling from a Gaussian centred on
+the per-site mode with the curvature of the integrand, and correcting each draw by \code{log p(z) - log q(z)}.
+It is a proposal, not an approximation: a poor fit costs effective sample size, not correctness. The
+realised fraction is returned in the \code{ess} component, where 1 means every draw counted.
 
 \code{anova} is not defined for a model with random-effect bars in the environmental formula and raises
 an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed

@@ -4,6 +4,11 @@
 #' 
 #' @param object model of object \code{\link{sjSDM}}
 #' @param samples Number of Monte Carlo samples
+#' @param proposal distribution the latent factors are drawn from. `"prior"` (the default) draws
+#'   from `N(0, I)`, which is what every released version did. `"laplace"` draws from a Gaussian
+#'   fitted to the per-site mode of the integrand and reweights the draws, which leaves the
+#'   estimator exact in expectation but raises the effective sample size by orders of magnitude
+#'   at many species. See Details.
 #' @param verbose `TRUE` or `FALSE`, indicating whether progress should be printed or not
 #' @param ... optional arguments which are passed to the calculation of the logLikelihood,
 #'   including \code{mc_batch}, the number of sites whose Monte-Carlo draws are held in
@@ -16,6 +21,17 @@
 #' 
 #' In downstream functions such as \code{\link{plot.sjSDManova}} or \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
 #' The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
+#' 
+#' The default `proposal = "prior"` draws the latent factors blind and weights them by the likelihood.
+#' At many species almost every draw lands where the observed community is implausible, so the effective
+#' sample size collapses -- measured at 100 species it is 3 draws out of 1000 -- and \code{-log(mean(exp(lp)))}
+#' is biased downwards by an amount that grows with the variance of the per-draw log-probability. That
+#' variance differs between the sub-models \code{anova} compares: the association-only model has no fixed
+#' effects and leans entirely on the latent factors, so its likelihood is depressed most and the environment
+#' fraction comes out too large. `proposal = "laplace"` removes this by sampling from a Gaussian centred on
+#' the per-site mode with the curvature of the integrand, and correcting each draw by \code{log p(z) - log q(z)}.
+#' It is a proposal, not an approximation: a poor fit costs effective sample size, not correctness. The
+#' realised fraction is returned in the `ess` component, where 1 means every draw counted.
 #' 
 #' \code{anova} is not defined for a model with random-effect bars in the environmental formula and raises
 #' an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed
@@ -41,6 +57,11 @@
 #' \item{species}{individual species R2s.}
 #' \item{sites}{individual site R2s.}
 #' \item{lls}{individual site by species negative-log-likelihood values.}
+#' \item{proposal}{the sampler the latent factors were drawn from.}
+#' \item{ess}{sites-by-sub-model matrix of effective sample sizes, as a fraction of `samples`.
+#'   One column per fitted sub-model, so a low column shows which model's likelihood rests on few
+#'   draws. `attr(, "newton_maxgrad")` carries the largest gradient the Laplace mode-finder left
+#'   behind, per sub-model.}
 #' \item{model}{model}
 #' 
 #' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
@@ -52,10 +73,12 @@
 #' @import stats
 #' @export
 
-anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
+anova.sjSDM = function(object, samples = 5000L, proposal = c("prior", "laplace"),
+                       verbose = TRUE, ...) {
   out = list()
   individual = TRUE
   samples = as.integer(samples)
+  proposal = match.arg(proposal)
   object = checkModel(object)
   # the random blocks are re-estimated in every refit, so they absorb what the removed term
   # explained instead of cancelling, and get_conditional_lls() rescales each refit by its own
@@ -65,7 +88,12 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
          "the random blocks, so they absorb the fraction that was removed rather than ",
          "cancelling from the difference. Use getRE() for the group variances.", call. = FALSE)
   object$samples = samples
-  object$settings$sampling = samples
+  # `samples` is the Monte-Carlo budget for EVALUATING the fractions, and it is passed
+  # explicitly to every get_conditional_lls() call below. It must not reach the refits:
+  # update() hands settings$sampling to sjSDM(), so writing it here trained the seven
+  # sub-models and the null at `samples` draws per optimiser step while full_m came from
+  # the original fit at the model's own sampling -- the fractions then compared models
+  # trained under different regimes, and a 201-species anova spent its time there.
   
   sjsdm_set_seed(object$seed)
   #   if(object$family$family$family == "gaussian") stop("gaussian not yet supported")
@@ -74,7 +102,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
   
   null_m = -get_null_ll(object, verbose = verbose)
   
-  full_m = get_conditional_lls(object, null_m, sampling = samples, ...)
+  full_m = get_conditional_lls(object, null_m, sampling = samples, proposal = proposal, ...)
   
   ### fit different models ###
   #e_form = stats::as.formula(paste0(as.character(object$settings$env$formula), collapse = ""))
@@ -82,9 +110,9 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     out$spatial = FALSE
     
     m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ), verbose = verbose)
-    A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    A_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE),  verbose = verbose)
-    B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    B_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     SAT_m = saturated_nll(object$data$Y, object$family$link, object$theta)
     
     A_wo = A_m - null_m
@@ -122,6 +150,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     results_mvp_proportional = results_mvp
     
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m +F_B), "F_AB"=-(null_m + F_AB), "A" = -A_m, "B" = -B_m, "Full"=-full_m, "Saturated"=-SAT_m, "Null"=-null_m)
+    out$ess = collect_ess(list(A = A_m, B = B_m, Full = full_m))
     
   } else {
     out$spatial = TRUE
@@ -129,28 +158,29 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     s_form = stats::as.formula(paste0(as.character(object$settings$spatial$formula), collapse = ""))
     # A only model
     m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ),  verbose = verbose)
-    A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    A_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # B only model
     m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE), verbose = verbose)
-    B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    B_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # S only model
     m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE), verbose = verbose)
-    S_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    S_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # AB
     m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
-    AB_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    AB_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # AS
     m = update(object, env_formula = NULL, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE ), verbose = verbose)
-    AS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    AS_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # BS
     m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
-    BS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    BS_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
+    # Saturated, do we really need it?
     SAT_m = saturated_nll(object$data$Y, object$family$link, object$theta)
     
     
@@ -221,6 +251,8 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
                        "F_BS"=-(null_m + F_BS), "F_ABS"=-(null_m + F_ABS), "A" = -A_m, "B" = -B_m, "S" = -S_m, AB = -AB_m, AS = -AS_m, BS = -BS_m,
                        "Full"=-(full_m), "Saturated"= -(SAT_m), "Null"=-null_m)
     
+    out$ess = collect_ess(list(A = A_m, B = B_m, S = S_m, AB = AB_m, AS = AS_m,
+                               BS = BS_m, Full = full_m))
     anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
     names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")
   }
@@ -327,6 +359,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
                    R2_Nagelkerke_shared = R2_Nagelkerke_sites_shared,
                    R2_McFadden_shared = R2_McFadden_sites_shared)
   out$lls = list(results_ind)
+  out$proposal = proposal
   out$object = object
   class(out) = "sjSDManova"
   return(out)
@@ -368,7 +401,18 @@ saturated_nll = function(Y, link, theta = NULL) {
   -ll
 }
 
-get_conditional_lls = function(m, null_m, mc_batch = NULL, ...) {
+# The effective sample size is a property of each sub-model's integration, not of the anova as a
+# whole: the association-only model leans entirely on the latent factors and is always the worst
+# integrated of the set. One column per sub-model, one row per site.
+collect_ess = function(models) {
+  e = vapply(models, function(x) attr(x, "ess"), numeric(nrow(models[[1]])))
+  colnames(e) = names(models)
+  attr(e, "newton_maxgrad") =
+    vapply(models, function(x) { g = attr(x, "maxgrad"); if (is.null(g)) NA_real_ else g }, 1.0)
+  e
+}
+
+get_conditional_lls = function(m, null_m, mc_batch = NULL, proposal = "prior", ...) {
   
   predictions = predict(m, type = "raw")  
   args = list(...)
@@ -382,9 +426,16 @@ get_conditional_lls = function(m, null_m, mc_batch = NULL, ...) {
   # are compared under the same noise
   sigma = m$model$sigma$detach()
   tt = function(x) sjsdm_tensor(x, m$model$dtype, m$model$device)
-  MC_samples = torch::torch_randn(c(as.integer(samples), nrow(predictions), ncol(sigma)),
-                                  dtype = m$model$dtype, device = m$model$device)
   theta = m$model$theta
+  derivs = if (proposal == "laplace") sjsdm_derivs(m$family$link, m$model$alpha) else NULL
+  if (proposal == "laplace" && is.null(derivs)) {
+    message("link '", m$family$link, "' has no curvature for the Laplace proposal, ",
+            "falling back to prior sampling")
+    proposal = "prior"
+  }
+  MC_samples = if (proposal == "prior")
+    torch::torch_randn(c(as.integer(samples), nrow(predictions), ncol(sigma)),
+                       dtype = m$model$dtype, device = m$model$device)
 
   n = nrow(predictions)
   S = ncol(m$data$Y)
@@ -400,13 +451,26 @@ get_conditional_lls = function(m, null_m, mc_batch = NULL, ...) {
 
   joint_ll = numeric(n)
   raw_ll = matrix(0, n, S)
+  ess = numeric(n)
+  maxgrad = 0
   for (start in seq(1L, n, by = mc_batch)) {
     k = start:min(start + mc_batch - 1L, n)
-    lp = mvp_species_logprob(tt(predictions[k, , drop = FALSE]),
-                             tt(m$data$Y[k, , drop = FALSE]), sigma,
+    mu_k = tt(predictions[k, , drop = FALSE])
+    Y_k = tt(m$data$Y[k, , drop = FALSE])
+    if (proposal == "laplace") {
+      prop = mvp_laplace_proposal(mu_k, Y_k, sigma, derivs, theta)
+      maxgrad = max(maxgrad, prop$maxgrad)
+      dr = mvp_laplace_draw(prop, as.integer(samples))
+      noise_k = dr$z
+      lw = dr$lw
+    } else {
+      noise_k = MC_samples[, k, , drop = FALSE]
+      lw = NULL
+    }
+    lp = mvp_species_logprob(mu_k, Y_k, sigma,
                              link = m$family$link, alpha = m$model$alpha,
                              sampling = as.integer(samples), theta = theta,
-                             noise = MC_samples[, k, , drop = FALSE])
+                             noise = noise_k)
     # Every link is elementwise in the species index, so column j of lp is what a refit
     # without the other species would have produced. All S leave-one-out sums come from a
     # forward and a backward cumulative sum: LOO_j = sum_{k<j} + sum_{k>j}. Subtracting
@@ -418,18 +482,34 @@ get_conditional_lls = function(m, null_m, mc_batch = NULL, ...) {
     cb = lp$flip(3)$cumsum(dim = 3)$flip(3)
     # the joint stays a plain sum reduction: cf's last column is the same quantity but
     # accumulated in a different order, and it feeds every fraction
-    joint_ll[k] = as.numeric(mvp_mc_nll(lp$sum(dim = 3))$cpu())
+    # the importance weight is constant in the species index, so it enters the joint and every
+    # leave-one-out sum the same way and the cumsum trick is untouched
+    jt = lp$sum(dim = 3)
+    if (!is.null(lw)) jt = jt$add(lw)
+    joint_ll[k] = as.numeric(mvp_mc_nll(jt)$cpu())
+    ess[k] = as.numeric(mvp_ess(jt)$cpu())
     z = torch::torch_zeros_like(cf$select(3, 1)$unsqueeze(3))
     left = torch::torch_cat(list(z, cf$narrow(3, 1, S - 1L)), dim = 3)
     right = torch::torch_cat(list(cb$narrow(3, 2, S - 1L), z), dim = 3)
-    raw_ll[k, ] = as.matrix(mvp_mc_nll(left$add(right))$cpu())
+    loo = left$add(right)
+    if (!is.null(lw)) loo = loo$add(lw$unsqueeze(3))
+    raw_ll[k, ] = as.matrix(mvp_mc_nll(loo)$cpu())
   }
 
   raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
   diff_ll = colSums(null_m - raw_conditional_ll)
   rates = diff_ll/sum(diff_ll)
   rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(m$data$Y), ncol = ncol(m$data$Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
-  
+  # A site whose mode was missed gets a proposal centred away from the mass, and the median ESS
+  # does not show it because a failing minority does not move a median. The threshold sits
+  # between what a converged run leaves behind (1e-2 or less, results bit-identical) and what a
+  # diverged one produces (order 10): anything in between is worth a look at `ess` per site.
+  if (proposal == "laplace" && maxgrad > 1e-1)
+    warning("Laplace proposal: the mode was not reached for at least one site (largest gradient ",
+            signif(maxgrad, 3), "). Check the per-site `ess` and compare against ",
+            "proposal = \"prior\".", call. = FALSE)
+  attr(rescaled_conditional_lls, "ess") = ess / as.integer(samples)
+  attr(rescaled_conditional_lls, "maxgrad") = maxgrad
   
   return(rescaled_conditional_lls)
 }

@@ -55,6 +55,102 @@ sjsdm_family = function(link) {
   f
 }
 
+# Log-density, score and observed information of log p(y | u) in the UNSCALED linear predictor
+# u, i.e. before alpha. `ll` drops terms constant in u -- the mode-finder only needs differences.
+# Only used to build the Laplace proposal; `linear` is clamped and has no usable curvature, so
+# it returns NULL and the caller falls back to prior sampling.
+sjsdm_derivs = function(link, alpha = 1.0) {
+  ls = function(x) torch::nnf_softplus(x$neg())$neg()          # log sigmoid, stable
+  switch(link,
+         probit = ,
+         logit  = function(u, Y, theta) {
+           au = u$mul(alpha)
+           p = torch::torch_sigmoid(au)
+           list(ll = Y$mul(ls(au))$add((1 - Y)$mul(ls(au$neg()))),
+                g = (Y - p)$mul(alpha), w = p$mul(1 - p)$mul(alpha^2))
+         },
+         count  = function(u, Y, theta) {
+           lam = u$exp()
+           list(ll = Y$mul(u)$sub(lam), g = Y - lam, w = lam)
+         },
+         nbinom = function(u, Y, theta) {
+           r = (1.0 / (torch::nnf_softplus(theta) + 0.0001))$unsqueeze(1)
+           m = u$exp()
+           list(ll = Y$mul(u)$sub((r + Y)$mul((r + m)$log())),
+                g = (Y - m)$mul(r)$div(r + m),
+                w = m$mul(r)$mul(r + Y)$div((r + m)$pow(2)))
+         },
+         normal = function(u, Y, theta) {
+           v = theta$exp()$pow(2)$unsqueeze(1)
+           list(ll = (Y - u)$pow(2)$div(-2.0 * v), g = (Y - u)$div(v),
+                w = torch::torch_ones_like(u)$div(v))
+         },
+         NULL)
+}
+
+# Newton on g(z) = sum_j log p(y_j | mu_j + (sigma z)_j) - ||z||^2 / 2, one mode per site.
+# A positive definite Hessian gives a descent direction, not convergence: where a species is
+# saturated its weight alpha^2 p(1-p) vanishes, the Hessian collapses towards I, and the step
+# overshoots. Sites whose occurrences are far from what the fixed effects predict then diverge
+# and the proposal is centred nowhere near the mass -- which the median ESS does not show. Hence
+# a per-site backtracking line search on g itself, and a convergence check the caller can read.
+mvp_laplace_proposal = function(mu, Y, sigma, derivs, theta = NULL, steps = 50L, tol = 1e-4) {
+  d = sigma$shape[2]
+  eye = torch::torch_eye(d, dtype = mu$dtype, device = mu$device)
+  obs = Y$isnan()$logical_not()$to(dtype = mu$dtype)
+  Y0 = Y$masked_fill(Y$isnan(), 0.0)
+  z = torch::torch_zeros(c(mu$shape[1], d), dtype = mu$dtype, device = mu$device)
+
+  parts = function(zz) derivs(torch::torch_matmul(zz, sigma$t())$add(mu), Y0, theta)
+  # sigma' diag(w_i) sigma per site, as two matmuls. A three-operand einsum picks a contraction
+  # path through [sites, species, df, df] and segfaulted libtorch at df = 500.
+  obj = function(pp, zz) pp$ll$mul(obs)$sum(dim = 2)$sub(zz$pow(2)$sum(dim = 2)$mul(0.5))
+  grad = function(pp, zz) torch::torch_matmul(pp$g$mul(obs), sigma)$sub(zz)
+  hess = function(pp) torch::torch_matmul(sigma$t()$unsqueeze(1),
+                                          pp$w$mul(obs)$unsqueeze(3)$mul(sigma$unsqueeze(1)))$add(eye)
+
+  pp = parts(z)
+  f0 = obj(pp, z)
+  for (i in seq_len(steps)) {
+    g = grad(pp, z)
+    if (as.numeric(g$pow(2)$sum(dim = 2)$max()$cpu()) < tol^2) break
+    step = torch::torch_cholesky_solve(g$unsqueeze(3), torch::linalg_cholesky(hess(pp)))$squeeze(3)
+    t = torch::torch_ones_like(f0)
+    for (bt in 1:25) {
+      zn = z$add(step$mul(t$unsqueeze(2)))
+      pn = parts(zn)
+      fn = obj(pn, zn)
+      bad = fn$isfinite()$logical_not()$logical_or(fn < f0)
+      if (!as.logical(bad$any()$cpu())) break
+      t = torch::torch_where(bad, t$mul(0.5), t)
+    }
+    z = z$add(step$mul(t$unsqueeze(2)))
+    pp = parts(z)
+    f0 = obj(pp, z)
+  }
+  pp = parts(z)
+  list(mode = z, L = torch::linalg_cholesky(hess(pp)),
+       maxgrad = as.numeric(grad(pp, z)$pow(2)$sum(dim = 2)$sqrt()$max()$cpu()))
+}
+
+# Draw from N(mode, H^-1) and return log p(z) - log q(z). z = mode + L^-T eps makes the
+# quadratic form of the proposal exactly ||eps||^2, so no second solve is needed.
+mvp_laplace_draw = function(prop, sampling) {
+  eps = torch::torch_randn(c(as.integer(sampling), prop$mode$shape[1], prop$mode$shape[2]),
+                           dtype = prop$mode$dtype, device = prop$mode$device)
+  # one solve per site with `sampling` right-hand sides. Broadcasting L over the draw dimension
+  # instead materialises [sampling, sites, df, df] and asked for 37 GiB at df = 500.
+  z = torch::linalg_solve_triangular(prop$L$transpose(2, 3), eps$permute(c(2, 3, 1)),
+                                     upper = TRUE)$permute(c(3, 1, 2))$add(prop$mode$unsqueeze(1))
+  logdet = torch::torch_diagonal(prop$L, dim1 = 2, dim2 = 3)$log()$sum(dim = 2)
+  list(z = z, lw = eps$pow(2)$sum(dim = 3)$mul(0.5)$
+         sub(z$pow(2)$sum(dim = 3)$mul(0.5))$sub(logdet$unsqueeze(1)))
+}
+
+# (sum w)^2 / sum w^2 on the log scale; 1 means every draw counted, 1/S means one did
+mvp_ess = function(lw) torch::torch_exp(torch::torch_logsumexp(lw, dim = 1)$mul(2)$
+                                          sub(torch::torch_logsumexp(lw$mul(2), dim = 1)))
+
 # keeps probabilities away from 0/1; meaningless on a rate, so only the bounded links get it
 mvp_guard = function(E) E$mul(0.999999)$add(0.0000005)
 
