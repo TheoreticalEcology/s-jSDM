@@ -189,9 +189,11 @@ plot(an)
 summary(an)
 ```
 
-We see that the environmental component explains the most variance in the data, followed by the biotic association component. As in any ANOVA, there are unique and shared fractions for each component. The shared fractions depict variation that can be explained from either of the components (e.g. due to collinearity).
+The table has one row per component plus the full model. Here the environment explains most of the explainable deviance, followed by space and then the associations, and the three unique fractions sum to the full R^2^.
 
-Different ANOVA strategies deal differently with these shared fractions. For example, in type II/III ANOVA, the shared fractions are usually discarded. The default here is to display all fractions. Alternatively (more on this see `?summary.sjSDManova`):
+Variation that two or three components could explain equally well -- because the predictors are collinear, or because the species associations line up with an environmental gradient -- is *shared* between them, and the default summary has already distributed it over the unique fractions. `summary(an, fractions = "all")` reports those shared fractions as rows of their own instead. That is also where negative values show up: a negative shared fraction means the components together explain *more* than the sum of what each explains alone, so it cannot be read as an amount of variance.
+
+Different ANOVA strategies deal differently with these shared fractions. For example, in type II/III ANOVA, the shared fractions are usually discarded. The default here is `mvp_proportional`, which splits the environmental and spatial fractions within the model without associations, distributes their shared part proportionally, and gives the remainder of the full model to the associations; `"all"` displays every shared fraction explicitly. Alternatively (more on this see `?summary.sjSDManova`):
 
 -   `summary(an, fractions = "discard")` discards shared fractions, as in a type II/III ANOVA
 -   `summary(an, fractions = "proportional")` distributes shared fractions to the unique fractions proportional to the unique fractions
@@ -497,4 +499,4 @@ agree within Monte-Carlo noise rather than to the last digit.
 ## Help and bugs
 
 -   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `sjSDM::install_diagnostic()` as a quote.
--   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-emple) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)
+-   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)

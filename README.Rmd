@@ -19,7 +19,7 @@ The sjSDM package is an R package for estimating joint species distribution mode
 
 A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. 
 
-Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation. Models and results are unchanged apart from Monte-Carlo noise, see `news(package = "sjSDM")`.
+Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation. Model fits are unchanged apart from Monte-Carlo noise. `anova()` is an exception: 1.1.0 fixes several defects in it that move variation-partitioning results, see `news(package = "sjSDM")`.
 
 To get citation info for sjSDM when you use it for your reseach, type  
 
