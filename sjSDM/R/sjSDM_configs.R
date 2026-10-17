@@ -1,3 +1,17 @@
+# model.matrix(formula, newdata) re-derives a data-dependent basis -- poly(), ns(), scale() --
+# from the new rows instead of reusing the fitted one, so the terms object and the factor
+# levels have to travel with the design. See BACKEND_rewrite_plan.md 6.6.
+design = function(formula, data) {
+  mf = stats::model.frame(formula, data)
+  tt = stats::terms(mf)
+  X = stats::model.matrix(formula, mf)
+  # carried as a field, never re-derived from a column name downstream: data.frame() renames
+  # "(Intercept)" and the model.matrix of an already expanded design backquotes it, which is
+  # how the unpenalised intercept was lost twice
+  list(X = X, terms = tt, xlevels = stats::.getXlevels(tt, mf),
+       intercept = "(Intercept)" %in% colnames(X))
+}
+
 #' Linear model of environmental response 
 #' 
 #' specify the model to be fitted
@@ -5,6 +19,38 @@
 #' @param formula formula object for predictors
 #' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |coefficients| + \alpha ||coefficients||^2}
+#' 
+#' @details
+#' The formula is the usual model formula with two additions, and a formula that uses neither is
+#' parsed exactly as before.
+#' 
+#' \code{\link{NN}(soil + ndvi, hidden = c(50, 50))} marks a group of covariates as a non-linear
+#' block. The block is a network from its own covariates to the species and its output is added to
+#' the linear predictor, so the parametric terms beside it keep their interpretation. Several blocks
+#' are allowed.
+#' 
+#' A bar adds a grouping-factor random effect with 'lme4' semantics: \code{(1 | plot)},
+#' \code{(temp | plot)}, \code{(0 + temp | plot)}, \code{(temp || plot)}, \code{(1 | plot/subplot)}.
+#' \code{\link{re}(1 | plot, df = 2)} is the explicit form where a bar needs arguments. The group
+#' effect is a design-level latent factor with its own species covariance, see \code{\link{sjSDM}}.
+#' 
+#' Rejected while the formula is parsed, each with an error naming the offending term:
+#' \itemize{
+#'  \item a covariate in both the parametric part and an \code{\link{NN}} block, or in two blocks.
+#'    A linear output layer represents a linear term exactly, so the likelihood is flat along the
+#'    split and only the ratio of the two penalties decides it. \code{~ temp + NN(.)} is an error,
+#'    not a shorthand.
+#'  \item \code{\link{NN}} inside an interaction. Put both covariates inside the block instead.
+#'  \item \code{df} below the number of columns the bar produces, which would force the
+#'    intercept-slope correlation to \eqn{\pm 1}, and \code{df} together with
+#'    \code{loading = "shared"}, which has no latent rank to choose.
+#'  \item \code{\link{re}} wrapping a \code{||} or a nested \code{g/h} bar. The formula parser then
+#'    either drops its arguments or leaves the bar unexpanded, so the bars have to be written out:
+#'    \code{re(1 | g, df = 2) + re(0 + x | g, df = 2)}.
+#' }
+#' 
+#' Neither blocks nor bars are available in the spatial formula or in \code{\link{DNN}}, and
+#' \code{\link{sjSDM_cv}} does not support them.
 #' 
 #' @return
 #' An S3 class of type 'linear' including the following components:
@@ -14,10 +60,15 @@
 #' \item{data}{Raw data}
 #' \item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
 #' \item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
+#' \item{nn}{List of the \code{\link{NN}} blocks the formula asks for, empty for a purely
+#' parametric formula. \code{X} stays the parametric design.}
+#' \item{re}{List of the random-effect blocks the formula's bars ask for, empty when it has
+#' none. Each holds the bar's design \code{X}, the group index, the levels, \code{df} and
+#' \code{loading}.}
 #' 
 #' Implemented S3 methods include \code{\link{print.linear}}
 #' 
-#' @seealso \code{\link{DNN}}, \code{\link{sjSDM}}
+#' @seealso \code{\link{DNN}}, \code{\link{NN}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @import checkmate
 #' @export
@@ -27,34 +78,14 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   qassert(lambda, "R1[0,)")
   qassert(alpha, "R1[0,)")
   
-  if(is.data.frame(data)) {
-    
-    if(!is.null(formula)){
-      mf = match.call()
-      m = match("formula", names(mf))
-      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
-      formula = stats::as.formula(mf[m]$formula)
-      X = stats::model.matrix(formula, data)
-    } else {
-      formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula, data)
-    }
-    
+  # the formula keeps the environment it was written in; re-evaluating the captured call here
+  # resolved its names, and NN()/re() arguments, in this function's frame
+  if(!is.null(formula)) {
+    formula = stats::as.formula(formula, env = parent.frame())
   } else {
-    
-    if(!is.null(formula)) {
-      mf = match.call()
-      m = match("formula", names(mf))
-      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
-      formula = stats::as.formula(mf[m]$formula)
-      data = data.frame(data)
-      X = stats::model.matrix(formula, data)
-    } else {
-      formula = stats::as.formula("~.")
-      data = data.frame(data)
-      X = stats::model.matrix(formula,data)
-    }
+    formula = stats::as.formula("~.")
   }
+  if(!is.data.frame(data)) data = data.frame(data)
   
   if(lambda == 0.0) {
     lambda = -99.9
@@ -62,7 +93,7 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   
   out = list()
   out$formula = formula
-  out$X = X
+  out[c("X", "terms", "xlevels", "intercept", "nn", "re")] = design_blocks(formula, data)
   out$data = data
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
@@ -110,7 +141,15 @@ print.linear = function(x, ...) {
 #' 
 #' Implemented S3 methods include \code{\link{print.DNN}}
 #' 
-#' @seealso \code{\link{linear}}, \code{\link{sjSDM}}
+#' @details
+#' \code{DNN} replaces the linear predictor by one network over all covariates, so the model has no
+#' interpretable coefficients left. Use \code{\link{linear}} with an \code{\link{NN}} block instead
+#' when a flexible term should sit beside interpretable linear terms.
+#' 
+#' A \code{DNN} formula is a plain model formula. \code{\link{NN}} blocks and random-effect bars are
+#' a \code{\link{linear}} formula's business and are rejected here.
+#' 
+#' @seealso \code{\link{linear}}, \code{\link{NN}}, \code{\link{sjSDM}}
 #' @example /inst/examples/sjSDM-example.R
 #' @import checkmate
 #' @export
@@ -125,37 +164,21 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
   qassert(dropout, "R1[0,)")
   
   
-  if(is.data.frame(data)) {
-    
-    if(!is.null(formula)){
-      mf = match.call()
-      m = match("formula", names(mf))
-      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
-      formula = stats::as.formula(mf[m]$formula)
-      X = stats::model.matrix(formula, data)
-    } else {
-      formula = stats::as.formula("~.")
-      X = stats::model.matrix(formula, data)
-    }
-    
+  # the formula keeps the environment it was written in; re-evaluating the captured call here
+  # resolved its names, and NN()/re() arguments, in this function's frame
+  if(!is.null(formula)) {
+    formula = stats::as.formula(formula, env = parent.frame())
   } else {
-    
-    if(!is.null(formula)) {
-      mf = match.call()
-      m = match("formula", names(mf))
-      if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
-      formula = stats::as.formula(mf[m]$formula)
-      data = data.frame(data)
-      X = stats::model.matrix(formula, data)
-    } else {
-      formula = stats::as.formula("~.")
-      data = data.frame(data)
-      X = stats::model.matrix(formula, data)
-    }
+    formula = stats::as.formula("~.")
   }
+  if(!is.data.frame(data)) data = data.frame(data)
   out = list()
   out$formula = formula
-  out$X = X
+  out[c("X", "terms", "xlevels", "intercept", "nn", "re")] = design_blocks(formula, data)
+  if(length(out$nn)) stop("NN() is a block of a linear() formula, DNN() is already a network",
+                          call. = FALSE)
+  if(length(out$re)) stop("random-effect bars are a block of a linear() formula, not of DNN()",
+                          call. = FALSE)
   out$data = data
   out$l1_coef = (1-alpha)*lambda
   out$l2_coef = alpha*lambda
@@ -242,11 +265,11 @@ print.bioticStruct = function(x, ...) {
 
 #' sjSDM control object
 #' 
-#' @param optimizer object of type \code{\link{RMSprop}}, \code{\link{Adamax}}, \code{\link{SGD}}, \code{\link{AccSGD}}, \code{\link{madgrad}}, or \code{\link{AdaBound}}
+#' @param optimizer object of type \code{\link{Adam}} (the default), \code{\link{AdamW}}, \code{\link{Adagrad}}, \code{\link{RMSprop}}, or \code{\link{SGD}}. \code{\link{Adamax}}, \code{\link{AccSGD}}, \code{\link{madgrad}} and \code{\link{AdaBound}} have no 'torch' counterpart, redirect to one of the above with a message, and will be removed in 1.2.0
 #' @param scheduler reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)
 #' @param lr_reduce_factor factor to reduce learning rate in scheduler
 #' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
-#' @param mixed mixed (half-precision) training or not. Only recommended for GPUs > 2000 series
+#' @param mixed mixed (half-precision) training. Accepted and ignored, 'torch' has no equivalent
 #' 
 #' @return
 #' List with the following fields:
@@ -260,7 +283,7 @@ print.bioticStruct = function(x, ...) {
 #' 
 #' @import checkmate
 #' @export
-sjSDMControl = function(optimizer = RMSprop(),
+sjSDMControl = function(optimizer = Adam(),
                         scheduler = 0,
                         lr_reduce_factor = 0.99,
                         early_stopping_training = 0,
@@ -327,7 +350,7 @@ check_family = function(family){
 
 #' Adamax
 #' 
-#' Adamax optimizer, see Kingma and Ba, 2014
+#' Deprecated. 'torch' has no Adamax implementation, so this redirects to \code{\link{Adam}}.
 #' @param betas exponential decay rates
 #' @param eps fuzz factor
 #' @param weight_decay l2 penalty on weights
@@ -340,18 +363,8 @@ check_family = function(family){
 #' @import checkmate
 #' @export
 Adamax = function(betas = c(0.9, 0.999), eps = 1e-08 , weight_decay = 0.002) {
-  
-  qassert(betas, "R2(0,1)")
-  qassert(eps, "R1(0,)")
-  qassert(weight_decay, "R1[0,)")
-  
-  out = list()
-  out$params = list()
-  out$params$betas = betas
-  out$params$eps = eps
-  out$params$weight_decay = weight_decay
-  out$ff = function() pkg.env$fa$optimizer_adamax
-  return(out)
+  message("Adamax() has no 'torch' implementation and is deprecated, Adam() is used instead")
+  Adam(betas = betas, eps = eps, weight_decay = weight_decay)
 }
 
 
@@ -382,7 +395,7 @@ RMSprop = function( alpha=0.99, eps=1e-8, weight_decay=0.0001, momentum=0.1, cen
   out$params$weight_decay = weight_decay
   out$params$momentum = momentum
   out$params$centered = centered
-  out$ff = function() pkg.env$fa$optimizer_RMSprop
+  out$ff = function() optimizer_RMSprop
   return(out)
 }
 
@@ -411,15 +424,103 @@ SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
   out$params$dampening = dampening
   out$params$weight_decay = weight_decay
   out$params$nesterov = nesterov
-  out$ff = function() pkg.env$fa$optimizer_SGD
+  out$ff = function() optimizer_SGD
+  return(out)
+}
+
+
+#' Adam
+#' 
+#' Adam optimizer, see Kingma and Ba, 2014
+#' @param betas exponential decay rates
+#' @param eps fuzz factor
+#' @param weight_decay l2 penalty on weights
+#' @param amsgrad use the AMSGrad variant
+#' 
+#' @return
+#' Anonymous function that returns optimizer when called.
+#' 
+#' @references 
+#' Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
+#' @import checkmate
+#' @export
+Adam = function(betas = c(0.9, 0.999), eps = 1e-08, weight_decay = 0.0, amsgrad = FALSE) {
+  
+  qassert(betas, "R2(0,1)")
+  qassert(eps, "R1(0,)")
+  qassert(weight_decay, "R1[0,)")
+  qassert(amsgrad, "B1")
+  
+  out = list()
+  out$params = list(betas = betas, eps = eps, weight_decay = weight_decay, amsgrad = amsgrad)
+  out$ff = function() optimizer_Adam
+  return(out)
+}
+
+
+#' AdamW
+#' 
+#' Adam with decoupled weight decay, see Loshchilov and Hutter, 2019
+#' @param betas exponential decay rates
+#' @param eps fuzz factor
+#' @param weight_decay decoupled l2 penalty on weights
+#' @param amsgrad use the AMSGrad variant
+#' 
+#' @return
+#' Anonymous function that returns optimizer when called.
+#' 
+#' @references 
+#' Loshchilov, I., & Hutter, F. (2019). Decoupled weight decay regularization. International Conference on Learning Representations.
+#' @import checkmate
+#' @export
+AdamW = function(betas = c(0.9, 0.999), eps = 1e-08, weight_decay = 0.01, amsgrad = FALSE) {
+  
+  qassert(betas, "R2(0,1)")
+  qassert(eps, "R1(0,)")
+  qassert(weight_decay, "R1[0,)")
+  qassert(amsgrad, "B1")
+  
+  out = list()
+  out$params = list(betas = betas, eps = eps, weight_decay = weight_decay, amsgrad = amsgrad)
+  out$ff = function() optimizer_AdamW
+  return(out)
+}
+
+
+#' Adagrad
+#' 
+#' Adaptive subgradient optimizer, see Duchi et al., 2011
+#' @param lr_decay learning rate decay
+#' @param weight_decay l2 penalty on weights
+#' @param initial_accumulator_value initial value of the gradient accumulator
+#' @param eps fuzz factor
+#' 
+#' @return
+#' Anonymous function that returns optimizer when called.
+#' 
+#' @references 
+#' Duchi, J., Hazan, E., & Singer, Y. (2011). Adaptive subgradient methods for online learning and stochastic optimization. Journal of Machine Learning Research, 12(7).
+#' @import checkmate
+#' @export
+Adagrad = function(lr_decay = 0.0, weight_decay = 0.0, initial_accumulator_value = 0.0, eps = 1e-10) {
+  
+  qassert(lr_decay, "R1[0,)")
+  qassert(weight_decay, "R1[0,)")
+  qassert(initial_accumulator_value, "R1[0,)")
+  qassert(eps, "R1(0,)")
+  
+  out = list()
+  out$params = list(lr_decay = lr_decay, weight_decay = weight_decay,
+                    initial_accumulator_value = initial_accumulator_value, eps = eps)
+  out$ff = function() optimizer_Adagrad
   return(out)
 }
 
 
 #' madgrad
 #' 
-#' stochastic gradient descent optimizer
-#' @param momentum strength of momentum
+#' Deprecated. 'torch' has no MADGRAD implementation, so this redirects to \code{\link{Adam}}.
+#' @param momentum strength of momentum, ignored
 #' @param weight_decay l2 penalty on weights
 #' @param eps epsilon
 #' @return
@@ -429,28 +530,18 @@ SGD = function( momentum=0.5, dampening=0, weight_decay=0, nesterov=TRUE) {
 #' @import checkmate
 #' @export
 madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
-  
-  qassert(momentum, "R1(0,)")
-  qassert(weight_decay, "R1[0,)")
-  qassert(eps, "R1(0,)")
-  
-  out = list()
-  out$params = list()
-  out$params$momentum = momentum
-  out$params$weight_decay = weight_decay
-  out$params$eps = eps
-  out$ff = function() pkg.env$fa$optimizer_madgrad
-  return(out)
+  message("madgrad() has no 'torch' implementation and is deprecated, Adam() is used instead")
+  Adam(weight_decay = weight_decay, eps = eps)
 }
 
 
 
 #' AccSGD
 #' 
-#' accelerated stochastic gradient, see Kidambi et al., 2018 for details
-#' @param kappa long step
-#' @param xi advantage parameter
-#' @param small_const small constant
+#' Deprecated. 'torch' has no AccSGD implementation, so this redirects to \code{\link{SGD}}.
+#' @param kappa long step, ignored
+#' @param xi advantage parameter, ignored
+#' @param small_const small constant, ignored
 #' @param weight_decay l2 penalty on weights
 #' @return
 #' Anonymous function that returns optimizer when called.
@@ -458,29 +549,18 @@ madgrad = function(momentum=0.9, weight_decay=0, eps=1e-6) {
 #' Kidambi, R., Netrapalli, P., Jain, P., & Kakade, S. (2018, February). On the insufficiency of existing momentum schemes for stochastic optimization. In 2018 Information Theory and Applications Workshop (ITA) (pp. 1-9). IEEE.
 #' @import checkmate
 #' @export
-AccSGD = function(     kappa=1000.0,
-                       xi=10.0,
-                       small_const=0.7,
-                       weight_decay=0) {
-  
-  qassert(kappa, "R1(0,)")
-  qassert(xi, "R1[0,)")
-  qassert(weight_decay, "R1[0,)")
-  qassert(small_const, "R1[0,)")
-  
-  out = list()
-  out$params = list(kappa=kappa,xi=xi,small_const=small_const,weight_decay=weight_decay)
-  out$ff = function() pkg.env$fa$optimizer_AccSGD
-  return(out)
+AccSGD = function(kappa=1000.0, xi=10.0, small_const=0.7, weight_decay=0) {
+  message("AccSGD() has no 'torch' implementation and is deprecated, SGD() is used instead")
+  SGD(weight_decay = weight_decay)
 }
 
 
 #' AdaBound
 #' 
-#' adaptive gradient methods with dynamic bound of learning rate, see Luo et al., 2019 for details
+#' Deprecated. 'torch' has no AdaBound implementation, so this redirects to \code{\link{Adam}}.
 #' @param betas betas
-#' @param final_lr eps
-#' @param gamma small_const
+#' @param final_lr eps, ignored
+#' @param gamma small_const, ignored
 #' @param eps eps
 #' @param weight_decay weight_decay
 #' @param amsbound amsbound
@@ -490,24 +570,10 @@ AccSGD = function(     kappa=1000.0,
 #' Luo, L., Xiong, Y., Liu, Y., & Sun, X. (2019). Adaptive gradient methods with dynamic bound of learning rate. arXiv preprint arXiv:1902.09843.
 #' @import checkmate
 #' @export
-AdaBound = function(    betas= c(0.9, 0.999),
-                        final_lr = 0.1,
-                        gamma=1e-3,
-                        eps= 1e-8,
-                        weight_decay=0,
-                        amsbound=TRUE) {
-  
-  qassert(betas, "R2(0,1)")
-  qassert(final_lr, "R1(0,)")
-  qassert(gamma, "R1(0,)")
-  qassert(eps, "R1(0,)")
-  qassert(weight_decay, "R1[0,)")
-  qassert(amsbound, "B1")
-  
-  out = list()
-  out$params = list(betas=betas,final_lr=final_lr,gamma=gamma,eps= eps,weight_decay=weight_decay,amsbound=amsbound)
-  out$ff = function() pkg.env$fa$optimizer_AdaBound
-  return(out)
+AdaBound = function(betas= c(0.9, 0.999), final_lr = 0.1, gamma=1e-3, eps= 1e-8,
+                    weight_decay=0, amsbound=TRUE) {
+  message("AdaBound() has no 'torch' implementation and is deprecated, Adam() is used instead")
+  Adam(betas = betas, eps = eps, weight_decay = weight_decay, amsgrad = amsbound)
 }
 
 
@@ -518,16 +584,7 @@ AdaBound = function(    betas= c(0.9, 0.999),
 #' @return
 #' Anonymous function that returns optimizer when called.
 #' @import checkmate
-DiffGrad = function(    betas=c(0.9, 0.999),
-                        eps=1e-8,
-                        weight_decay=0) {
-  
-  qassert(betas, "R2(0,1)")
-  qassert(eps, "R1(0,)")
-  qassert(weight_decay, "R1[0,)")
-  
-  out = list()
-  out$params = list(betas=betas,eps=eps,weight_decay=weight_decay)
-  out$ff = function() pkg.env$fa$optimizer_DiffGrad
-  return(out)
+DiffGrad = function(betas=c(0.9, 0.999), eps=1e-8, weight_decay=0) {
+  message("DiffGrad() has no 'torch' implementation and is deprecated, Adam() is used instead")
+  Adam(betas = betas, eps = eps, weight_decay = weight_decay)
 }

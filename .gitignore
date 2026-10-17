@@ -36,3 +36,26 @@ sjSDM/vignettes/sjSDM_Introduction.R
 .DS_Store
 .DS_Store
 .DS_Store
+
+# The backend parity golden master (dev/parity/reference/) must be committed: it can only
+# be regenerated with the retired PyTorch backend and a working r-sjsdm conda environment,
+# which no new machine will have. ~1.7 MB.
+!dev/parity/reference/
+!dev/parity/reference/*.RDS
+!dev/parity/reference/*.csv
+
+# Claude Code: assistant config never goes into the repo (Max, 2026-10-14)
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.claude/
+
+# Claude Code: the assistant's project memory. Not package content, and a `git add -A`
+# would otherwise sweep it into a public repository (Max, 2026-10-14)
+HANDOVER.md
+STATUS.md
+CONTEXT.md
+HISTORY.md
+INSIGHTS.md
+LITERATURE.md
+REFACTOR_torch_cito_plan.md

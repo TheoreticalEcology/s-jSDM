@@ -49,6 +49,14 @@ Implemented S3 methods include \code{\link{print.DNN}}
 \description{
 specify the model to be fitted
 }
+\details{
+\code{DNN} replaces the linear predictor by one network over all covariates, so the model has no
+interpretable coefficients left. Use \code{\link{linear}} with an \code{\link{NN}} block instead
+when a flexible term should sit beside interpretable linear terms.
+
+A \code{DNN} formula is a plain model formula. \code{\link{NN}} blocks and random-effect bars are
+a \code{\link{linear}} formula's business and are rejected here.
+}
 \examples{
 \dontrun{
   
@@ -218,5 +226,5 @@ getWeights(model)
 }
 }
 \seealso{
-\code{\link{linear}}, \code{\link{sjSDM}}
+\code{\link{linear}}, \code{\link{NN}}, \code{\link{sjSDM}}
 }

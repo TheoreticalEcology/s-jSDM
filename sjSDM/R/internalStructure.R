@@ -4,7 +4,8 @@
 #' 
 #' @param object anova object from \code{\link{anova.sjSDM}}
 #' @param Rsquared which R squared should be used, McFadden or Nagelkerke (McFadden is default)
-#' @param fractions how to handle shared fractions
+#' @param fractions how to handle shared fractions, one of "mvp_proportional" (the default), "mvp",
+#'   "discard", "proportional" or "equal". See \code{\link{summary.sjSDManova}} for what each does.
 #' @param negatives how to handle negative R squareds
 #' @param plot should the plots be suppressed or not.
 #' 

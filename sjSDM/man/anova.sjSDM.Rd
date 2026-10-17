@@ -4,7 +4,13 @@
 \alias{anova.sjSDM}
 \title{Anova / Variation partitioning}
 \usage{
-\method{anova}{sjSDM}(object, samples = 5000L, verbose = TRUE, ...)
+\method{anova}{sjSDM}(
+  object,
+  samples = 5000L,
+  verbose = TRUE,
+  proposal = c("laplace", "prior"),
+  ...
+)
 }
 \arguments{
 \item{object}{model of object \code{\link{sjSDM}}}
@@ -13,7 +19,17 @@
 
 \item{verbose}{\code{TRUE} or \code{FALSE}, indicating whether progress should be printed or not}
 
-\item{...}{optional arguments which are passed to the calculation of the logLikelihood}
+\item{proposal}{distribution the latent factors are drawn from. \code{"laplace"} (the default) draws
+from a Gaussian fitted to the per-site mode of the integrand and reweights the draws.
+\code{"prior"} draws from \code{N(0, I)}, which is what every version before 1.1.0 did. The reweighting keeps
+the estimator of the likelihood unbiased and raises the effective sample size by orders of
+magnitude at many species. The log of that estimate, which is what the fractions are built
+from, keeps a bias of roughly \code{(1/ess - 1)/(2 * samples)} per site. See Details.}
+
+\item{...}{optional arguments which are passed to the calculation of the logLikelihood,
+including \code{mc_batch}, the number of sites whose Monte-Carlo draws are held in
+memory at once. It defaults to the model's \code{step_size}, lowered if that would
+exceed roughly 2.5 GB; lower it by hand on a device with less memory.}
 }
 \value{
 An S3 class of type 'sjSDManova' including the following components:
@@ -25,6 +41,11 @@ An S3 class of type 'sjSDManova' including the following components:
 \item{species}{individual species R2s.}
 \item{sites}{individual site R2s.}
 \item{lls}{individual site by species negative-log-likelihood values.}
+\item{proposal}{the sampler the latent factors were drawn from.}
+\item{ess}{sites-by-sub-model matrix of effective sample sizes, as a fraction of \code{samples}.
+One column per fitted sub-model, so a low column shows which model's likelihood rests on few
+draws. \code{attr(, "newton_decrement")} carries the largest Newton decrement the Laplace mode-finder left
+behind, per sub-model.}
 \item{model}{model}
 
 Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
@@ -39,6 +60,44 @@ Variance explained is measured by Deviance as well as the pseudo-R2 metrics of N
 
 In downstream functions such as \code{\link{plot.sjSDManova}} or \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
 The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
+
+The sub-models without associations, and the null model, carry no latent term at all. Up to 1.0.7 they
+were fitted with an identity covariance, which for a probit link only rescales the coefficients but for
+the count, negative binomial and gaussian links adds a fixed unit latent variance; that misfit was then
+reported as associations.
+
+\code{proposal = "prior"} draws the latent factors blind and weights them by the likelihood.
+At many species almost every draw lands where the observed community is implausible, so the effective
+sample size collapses -- measured at 100 species it is 3 draws out of 1000 -- and the negative
+log-likelihood \code{-log(mean(exp(lp)))} is biased upwards by an amount that grows with the variance
+of the per-draw log-probability. That variance differs between the sub-models \code{anova} compares,
+so it does not cancel in the differences the fractions are built from, and the sub-model that leans
+hardest on the latent factors is depressed most. \code{proposal = "laplace"} reduces this by sampling from
+a Gaussian centred on the per-site mode with the curvature of the integrand, and correcting each draw
+by \code{log p(z) - log q(z)}. It is a proposal, not an approximation: a poor fit costs effective
+sample size, not correctness. The realised fraction is returned in the \code{ess} component, where 1 means
+every draw counted. Read it as a per-dimension efficiency raised to the power of the latent dimension
+\code{df}, not as a per-site quality score. The sub-models without associations have nothing to integrate
+and report 1.
+
+For the gaussian family the McFadden R-squared is a ratio of log-densities, which change with the
+measurement scale of the response and turn positive for small residual variances, so it is not bounded
+by 1 and differs between units. The deviances and the Nagelkerke R-squared do not have this problem.
+
+\code{anova} is not defined for a model with random-effect bars in the environmental formula and raises
+an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed
+instead of cancelling from the difference. Use \code{\link{getRE}} for the group variances.
+
+The \code{species} and \code{sites} components are not the printed table restricted to a species or a
+site, and they are read differently. The table composes the fractions on the log-likelihood scale and
+forms a single ratio at the end, so it is exact inclusion-exclusion on the joint likelihoods. The
+per-species and per-site values are allocations: each site's improvement over the null is apportioned
+across species in proportion to how much each species' conditional likelihood improved, and that share
+is computed separately for every sub-model. A per-species or per-site fraction is therefore a difference
+of two allocations computed under different shares, it is unbounded in both directions, and 1 is not a
+boundary for it. The shares are undefined when a sub-model is about as good as the null overall, so
+treat per-species and per-site values from such a model with care. The site totals are unaffected:
+the shares cancel when summed over species.
 }
 \examples{
 \dontrun{

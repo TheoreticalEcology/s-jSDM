@@ -16,9 +16,9 @@ AdaBound(
 \arguments{
 \item{betas}{betas}
 
-\item{final_lr}{eps}
+\item{final_lr}{eps, ignored}
 
-\item{gamma}{small_const}
+\item{gamma}{small_const, ignored}
 
 \item{eps}{eps}
 
@@ -30,7 +30,7 @@ AdaBound(
 Anonymous function that returns optimizer when called.
 }
 \description{
-adaptive gradient methods with dynamic bound of learning rate, see Luo et al., 2019 for details
+Deprecated. 'torch' has no AdaBound implementation, so this redirects to \code{\link{Adam}}.
 }
 \references{
 Luo, L., Xiong, Y., Liu, Y., & Sun, X. (2019). Adaptive gradient methods with dynamic bound of learning rate. arXiv preprint arXiv:1902.09843.

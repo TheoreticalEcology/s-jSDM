@@ -2,11 +2,6 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^.travis\.yml$
-inst/python/.pytest_cache
-inst/.pytest_cache
-inst/python/.vscode
-inst/python/.eggs
-inst/python/build
 ^doc$
 ^Meta$
 ^cran-comments\.md$
@@ -18,3 +13,11 @@ inst/python/build
 ^docs$
 ^pkgdown$
 ^README_files$
+^CLAUDE\.md$
+^\.claude$
+^HANDOVER\.md$
+^STATUS\.md$
+^CONTEXT\.md$
+^HISTORY\.md$
+^INSIGHTS\.md$
+^LITERATURE\.md$

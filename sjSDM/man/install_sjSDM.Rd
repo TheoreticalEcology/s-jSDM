@@ -2,28 +2,26 @@
 % Please edit documentation in R/install.R
 \name{install_sjSDM}
 \alias{install_sjSDM}
-\title{Install sjSDM and its dependencies}
+\title{Install sjSDM's dependencies}
 \usage{
-install_sjSDM(
-  conda = "auto",
-  version = c("cpu", "gpu"),
-  restart_session = TRUE,
-  ...
-)
+install_sjSDM(...)
 }
 \arguments{
-\item{conda}{path to conda}
-
-\item{version}{version = "cpu" for CPU version, or "gpu" for GPU version. (note MacOS users have to install 'cuda' binaries by themselves)}
-
-\item{restart_session}{Restart R session after installing (note this will
-only occur within RStudio).}
-
-\item{...}{not supported}
+\item{...}{ignored, kept for backward compatibility (e.g. \code{version = "gpu"})}
 }
 \value{
-No return value, called for side effects (installation of 'python' dependencies).
+No return value, called for side effects (installation of the 'torch' binaries).
 }
 \description{
-Install sjSDM and its dependencies
+Install sjSDM's dependencies
+}
+\details{
+Since version 1.1.0 sjSDM runs on 'torch' (libtorch) and no longer needs 'python',
+'conda' or 'PyTorch'. The only remaining dependency is the libtorch binary, which is
+downloaded by \code{\link[torch]{install_torch}}. This function is a thin wrapper
+around it so that existing scripts keep working. Whether the GPU is used is decided
+by the torch installation, not by an argument here.
+}
+\seealso{
+\code{\link{installation_help}}, \code{\link{install_diagnostic}}
 }

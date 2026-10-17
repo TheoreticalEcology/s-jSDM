@@ -16,6 +16,8 @@ getWeights(object)
 \itemize{
 \item layers - list of layer weights
 \item sigma - weight to construct covariance matrix
+\item state - every parameter and buffer of the model by name, including NN() blocks,
+random-effect blocks and the dispersion; this is what \code{\link{setWeights}} restores
 }
 }
 \description{

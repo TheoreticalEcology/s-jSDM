@@ -17,7 +17,8 @@ internalStructure(
 
 \item{Rsquared}{which R squared should be used, McFadden or Nagelkerke (McFadden is default)}
 
-\item{fractions}{how to handle shared fractions}
+\item{fractions}{how to handle shared fractions, one of "mvp_proportional" (the default), "mvp",
+"discard", "proportional" or "equal". See \code{\link{summary.sjSDManova}} for what each does.}
 
 \item{negatives}{how to handle negative R squareds}
 

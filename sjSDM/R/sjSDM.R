@@ -5,20 +5,24 @@
 #' \code{sjSDM} is used to fit joint Species Distribution models (jSDMs) using the central processing unit (CPU) or the graphical processing unit (GPU). 
 #' The default is a multivariate probit model based on a Monte-Carlo approximation of the joint likelihood. 
 #' \code{sjSDM} can be used to fit linear but also deep neural networks and supports the well known formula syntax. 
+#' The environmental formula carries structure: it may hold \code{\link{NN}} blocks and 'lme4' random-effect bars
+#' beside the parametric terms, see the details.
 #' 
 #' @param Y matrix of species occurrences/responses in range
-#' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}
+#' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}. A
+#'   \code{\link{linear}} formula may contain \code{\link{NN}} blocks and random-effect bars, see details
 #' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
 #' @param spatial defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param family error distribution with link function, see details for supported distributions
 #' @param iter number of fitting iterations
 #' @param step_size batch size for stochastic gradient descent, if \code{NULL} then step_size is set to: \code{step_size = 0.1*nrow(X)}
-#' @param learning_rate learning rate for Adamax optimizer
+#' @param learning_rate learning rate for the optimizer, see \code{\link{sjSDMControl}}
 #' @param se calculate standard errors for environmental coefficients
 #' @param sampling number of sampling steps for Monte Carlo integration
 #' @param parallel number of cpu cores for the data loader, only necessary for large datasets
 #' @param control control parameters for optimizer, see \code{\link{sjSDMControl}}
-#' @param device which device to be used, "cpu" or "gpu"
+#' @param device which device to be used, \code{"cpu"}, \code{"gpu"}, \code{"mps"}, or the integer index of a
+#'   CUDA device. A GPU request falls back to the CPU with a warning when no CUDA device is present
 #' @param dtype which data type, most GPUs support only 32 bit floats.
 #' @param seed seed for random operations
 #' @param verbose `TRUE` or `FALSE`, indicating whether progress should be printed or not
@@ -61,9 +65,8 @@
 #' 
 #' with \mjseqn{ \zeta_m \sim MVN(0, \Sigma)}. 
 #' 
-#' \code{sjSDM} uses 'PyTorch' to run optionally the model on the graphical processing unit (GPU). Python dependencies needs to be  
-#' installed before being able to use the \code{sjSDM} function. We provide a function which installs automatically python and the python dependencies.
-#' See \code{\link{install_sjSDM}}, \code{vignette("Dependencies", package = "sjSDM")}
+#' \code{sjSDM} uses 'torch' (libtorch) and can optionally run the model on the graphical
+#' processing unit (GPU), see \code{\link{installation_help}} for how to enable that.
 #' 
 #' See Pichler and Hartig, 2020 for benchmark results.
 #' }
@@ -106,9 +109,67 @@
 #' 
 #' }
 #' 
+#' \subsection{Structure in the environmental formula}{
+#' 
+#' A \code{\link{linear}} formula is not restricted to parametric terms. It may in addition hold
+#' \code{\link{NN}} blocks and random-effect bars:
+#' 
+#' \code{linear(X, ~ temp + NN(soil + ndvi, hidden = c(50, 50)) + (temp | plot))}
+#' 
+#' Every block is summed on the scale of the linear predictor,
+#' 
+#' \mjsdeqn{g(Z_{ij}) = \bf{X}_i\beta_j + f(\bf{X}^{NN}_i)_j + \Sigma_b \Sigma_k Z^b_{ik} \bf{u}^b_{g(i)}\Lambda^b_{jk} + e_{ij}}
+#' 
+#' so the parametric part keeps its meaning: \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}} and the
+#' standard errors describe \mjseqn{\beta} and nothing else.
+#' 
+#' \code{\link{NN}(soil + ndvi)} is a feed-forward network from its own covariates to the species. It sits
+#' beside the interpretable terms rather than replacing them, which is the difference to \code{\link{DNN}}.
+#' The block itself has no interpretable coefficients, and the standard errors are conditional on the fitted
+#' block: they ignore its uncertainty, and a warning says so. \code{\link{update.sjSDM}} with
+#' \code{env_blocks} refits with a subset of the blocks, which is how a block is switched off.
+#' 
+#' A bar is written in 'lme4' syntax and carries 'lme4' semantics, through the 'reformulas' package:
+#' \code{(1 | plot)}, \code{(temp | plot)} for a correlated intercept and slope, \code{(0 + temp | plot)},
+#' \code{(temp || plot)} and \code{(1 | plot/subplot)}. \code{\link{re}} is the explicit form where a bar
+#' needs arguments, \code{re(1 | plot, df = 2)}.
+#' 
+#' A bar is a design-level latent factor, not a scalar shift. One group effect
+#' \mjseqn{\bf{u}_g \sim N(0, \bf{I}_d)} is drawn per group and loaded onto the species by
+#' \mjseqn{\Lambda}, so the group effect has its own species-species covariance
+#' \mjseqn{\Lambda\Lambda'} of rank \code{df} and species may respond to a plot with different magnitude
+#' and sign. \code{df} defaults to \code{max(q, 5)}, with \mjseqn{q} the number of columns of the bar, and
+#' must not be smaller than \mjseqn{q}: below that the intercept-slope correlation is forced to
+#' \mjseqn{\pm 1}. \code{re(loading = "shared")} gives the classical mixed-model case instead, one shift per
+#' group identical for every species.
+#' 
+#' The bars are integrated out by a stochastic variational approximation. Each group gets a Gaussian
+#' posterior, drawn with the reparameterisation trick, and the Kullback-Leibler term to the
+#' \mjseqn{N(0, \bf{I})} prior supplies the shrinkage; the Monte-Carlo likelihood itself is unchanged.
+#' \code{\link{getRE}} reports the group effects, \code{\link{getCov}} and \code{\link{getCor}} with
+#' \code{which = "re"} the covariance the bar induces.
+#' }
+#' 
+#' \subsection{Limitations of blocks and bars}{
+#' 
+#' \itemize{
+#'  \item \code{\link{anova.sjSDM}} refuses on a model with a bar. The random block is re-estimated in every
+#'    refit, so it absorbs the fraction that was removed instead of cancelling from the difference, and the
+#'    per-species rescaling is recomputed with it. Use \code{\link{getRE}} for the group variances.
+#'  \item \code{\link{logLik.sjSDM}} for a model with a bar is the conditional value at the posterior means,
+#'    neither the evidence lower bound nor a marginal likelihood. It is not comparable with the
+#'    log-likelihood of a model fitted without the bar, and neither are information criteria built from it.
+#'  \item \code{\link{sjSDM_cv}} supports neither blocks nor bars. It raises an error rather than dropping
+#'    them.
+#'  \item Neither is available in the spatial formula.
+#'  \item The reported group variance grows with \code{df}, because the Kullback-Leibler term constrains the
+#'    posterior and not the loadings. Report the rank alongside the variance, and prefer a small \code{df}.
+#' }
+#' }
+#' 
 #' \subsection{Installation}{
 #' 
-#' \code{\link{install_sjSDM}} should be theoretically able to install conda and 'PyTorch' automatically. If \code{\link{sjSDM}} still does not work after reloading RStudio, you can try to solve this on your following our trouble shooting guide \code{\link{installation_help}}.
+#' sjSDM needs the 'torch' binaries, which \code{\link{install_sjSDM}} (a wrapper around \code{torch::install_torch}) downloads. If \code{\link{sjSDM}} still does not work after restarting R, follow the trouble shooting guide \code{\link{installation_help}}.
 #' If the problem remains, please create an issue on \href{https://github.com/TheoreticalEcology/s-jSDM/issues}{issue tracker} with a copy of the \code{\link{install_diagnostic}} output as a quote. 
 #' }
 #' 
@@ -119,7 +180,7 @@
 #' \item{formula}{Formula object for environmental covariates.}
 #' \item{names}{Names of environmental covariates.}
 #' \item{species}{Names of species (can be \code{NULL} if columns of Y are not named).}
-#' \item{get_model}{Method which builds and returns the underlying 'python' model.}
+#' \item{get_model}{Method which builds and returns the underlying 'torch' model.}
 #' \item{logLik}{negative log-Likelihood of the model and the regularization loss.}
 #' \item{model}{The actual model.}
 #' \item{settings}{List of model settings, see arguments of \code{\link{sjSDM}}.}
@@ -141,7 +202,7 @@
 #' Pichler, M., & Hartig, F. (2021). A new joint species distribution model for faster and more accurate inference of species associations from big community data. Methods in Ecology and Evolution, 12(11), 2159-2173. 
 #' 
 #' @example /inst/examples/sjSDM-example.R
-#' @seealso  \code{\link{getCor}},  \code{\link{getCov}}, \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
+#' @seealso  \code{\link{getCor}},  \code{\link{getCov}}, \code{\link{getRE}}, \code{\link{update.sjSDM}}, \code{\link{sjSDM_cv}}, \code{\link{DNN}}, \code{\link{NN}}, \code{\link{re}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, \code{\link{coef.sjSDM}}, \code{\link{summary.sjSDM}}, \code{\link{simulate.sjSDM}}, \code{\link{getSe}}, \code{\link{anova.sjSDM}}, \code{\link{importance}}
 #' 
 #' @import checkmate mathjaxr
 #' @author Maximilian Pichler
@@ -197,7 +258,24 @@ sjSDM = function(Y = NULL,
   
   if(device == "gpu") device = 0L
   
+  device = check_device(device)
+  
   if(is.matrix(env) || is.data.frame(env)) env = linear(data = env)
+  
+  if(length(spatial$nn))
+    stop("NN() is not supported in the spatial formula yet", call. = FALSE)
+  if(length(spatial$re))
+    stop("random-effect bars are not supported in the spatial formula yet", call. = FALSE)
+  if(any(vapply(c(env$nn, env$re), function(b) nrow(b$X), 1L) != nrow(env$X)))
+    stop("the NN()/random blocks and the parametric design have different numbers of rows; ",
+         "sjSDM_cv() and hand-built designs do not carry them yet", call. = FALSE)
+  # model.frame() drops rows with missing predictors from the design but Y keeps them, and the
+  # fit would then pair each design row with a different site
+  if(nrow(Y) != nrow(env$X) || (!is.null(spatial) && nrow(spatial$X) != nrow(Y)))
+    stop("Y has ", nrow(Y), " rows but the design has ", nrow(env$X),
+         if(!is.null(spatial)) paste0(" (spatial: ", nrow(spatial$X), ")"),
+         ". Rows with missing predictors are dropped from the design; drop them from Y too.",
+         call. = FALSE)
   
   out$cl = match.call()
   out$formula = env$formula
@@ -214,85 +292,58 @@ sjSDM = function(Y = NULL,
   else step_size = as.integer(step_size)
   
   output = as.integer(ncol(Y))
-  input = as.integer(ncol(env$X))
-  intercept = "(Intercept)" %in% colnames(env$X)
   
-  out$get_model = function(){
-    model = pkg.env$fa$Model_sjSDM( device = device, dtype = dtype, seed = seed)
-    
-    if(inherits(env, "DNN")) {
-      activation=env$activation
-      hidden = as.integer(env$hidden)
-      bias = env$bias
-    } else {
-      hidden = list()
-      activation = c("linear")
-      bias = list(FALSE)
-    }
-    
-    if(!is.null(env$dropout)) dropout_env = env$dropout
-    else dropout_env = -99
-    
-    model$add_env(input, output, hidden = hidden, activation = activation,bias = bias, l1 = env$l1, l2=env$l2, dropout=dropout_env, intercept=intercept)
-    
-    if(!is.null(spatial)) {
-      
-      if(!is.null(spatial$dropout)) dropout_sp = spatial$dropout
-      else dropout_sp = -99
-      
-      if(inherits(spatial, "DNN")) {
-        activation_spatial=spatial$activation
-        hidden_spatial = spatial$hidden
-        bias_spatial = spatial$bias
-        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, hidden = hidden_spatial, activation = activation_spatial, bias = bias_spatial, l1 = spatial$l1, l2= spatial$l2, dropout=dropout_sp)
-      } 
-      if(inherits(spatial, "linear")) {
-        model$add_spatial(as.integer(ncol(spatial$X)), output_shape = output, l1 = spatial$l1, l2= spatial$l2)
-      }
-    }
-    
-    control$optimizer$params$lr = learning_rate
-    optimizer = do.call(control$optimizer$ff(), control$optimizer$params)
-    alpha = 1.0
-    link = family$link
-    if(link == "probit") alpha = 1.70169
-    
-    model$build(df = biotic$df, 
-                l1 = biotic$l1_cov, 
-                l2 = biotic$l2_cov, 
-                reg_on_Diag = biotic$on_diag,
-                inverse = biotic$inverse,
-                reg_on_Cov = biotic$reg_on_Cov,
-                optimizer = optimizer, 
-                link = link,
-                alpha = alpha,
-                diag=biotic$diag,
-                scheduler=control$scheduler_boolean,
-                patience=control$scheduler_patience,
-                mixed = control$mixed,
-                factor=control$lr_reduce_factor)
-    
-    return(model)
-  }
+  # the environmental blocks first, then the spatial ones; the parametric block is the config
+  # object itself and the NN() blocks hang off it. The random blocks are not in `blocks`:
+  # they carry no net, and se() and the env/spatial bindings index `blocks` positionally.
+  n_env_net = 1L + length(env$nn)
+  blocks = c(net_blocks(env, output, TRUE), net_blocks(spatial, output, FALSE))
+  block_at = c(seq_len(n_env_net),
+               if(!is.null(spatial)) n_env_net + length(env$re) + seq_len(1L + length(spatial$nn)))
+  random = net_random(env, output, n_env_net)
+  
+  control$optimizer$params$lr = learning_rate
+  link = family$link
+  
+  out$model_properties = list(blocks = blocks, n_env = n_env_net, random = random,
+                              block_at = block_at, optimizer = control$optimizer,
+                              scheduler = control$scheduler_boolean,
+                              patience = control$scheduler_patience,
+                              factor = control$lr_reduce_factor, mixed = control$mixed,
+                              device = device, dtype = dtype, seed = seed)
+  out$loss_properties = list(link = link, species = output, df = biotic$df,
+                             alpha = if(link == "probit") 1.70169 else 1.0,
+                             diag = biotic$diag, l1 = biotic$l1_cov, l2 = biotic$l2_cov,
+                             reg_on_Cov = biotic$reg_on_Cov, reg_on_Diag = biotic$on_diag,
+                             inverse = biotic$inverse, zero = isTRUE(biotic$zero))
+  
+  mp = out$model_properties
+  lp = out$loss_properties
+  out$get_model = function() sjsdm_model(mp, lp)
   model = out$get_model()
   
+  if(se && length(c(env$nn, env$re)))
+    warning("standard errors are conditional on the fitted NN()/random blocks and ignore their uncertainty", call. = FALSE)
+  envX = config_X(env)
+  spX = config_X(spatial)
+  
   if(is.null(spatial)) {
-    time = system.time({model$fit(env$X, Y, batch_size = step_size, 
+    time = system.time({model$fit(envX, Y, batch_size = step_size, 
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
                                   early_stopping_training=control$early_stopping_training,
                                   verbose = verbose)})[3]
-    out$logLik = force_r( model$logLik(env$X, Y,batch_size = step_size,parallel = parallel) )
-    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(env$X, Y, batch_size = step_size, parallel = parallel)),along=0L)) })
+    out$logLik = force_r( model$logLik(envX, Y,batch_size = step_size,parallel = parallel) )
+    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(envX, Y, batch_size = step_size, parallel = parallel)),along=0L)) })
   
   } else {
-    time = system.time({model$fit(env$X, Y=Y,SP=spatial$X, batch_size = step_size, 
+    time = system.time({model$fit(envX, Y=Y,SP=spX, batch_size = step_size, 
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
                                   early_stopping_training=control$early_stopping_training,
                                   verbose = verbose)})[3]
-    out$logLik = force_r( model$logLik(env$X, Y, SP=spatial$X, batch_size = step_size,parallel = parallel) )
-    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(env$X, Y, SP=spatial$X,batch_size = step_size, parallel = parallel, verbose = verbose)),along=0L)) })
+    out$logLik = force_r( model$logLik(envX, Y, SP=spX, batch_size = step_size,parallel = parallel) )
+    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(envX, Y, SP=spX,batch_size = step_size, parallel = parallel, verbose = verbose)),along=0L)) })
     
   }
 
@@ -301,6 +352,10 @@ sjSDM = function(Y = NULL,
     out$env_architecture = parse_nn(model$env)
     class(out) = c("sjSDM", "DNN")
   }
+  
+  if(length(env$nn))
+    out$env_architecture = paste0(sapply(seq_along(env$nn), function(k)
+      paste0("NN block ", k, ":\n", parse_nn(model$net$blocks[[k + 1L]]))), collapse = "")
   
   if(inherits(spatial, "DNN")) out$spatial_architecture = parse_nn(model$spatial)
   
@@ -323,7 +378,9 @@ sjSDM = function(Y = NULL,
   out$spatial = spatial
   out$Null = NULL # ?????
   out$seed = seed
-  .n = pkg.env$torch$cuda$empty_cache()
+  out$version = sjsdm_backend_version
+  out$state = sjsdm_state(model)
+  if(torch::cuda_is_available()) torch::cuda_empty_cache()
   return(out)
 }
 
@@ -348,16 +405,33 @@ print.sjSDM = function(x, ...) {
 #' @param SP spatial predictors (e.g. X and Y coordinates)
 #' @param Y Known occurrences of species, must be a matrix of the original size, species to be predicted must consist of NAs
 #' @param type raw or link
-#' @param dropout use dropout for predictions or not, only supported for DNNs
+#' @param dropout use dropout for predictions or not, only supported for DNNs and NN() blocks
+#' @param marginal integrate the latent factor out of the prediction. The species associations
+#'   are generated by an unobserved latent factor z, so a marginal prediction is
+#'   \eqn{E_z[\mathrm{link}(\mu + z\Sigma')]} and not \eqn{\mathrm{link}(\mu)}, which is the
+#'   prediction at \eqn{z = 0}. The two differ whenever the associations are non-zero: for the
+#'   probit link the marginal is \eqn{\Phi(\mu / \sqrt{\mathrm{diag}(\Sigma\Sigma' + I)})}.
+#'   The integral is approximated by Monte Carlo, so predictions are stochastic; raise
+#'   \code{sampling} for more stable values. \code{marginal = FALSE} restores the behaviour of
+#'   sjSDM <= 1.1.0 and is only there for reproducing older results.
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
-#' 
+#'
+#' @details
+#' For a model with random-effect bars the prediction for a group the fit saw is taken at the posterior
+#' mean of that group. A group it did not see - a level of the grouping factor that was not in the training
+#' data, or \code{NA} - contributes no mean, and its group effect is integrated over the prior
+#' instead. That widens the prediction rather than shifting it, and for the \code{logit} and
+#' \code{linear} links the prior variance is added by sampling, so those predictions carry one more source
+#' of Monte-Carlo noise.
+#'
 #' @return Matrix of predictions (sites by species)
-#' 
+#'
 #' @example /inst/examples/predict-example.R
-#' 
+#'
 #' @import checkmate
 #' @export
-predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("link", "raw"), dropout = FALSE,...) {
+predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("link", "raw"),
+                         dropout = FALSE, marginal = TRUE, ...) {
   object = checkModel(object)
   
   assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata) )
@@ -382,86 +456,35 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("
     
     
     if(is.null(newdata)) {
-      return(force_r( object$model$predict(newdata = object$data$X, SP = object$spatial$X, link=link, dropout = dropout, ...)))
+      return(force_r( object$model$predict(newdata = config_X(object$settings$env), SP = config_X(object$spatial), link=link, dropout = dropout, marginal = marginal, ...)))
     } else {
       
-      if(is.data.frame(newdata)) {
-        newdata = stats::model.matrix(object$formula, newdata)
-      } else {
-        newdata = stats::model.matrix(object$formula, data.frame(newdata))
-      }
-      
-      if(is.data.frame(SP)) {
-        sp = stats::model.matrix(object$spatial$formula, SP)
-      } else {
-        sp = stats::model.matrix(object$spatial$formula, data.frame(SP))
-      }
+      newdata = c(sjsdm_newdata(object$settings$env, newdata),
+                  re_newdata(object$settings$env, newdata))
+      sp = sjsdm_newdata(object$spatial, SP)
       
     }
-    pred = force_r(object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, ...))
+    pred = force_r(object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, marginal = marginal, ...))
     
     
   } else {
     
     if(is.null(newdata)) {
-      return(force_r(object$model$predict(newdata = object$data$X, link=link, ...)))
+      return(force_r(object$model$predict(newdata = config_X(object$settings$env), link=link, dropout = dropout, marginal = marginal, ...)))
     } else {
-      if(is.data.frame(newdata)) {
-        newdata = stats::model.matrix(object$formula, newdata)
-      } else {
-        newdata = stats::model.matrix(object$formula, data.frame(newdata))
-      }
+      newdata = c(sjsdm_newdata(object$settings$env, newdata),
+                  re_newdata(object$settings$env, newdata))
     }
-    pred = force_r(object$model$predict(newdata = newdata, link=link, dropout = dropout, ...))
+    pred = force_r(object$model$predict(newdata = newdata, link=link, dropout = dropout, marginal = marginal, ...))
   }
   
   if(!is.null(Y)) {
-    predictions = pred
-    to_predict = which(apply(Y,2,  function(i) any(is.na(i))))
-    focal = which(apply(Y,2,  function(i) any(!is.na(i))))
-    Y_copy = matrix(NA, nrow(Y), length(to_predict))
-    counter = 1
-    for(K in to_predict) {
-      joint_ll = reticulate::py_to_r(
-        pkg.env$fa$MVP_logLik(cbind(1, Y[, focal]), 
-                              predictions[,c(K, focal)], 
-                              reticulate::py_to_r(object$model$get_sigma)[c(K, focal),],
-                              device = object$model$device,
-                              individual = TRUE,
-                              dtype = object$model$dtype,
-                              batch_size = as.integer(object$settings$step_size),
-                              alpha = object$model$alpha,
-                              link = object$family$link,
-                              theta = object$theta[c(K, focal)], ...
-        )
-      )
-      raw_ll = 
-        reticulate::py_to_r(
-          pkg.env$fa$MVP_logLik(Y[,focal], 
-                                predictions[,focal], 
-                                reticulate::py_to_r(object$model$get_sigma)[focal,],
-                                device = object$model$device,
-                                individual = TRUE,
-                                dtype = object$model$dtype,
-                                batch_size = as.integer(object$settings$step_size),
-                                alpha = object$model$alpha,
-                                link = object$family$link,
-                                theta = object$theta[focal], ...
-          )
-        ) 
-      raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
-      pred_prob = exp(-raw_conditional_ll)
-      pred_prob[pred_prob> 1] = 1.0
-      pred_prob[pred_prob<0] = 0
-      Y_copy[,counter] = pred_prob
-      counter = counter + 1
-      
-    }
-    
-    pred = Y_copy
+    args = list(...)
+    sampling = if(is.null(args[["sampling"]])) object$settings$sampling else args[["sampling"]]
+    pred = sjsdm_conditional(object$model, pred, Y, sampling)
   }
-  
-  
+
+
   return(pred)
 }
 
@@ -494,11 +517,19 @@ coef.sjSDM = function(object, ...) {
 #' @export
 getSe = function(object, step_size = NULL, parallel = 0L){
   if(!inherits(object, "sjSDM")) stop("object must be of class sjSDM")
+  if(inherits(object$settings$env, "DNN"))
+    stop("standard errors are only available for linear environmental models", call. = FALSE)
   object = checkModel(object)
   if(is.null(step_size)) step_size = object$settings$step_size
   else step_size = as.integer(step_size)
-  if(!inherits(object, "spatialRE")) try({ object$se = t(abind::abind(force_r(object$model$se(object$data$X, object$data$Y, batch_size = step_size, parallel = parallel)),along=0L)) })
-  else try({ object$se = t(abind::abind(force_r(object$model$se(object$data$X, object$data$Y, object$spatial$re, batch_size = step_size, parallel = parallel)),along=0L)) })
+  # the spatial predictors have to go in, otherwise the Hessian is taken for a model
+  # without the spatial term
+  if(length(c(object$settings$env$nn, object$settings$env$re)))
+    warning("standard errors are conditional on the fitted NN()/random blocks and ignore their uncertainty", call. = FALSE)
+  SP = if(inherits(object, "spatial")) config_X(object$spatial) else NULL
+  object$se = t(abind::abind(object$model$se(config_X(object$settings$env), object$data$Y, SP = SP,
+                                             batch_size = step_size, parallel = parallel),
+                             along = 0L))
   return(object)
 }
 
@@ -561,6 +592,16 @@ summary.sjSDM = function(object, ...) {
     cat("\n\n\n")
   }
   
+  if(length(object$settings$env$re)) {
+    cat("Random effects, Lambda Lambda' averaged over species: \n")
+    for(r in getRE(object)) {
+      cat("(", paste(r$terms, collapse = " + "), " | ", r$group, "), ", length(r$levels),
+          " levels, ",
+          if(r$loading == "shared") "shared loading" else paste0("df = ", r$df), "\n", sep = "")
+      print(round(if(length(dim(r$cov)) == 3L) apply(r$cov, 2:3, mean) else r$cov, 4))
+    }
+    cat("\n\n")
+  }
   
   if(inherits(object, "linear")) {
   
@@ -595,6 +636,7 @@ summary.sjSDM = function(object, ...) {
       if(dim(env)[2] > 50) utils::head(env)
       else print(env)
       } 
+      if(!is.null(object$env_architecture)) cat("\n", object$env_architecture, sep = "")
     }else {
     
     cat("Env architecture:\n")
@@ -628,11 +670,7 @@ summary.sjSDM = function(object, ...) {
 #' @export
 simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
   object = checkModel(object)
-  if(!is.null(seed)) {
-    set.seed(seed)
-    pkg.env$torch$cuda$manual_seed(seed)
-    pkg.env$torch$manual_seed(seed)
-  }
+  if(!is.null(seed)) sjsdm_set_seed(seed)
   pred = predict(object)
   
   if(object$family$family$family == "binomial") {
@@ -665,6 +703,13 @@ simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
 #' @param individual returns internal ll structure, mostly for internal useage
 #' @param ... optional arguments passed to internal logLik function (only used if \code{individual=TRUE})
 #' 
+#' @details
+#' For a model with random-effect bars this is the conditional log-likelihood at the posterior means of the
+#' group effects, not the evidence lower bound and not a marginal likelihood. The Kullback-Leibler term
+#' enters the training loss only and is visible through \code{object$history$train_l}. Values are therefore
+#' not comparable with those of a model fitted without a bar, and neither are information criteria built
+#' from them.
+#' 
 #' @return Numeric value or numeric matrix if individual is true.
 #' 
 #' @importFrom stats simulate
@@ -673,8 +718,8 @@ logLik.sjSDM <- function(object, individual=FALSE,...){
   if(!individual) return(object$logLik[[1]])
   else {
     object = checkModel(object)
-    if(!inherits(object, "spatial")) return(force_r(object$model$logLik(object$data$X, object$data$Y, individual = TRUE, ...)))
-    else return(force_r(object$model$logLik(object$data$X, object$data$Y, object$spatial$X, individual = TRUE, ...)))
+    if(!inherits(object, "spatial")) return(force_r(object$model$logLik(config_X(object$settings$env), object$data$Y, individual = TRUE, ...)))
+    else return(force_r(object$model$logLik(config_X(object$settings$env), object$data$Y, config_X(object$spatial), individual = TRUE, ...)))
   }
 }
 
@@ -687,25 +732,25 @@ logLik.sjSDM <- function(object, individual=FALSE,...){
 #' @param env_formula new environmental formula
 #' @param spatial_formula new spatial formula
 #' @param biotic new biotic config
+#' @param env_blocks indices of the environmental blocks to keep in the predictor, 1 being the
+#'   parametric block and the \code{\link{NN}} blocks following it in formula order. Every
+#'   other block is removed from the sum and contributes exactly zero. Random-effect bars are
+#'   not selected here, they are kept in every refit.
 #' @param ... additional arguments
 #' 
 #' @return An S3 class of type 'sjSDM'. See \code{\link{sjSDM}} for more information.
 #' @export
-update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biotic = NULL, ...) {
+update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biotic = NULL,
+                        env_blocks = NULL, ...) {
   
-  mf = match.call()
   if(!is.null(env_formula)){
-    m = match("env_formula", names(mf))
-    if(inherits(mf[m]$env_formula,"name")) mf[m]$env_formula = eval(mf[m]$env_formula, envir = parent.env(environment()))
-    env_formula = stats::as.formula(mf[m]$env_formula)
+    env_formula = stats::as.formula(env_formula, env = parent.frame())
   } else {
     env_formula = object$settings$env$formula
   }
   
   if(!is.null(spatial_formula)){
-    m = match("spatial_formula", names(mf))
-    if(inherits(mf[m]$spatial_formula, "name")) mf[m]$spatial_formula = eval(mf[m]$spatial_formula, envir = parent.env(environment()))
-    spatial_formula = stats::as.formula(mf[m]$spatial_formula)
+    spatial_formula = stats::as.formula(spatial_formula, env = parent.frame())
   } else {
     spatial_formula = object$settings$spatial$formula
   }
@@ -716,12 +761,13 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
   
   env = object$settings$env
   env$formula = env_formula
-  env$X = stats::model.matrix(env_formula, env$data)
+  env[c("X", "terms", "xlevels", "intercept", "nn", "re")] = design_blocks(env_formula, env$data)
+  if(!is.null(env_blocks)) env = select_blocks(env, env_blocks)
   
   if(inherits(object, "spatial")) {
     spatial = object$settings$spatial
     spatial$formula = spatial_formula
-    spatial$X = stats::model.matrix(spatial_formula, spatial$data)
+    spatial[c("X", "terms", "xlevels", "intercept")] = design(spatial_formula, spatial$data)
   } else {
     spatial = NULL
   }

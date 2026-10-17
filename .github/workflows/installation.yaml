@@ -1,16 +1,12 @@
-# For help debugging build failures open an issue on the RStudio community with the 'github-actions' tag.
-# https://community.rstudio.com/new-topic?category=Package%20development&tags=github-actions
+# Checks that a clean machine can install sjSDM and fit a model, i.e. that the only
+# non-CRAN dependency (the libtorch binaries) installs on every platform.
 on:
   schedule:
-  - cron: '0 0 * * *'
+    - cron: '0 0 * * *'
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [main, master]
 
 name: Automatic-installation
 
@@ -25,104 +21,43 @@ jobs:
       matrix:
         config:
           - {os: windows-latest, r: 'release'}
-          - {os: ubuntu-20.04, r: 'release', rspm: "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"}
+          - {os: ubuntu-latest,  r: 'release'}
+          - {os: macos-latest,   r: 'release'}
 
     env:
-      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
-      RSPM: ${{ matrix.config.rspm }}
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      KMP_DUPLICATE_LIB_OK: TRUE
+      TORCH_INSTALL: 1
+
     steps:
-      - uses: actions/checkout@v2
-      
-      - uses: r-lib/actions/setup-pandoc@v2      
+      - uses: actions/checkout@v4
 
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.config.r }}
+          use-public-rspm: true
 
-      - uses: r-lib/actions/setup-pandoc@v2
-      
-      - name: TinyTex for non Windows
-        if: runner.os != 'Windows'
-        uses: r-lib/actions/setup-tinytex@v2
-        env:
-          TINYTEX_INSTALLER: TinyTeX
-          #TINYTEX_VERSION: '2023.03'
-
-      - name: TinyTex for Windows
-        if: runner.os == 'Windows'
-        uses: r-lib/actions/setup-tinytex@v2
-        env:
-          TINYTEX_INSTALLER: TinyTeX
-          TINYTEX_VERSION: '2023.03'
-          
-      - name: TinyTex2 for Windows
-        if: runner.os == 'Windows'
-        uses: teatimeguest/setup-texlive-action@v2
-          
-      - name: Install makeindex
-        run: |
-          tlmgr install makeindex
-
-      - name: Query dependencies
-        run: |
-          setwd("sjSDM")
-          install.packages("pak", repos = "https://r-lib.github.io/p/pak/dev/")
-          saveRDS(pak::pkg_deps("local::.", dependencies = TRUE), "../.github/r-depends.rds")
-        shell: Rscript {0}
-
-      - name: Cache R packages
-        if: runner.os != 'Windows'
-        uses: actions/cache@v2
+      - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          path: ${{ env.R_LIBS_USER }}
-          key: ${{ matrix.config.os }}-${{ steps.install-r.outputs.installed-r-version }}-1-${{ hashFiles('.github/r-depends.rds') }}
-          restore-keys: ${{ matrix.config.os }}-${{ steps.install-r.outputs.installed-r-version }}-1-
+          working-directory: sjSDM
 
-      - name: Install system dependencies
-        if: runner.os == 'Linux'
+      - name: Install sjSDM
+        run: R CMD INSTALL sjSDM
+
+      # this is what install_sjSDM() does; check the documented path works
+      - name: Install dependencies the way a user would
         run: |
-          setwd("sjSDM")
-          pak::local_system_requirements(execute = TRUE)
-          pak::pkg_system_requirements("rcmdcheck", execute = TRUE)
+          sjSDM::install_sjSDM()
+          sjSDM::install_diagnostic()
         shell: Rscript {0}
-        
-      - name: Install dependencies
-        run: |
-          setwd("sjSDM")
-          pak::local_install_dev_deps(upgrade = TRUE)
-          pak::pkg_install("devtools")
-        shell: Rscript {0}
-        
-      - name: Install Pkg
-        run: |
-          cd sjSDM
-          Rscript -e "pak::local_install()"
-          Rscript -e "pak::pkg_install('rstudio/reticulate')"
-          Rscript -e "sjSDM::install_sjSDM(version='cpu')"
-          
-      - name: Run-sjSDM
+
+      - name: Fit a model
         env:
-          _R_CHECK_CRAN_INCOMING_REMOTE_: false
           CI: true
         run: |
-          setwd("sjSDM")
-          options(crayon.enabled = TRUE)
           library(sjSDM)
-          com = simulate_SDM(env = 3L, species = 7L, sites = 10L)
-          model = sjSDM(Y = com$response,env = com$env_weights, iter = 2L)
+          com = simulate_SDM(env = 3L, species = 7L, sites = 50L)
+          model = sjSDM(Y = com$response, env = com$env_weights, iter = 5L, verbose = FALSE)
+          stopifnot(is.finite(logLik(model)))
+          stopifnot(all(dim(getCov(model)) == c(7L, 7L)))
+          cat("logLik:", logLik(model), "\n")
         shell: Rscript {0}
-        
-      - name: testthat output
-        if: always()
-        run: find check -name 'testthat.Rout*' -exec cat '{}' \; || true
-        shell: bash
-        
-        
-      - name: Upload check results
-        if: failure()
-        uses: actions/upload-artifact@main
-        with:
-          name: ${{ matrix.config.os }}-r${{ matrix.config.r }}-results
-          path: check

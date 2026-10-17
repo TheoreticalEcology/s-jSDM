@@ -5,12 +5,7 @@
 #' 
 #' @export
 is_torch_available = function() {
-
-  if (reticulate::py_module_available("torch")) {
-    return(TRUE)
-  } else {
-    return(FALSE)
-  }
+  isTRUE(try(torch::torch_is_installed(), silent = TRUE))
 }
 
 createSplit = function(n=NULL,CV=5) {
@@ -20,7 +15,38 @@ createSplit = function(n=NULL,CV=5) {
 }
 
 
-copyRP = function(w) reticulate::r_to_py(w)$copy()
+copyRP = function(w) w
+
+# kept as a no-op from the reticulate backend so that existing call sites stay valid
+force_r = function(x) x
+
+# a model restored from disk carries dead external pointers; detect that cheaply
+model_is_alive = function(m) {
+  if (is.null(m)) return(FALSE)
+  !inherits(try(m$state_dict(), silent = TRUE), "try-error")
+}
+
+# normalises what gets stored in model_properties, so a fit that fell back to the CPU does not
+# re-warn on every rebuild. The validation itself lives in sjsdm_device().
+check_device = function(device) {
+  if (sjsdm_device(device)$type == "cpu") "cpu" else device
+}
+
+# predict() has to reuse the fitted design: model.matrix(formula, newdata) re-derives poly(),
+# ns() or scale() from the new rows. The terms object carries predvars, which does not.
+# One design per block, in the order the net adds them.
+sjsdm_newdata = function(config, newdata) {
+  if (!is.data.frame(newdata)) newdata = data.frame(newdata)
+  lapply(c(list(config), config$nn), function(b) newdata_design(b, newdata))
+}
+
+# na.pass, as predict.lm does: model.matrix() would drop a row with a missing predictor from
+# this block only, and every later row would meet the next site's random block
+newdata_design = function(b, newdata) {
+  tt = stats::delete.response(b$terms)
+  stats::model.matrix(tt, stats::model.frame(tt, newdata, na.action = stats::na.pass,
+                                             xlev = b$xlevels))
+}
 
 addA = function(col, alpha = 0.25) apply(sapply(col, grDevices::col2rgb)/255, 2, function(x) grDevices::rgb(x[1], x[2], x[3], alpha=alpha))
 
@@ -31,19 +57,15 @@ checkModel = function(object) {
   check_module()
   if(!inherits(object, c("sjSDM", "sjSDM_DNN", "sLVM"))) stop("model not of class sjSDM")
   
-  if(!reticulate::py_is_null_xptr(object$model)) return(object)
+  if(model_is_alive(object$model)) return(object)
+  
+  if(!identical(object$version, sjsdm_backend_version))
+    stop("this object was fitted by sjSDM backend ",
+         if(is.null(object$version)) "< 1.1.0" else object$version,
+         " and cannot be restored by backend ", sjsdm_backend_version, call. = FALSE)
   
   object$model = object$get_model()
-  
-  if(inherits(object, c("sjSDM", "sjSDM_DNN"))){
-    object$model$set_env_weights(lapply(object$weights, function(w) reticulate::r_to_py(w)$copy()))
-    if(!is.null(object$spatial)) object$model$set_spatial_weights(lapply(object$spatial_weights, function(w) reticulate::r_to_py(w)$copy()))
-    object$model$set_sigma(reticulate::r_to_py(object$sigma)$copy())
-  }
-  
-  if(object$family$family$family == "nbinom") {
-    object$model$set_theta(reticulate::r_to_py(object$theta)$copy())
-  }
+  object$model$load_state_dict(torch::torch_load(object$state$raw))
   return(object)
 }
 
@@ -68,45 +90,37 @@ is_linux = function() {
 #' 
 #' check if module is loaded
 check_module = function(){
-  if(is.null(pkg.env$fa)){
-    .onLoad()
-  }
-
-  if(is.null(pkg.env$fa)) {
-    stop("PyTorch not installed", call. = FALSE)
-  }
-
-  if(reticulate::py_is_null_xptr(pkg.env$fa)) .onLoad()
+  if(!is_torch_available())
+    stop("'torch' is not available. Run torch::install_torch(), see ?installation_help",
+         call. = FALSE)
+  invisible(TRUE)
 }
 
 
 
 parse_nn = function(nn) {
-  slices = reticulate::iterate(nn)
-  
-  layers = sapply(slices, function(s) {sl = strsplit(class(s)[1], ".", fixed=TRUE)[[1]]; return(sl[length(sl)])})
+  slices = nn$children
+  layers = sapply(slices, function(s) sub("^nn_", "", class(s)[1]))
   txt = paste0("===================================\n")
-  
-  wM = matrix(NA, nrow = length(layers), ncol= 2L)
-  
-  for(i in 1:length(layers)) {
-    type = strsplit(class(slices[[i]]), ".", fixed = TRUE)[[1]]
-    
-    if(layers[i] %in% "Linear") {
-      wM[i, 1] = force_r( slices[[i]]$in_features )
-      wM[i, 2] = force_r( slices[[i]]$out_features )
-      txt = paste0(txt, paste0("Layer_", i),":",
-                   "\t (", force_r( slices[[i]]$in_features ), ", ",force_r( slices[[i]]$out_features ), ")\n"
+
+  wM = matrix(NA, nrow = length(layers), ncol = 2L)
+
+  for(i in seq_along(layers)) {
+    if(layers[i] %in% "linear") {
+      wM[i, 1] = slices[[i]]$in_features
+      wM[i, 2] = slices[[i]]$out_features
+      txt = paste0(txt, paste0("Layer_", i), ":",
+                   "\t (", slices[[i]]$in_features, ", ", slices[[i]]$out_features, ")\n"
                    )
     } else {
-      txt = paste0(txt, paste0("Layer_", i),":",
+      txt = paste0(txt, paste0("Layer_", i), ":",
                    "\t ", layers[i], "\n"
                    )
     }
   }
   txt = paste0(txt, "===================================\n")
-  
-  txt = paste0(txt, "Weights :\t ", sum(apply(wM, 1,cumprod)[2,], na.rm = TRUE), "\n")
+
+  txt = paste0(txt, "Weights :\t ", sum(apply(wM, 1, cumprod)[2,], na.rm = TRUE), "\n")
   return(txt)
 }
 
@@ -152,21 +166,14 @@ generateSpatialEV = function(coords = NULL, threshold = 0.0) {
   return(SV)
 }
 
-force_r = function(x) {
-  if(inherits(x, "python.builtin.object")) return(reticulate::py_to_r( x ))
-  else return(x)
-}
-
 softplus = function(x) log(1+exp(x))
 
 check_installation = function() {
-  # check if dependencies are installed
-  torch_ = pyro_ = torch_optimizer_ = madgrad_ = c(crayon::red(cli::symbol$cross), 0)
-  if(reticulate::py_module_available("torch")) torch_ =  c(crayon::green(cli::symbol$tick), 1)
-  if(reticulate::py_module_available("pyro")) pyro_ =  c(crayon::green(cli::symbol$tick), 1)
-  if(reticulate::py_module_available("torch_optimizer")) torch_optimizer_ =  c(crayon::green(cli::symbol$tick), 1)
-  if(reticulate::py_module_available("madgrad")) madgrad_ =  c(crayon::green(cli::symbol$tick), 1)
-  return(rbind("torch" = torch_,  "torch_optimizer" = torch_optimizer_, "pyro" = pyro_, "madgrad" = madgrad_))
+  torch_ = c(crayon::red(cli::symbol$cross), 0, "torch")
+  if(is_torch_available())
+    torch_ = c(crayon::green(cli::symbol$tick), 1,
+               paste0("torch ", as.character(utils::packageVersion("torch"))))
+  return(rbind("torch" = torch_))
 }
 
 

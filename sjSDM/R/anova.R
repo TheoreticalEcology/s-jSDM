@@ -4,8 +4,17 @@
 #' 
 #' @param object model of object \code{\link{sjSDM}}
 #' @param samples Number of Monte Carlo samples
+#' @param proposal distribution the latent factors are drawn from. `"laplace"` (the default) draws
+#'   from a Gaussian fitted to the per-site mode of the integrand and reweights the draws.
+#'   `"prior"` draws from `N(0, I)`, which is what every version before 1.1.0 did. The reweighting keeps
+#'   the estimator of the likelihood unbiased and raises the effective sample size by orders of
+#'   magnitude at many species. The log of that estimate, which is what the fractions are built
+#'   from, keeps a bias of roughly `(1/ess - 1)/(2 * samples)` per site. See Details.
 #' @param verbose `TRUE` or `FALSE`, indicating whether progress should be printed or not
-#' @param ... optional arguments which are passed to the calculation of the logLikelihood
+#' @param ... optional arguments which are passed to the calculation of the logLikelihood,
+#'   including \code{mc_batch}, the number of sites whose Monte-Carlo draws are held in
+#'   memory at once. It defaults to the model's \code{step_size}, lowered if that would
+#'   exceed roughly 2.5 GB; lower it by hand on a device with less memory.
 #' 
 #' @details The ANOVA function removes each of the three fractions (Environment, Space, Associations) and measures the drop in variance explained, and thus the importance of the three fractions.
 #' 
@@ -13,6 +22,44 @@
 #' 
 #' In downstream functions such as \code{\link{plot.sjSDManova}} or \code{\link{plot.sjSDManova}} with \code{add_shared=TRUE}.
 #' The anova can get unstable for many species and few occurrences/observations. We recommend using large numbers for 'samples'.
+#' 
+#' The sub-models without associations, and the null model, carry no latent term at all. Up to 1.0.7 they
+#' were fitted with an identity covariance, which for a probit link only rescales the coefficients but for
+#' the count, negative binomial and gaussian links adds a fixed unit latent variance; that misfit was then
+#' reported as associations.
+#' 
+#' `proposal = "prior"` draws the latent factors blind and weights them by the likelihood.
+#' At many species almost every draw lands where the observed community is implausible, so the effective
+#' sample size collapses -- measured at 100 species it is 3 draws out of 1000 -- and the negative
+#' log-likelihood \code{-log(mean(exp(lp)))} is biased upwards by an amount that grows with the variance
+#' of the per-draw log-probability. That variance differs between the sub-models \code{anova} compares,
+#' so it does not cancel in the differences the fractions are built from, and the sub-model that leans
+#' hardest on the latent factors is depressed most. `proposal = "laplace"` reduces this by sampling from
+#' a Gaussian centred on the per-site mode with the curvature of the integrand, and correcting each draw
+#' by \code{log p(z) - log q(z)}. It is a proposal, not an approximation: a poor fit costs effective
+#' sample size, not correctness. The realised fraction is returned in the `ess` component, where 1 means
+#' every draw counted. Read it as a per-dimension efficiency raised to the power of the latent dimension
+#' `df`, not as a per-site quality score. The sub-models without associations have nothing to integrate
+#' and report 1.
+#' 
+#' For the gaussian family the McFadden R-squared is a ratio of log-densities, which change with the
+#' measurement scale of the response and turn positive for small residual variances, so it is not bounded
+#' by 1 and differs between units. The deviances and the Nagelkerke R-squared do not have this problem.
+#' 
+#' \code{anova} is not defined for a model with random-effect bars in the environmental formula and raises
+#' an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed
+#' instead of cancelling from the difference. Use \code{\link{getRE}} for the group variances.
+#' 
+#' The \code{species} and \code{sites} components are not the printed table restricted to a species or a
+#' site, and they are read differently. The table composes the fractions on the log-likelihood scale and
+#' forms a single ratio at the end, so it is exact inclusion-exclusion on the joint likelihoods. The
+#' per-species and per-site values are allocations: each site's improvement over the null is apportioned
+#' across species in proportion to how much each species' conditional likelihood improved, and that share
+#' is computed separately for every sub-model. A per-species or per-site fraction is therefore a difference
+#' of two allocations computed under different shares, it is unbounded in both directions, and 1 is not a
+#' boundary for it. The shares are undefined when a sub-model is about as good as the null overall, so
+#' treat per-species and per-site values from such a model with care. The site totals are unaffected:
+#' the shares cancel when summed over species.
 #' 
 #' @return 
 #' An S3 class of type 'sjSDManova' including the following components:
@@ -24,6 +71,11 @@
 #' \item{species}{individual species R2s.}
 #' \item{sites}{individual site R2s.}
 #' \item{lls}{individual site by species negative-log-likelihood values.}
+#' \item{proposal}{the sampler the latent factors were drawn from.}
+#' \item{ess}{sites-by-sub-model matrix of effective sample sizes, as a fraction of `samples`.
+#'   One column per fitted sub-model, so a low column shows which model's likelihood rests on few
+#'   draws. `attr(, "newton_decrement")` carries the largest Newton decrement the Laplace mode-finder left
+#'   behind, per sub-model.}
 #' \item{model}{model}
 #' 
 #' Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
@@ -35,34 +87,51 @@
 #' @import stats
 #' @export
 
-anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
+anova.sjSDM = function(object, samples = 5000L, verbose = TRUE,
+                       proposal = c("laplace", "prior"), ...) {
   out = list()
   individual = TRUE
   samples = as.integer(samples)
+  proposal = match.arg(proposal)
   object = checkModel(object)
+  # the random blocks are re-estimated in every refit, so they absorb what the removed term
+  # explained instead of cancelling, and get_conditional_lls() rescales each refit by its own
+  # `rates`, so nothing cancels algebraically either (PREDICTOR_plan.md 8.4)
+  if(length(object$settings$env$re))
+    stop("anova() is not defined for a model with random effects: every refit re-estimates ",
+         "the random blocks, so they absorb the fraction that was removed rather than ",
+         "cancelling from the difference. Use getRE() for the group variances.", call. = FALSE)
+  # with a diagonal covariance the association-carrying sub-models would not be nested in it
+  if(isTRUE(object$settings$biotic$diag))
+    stop("anova() needs a model with associations, it is not defined for ",
+         "bioticStruct(diag = TRUE)", call. = FALSE)
   object$samples = samples
-  object$settings$sampling = samples
+  # `samples` is the Monte-Carlo budget for EVALUATING the fractions, and it is passed
+  # explicitly to every get_conditional_lls() call below. It must not reach the refits:
+  # update() hands settings$sampling to sjSDM(), so writing it here trained the seven
+  # sub-models and the null at `samples` draws per optimiser step while full_m came from
+  # the original fit at the model's own sampling -- the fractions then compared models
+  # trained under different regimes, and a 201-species anova spent its time there.
   
-  pkg.env$fa$set_seed(object$seed)
+  sjsdm_set_seed(object$seed)
   #   if(object$family$family$family == "gaussian") stop("gaussian not yet supported")
   
   object$settings$se = FALSE
   
   null_m = -get_null_ll(object, verbose = verbose)
   
-  full_m = get_conditional_lls(object, null_m, sampling = samples, ...)
+  full_m = get_conditional_lls(object, null_m, sampling = samples, proposal = proposal, ...)
   
   ### fit different models ###
   #e_form = stats::as.formula(paste0(as.character(object$settings$env$formula), collapse = ""))
   if(!inherits(object, "spatial")) {
     out$spatial = FALSE
     
-    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ), verbose = verbose)
-    A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE),  verbose = verbose)
-    B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
-    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ),  verbose = verbose)
-    SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = NULL, spatial_formula = ~0, biotic = anova_biotic(object, TRUE), verbose = verbose)
+    A_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
+    m = update(object, env_formula = ~1, spatial_formula = ~0, biotic = anova_biotic(object, FALSE), verbose = verbose)
+    B_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
+    SAT_m = saturated_nll(object$data$Y, object$family$link, object$theta)
     
     A_wo = A_m - null_m
     B_wo = B_m - null_m
@@ -70,7 +139,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     
     F_A = full_wo - B_wo
     F_B = full_wo - A_wo
-    F_AB = full_wo - A_wo-B_wo
+    F_AB = full_wo - F_A - F_B
     
     
     R2object = list(A = sum(A_m), B = sum(B_m), AB = sum(full_m - A_m - B_m), Full = sum(full_m))
@@ -99,38 +168,38 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     results_mvp_proportional = results_mvp
     
     results_ind = list("F_A"=-(null_m + F_A), "F_B"=-(null_m +F_B), "F_AB"=-(null_m + F_AB), "A" = -A_m, "B" = -B_m, "Full"=-full_m, "Saturated"=-SAT_m, "Null"=-null_m)
+    out$ess = collect_ess(list(A = A_m, B = B_m, Full = full_m))
     
   } else {
     out$spatial = TRUE
     
     s_form = stats::as.formula(paste0(as.character(object$settings$spatial$formula), collapse = ""))
     # A only model
-    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = TRUE ),  verbose = verbose)
-    A_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = NULL, spatial_formula = ~0, biotic = anova_biotic(object, TRUE), verbose = verbose)
+    A_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # B only model
-    m = update(object, env_formula = ~0, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE), verbose = verbose)
-    B_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~1, spatial_formula = ~0, biotic = anova_biotic(object, FALSE), verbose = verbose)
+    B_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # S only model
-    m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE), verbose = verbose)
-    S_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~1, spatial_formula = NULL, biotic = anova_biotic(object, TRUE), verbose = verbose)
+    S_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # AB
-    m = update(object, env_formula = NULL, spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
-    AB_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = NULL, spatial_formula = ~0, biotic = anova_biotic(object, FALSE), verbose = verbose)
+    AB_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # AS
-    m = update(object, env_formula = NULL, spatial_formula= NULL, biotic=bioticStruct(diag = TRUE ), verbose = verbose)
-    AS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = NULL, spatial_formula = NULL, biotic = anova_biotic(object, TRUE), verbose = verbose)
+    AS_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # BS
-    m = update(object, env_formula = ~1, spatial_formula= NULL, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
-    BS_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    m = update(object, env_formula = ~1, spatial_formula = NULL, biotic = anova_biotic(object, FALSE), verbose = verbose)
+    BS_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # Saturated, do we really need it?
-    m = update(object, env_formula = ~as.factor(1:nrow(object$data$X)), spatial_formula= ~0, biotic=bioticStruct(diag = FALSE ), verbose = verbose)
-    SAT_m = get_conditional_lls(m, null_m, sampling = samples, ...)
+    SAT_m = saturated_nll(object$data$Y, object$family$link, object$theta)
     
     
     A_wo = A_m - null_m
@@ -200,8 +269,10 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
                        "F_BS"=-(null_m + F_BS), "F_ABS"=-(null_m + F_ABS), "A" = -A_m, "B" = -B_m, "S" = -S_m, AB = -AB_m, AS = -AS_m, BS = -BS_m,
                        "Full"=-(full_m), "Saturated"= -(SAT_m), "Null"=-null_m)
     
+    out$ess = collect_ess(list(A = A_m, B = B_m, S = S_m, AB = AB_m, AS = AS_m,
+                               BS = BS_m, Full = full_m))
     anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Associations", "Spatial", "Full")
   }
   results = 
     lapply(list(results_discard, results_proportional, results_equal, results_mvp, results_mvp_proportional), function(res) {
@@ -218,7 +289,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     })
   
   # individual
-  Residual_deviance_ind = lapply(results_ind, function(r) r - results_ind$Saturated)
+  Residual_deviance_ind = lapply(results_ind, function(r) -2 * (r - results_ind$Saturated))
   Deviance_ind = lapply(Residual_deviance_ind, function(r) Residual_deviance_ind$Null - r)
   
   R211 = function(a, b, n=1) return(1-exp(2/(n)*(-a+b)))   # divide by what?
@@ -256,7 +327,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     rownames(printFull) = c("Abiotic", "Associations","Spatial", "Shared Abiotic+Associations", "Shared Abiotic+Spatial", "Shared Spatial+Associations", "Shared Abiotic+Associations+Spatial", "Full")
     
     anova_rows = c("Null", "F_A", "F_B", "F_S", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Associations", "Spatial", "Full")
     
     toPrint = list(all = printFull)
     toPrint$discard = calculateResults(results[[1]], anova_rows)
@@ -264,16 +335,16 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
     toPrint$equal = calculateResults(results[[3]], anova_rows)
     
     anova_rows = c("Null", "F_A", "F_B", "F_S","F_AS", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Shared Abiotic+Spatial", "Full")   
+    names(anova_rows) = c("Null", "Abiotic", "Associations", "Spatial", "Shared Abiotic+Spatial", "Full")   
     toPrint$mvp = calculateResults(results[[4]], anova_rows)
     anova_rows = c("Null", "F_A", "F_B", "F_S","Full")
-    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Spatial", "Full")   
+    names(anova_rows) = c("Null", "Abiotic", "Associations", "Spatial", "Full")   
     toPrint$mvp_proportional = calculateResults(results[[5]], anova_rows)
     
   } else {
     
     anova_rows = c("Null", "F_A", "F_B", "Full")
-    names(anova_rows) = c("Null", "Abiotic", "Assocations", "Full")
+    names(anova_rows) = c("Null", "Abiotic", "Associations", "Full")
     
     printFull = results[[1]][1:4,c(1, 4, 3,5,6)]
     rownames(printFull) = printFull$models
@@ -306,6 +377,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE, ...) {
                    R2_Nagelkerke_shared = R2_Nagelkerke_sites_shared,
                    R2_McFadden_shared = R2_McFadden_sites_shared)
   out$lls = list(results_ind)
+  out$proposal = proposal
   out$object = object
   class(out) = "sjSDManova"
   return(out)
@@ -318,7 +390,56 @@ correct_R2 = function(R2) {
   return(R2)
 }
 
-get_conditional_lls = function(m, null_m, ...) {
+# Negative log-likelihood of the saturated model, which `~as.factor(1:n)` was fitted to
+# approximate until 1.1.0. One free mean per site x species makes the likelihood factorise
+# over cells, so mu = Y and the maximum is closed form. theta is held at the fitted value
+# rather than maximised with it: the supremum over theta is degenerate (normal diverges as
+# sd -> 0, nbinom only reaches the Poisson value as r -> Inf), and a deviance conditional on
+# the fitted dispersion is the GLM convention.
+#
+# SAT_m cancels from Deviance (= RD[Null] - RD) and appears in neither R2, so it feeds only
+# the `Residual deviance` column -- and the SGD fit got that column wrong: on a 100 x 8
+# binomial example the refit returned -204.2 where the answer is 0, a value set by `iter`,
+# `learning_rate` and `weight_decay` of a nuisance model. Dropping the fit removes the
+# single largest phase of anova(), 31 % at 775 x 201.
+saturated_nll = function(Y, link, theta = NULL) {
+  theta_m = function() matrix(theta, nrow(Y), ncol(Y), byrow = TRUE)
+  ll = switch(link,
+              probit = ,
+              logit  = ,
+              linear = matrix(0.0, nrow(Y), ncol(Y)),
+              count  = Y * log(pmax(Y, 1)) - Y - lgamma(Y + 1.0),
+              nbinom = {
+                r = 1.0 / (softplus(theta_m()) + 0.0001)
+                p = pmin(pmax((1.0 - r / (r + Y)) + 0.0001, 0.0), 1.0 - 0.0001)
+                lgamma(r + Y) - lgamma(Y + 1.0) - lgamma(r) + r * log1p(-p) + Y * log(p)
+              },
+              normal = -theta_m() - 0.5 * log(2 * pi))
+  ll[is.na(Y)] = 0.0
+  -ll
+}
+
+# The refits keep the fitted model's covariance settings. A fresh bioticStruct() would drop
+# df, lambda and alpha, so a tuned model was differenced against an unpenalised sub-model of a
+# different rank. A sub-model without associations has no latent term at all (`zero`).
+anova_biotic = function(object, diag) {
+  b = object$settings$biotic
+  b$zero = diag
+  b
+}
+
+# The effective sample size is a property of each sub-model's integration, not of the anova as a
+# whole: the association-only model leans entirely on the latent factors and is always the worst
+# integrated of the set. One column per sub-model, one row per site.
+collect_ess = function(models) {
+  e = vapply(models, function(x) attr(x, "ess"), numeric(nrow(models[[1]])))
+  colnames(e) = names(models)
+  attr(e, "newton_decrement") =
+    vapply(models, function(x) { g = attr(x, "maxdec"); if (is.null(g)) NA_real_ else g }, 1.0)
+  e
+}
+
+get_conditional_lls = function(m, null_m, mc_batch = NULL, proposal = "prior", ...) {
   
   predictions = predict(m, type = "raw")  
   args = list(...)
@@ -328,54 +449,93 @@ get_conditional_lls = function(m, null_m, ...) {
     samples = m$settings$sampling
   }
   
-  # MC samples
-  MC_samples = pkg.env$torch$torch$randn(size = c(as.integer(samples),
-                                                  nrow(predictions), 
-                                                  ncol(reticulate::py_to_r(m$model$get_sigma))), 
-                                         dtype=pkg.env$torch$torch$float32)
-  
-  
-  joint_ll = 
-    reticulate::py_to_r(
-      pkg.env$fa$MVP_logLik(m$data$Y, 
-                            predictions, 
-                            reticulate::py_to_r(m$model$get_sigma),
-                            device = m$model$device,
-                            individual = TRUE,
-                            dtype = m$model$dtype,
-                            batch_size = as.integer(m$settings$step_size),
-                            alpha = m$model$alpha,
-                            link = m$family$link,
-                            theta = m$theta,
-                            noise = MC_samples,
-                            ...
-      )
-    ) |> rowSums() 
-  
-  raw_ll = 
-    sapply(1:ncol(m$data$Y), function(i) {
-      
-      reticulate::py_to_r(
-        pkg.env$fa$MVP_logLik(m$data$Y[,-i], 
-                              predictions[,-i], 
-                              reticulate::py_to_r(m$model$get_sigma)[-i,],
-                              device = m$model$device,
-                              individual = TRUE,
-                              dtype = m$model$dtype,
-                              batch_size = as.integer(m$settings$step_size),
-                              alpha = m$model$alpha,
-                              link = m$family$link,
-                              theta = m$theta[-i],
-                              noise = MC_samples,
-                              ...
-        )
-      ) 
-    })
+  # one shared set of MC samples, so the joint and the leave-one-out likelihoods
+  # are compared under the same noise
+  sigma = m$model$sigma$detach()
+  tt = function(x) sjsdm_tensor(x, m$model$dtype, m$model$device)
+  theta = m$model$theta
+  derivs = if (proposal == "laplace") sjsdm_derivs(m$family$link, m$model$alpha) else NULL
+  if (proposal == "laplace" && is.null(derivs)) {
+    message("link '", m$family$link, "' has no curvature for the Laplace proposal, ",
+            "falling back to prior sampling")
+    proposal = "prior"
+  }
+  MC_samples = if (proposal == "prior")
+    torch::torch_randn(c(as.integer(samples), nrow(predictions), ncol(sigma)),
+                       dtype = m$model$dtype, device = m$model$device)
+
+  n = nrow(predictions)
+  S = ncol(m$data$Y)
+
+  # Row batches. The default stays at step_size because the batched matmul is not bitwise
+  # invariant to the row grouping (one float32 ulp on eta), so changing it silently moves
+  # every anova that has already been run. Memory only ever lowers it: about five
+  # [samples, rows, species] float32 tensors are alive at the peak, capped here at ~2.5 GB.
+  if (is.null(mc_batch))
+    mc_batch = min(as.integer(m$settings$step_size),
+                   as.integer(2.5e9 / (24 * as.numeric(samples) * S)))
+  mc_batch = max(1L, as.integer(mc_batch))
+
+  joint_ll = numeric(n)
+  raw_ll = matrix(0, n, S)
+  ess = numeric(n)
+  maxdec = if (proposal == "laplace") 0 else NA_real_
+  for (start in seq(1L, n, by = mc_batch)) {
+    k = start:min(start + mc_batch - 1L, n)
+    mu_k = tt(predictions[k, , drop = FALSE])
+    Y_k = tt(m$data$Y[k, , drop = FALSE])
+    if (proposal == "laplace") {
+      prop = mvp_laplace_proposal(mu_k, Y_k, sigma, derivs, theta)
+      maxdec = max(maxdec, prop$maxdec)
+      dr = mvp_laplace_draw(prop, as.integer(samples))
+      noise_k = dr$z
+      lw = dr$lw
+    } else {
+      noise_k = MC_samples[, k, , drop = FALSE]
+      lw = NULL
+    }
+    lp = mvp_species_logprob(mu_k, Y_k, sigma,
+                             link = m$family$link, alpha = m$model$alpha,
+                             sampling = as.integer(samples), theta = theta,
+                             noise = noise_k)
+    # Every link is elementwise in the species index, so column j of lp is what a refit
+    # without the other species would have produced. All S leave-one-out sums come from a
+    # forward and a backward cumulative sum: LOO_j = sum_{k<j} + sum_{k>j}. Subtracting
+    # column j from the total instead is one kernel cheaper but cancels catastrophically --
+    # a species log-probability of order 1 against a sum over S of order S -- and moved the
+    # result by 0.1% at S = 150. Slicing S-1 columns per species is exact but costs S times
+    # as much.
+    cf = lp$cumsum(dim = 3)
+    cb = lp$flip(3)$cumsum(dim = 3)$flip(3)
+    # the joint stays a plain sum reduction: cf's last column is the same quantity but
+    # accumulated in a different order, and it feeds every fraction
+    # the importance weight is constant in the species index, so it enters the joint and every
+    # leave-one-out sum the same way and the cumsum trick is untouched
+    jt = lp$sum(dim = 3)
+    if (!is.null(lw)) jt = jt$add(lw)
+    joint_ll[k] = as.numeric(mvp_mc_nll(jt)$cpu())
+    ess[k] = as.numeric(mvp_ess(jt)$cpu())
+    z = torch::torch_zeros_like(cf$select(3, 1)$unsqueeze(3))
+    left = torch::torch_cat(list(z, cf$narrow(3, 1, S - 1L)), dim = 3)
+    right = torch::torch_cat(list(cb$narrow(3, 2, S - 1L), z), dim = 3)
+    loo = left$add(right)
+    if (!is.null(lw)) loo = loo$add(lw$unsqueeze(3))
+    raw_ll[k, ] = as.matrix(mvp_mc_nll(loo)$cpu())
+  }
+
   raw_conditional_ll = -( (-joint_ll) - (-raw_ll ))
   diff_ll = colSums(null_m - raw_conditional_ll)
   rates = diff_ll/sum(diff_ll)
   rescaled_conditional_lls = null_m - matrix(rates, nrow = nrow(m$data$Y), ncol = ncol(m$data$Y), byrow = TRUE) * (rowSums(null_m)-joint_ll)
-  
+  # A site whose mode was missed gets a proposal centred away from the mass, and the median ESS
+  # does not show it because a failing minority does not move a median. A decrement of 1e-2
+  # bounds the log-density error at the mode by about 5e-5.
+  if (proposal == "laplace" && maxdec > 1e-2)
+    warning("Laplace proposal: the mode was not reached for at least one site (Newton decrement ",
+            signif(maxdec, 3), "). Check the per-site `ess` and compare against ",
+            "proposal = \"prior\".", call. = FALSE)
+  attr(rescaled_conditional_lls, "ess") = ess / as.integer(samples)
+  attr(rescaled_conditional_lls, "maxdec") = maxdec
   
   return(rescaled_conditional_lls)
 }
@@ -391,9 +551,9 @@ get_shared_anova = function(R2objt, fractions = c("2", "3")) {
     F_AS <- R2objt$Full - R2objt$B - (F_A + F_S)
     F_ABS <- R2objt$Full - (F_A + F_B + F_S + F_BS + F_AB + F_AS)
     
-    A = F_A + F_AB*0.3333333 + F_AS*0.3333333+ F_ABS*0.3333333
-    B = F_B + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
-    S = F_S + F_AB*0.3333333 + F_BS*0.3333333+ F_ABS*0.3333333
+    A = F_A + F_AB/2 + F_AS/2 + F_ABS/3
+    B = F_B + F_AB/2 + F_BS/2 + F_ABS/3
+    S = F_S + F_AS/2 + F_BS/2 + F_ABS/3
     equal = list(F_A = A, F_B = B, F_S = S, R2 = R2objt$Full)
     
     FF_A = R2objt$AS - R2objt$S
@@ -461,10 +621,10 @@ get_null_ll = function(object, verbose = TRUE, ...) {
   
   
   if(inherits(object, "spatial")) {
-    null_model = update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = bioticStruct(diag = TRUE), verbose = verbose)
+    null_model = update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = anova_biotic(object, TRUE), verbose = verbose)
     null_pred = predict(null_model)
   } else {
-    null_model = update(object_tmp, env_formula = ~1, biotic = bioticStruct(diag = TRUE), verbose = verbose)
+    null_model = update(object_tmp, env_formula = ~1, biotic = anova_biotic(object, TRUE), verbose = verbose)
     null_pred = predict(null_model)
   }
   
@@ -474,22 +634,22 @@ get_null_ll = function(object, verbose = TRUE, ...) {
     null_m = stats::dpois( object$data$Y, null_pred, log = TRUE)
   } else if(object$family$family$family == "nbinom") {
     check_module()
-    torch = pkg.env$torch
-    theta = object$theta
+    theta = null_model$theta
     theta = 1.0/(softplus(theta)+0.0001)
     theta = matrix(theta, nrow = nrow(null_pred), ncol = ncol(null_pred), byrow = TRUE)
-    probs = (1.0 - theta/(theta+null_pred))+0.0001 
+    probs = (1.0 - theta/(theta+null_pred))+0.0001
     probs = ifelse(probs < 0.0, 0.0, probs)
     probs = ifelse(probs > 1.0, 1.0-0.0001, probs )
-    theta = torch$tensor(theta, dtype = torch$float32)
-    probs = torch$tensor(probs, dtype = torch$float32)
-    YT = torch$tensor(object$data$Y, dtype = torch$float32)
-    null_m = force_r(torch$distributions$NegativeBinomial(total_count=theta, probs=probs)$log_prob(YT)$cpu()$data$numpy())
+    Y = object$data$Y
+    null_m = lgamma(theta + Y) - lgamma(Y + 1) - lgamma(theta) +
+      theta * log1p(-probs) + Y * log(probs)
   } else if(object$family$family$family == "gaussian") {
     #warning("family = gaussian() is not fully supported yet.")
-    null_m = sapply(1:ncol(object$data$Y), function(i) stats::dnorm(object$data$Y[,i], null_pred[,i],sd = exp(null_model$theta)[i], log = TRUE))
+    sd_marginal = sqrt(rowSums(null_model$model$get_sigma^2) + exp(2.0 * null_model$theta))
+    null_m = sapply(1:ncol(object$data$Y), function(i) stats::dnorm(object$data$Y[,i], null_pred[,i], sd = sd_marginal[i], log = TRUE))
   }
-  
+  # missing responses contribute nothing, as in the fitted and saturated likelihoods
+  null_m[is.na(object$data$Y)] = 0
   return(null_m)
 }
 
@@ -506,12 +666,14 @@ get_null_ll = function(object, verbose = TRUE, ...) {
 #' 
 #' @details The function returns a ANOVA table with Deviance as well as the pseudo-R2 metrics of Nagelkerke and McFadden
 #' 
-#' There are four options to handle shared ANOVA fractions, which is variance that can be explained, typically as a result of collinearity, by several of the fractions:
+#' There are six options to handle shared ANOVA fractions, which is variance that can be explained, typically as a result of collinearity, by several of the fractions:
 #' 
-#' 1. "all" returns the shared fractions explicitly
-#' 2. "discard" discards the fractions, as typically in a type II Anova
-#' 3. "proportional" distributes shared fractions proportional to the unique fractions
-#' 4. "equal" distributions shared fractions equally to the unique fractions
+#' 1. "mvp_proportional" (the default) splits Abiotic and Spatial within the model without associations, distributes their shared part proportionally, and gives the remainder of the full model to the associations. Without a spatial component it is the same as "proportional"
+#' 2. "mvp" is the same split without distributing the shared Abiotic and Spatial part. Without a spatial component it is the same as "proportional"
+#' 3. "all" returns the shared fractions explicitly
+#' 4. "discard" discards the fractions, as typically in a type II Anova
+#' 5. "proportional" distributes shared fractions proportional to the unique fractions, weighted by their absolute size, so a negative unique fraction still attracts shared variance
+#' 6. "equal" distributes shared fractions equally to the unique fractions
 #' 
 #' @return The matrix that is printed out is silently returned
 #' 

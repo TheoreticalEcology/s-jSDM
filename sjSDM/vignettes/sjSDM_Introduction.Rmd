@@ -1,7 +1,7 @@
 ---
 title: "sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model"
 author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
-date: "2024-08-02"
+date: "2026-10-17"
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -9,7 +9,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
   %\VignetteIndexEntry{sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model}
   %\VignetteEngine{knitr::rmarkdown}
-abstract: "A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response functions (including the traditional multivariate probit model). As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'PyTorch' and 'reticulate', which can be run on CPUs or GPUs. The package includes support for different response families, the ability to account for spatial autocorrelation, and the option to fit responses via deep neural networks instead of a standard linear predictor. In addition, you can perform variation partitioning (VP) / ANOVA on the fitted models for environmental, spatial, and co-association model components, and further subdivide these three components per species and sites (internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>). \n \n \n"
+abstract: "A scalable and fast method for estimating joint Species Distribution Models (jSDMs) for big community data, including eDNA data. The package estimates a full (i.e. non-latent) jSDM with different response functions (including the traditional multivariate probit model). As described in Pichler & Hartig (2021) <doi:10.1111/2041-210X.13687>, scalability is achieved by using a Monte Carlo approximation of the joint likelihood implemented via 'torch', which can be run on CPUs or GPUs. The package includes support for different response families, the ability to account for spatial autocorrelation, and the option to fit responses via deep neural networks instead of a standard linear predictor. In addition, you can perform variation partitioning (VP) / ANOVA on the fitted models for environmental, spatial, and co-association model components, and further subdivide these three components per species and sites (internal metacommunity structure, see Leibold et al., <doi:10.1111/oik.08618>). \n \n \n"
 editor_options: 
   chunk_output_type: console
 ---
@@ -17,6 +17,7 @@ editor_options:
 
 
 
+```
 
 # Getting started
 
@@ -30,7 +31,7 @@ A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to th
 
 A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, <https://www.doi.org/10.1111/2041-210X.13687>.
 
-The core code of sjSDM is implemented in Python / PyTorch, which is then wrapped into an R package. In principle, you can also use it stand-alone under Python (see instructions below). Note: for both the R and the python package, python \>= 3.9 and pytorch must be installed (more details below). However, for most users, it will be more convenient to use sjSDM via the sjSDM R package, which also provides a large number of downstream functionalities.
+Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation.
 
 To get citation info for sjSDM when you use it for your reseach, type
 
@@ -39,10 +40,12 @@ To get citation info for sjSDM when you use it for your reseach, type
 citation("sjSDM")
 #> To cite sjSDM in publications use:
 #> 
-#>   Pichler, M. and Hartig, F. (2021), A new joint species distribution model for faster and more accurate inference of species associations from big
-#>   community data. Methods in Ecology and Evolution. Accepted Author Manuscript. https://doi.org/10.1111/2041-210X.13687
+#>   Pichler, M. and Hartig, F. (2021), A new joint species distribution
+#>   model for faster and more accurate inference of species associations
+#>   from big community data. Methods in Ecology and Evolution. Accepted
+#>   Author Manuscript. https://doi.org/10.1111/2041-210X.13687
 #> 
-#> A BibTeX entry for LaTeX users is
+#> Ein BibTeX-Eintrag für LaTeX-Benutzer ist
 #> 
 #>   @Article{,
 #>     title = {A new joint species distribution model for faster and more accurate inference of species associations from big community data},
@@ -66,8 +69,7 @@ Depencies for the package can be installed before or after installing the packag
 
 
 ``` r
-sjSDM::install_sjSDM(version = "gpu") # or
-sjSDM::install_sjSDM(version = "cpu")
+sjSDM::install_sjSDM()   # wrapper around torch::install_torch()
 ```
 
 For advanced users: if you want to install the current (development) version from this repository, run
@@ -77,10 +79,10 @@ For advanced users: if you want to install the current (development) version fro
 devtools::install_github("https://github.com/TheoreticalEcology/s-jSDM", subdir = "sjSDM", ref = "master")
 ```
 
-dependencies should be installed as above. If the installation fails, check out the help of `?install_sjSDM`, ?installation_help, and `vignette("Dependencies", package = "sjSDM")`.
+If the installation fails, check out the help of `?install_sjSDM` and `?installation_help`.
 
-1.  Try `install_sjSDM()`
-2.  New session, if no 'PyTorch not found' appears it should work, otherwise see `?installation_help`
+1.  Run `sjSDM::install_diagnostic()` and check whether libtorch is installed
+2.  If not, run `torch::install_torch()` and restart R
 3.  If do not get the pkg to run, create an issue [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues) or write an email to maximilian.pichler at ur.de
 
 # Working with sjSDM
@@ -94,6 +96,7 @@ set.seed(42)
 Env = eucalypts$env # environment
 PA = eucalypts$PA # presence absence
 Coords = eucalypts$lat_lon # coordinates
+
 ```
 
 Prepare data:
@@ -126,7 +129,6 @@ model <- sjSDM(Y = PA,
                family=binomial("probit"),
                se = TRUE,
                verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
 ```
 
 The "linear" expression used in the environmental and spatial component means that you essentially fit a linear regression structure for the respective component. Alternatively, you could also fit a neural network (see later).
@@ -142,9 +144,141 @@ To get an overall summary of the model, type
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  -1399.976 
+#> Regularization loss:  0 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000											
+#> 	sp2	-0.2130	 1.0000										
+#> 	sp3	 0.1250	-0.4610	 1.0000									
+#> 	sp4	-0.1820	 0.1630	-0.2350	 1.0000								
+#> 	sp5	-0.2210	 0.5450	-0.3140	 0.2010	 1.0000							
+#> 	sp6	 0.0390	-0.1610	 0.0260	 0.1460	-0.0980	 1.0000						
+#> 	sp7	 0.0830	-0.0170	-0.0050	-0.2900	-0.1760	-0.2420	 1.0000					
+#> 	sp8	 0.0070	-0.1270	-0.2500	 0.1150	-0.1890	 0.1110	-0.0040	 1.0000				
+#> 	sp9	 0.0280	 0.1940	-0.0660	-0.1650	 0.2040	-0.0850	-0.0550	-0.1590	 1.0000			
+#> 	sp10	-0.0570	 0.1680	-0.5320	 0.2380	 0.0880	 0.1030	-0.1080	 0.3230	-0.0410	 1.0000		
+#> 	sp11	-0.0290	-0.2110	 0.0530	 0.0530	-0.2880	-0.0250	 0.2910	 0.2200	-0.3580	 0.0180	 1.0000	
+#> 	sp12	 0.0300	 0.2860	-0.3280	-0.1050	 0.2170	-0.0850	 0.0330	-0.0310	 0.2780	 0.1560	-0.2880	 1.0000
+#> 
+#> 
+#> 
+#> Spatial: 
+#>                           sp1        sp2        sp3        sp4        sp5
+#> latitude           0.05505804  0.8894947 -0.2655700  0.6785486  0.7012138
+#> longitude          0.41994852 -0.3115307  0.3388830 -0.6888013 -0.4000385
+#> latitude:longitude 0.46797097  0.6311582  0.2725543  0.3975127 -0.1173211
+#>                            sp6        sp7        sp8         sp9       sp10
+#> latitude            0.05526016 -0.2550721 -0.4195334 -0.74503314 -0.4467738
+#> longitude          -0.77911550  0.4518830  0.1931525  0.01647757  0.2127901
+#> latitude:longitude  0.29511204  0.3873773 -0.3350906 -0.82170218  0.1929579
+#>                          sp11        sp12
+#> latitude           -0.1221872  0.01172008
+#> longitude           0.1883985 -0.11705563
+#> latitude:longitude -0.5226909  0.19958647
+#> 
+#> 
+#> 
+#>                      Estimate  Std.Err Z value Pr(>|z|)    
+#> ALA (Intercept)      -1.07333  0.27133   -3.96  7.6e-05 ***
+#> ALA Rockiness         0.22852  0.10699    2.14  0.03269 *  
+#> ALA Sandiness        -0.40740  0.30150   -1.35  0.17662    
+#> ALA VallyBotFlat     -0.53567  0.21058   -2.54  0.01097 *  
+#> ALA PPTann           -0.13803  0.11533   -1.20  0.23136    
+#> ALA Loaminess        -2.04610  1.71468   -1.19  0.23276    
+#> ALA cvTemp            0.37342  0.11119    3.36  0.00078 ***
+#> ALA T0                0.34792  0.10825    3.21  0.00131 ** 
+#> ARE (Intercept)      -2.47089  0.49740   -4.97  6.8e-07 ***
+#> ARE Rockiness        -0.19072  0.16494   -1.16  0.24755    
+#> ARE Sandiness        -0.32893  0.46601   -0.71  0.48029    
+#> ARE VallyBotFlat     -0.59379  0.26607   -2.23  0.02563 *  
+#> ARE PPTann            0.09248  0.19459    0.48  0.63462    
+#> ARE Loaminess        -1.56911  2.86339   -0.55  0.58370    
+#> ARE cvTemp            1.09568  0.26418    4.15  3.4e-05 ***
+#> ARE T0                0.01645  0.17509    0.09  0.92513    
+#> BAX (Intercept)      -0.97718  0.32224   -3.03  0.00243 ** 
+#> BAX Rockiness        -0.61856  0.15220   -4.06  4.8e-05 ***
+#> BAX Sandiness         1.05687  0.34154    3.09  0.00197 ** 
+#> BAX VallyBotFlat     -0.57779  0.10179   -5.68  1.4e-08 ***
+#> BAX PPTann           -0.26175  0.14658   -1.79  0.07415 .  
+#> BAX Loaminess        -0.91962  0.73652   -1.25  0.21181    
+#> BAX cvTemp           -0.38661  0.14260   -2.71  0.00671 ** 
+#> BAX T0                0.04614  0.12985    0.36  0.72231    
+#> CAM (Intercept)      -1.93732  0.28912   -6.70  2.1e-11 ***
+#> CAM Rockiness        -0.40554  0.30542   -1.33  0.18424    
+#> CAM Sandiness        -1.52409  0.31419   -4.85  1.2e-06 ***
+#> CAM VallyBotFlat      0.34897  0.07756    4.50  6.8e-06 ***
+#> CAM PPTann           -0.04757  0.31626   -0.15  0.88044    
+#> CAM Loaminess        -0.63758  0.73969   -0.86  0.38872    
+#> CAM cvTemp           -0.39653  0.17416   -2.28  0.02280 *  
+#> CAM T0               -0.09433  0.14394   -0.66  0.51222    
+#> GON (Intercept)      -2.10464  0.55134   -3.82  0.00013 ***
+#> GON Rockiness         0.57988  0.17979    3.23  0.00126 ** 
+#> GON Sandiness        -0.67518  0.55887   -1.21  0.22700    
+#> GON VallyBotFlat     -1.13387  0.41292   -2.75  0.00603 ** 
+#> GON PPTann           -0.20600  0.20534   -1.00  0.31576    
+#> GON Loaminess        -1.31713  4.16833   -0.32  0.75201    
+#> GON cvTemp            0.72822  0.26008    2.80  0.00511 ** 
+#> GON T0                0.08614  0.19524    0.44  0.65906    
+#> MEL (Intercept)      -1.88163  0.26753   -7.03  2.0e-12 ***
+#> MEL Rockiness        -1.02585  0.24672   -4.16  3.2e-05 ***
+#> MEL Sandiness         0.00158  0.24747    0.01  0.99489    
+#> MEL VallyBotFlat     -0.06713  0.06326   -1.06  0.28862    
+#> MEL PPTann           -0.04564  0.16351   -0.28  0.78013    
+#> MEL Loaminess        -1.76434  2.06438   -0.85  0.39274    
+#> MEL cvTemp            0.36409  0.09940    3.66  0.00025 ***
+#> MEL T0                0.19448  0.09450    2.06  0.03959 *  
+#> OBL (Intercept)      -0.74421  0.25744   -2.89  0.00384 ** 
+#> OBL Rockiness        -0.56959  0.15071   -3.78  0.00016 ***
+#> OBL Sandiness        -0.25124  0.26825   -0.94  0.34896    
+#> OBL VallyBotFlat     -0.27726  0.07685   -3.61  0.00031 ***
+#> OBL PPTann           -0.49329  0.15264   -3.23  0.00123 ** 
+#> OBL Loaminess         1.17573  0.54700    2.15  0.03160 *  
+#> OBL cvTemp           -0.23731  0.12035   -1.97  0.04862 *  
+#> OBL T0                0.02012  0.10773    0.19  0.85187    
+#> OVA (Intercept)      -1.89595  0.36905   -5.14  2.8e-07 ***
+#> OVA Rockiness        -0.94462  0.51445   -1.84  0.06633 .  
+#> OVA Sandiness        -1.14675  0.26791   -4.28  1.9e-05 ***
+#> OVA VallyBotFlat      0.22043  0.07075    3.12  0.00183 ** 
+#> OVA PPTann            0.07401  0.21044    0.35  0.72506    
+#> OVA Loaminess        -1.51538  0.68733   -2.20  0.02747 *  
+#> OVA cvTemp            0.49461  0.18575    2.66  0.00775 ** 
+#> OVA T0                0.06263  0.13000    0.48  0.62996    
+#> WIL (Intercept)      -1.97461  0.30304   -6.52  7.2e-11 ***
+#> WIL Rockiness        -0.06019  0.14997   -0.40  0.68813    
+#> WIL Sandiness         0.21264  0.30074    0.71  0.47954    
+#> WIL VallyBotFlat     -0.16957  0.08807   -1.93  0.05419 .  
+#> WIL PPTann           -0.33884  0.19543   -1.73  0.08295 .  
+#> WIL Loaminess         1.25451  0.53156    2.36  0.01827 *  
+#> WIL cvTemp           -1.11546  0.15428   -7.23  4.8e-13 ***
+#> WIL T0               -0.05966  0.12017   -0.50  0.61955    
+#> ALP (Intercept)      -1.74785  0.48189   -3.63  0.00029 ***
+#> ALP Rockiness         1.33287  0.19710    6.76  1.4e-11 ***
+#> ALP Sandiness        -1.13570  0.59592   -1.91  0.05668 .  
+#> ALP VallyBotFlat     -0.65743  0.69273   -0.95  0.34260    
+#> ALP PPTann            0.73294  0.16480    4.45  8.7e-06 ***
+#> ALP Loaminess        -1.72358  1.34571   -1.28  0.20026    
+#> ALP cvTemp           -0.09721  0.18226   -0.53  0.59377    
+#> ALP T0               -0.01753  0.18178   -0.10  0.92318    
+#> VIM (Intercept)      -1.78182  0.30581   -5.83  5.7e-09 ***
+#> VIM Rockiness        -0.82041  0.36194   -2.27  0.02341 *  
+#> VIM Sandiness        -1.09575  0.28513   -3.84  0.00012 ***
+#> VIM VallyBotFlat      0.10859  0.07931    1.37  0.17091    
+#> VIM PPTann            0.03467  0.23850    0.15  0.88444    
+#> VIM Loaminess        -2.72097  1.40615   -1.94  0.05298 .  
+#> VIM cvTemp           -0.33851  0.18267   -1.85  0.06386 .  
+#> VIM T0                0.23491  0.13617    1.73  0.08450 .  
+#> ARO.SAB (Intercept)  -2.14170  0.30149   -7.10  1.2e-12 ***
+#> ARO.SAB Rockiness    -1.29499  0.33466   -3.87  0.00011 ***
+#> ARO.SAB Sandiness     0.24789  0.22572    1.10  0.27210    
+#> ARO.SAB VallyBotFlat  0.25402  0.05780    4.39  1.1e-05 ***
+#> ARO.SAB PPTann       -0.48125  0.21117   -2.28  0.02267 *  
+#> ARO.SAB Loaminess    -0.25519  0.47353   -0.54  0.58995    
+#> ARO.SAB cvTemp       -0.47043  0.12078   -3.90  9.8e-05 ***
+#> ARO.SAB T0           -0.03788  0.10036   -0.38  0.70582    
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 This output will show you the fitted environmental, spatial and covariance parameters (provided that those components were specified). Implemented S3 functions for a model object include
@@ -165,7 +299,7 @@ The environmental effects are displayed in the summary() table. To get a visual 
 plot(model)
 ```
 
-<img src="unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+<img src="unnamed-chunk-12-1.png" alt="" style="display: block; margin: auto;" />
 
 ### Interpreting the spatial component
 
@@ -178,15 +312,11 @@ The species-species associations are displayed in the `summary()` table. You can
 
 ``` r
 association = getCor(model)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
 sp = x = 1:ncol(PA)
 fields::image.plot(association)
 ```
 
-<img src="unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+<img src="unnamed-chunk-13-1.png" alt="" style="display: block; margin: auto;" />
 
 Note that these associations are to be interpreted as correlations in species presence or abundance after accounting for environmental and spatial effects.
 
@@ -205,7 +335,6 @@ The first option is a global ANOVA, which will calculate the amount of variation
 
 ``` r
 an = anova(model, verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
 ```
 
 The resulting object is of class sjSDManova, and you can use the standard summary and plot function on this object:
@@ -215,26 +344,24 @@ The resulting object is of class sjSDManova, and you can use the standard summar
 plot(an)
 ```
 
-<img src="unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+<img src="unnamed-chunk-15-1.png" alt="" style="display: block; margin: auto;" />
 
 ``` r
 summary(an)
 #> Analysis of Deviance Table
 #> 
-#>                                        Deviance Residual deviance R2 Nagelkerke R2 McFadden
-#> Abiotic                               673.26304        3002.96075       0.77008      0.1654
-#> Associations                          169.13782        3507.08597       0.30878      0.0416
-#> Spatial                               150.96228        3525.26151       0.28080      0.0371
-#> Shared Abiotic+Associations           142.48582        3533.73797       0.26736      0.0350
-#> Shared Abiotic+Spatial               1531.78234        2144.44145       0.96472      0.3763
-#> Shared Spatial+Associations            11.24359        3664.98020       0.02425      0.0028
-#> Shared Abiotic+Associations+Spatial -1361.34035        5037.56415     -18.53795     -0.3345
-#> Full                                 1317.53455        2358.68924       0.94368      0.3237
+#>                Deviance Residual deviance R2 Nagelkerke R2 McFadden
+#> Abiotic      1222.63851        3179.41943       0.93071      0.2777
+#> Associations  149.84082        4252.21713       0.27903      0.0340
+#> Spatial       242.28780        4159.77015       0.41081      0.0550
+#> Full         1614.76712        2787.29082       0.97057      0.3668
 ```
 
-We see that the environmental component explains the most variance in the data, followed by the biotic association component. As in any ANOVA, there are unique and shared fractions for each component. The shared fractions depict variation that can be explained from either of the components (e.g. due to collinearity).
+The table has one row per component plus the full model. Here the environment explains most of the explainable deviance, followed by space and then the associations, and the three unique fractions sum to the full R^2^.
 
-Different ANOVA strategies deal differently with these shared fractions. For example, in type II/III ANOVA, the shared fractions are usually discarded. The default here is to display all fractions. Alternatively (more on this see `?summary.sjSDManova`):
+Variation that two or three components could explain equally well -- because the predictors are collinear, or because the species associations line up with an environmental gradient -- is *shared* between them, and the default summary has already distributed it over the unique fractions. `summary(an, fractions = "all")` reports those shared fractions as rows of their own instead. That is also where negative values show up: a negative shared fraction means the components together explain *more* than the sum of what each explains alone, so it cannot be read as an amount of variance.
+
+Different ANOVA strategies deal differently with these shared fractions. For example, in type II/III ANOVA, the shared fractions are usually discarded. The default here is `mvp_proportional`, which splits the environmental and spatial fractions within the model without associations, distributes their shared part proportionally, and gives the remainder of the full model to the associations; `"all"` displays every shared fraction explicitly. Alternatively (more on this see `?summary.sjSDManova`):
 
 -   `summary(an, fractions = "discard")` discards shared fractions, as in a type II/III ANOVA
 -   `summary(an, fractions = "proportional")` distributes shared fractions to the unique fractions proportional to the unique fractions
@@ -264,7 +391,7 @@ The results can be plotted via
 plot(results)
 ```
 
-<img src="unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
+<img src="unnamed-chunk-17-1.png" alt="" style="display: block; margin: auto;" />
 
 The ternary plots report the relative importance of the components for sites and species. Leaning to one of the corners means that this corner is mot important (e.g. here Species and Sites lean more to the environmental corner).
 
@@ -293,7 +420,6 @@ To predict with an sjSDM object, use
 
 ``` r
 pred = predict(model, newdata = Env, SP = Coords)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
 ```
 
 The standard predictions are marginal, i.e. assume that we have no information about what species exist on a site we predict to.
@@ -319,18 +445,14 @@ We can then predict occurrences for the first 6 species, conditioning on the res
 
 ``` r
 pred = predict(model, newdata = Env, SP = Coords, Y = New_PA)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
 head(pred)
-#>            [,1]         [,2]      [,3]         [,4]         [,5]         [,6]
-#> [1,] 0.06919945 0.0009476454 0.1910016 0.0018830881 0.0128013078 0.0024387540
-#> [2,] 0.11315208 0.0009214621 0.1472399 0.0002079794 0.0072220865 0.0003615931
-#> [3,] 0.04488569 0.0006793896 0.2183437 0.0011189727 0.0177170230 0.0009391013
-#> [4,] 0.03075938 0.0009504823 0.6358477 0.0013088832 0.0062728245 0.0042722428
-#> [5,] 0.03657349 0.0002785174 0.7242049 0.0016383200 0.0003361727 0.0132508982
-#> [6,] 0.06529714 0.0008642071 0.2183885 0.0005441471 0.0231352945 0.0005368480
+#>             ALA          ARE       BAX         CAM         GON          MEL
+#> [1,] 0.06781612 0.0029573420 0.2482723 0.002061828 0.017007928 0.0041435466
+#> [2,] 0.10112720 0.0018871025 0.1996141 0.000453147 0.006555796 0.0007504199
+#> [3,] 0.04766515 0.0013105585 0.2461755 0.002935330 0.010688951 0.0020530586
+#> [4,] 0.02979335 0.0008045580 0.5885630 0.002233006 0.004372217 0.0077072898
+#> [5,] 0.02819900 0.0003650049 0.9262079 0.002186684 0.001447691 0.0176913171
+#> [6,] 0.06589616 0.0006846486 0.3052072 0.001263486 0.019939523 0.0015146840
 ```
 
 Note that the predict function returns only predictions for species with NA in Y
@@ -345,12 +467,14 @@ sjSDM supports other responses than presence-absence data: Simulate non-presence
 ``` r
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L,
                    link = "identical", response = "count", verbose = FALSE) 
-#> Error in simulate_SDM(env = 3L, species = 5L, sites = 100L, link = "identical", : unused argument (verbose = FALSE)
-```
-
-``` r
+#> Error in `simulate_SDM()`:
+#> ! unbenutztes Argument (verbose = FALSE)
 X = com$env_weights
+#> Error:
+#> ! Objekt 'com' nicht gefunden
 Y = com$response
+#> Error:
+#> ! Objekt 'com' nicht gefunden
 ```
 
 ### Poisson
@@ -359,16 +483,146 @@ Y = com$response
 ``` r
 model = sjSDM(Y, env = linear(X, ~.), se = TRUE, 
               iter = 50L, family = poisson("log"), verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
+#> Error:
+#> ! Objekt 'Y' nicht gefunden
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  -1399.976 
+#> Regularization loss:  0 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000											
+#> 	sp2	-0.2130	 1.0000										
+#> 	sp3	 0.1250	-0.4610	 1.0000									
+#> 	sp4	-0.1820	 0.1630	-0.2350	 1.0000								
+#> 	sp5	-0.2210	 0.5450	-0.3140	 0.2010	 1.0000							
+#> 	sp6	 0.0390	-0.1610	 0.0260	 0.1460	-0.0980	 1.0000						
+#> 	sp7	 0.0830	-0.0170	-0.0050	-0.2900	-0.1760	-0.2420	 1.0000					
+#> 	sp8	 0.0070	-0.1270	-0.2500	 0.1150	-0.1890	 0.1110	-0.0040	 1.0000				
+#> 	sp9	 0.0280	 0.1940	-0.0660	-0.1650	 0.2040	-0.0850	-0.0550	-0.1590	 1.0000			
+#> 	sp10	-0.0570	 0.1680	-0.5320	 0.2380	 0.0880	 0.1030	-0.1080	 0.3230	-0.0410	 1.0000		
+#> 	sp11	-0.0290	-0.2110	 0.0530	 0.0530	-0.2880	-0.0250	 0.2910	 0.2200	-0.3580	 0.0180	 1.0000	
+#> 	sp12	 0.0300	 0.2860	-0.3280	-0.1050	 0.2170	-0.0850	 0.0330	-0.0310	 0.2780	 0.1560	-0.2880	 1.0000
+#> 
+#> 
+#> 
+#> Spatial: 
+#>                           sp1        sp2        sp3        sp4        sp5
+#> latitude           0.05505804  0.8894947 -0.2655700  0.6785486  0.7012138
+#> longitude          0.41994852 -0.3115307  0.3388830 -0.6888013 -0.4000385
+#> latitude:longitude 0.46797097  0.6311582  0.2725543  0.3975127 -0.1173211
+#>                            sp6        sp7        sp8         sp9       sp10
+#> latitude            0.05526016 -0.2550721 -0.4195334 -0.74503314 -0.4467738
+#> longitude          -0.77911550  0.4518830  0.1931525  0.01647757  0.2127901
+#> latitude:longitude  0.29511204  0.3873773 -0.3350906 -0.82170218  0.1929579
+#>                          sp11        sp12
+#> latitude           -0.1221872  0.01172008
+#> longitude           0.1883985 -0.11705563
+#> latitude:longitude -0.5226909  0.19958647
+#> 
+#> 
+#> 
+#>                      Estimate  Std.Err Z value Pr(>|z|)    
+#> ALA (Intercept)      -1.07333  0.27133   -3.96  7.6e-05 ***
+#> ALA Rockiness         0.22852  0.10699    2.14  0.03269 *  
+#> ALA Sandiness        -0.40740  0.30150   -1.35  0.17662    
+#> ALA VallyBotFlat     -0.53567  0.21058   -2.54  0.01097 *  
+#> ALA PPTann           -0.13803  0.11533   -1.20  0.23136    
+#> ALA Loaminess        -2.04610  1.71468   -1.19  0.23276    
+#> ALA cvTemp            0.37342  0.11119    3.36  0.00078 ***
+#> ALA T0                0.34792  0.10825    3.21  0.00131 ** 
+#> ARE (Intercept)      -2.47089  0.49740   -4.97  6.8e-07 ***
+#> ARE Rockiness        -0.19072  0.16494   -1.16  0.24755    
+#> ARE Sandiness        -0.32893  0.46601   -0.71  0.48029    
+#> ARE VallyBotFlat     -0.59379  0.26607   -2.23  0.02563 *  
+#> ARE PPTann            0.09248  0.19459    0.48  0.63462    
+#> ARE Loaminess        -1.56911  2.86339   -0.55  0.58370    
+#> ARE cvTemp            1.09568  0.26418    4.15  3.4e-05 ***
+#> ARE T0                0.01645  0.17509    0.09  0.92513    
+#> BAX (Intercept)      -0.97718  0.32224   -3.03  0.00243 ** 
+#> BAX Rockiness        -0.61856  0.15220   -4.06  4.8e-05 ***
+#> BAX Sandiness         1.05687  0.34154    3.09  0.00197 ** 
+#> BAX VallyBotFlat     -0.57779  0.10179   -5.68  1.4e-08 ***
+#> BAX PPTann           -0.26175  0.14658   -1.79  0.07415 .  
+#> BAX Loaminess        -0.91962  0.73652   -1.25  0.21181    
+#> BAX cvTemp           -0.38661  0.14260   -2.71  0.00671 ** 
+#> BAX T0                0.04614  0.12985    0.36  0.72231    
+#> CAM (Intercept)      -1.93732  0.28912   -6.70  2.1e-11 ***
+#> CAM Rockiness        -0.40554  0.30542   -1.33  0.18424    
+#> CAM Sandiness        -1.52409  0.31419   -4.85  1.2e-06 ***
+#> CAM VallyBotFlat      0.34897  0.07756    4.50  6.8e-06 ***
+#> CAM PPTann           -0.04757  0.31626   -0.15  0.88044    
+#> CAM Loaminess        -0.63758  0.73969   -0.86  0.38872    
+#> CAM cvTemp           -0.39653  0.17416   -2.28  0.02280 *  
+#> CAM T0               -0.09433  0.14394   -0.66  0.51222    
+#> GON (Intercept)      -2.10464  0.55134   -3.82  0.00013 ***
+#> GON Rockiness         0.57988  0.17979    3.23  0.00126 ** 
+#> GON Sandiness        -0.67518  0.55887   -1.21  0.22700    
+#> GON VallyBotFlat     -1.13387  0.41292   -2.75  0.00603 ** 
+#> GON PPTann           -0.20600  0.20534   -1.00  0.31576    
+#> GON Loaminess        -1.31713  4.16833   -0.32  0.75201    
+#> GON cvTemp            0.72822  0.26008    2.80  0.00511 ** 
+#> GON T0                0.08614  0.19524    0.44  0.65906    
+#> MEL (Intercept)      -1.88163  0.26753   -7.03  2.0e-12 ***
+#> MEL Rockiness        -1.02585  0.24672   -4.16  3.2e-05 ***
+#> MEL Sandiness         0.00158  0.24747    0.01  0.99489    
+#> MEL VallyBotFlat     -0.06713  0.06326   -1.06  0.28862    
+#> MEL PPTann           -0.04564  0.16351   -0.28  0.78013    
+#> MEL Loaminess        -1.76434  2.06438   -0.85  0.39274    
+#> MEL cvTemp            0.36409  0.09940    3.66  0.00025 ***
+#> MEL T0                0.19448  0.09450    2.06  0.03959 *  
+#> OBL (Intercept)      -0.74421  0.25744   -2.89  0.00384 ** 
+#> OBL Rockiness        -0.56959  0.15071   -3.78  0.00016 ***
+#> OBL Sandiness        -0.25124  0.26825   -0.94  0.34896    
+#> OBL VallyBotFlat     -0.27726  0.07685   -3.61  0.00031 ***
+#> OBL PPTann           -0.49329  0.15264   -3.23  0.00123 ** 
+#> OBL Loaminess         1.17573  0.54700    2.15  0.03160 *  
+#> OBL cvTemp           -0.23731  0.12035   -1.97  0.04862 *  
+#> OBL T0                0.02012  0.10773    0.19  0.85187    
+#> OVA (Intercept)      -1.89595  0.36905   -5.14  2.8e-07 ***
+#> OVA Rockiness        -0.94462  0.51445   -1.84  0.06633 .  
+#> OVA Sandiness        -1.14675  0.26791   -4.28  1.9e-05 ***
+#> OVA VallyBotFlat      0.22043  0.07075    3.12  0.00183 ** 
+#> OVA PPTann            0.07401  0.21044    0.35  0.72506    
+#> OVA Loaminess        -1.51538  0.68733   -2.20  0.02747 *  
+#> OVA cvTemp            0.49461  0.18575    2.66  0.00775 ** 
+#> OVA T0                0.06263  0.13000    0.48  0.62996    
+#> WIL (Intercept)      -1.97461  0.30304   -6.52  7.2e-11 ***
+#> WIL Rockiness        -0.06019  0.14997   -0.40  0.68813    
+#> WIL Sandiness         0.21264  0.30074    0.71  0.47954    
+#> WIL VallyBotFlat     -0.16957  0.08807   -1.93  0.05419 .  
+#> WIL PPTann           -0.33884  0.19543   -1.73  0.08295 .  
+#> WIL Loaminess         1.25451  0.53156    2.36  0.01827 *  
+#> WIL cvTemp           -1.11546  0.15428   -7.23  4.8e-13 ***
+#> WIL T0               -0.05966  0.12017   -0.50  0.61955    
+#> ALP (Intercept)      -1.74785  0.48189   -3.63  0.00029 ***
+#> ALP Rockiness         1.33287  0.19710    6.76  1.4e-11 ***
+#> ALP Sandiness        -1.13570  0.59592   -1.91  0.05668 .  
+#> ALP VallyBotFlat     -0.65743  0.69273   -0.95  0.34260    
+#> ALP PPTann            0.73294  0.16480    4.45  8.7e-06 ***
+#> ALP Loaminess        -1.72358  1.34571   -1.28  0.20026    
+#> ALP cvTemp           -0.09721  0.18226   -0.53  0.59377    
+#> ALP T0               -0.01753  0.18178   -0.10  0.92318    
+#> VIM (Intercept)      -1.78182  0.30581   -5.83  5.7e-09 ***
+#> VIM Rockiness        -0.82041  0.36194   -2.27  0.02341 *  
+#> VIM Sandiness        -1.09575  0.28513   -3.84  0.00012 ***
+#> VIM VallyBotFlat      0.10859  0.07931    1.37  0.17091    
+#> VIM PPTann            0.03467  0.23850    0.15  0.88444    
+#> VIM Loaminess        -2.72097  1.40615   -1.94  0.05298 .  
+#> VIM cvTemp           -0.33851  0.18267   -1.85  0.06386 .  
+#> VIM T0                0.23491  0.13617    1.73  0.08450 .  
+#> ARO.SAB (Intercept)  -2.14170  0.30149   -7.10  1.2e-12 ***
+#> ARO.SAB Rockiness    -1.29499  0.33466   -3.87  0.00011 ***
+#> ARO.SAB Sandiness     0.24789  0.22572    1.10  0.27210    
+#> ARO.SAB VallyBotFlat  0.25402  0.05780    4.39  1.1e-05 ***
+#> ARO.SAB PPTann       -0.48125  0.21117   -2.28  0.02267 *  
+#> ARO.SAB Loaminess    -0.25519  0.47353   -0.54  0.58995    
+#> ARO.SAB cvTemp       -0.47043  0.12078   -3.90  9.8e-05 ***
+#> ARO.SAB T0           -0.03788  0.10036   -0.38  0.70582    
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 ### Negative Binomial
@@ -376,16 +630,146 @@ summary(model)
 
 ``` r
 model = sjSDM(Y, env = linear(X, ~.), se = TRUE, iter = 50L, family = "nbinom", verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
+#> Error:
+#> ! Objekt 'Y' nicht gefunden
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  -1399.976 
+#> Regularization loss:  0 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000											
+#> 	sp2	-0.2130	 1.0000										
+#> 	sp3	 0.1250	-0.4610	 1.0000									
+#> 	sp4	-0.1820	 0.1630	-0.2350	 1.0000								
+#> 	sp5	-0.2210	 0.5450	-0.3140	 0.2010	 1.0000							
+#> 	sp6	 0.0390	-0.1610	 0.0260	 0.1460	-0.0980	 1.0000						
+#> 	sp7	 0.0830	-0.0170	-0.0050	-0.2900	-0.1760	-0.2420	 1.0000					
+#> 	sp8	 0.0070	-0.1270	-0.2500	 0.1150	-0.1890	 0.1110	-0.0040	 1.0000				
+#> 	sp9	 0.0280	 0.1940	-0.0660	-0.1650	 0.2040	-0.0850	-0.0550	-0.1590	 1.0000			
+#> 	sp10	-0.0570	 0.1680	-0.5320	 0.2380	 0.0880	 0.1030	-0.1080	 0.3230	-0.0410	 1.0000		
+#> 	sp11	-0.0290	-0.2110	 0.0530	 0.0530	-0.2880	-0.0250	 0.2910	 0.2200	-0.3580	 0.0180	 1.0000	
+#> 	sp12	 0.0300	 0.2860	-0.3280	-0.1050	 0.2170	-0.0850	 0.0330	-0.0310	 0.2780	 0.1560	-0.2880	 1.0000
+#> 
+#> 
+#> 
+#> Spatial: 
+#>                           sp1        sp2        sp3        sp4        sp5
+#> latitude           0.05505804  0.8894947 -0.2655700  0.6785486  0.7012138
+#> longitude          0.41994852 -0.3115307  0.3388830 -0.6888013 -0.4000385
+#> latitude:longitude 0.46797097  0.6311582  0.2725543  0.3975127 -0.1173211
+#>                            sp6        sp7        sp8         sp9       sp10
+#> latitude            0.05526016 -0.2550721 -0.4195334 -0.74503314 -0.4467738
+#> longitude          -0.77911550  0.4518830  0.1931525  0.01647757  0.2127901
+#> latitude:longitude  0.29511204  0.3873773 -0.3350906 -0.82170218  0.1929579
+#>                          sp11        sp12
+#> latitude           -0.1221872  0.01172008
+#> longitude           0.1883985 -0.11705563
+#> latitude:longitude -0.5226909  0.19958647
+#> 
+#> 
+#> 
+#>                      Estimate  Std.Err Z value Pr(>|z|)    
+#> ALA (Intercept)      -1.07333  0.27133   -3.96  7.6e-05 ***
+#> ALA Rockiness         0.22852  0.10699    2.14  0.03269 *  
+#> ALA Sandiness        -0.40740  0.30150   -1.35  0.17662    
+#> ALA VallyBotFlat     -0.53567  0.21058   -2.54  0.01097 *  
+#> ALA PPTann           -0.13803  0.11533   -1.20  0.23136    
+#> ALA Loaminess        -2.04610  1.71468   -1.19  0.23276    
+#> ALA cvTemp            0.37342  0.11119    3.36  0.00078 ***
+#> ALA T0                0.34792  0.10825    3.21  0.00131 ** 
+#> ARE (Intercept)      -2.47089  0.49740   -4.97  6.8e-07 ***
+#> ARE Rockiness        -0.19072  0.16494   -1.16  0.24755    
+#> ARE Sandiness        -0.32893  0.46601   -0.71  0.48029    
+#> ARE VallyBotFlat     -0.59379  0.26607   -2.23  0.02563 *  
+#> ARE PPTann            0.09248  0.19459    0.48  0.63462    
+#> ARE Loaminess        -1.56911  2.86339   -0.55  0.58370    
+#> ARE cvTemp            1.09568  0.26418    4.15  3.4e-05 ***
+#> ARE T0                0.01645  0.17509    0.09  0.92513    
+#> BAX (Intercept)      -0.97718  0.32224   -3.03  0.00243 ** 
+#> BAX Rockiness        -0.61856  0.15220   -4.06  4.8e-05 ***
+#> BAX Sandiness         1.05687  0.34154    3.09  0.00197 ** 
+#> BAX VallyBotFlat     -0.57779  0.10179   -5.68  1.4e-08 ***
+#> BAX PPTann           -0.26175  0.14658   -1.79  0.07415 .  
+#> BAX Loaminess        -0.91962  0.73652   -1.25  0.21181    
+#> BAX cvTemp           -0.38661  0.14260   -2.71  0.00671 ** 
+#> BAX T0                0.04614  0.12985    0.36  0.72231    
+#> CAM (Intercept)      -1.93732  0.28912   -6.70  2.1e-11 ***
+#> CAM Rockiness        -0.40554  0.30542   -1.33  0.18424    
+#> CAM Sandiness        -1.52409  0.31419   -4.85  1.2e-06 ***
+#> CAM VallyBotFlat      0.34897  0.07756    4.50  6.8e-06 ***
+#> CAM PPTann           -0.04757  0.31626   -0.15  0.88044    
+#> CAM Loaminess        -0.63758  0.73969   -0.86  0.38872    
+#> CAM cvTemp           -0.39653  0.17416   -2.28  0.02280 *  
+#> CAM T0               -0.09433  0.14394   -0.66  0.51222    
+#> GON (Intercept)      -2.10464  0.55134   -3.82  0.00013 ***
+#> GON Rockiness         0.57988  0.17979    3.23  0.00126 ** 
+#> GON Sandiness        -0.67518  0.55887   -1.21  0.22700    
+#> GON VallyBotFlat     -1.13387  0.41292   -2.75  0.00603 ** 
+#> GON PPTann           -0.20600  0.20534   -1.00  0.31576    
+#> GON Loaminess        -1.31713  4.16833   -0.32  0.75201    
+#> GON cvTemp            0.72822  0.26008    2.80  0.00511 ** 
+#> GON T0                0.08614  0.19524    0.44  0.65906    
+#> MEL (Intercept)      -1.88163  0.26753   -7.03  2.0e-12 ***
+#> MEL Rockiness        -1.02585  0.24672   -4.16  3.2e-05 ***
+#> MEL Sandiness         0.00158  0.24747    0.01  0.99489    
+#> MEL VallyBotFlat     -0.06713  0.06326   -1.06  0.28862    
+#> MEL PPTann           -0.04564  0.16351   -0.28  0.78013    
+#> MEL Loaminess        -1.76434  2.06438   -0.85  0.39274    
+#> MEL cvTemp            0.36409  0.09940    3.66  0.00025 ***
+#> MEL T0                0.19448  0.09450    2.06  0.03959 *  
+#> OBL (Intercept)      -0.74421  0.25744   -2.89  0.00384 ** 
+#> OBL Rockiness        -0.56959  0.15071   -3.78  0.00016 ***
+#> OBL Sandiness        -0.25124  0.26825   -0.94  0.34896    
+#> OBL VallyBotFlat     -0.27726  0.07685   -3.61  0.00031 ***
+#> OBL PPTann           -0.49329  0.15264   -3.23  0.00123 ** 
+#> OBL Loaminess         1.17573  0.54700    2.15  0.03160 *  
+#> OBL cvTemp           -0.23731  0.12035   -1.97  0.04862 *  
+#> OBL T0                0.02012  0.10773    0.19  0.85187    
+#> OVA (Intercept)      -1.89595  0.36905   -5.14  2.8e-07 ***
+#> OVA Rockiness        -0.94462  0.51445   -1.84  0.06633 .  
+#> OVA Sandiness        -1.14675  0.26791   -4.28  1.9e-05 ***
+#> OVA VallyBotFlat      0.22043  0.07075    3.12  0.00183 ** 
+#> OVA PPTann            0.07401  0.21044    0.35  0.72506    
+#> OVA Loaminess        -1.51538  0.68733   -2.20  0.02747 *  
+#> OVA cvTemp            0.49461  0.18575    2.66  0.00775 ** 
+#> OVA T0                0.06263  0.13000    0.48  0.62996    
+#> WIL (Intercept)      -1.97461  0.30304   -6.52  7.2e-11 ***
+#> WIL Rockiness        -0.06019  0.14997   -0.40  0.68813    
+#> WIL Sandiness         0.21264  0.30074    0.71  0.47954    
+#> WIL VallyBotFlat     -0.16957  0.08807   -1.93  0.05419 .  
+#> WIL PPTann           -0.33884  0.19543   -1.73  0.08295 .  
+#> WIL Loaminess         1.25451  0.53156    2.36  0.01827 *  
+#> WIL cvTemp           -1.11546  0.15428   -7.23  4.8e-13 ***
+#> WIL T0               -0.05966  0.12017   -0.50  0.61955    
+#> ALP (Intercept)      -1.74785  0.48189   -3.63  0.00029 ***
+#> ALP Rockiness         1.33287  0.19710    6.76  1.4e-11 ***
+#> ALP Sandiness        -1.13570  0.59592   -1.91  0.05668 .  
+#> ALP VallyBotFlat     -0.65743  0.69273   -0.95  0.34260    
+#> ALP PPTann            0.73294  0.16480    4.45  8.7e-06 ***
+#> ALP Loaminess        -1.72358  1.34571   -1.28  0.20026    
+#> ALP cvTemp           -0.09721  0.18226   -0.53  0.59377    
+#> ALP T0               -0.01753  0.18178   -0.10  0.92318    
+#> VIM (Intercept)      -1.78182  0.30581   -5.83  5.7e-09 ***
+#> VIM Rockiness        -0.82041  0.36194   -2.27  0.02341 *  
+#> VIM Sandiness        -1.09575  0.28513   -3.84  0.00012 ***
+#> VIM VallyBotFlat      0.10859  0.07931    1.37  0.17091    
+#> VIM PPTann            0.03467  0.23850    0.15  0.88444    
+#> VIM Loaminess        -2.72097  1.40615   -1.94  0.05298 .  
+#> VIM cvTemp           -0.33851  0.18267   -1.85  0.06386 .  
+#> VIM T0                0.23491  0.13617    1.73  0.08450 .  
+#> ARO.SAB (Intercept)  -2.14170  0.30149   -7.10  1.2e-12 ***
+#> ARO.SAB Rockiness    -1.29499  0.33466   -3.87  0.00011 ***
+#> ARO.SAB Sandiness     0.24789  0.22572    1.10  0.27210    
+#> ARO.SAB VallyBotFlat  0.25402  0.05780    4.39  1.1e-05 ***
+#> ARO.SAB PPTann       -0.48125  0.21117   -2.28  0.02267 *  
+#> ARO.SAB Loaminess    -0.25519  0.47353   -0.54  0.58995    
+#> ARO.SAB cvTemp       -0.47043  0.12078   -3.90  9.8e-05 ***
+#> ARO.SAB T0           -0.03788  0.10036   -0.38  0.70582    
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 ### Normal (gaussian)
@@ -394,16 +778,146 @@ summary(model)
 ``` r
 model = sjSDM(log(Y+0.01), env = linear(X, ~.), se = TRUE, 
               iter = 50L, family = gaussian("identity"), verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
+#> Error:
+#> ! Objekt 'Y' nicht gefunden
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  -1399.976 
+#> Regularization loss:  0 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000											
+#> 	sp2	-0.2130	 1.0000										
+#> 	sp3	 0.1250	-0.4610	 1.0000									
+#> 	sp4	-0.1820	 0.1630	-0.2350	 1.0000								
+#> 	sp5	-0.2210	 0.5450	-0.3140	 0.2010	 1.0000							
+#> 	sp6	 0.0390	-0.1610	 0.0260	 0.1460	-0.0980	 1.0000						
+#> 	sp7	 0.0830	-0.0170	-0.0050	-0.2900	-0.1760	-0.2420	 1.0000					
+#> 	sp8	 0.0070	-0.1270	-0.2500	 0.1150	-0.1890	 0.1110	-0.0040	 1.0000				
+#> 	sp9	 0.0280	 0.1940	-0.0660	-0.1650	 0.2040	-0.0850	-0.0550	-0.1590	 1.0000			
+#> 	sp10	-0.0570	 0.1680	-0.5320	 0.2380	 0.0880	 0.1030	-0.1080	 0.3230	-0.0410	 1.0000		
+#> 	sp11	-0.0290	-0.2110	 0.0530	 0.0530	-0.2880	-0.0250	 0.2910	 0.2200	-0.3580	 0.0180	 1.0000	
+#> 	sp12	 0.0300	 0.2860	-0.3280	-0.1050	 0.2170	-0.0850	 0.0330	-0.0310	 0.2780	 0.1560	-0.2880	 1.0000
+#> 
+#> 
+#> 
+#> Spatial: 
+#>                           sp1        sp2        sp3        sp4        sp5
+#> latitude           0.05505804  0.8894947 -0.2655700  0.6785486  0.7012138
+#> longitude          0.41994852 -0.3115307  0.3388830 -0.6888013 -0.4000385
+#> latitude:longitude 0.46797097  0.6311582  0.2725543  0.3975127 -0.1173211
+#>                            sp6        sp7        sp8         sp9       sp10
+#> latitude            0.05526016 -0.2550721 -0.4195334 -0.74503314 -0.4467738
+#> longitude          -0.77911550  0.4518830  0.1931525  0.01647757  0.2127901
+#> latitude:longitude  0.29511204  0.3873773 -0.3350906 -0.82170218  0.1929579
+#>                          sp11        sp12
+#> latitude           -0.1221872  0.01172008
+#> longitude           0.1883985 -0.11705563
+#> latitude:longitude -0.5226909  0.19958647
+#> 
+#> 
+#> 
+#>                      Estimate  Std.Err Z value Pr(>|z|)    
+#> ALA (Intercept)      -1.07333  0.27133   -3.96  7.6e-05 ***
+#> ALA Rockiness         0.22852  0.10699    2.14  0.03269 *  
+#> ALA Sandiness        -0.40740  0.30150   -1.35  0.17662    
+#> ALA VallyBotFlat     -0.53567  0.21058   -2.54  0.01097 *  
+#> ALA PPTann           -0.13803  0.11533   -1.20  0.23136    
+#> ALA Loaminess        -2.04610  1.71468   -1.19  0.23276    
+#> ALA cvTemp            0.37342  0.11119    3.36  0.00078 ***
+#> ALA T0                0.34792  0.10825    3.21  0.00131 ** 
+#> ARE (Intercept)      -2.47089  0.49740   -4.97  6.8e-07 ***
+#> ARE Rockiness        -0.19072  0.16494   -1.16  0.24755    
+#> ARE Sandiness        -0.32893  0.46601   -0.71  0.48029    
+#> ARE VallyBotFlat     -0.59379  0.26607   -2.23  0.02563 *  
+#> ARE PPTann            0.09248  0.19459    0.48  0.63462    
+#> ARE Loaminess        -1.56911  2.86339   -0.55  0.58370    
+#> ARE cvTemp            1.09568  0.26418    4.15  3.4e-05 ***
+#> ARE T0                0.01645  0.17509    0.09  0.92513    
+#> BAX (Intercept)      -0.97718  0.32224   -3.03  0.00243 ** 
+#> BAX Rockiness        -0.61856  0.15220   -4.06  4.8e-05 ***
+#> BAX Sandiness         1.05687  0.34154    3.09  0.00197 ** 
+#> BAX VallyBotFlat     -0.57779  0.10179   -5.68  1.4e-08 ***
+#> BAX PPTann           -0.26175  0.14658   -1.79  0.07415 .  
+#> BAX Loaminess        -0.91962  0.73652   -1.25  0.21181    
+#> BAX cvTemp           -0.38661  0.14260   -2.71  0.00671 ** 
+#> BAX T0                0.04614  0.12985    0.36  0.72231    
+#> CAM (Intercept)      -1.93732  0.28912   -6.70  2.1e-11 ***
+#> CAM Rockiness        -0.40554  0.30542   -1.33  0.18424    
+#> CAM Sandiness        -1.52409  0.31419   -4.85  1.2e-06 ***
+#> CAM VallyBotFlat      0.34897  0.07756    4.50  6.8e-06 ***
+#> CAM PPTann           -0.04757  0.31626   -0.15  0.88044    
+#> CAM Loaminess        -0.63758  0.73969   -0.86  0.38872    
+#> CAM cvTemp           -0.39653  0.17416   -2.28  0.02280 *  
+#> CAM T0               -0.09433  0.14394   -0.66  0.51222    
+#> GON (Intercept)      -2.10464  0.55134   -3.82  0.00013 ***
+#> GON Rockiness         0.57988  0.17979    3.23  0.00126 ** 
+#> GON Sandiness        -0.67518  0.55887   -1.21  0.22700    
+#> GON VallyBotFlat     -1.13387  0.41292   -2.75  0.00603 ** 
+#> GON PPTann           -0.20600  0.20534   -1.00  0.31576    
+#> GON Loaminess        -1.31713  4.16833   -0.32  0.75201    
+#> GON cvTemp            0.72822  0.26008    2.80  0.00511 ** 
+#> GON T0                0.08614  0.19524    0.44  0.65906    
+#> MEL (Intercept)      -1.88163  0.26753   -7.03  2.0e-12 ***
+#> MEL Rockiness        -1.02585  0.24672   -4.16  3.2e-05 ***
+#> MEL Sandiness         0.00158  0.24747    0.01  0.99489    
+#> MEL VallyBotFlat     -0.06713  0.06326   -1.06  0.28862    
+#> MEL PPTann           -0.04564  0.16351   -0.28  0.78013    
+#> MEL Loaminess        -1.76434  2.06438   -0.85  0.39274    
+#> MEL cvTemp            0.36409  0.09940    3.66  0.00025 ***
+#> MEL T0                0.19448  0.09450    2.06  0.03959 *  
+#> OBL (Intercept)      -0.74421  0.25744   -2.89  0.00384 ** 
+#> OBL Rockiness        -0.56959  0.15071   -3.78  0.00016 ***
+#> OBL Sandiness        -0.25124  0.26825   -0.94  0.34896    
+#> OBL VallyBotFlat     -0.27726  0.07685   -3.61  0.00031 ***
+#> OBL PPTann           -0.49329  0.15264   -3.23  0.00123 ** 
+#> OBL Loaminess         1.17573  0.54700    2.15  0.03160 *  
+#> OBL cvTemp           -0.23731  0.12035   -1.97  0.04862 *  
+#> OBL T0                0.02012  0.10773    0.19  0.85187    
+#> OVA (Intercept)      -1.89595  0.36905   -5.14  2.8e-07 ***
+#> OVA Rockiness        -0.94462  0.51445   -1.84  0.06633 .  
+#> OVA Sandiness        -1.14675  0.26791   -4.28  1.9e-05 ***
+#> OVA VallyBotFlat      0.22043  0.07075    3.12  0.00183 ** 
+#> OVA PPTann            0.07401  0.21044    0.35  0.72506    
+#> OVA Loaminess        -1.51538  0.68733   -2.20  0.02747 *  
+#> OVA cvTemp            0.49461  0.18575    2.66  0.00775 ** 
+#> OVA T0                0.06263  0.13000    0.48  0.62996    
+#> WIL (Intercept)      -1.97461  0.30304   -6.52  7.2e-11 ***
+#> WIL Rockiness        -0.06019  0.14997   -0.40  0.68813    
+#> WIL Sandiness         0.21264  0.30074    0.71  0.47954    
+#> WIL VallyBotFlat     -0.16957  0.08807   -1.93  0.05419 .  
+#> WIL PPTann           -0.33884  0.19543   -1.73  0.08295 .  
+#> WIL Loaminess         1.25451  0.53156    2.36  0.01827 *  
+#> WIL cvTemp           -1.11546  0.15428   -7.23  4.8e-13 ***
+#> WIL T0               -0.05966  0.12017   -0.50  0.61955    
+#> ALP (Intercept)      -1.74785  0.48189   -3.63  0.00029 ***
+#> ALP Rockiness         1.33287  0.19710    6.76  1.4e-11 ***
+#> ALP Sandiness        -1.13570  0.59592   -1.91  0.05668 .  
+#> ALP VallyBotFlat     -0.65743  0.69273   -0.95  0.34260    
+#> ALP PPTann            0.73294  0.16480    4.45  8.7e-06 ***
+#> ALP Loaminess        -1.72358  1.34571   -1.28  0.20026    
+#> ALP cvTemp           -0.09721  0.18226   -0.53  0.59377    
+#> ALP T0               -0.01753  0.18178   -0.10  0.92318    
+#> VIM (Intercept)      -1.78182  0.30581   -5.83  5.7e-09 ***
+#> VIM Rockiness        -0.82041  0.36194   -2.27  0.02341 *  
+#> VIM Sandiness        -1.09575  0.28513   -3.84  0.00012 ***
+#> VIM VallyBotFlat      0.10859  0.07931    1.37  0.17091    
+#> VIM PPTann            0.03467  0.23850    0.15  0.88444    
+#> VIM Loaminess        -2.72097  1.40615   -1.94  0.05298 .  
+#> VIM cvTemp           -0.33851  0.18267   -1.85  0.06386 .  
+#> VIM T0                0.23491  0.13617    1.73  0.08450 .  
+#> ARO.SAB (Intercept)  -2.14170  0.30149   -7.10  1.2e-12 ***
+#> ARO.SAB Rockiness    -1.29499  0.33466   -3.87  0.00011 ***
+#> ARO.SAB Sandiness     0.24789  0.22572    1.10  0.27210    
+#> ARO.SAB VallyBotFlat  0.25402  0.05780    4.39  1.1e-05 ***
+#> ARO.SAB PPTann       -0.48125  0.21117   -2.28  0.02267 *  
+#> ARO.SAB Loaminess    -0.25519  0.47353   -0.54  0.58995    
+#> ARO.SAB cvTemp       -0.47043  0.12078   -3.90  9.8e-05 ***
+#> ARO.SAB T0           -0.03788  0.10036   -0.38  0.70582    
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 ## Modifying the spatial component
@@ -450,16 +964,66 @@ SPeigen = generateSpatialEV(XYcoords)
 
 model = sjSDM(Y, env = linear(X, ~.), 
               spatial = linear(SPeigen, ~0+.), iter = 100L, verbose=FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  -176.5485 
+#> Regularization loss:  0 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000				
+#> 	sp2	-0.5030	 1.0000			
+#> 	sp3	 0.4870	-0.5420	 1.0000		
+#> 	sp4	-0.1550	 0.1740	-0.1680	 1.0000	
+#> 	sp5	 0.3480	-0.3880	 0.3760	-0.1200	 1.0000
+#> 
+#> 
+#> 
+#> Spatial: 
+#>              sp1        sp2         sp3         sp4         sp5
+#> SE_1   3.2900887 -0.1299243 -0.20732555  3.30966926  1.58008659
+#> SE_2  -1.1700331  4.7784739 -3.81507063  4.50638628  1.15314138
+#> SE_3   2.2327416 -1.5486414  2.19367981  4.79002476 -0.08603939
+#> SE_4   2.1585567 -1.3070364  3.97588229  1.42025077 -1.00947249
+#> SE_5   1.8546300 -0.7060039  1.02308476 -0.61122060 -1.80389214
+#> SE_6  -0.2813771 -1.9098129  1.66799235 -2.57006860 -0.43020150
+#> SE_7  -0.7105959  1.8095280 -3.41558194  1.76463890 -0.24367307
+#> SE_8  -0.2482378  0.2151493 -0.77906942 -2.00986052 -4.06831169
+#> SE_9  -2.8283389  1.9205887  0.86760569 -2.00529957 -0.39625785
+#> SE_10 -1.0482631  0.4511169  2.22781467  0.86751592 -2.67651844
+#> SE_11  0.9327565  2.9820278  1.38254142 -0.83252484  4.04516697
+#> SE_12 -0.3946241 -0.9629007 -0.83638567  1.02778518  1.99889147
+#> SE_13  2.0681484  0.1574075  2.74448347  3.81997228 -0.25130028
+#> SE_14  2.4069936  0.4126087  0.15818322 -0.97880983 -0.07553674
+#> SE_15  2.0530176 -0.6807967 -1.78040504  0.39695302  0.92297244
+#> SE_16  0.6500805 -2.2081704  0.01415497  2.15274882 -0.61481875
+#> SE_17 -2.8717525 -0.3526884  0.13110243 -1.30327570 -1.16706753
+#> SE_18  1.9758557  3.1518185  0.34664375  0.68520343 -1.39876509
+#> SE_19  2.7797699  1.0722835  2.17099786  0.58048248 -4.08962774
+#> SE_20 -0.4397107  2.6464980 -0.16359055 -0.02221087  0.72815251
+#> SE_21 -1.5851023 -0.9693412  2.14617968  2.08893538  1.95408237
+#> SE_22 -1.4061040  0.1303043  1.50721824  0.34523857 -0.08346479
+#> SE_23  2.4768553  0.4188890 -0.41238895  1.46212173 -0.04248046
+#> SE_24  2.3271663  1.9551513  1.57081592 -0.36167175 -1.45655465
+#> SE_25 -0.4518118 -0.8553687 -0.39023006  0.78143781 -0.70766437
+#> SE_26  2.3013492 -0.8497793  0.44803795 -1.30778170  0.06498086
+#> SE_27  0.6321188 -0.2955583  1.43848908  0.07187309  1.97912085
+#> SE_28  1.2759713  0.2283051  0.22462298 -0.88780981 -1.71809900
+#> SE_29 -0.7837464  2.1682057  0.93058842 -2.36569548  1.50393105
+#> SE_30  1.4768686  0.2415584  2.34965014  2.69886136  0.99496078
+#> SE_31 -0.9273311 -0.7849750  1.23792779 -0.06332101 -1.00662529
+#> SE_32  2.0328734  3.2562528 -3.33347869  1.04523265 -2.56914210
+#> 
+#> 
+#> 
+#> Coefficients (beta): 
+#> 
+#>                     sp1        sp2        sp3       sp4        sp5
+#> (Intercept) -0.32113177 -0.2861808 -0.4549730 0.1104189 -0.2778755
+#> X1           0.06715161  0.6263891  0.5972781 0.3532314 -0.4074810
+#> X2          -0.61223400 -0.6066566 -0.9947671 0.2073809 -0.9849526
+#> X3          -0.22266126 -0.9396839 -1.0319417 0.2643037  1.0969301
 ```
 
 ### Trend surface model - linear
@@ -487,16 +1051,43 @@ model = sjSDM(Y,
               env = linear(X, ~.), 
               spatial = DNN(XYcoords, ~0+.), 
               iter = 100L, verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  -243.0402 
+#> Regularization loss:  0 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000				
+#> 	sp2	-0.5430	 1.0000			
+#> 	sp3	 0.4860	-0.7140	 1.0000		
+#> 	sp4	 0.0720	 0.2200	-0.2640	 1.0000	
+#> 	sp5	 0.2630	-0.3190	 0.3050	-0.0030	 1.0000
+#> 
+#> 
+#> 
+#> Spatial architecture:
+#> ===================================
+#> Layer_1:	 (2, 10)
+#> Layer_2:	 selu
+#> Layer_3:	 (10, 10)
+#> Layer_4:	 selu
+#> Layer_5:	 (10, 10)
+#> Layer_6:	 selu
+#> Layer_7:	 (10, 5)
+#> ===================================
+#> Weights :	 270
+#> 
+#> 
+#> 
+#> Coefficients (beta): 
+#> 
+#>                     sp1        sp2        sp3         sp4        sp5
+#> (Intercept) -0.41694853 -0.4635176 -0.2895856 -0.02343014  0.3461632
+#> X1           0.07014284  1.0160540  0.6020061  0.34056118 -0.6426617
+#> X2          -0.76527208 -1.0704222 -1.3083932  0.36809728 -0.7413242
+#> X3          -0.19967704 -0.8885697 -1.0668950  0.07108623  0.7539124
 ```
 
 ## Adjusting regularization parameters
@@ -512,16 +1103,26 @@ model = sjSDM(Y = com$response,
                            formula = ~0+ I(X1^2),
                            lambda = 0.5), 
               iter = 50L, verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  2272.944 
+#> Regularization loss:  0.002481138 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000				
+#> 	sp2	 0.0650	 1.0000			
+#> 	sp3	 0.7130	-0.2100	 1.0000		
+#> 	sp4	 0.2740	 0.7560	 0.0330	 1.0000	
+#> 	sp5	 0.3910	-0.0810	 0.6750	-0.0560	 1.0000
+#> 
+#> 
+#> 
+#> Coefficients (beta): 
+#> 
+#>                  sp1          sp2         sp3          sp4          sp5
+#> I(X1^2) -0.002720556 0.0004346966 0.002512817 -0.003014228 -0.001217781
 ```
 
 ### Regularization on species-species associations
@@ -536,16 +1137,26 @@ model = sjSDM(Y = com$response,
                            lambda = 0.5),
               biotic = bioticStruct(lambda =0.1),
               iter = 50L, verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  1941.689 
+#> Regularization loss:  0.02713817 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000				
+#> 	sp2	 0.0000	 1.0000			
+#> 	sp3	 0.0000	-0.0010	 1.0000		
+#> 	sp4	 0.0020	 0.0010	 0.0010	 1.0000	
+#> 	sp5	 0.0000	 0.0000	 0.0010	-0.0010	 1.0000
+#> 
+#> 
+#> 
+#> Coefficients (beta): 
+#> 
+#>                  sp1          sp2        sp3         sp4         sp5
+#> I(X1^2) -0.003565611 -0.001785334 1.9953e-05 0.001838239 -0.00641152
 ```
 
 ### Regularization on the spatial model:
@@ -556,16 +1167,34 @@ summary(model)
 model = sjSDM(Y, 
               env = linear(X, ~X1+X2), 
               spatial = linear(XYcoords, ~0+XX:YY, lambda = 0.4), verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  -292.3131 
+#> Regularization loss:  0.01700053 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000				
+#> 	sp2	-0.5650	 1.0000			
+#> 	sp3	 0.5380	-0.6080	 1.0000		
+#> 	sp4	 0.1340	 0.1760	-0.1850	 1.0000	
+#> 	sp5	 0.2090	-0.4090	 0.2320	 0.0890	 1.0000
+#> 
+#> 
+#> 
+#> Spatial: 
+#>               sp1         sp2        sp3         sp4        sp5
+#> XX:YY -0.00732381 0.001347458 0.05071284 -0.01156912 0.01116372
+#> 
+#> 
+#> 
+#> Coefficients (beta): 
+#> 
+#>                    sp1        sp2        sp3        sp4        sp5
+#> (Intercept) -0.4338852 -0.2144054 -0.4858141 0.01273937 -0.6771172
+#> X1           0.2728718  0.7456823  0.8173313 0.11969832 -0.7218903
+#> X2          -0.9710754 -0.8277891 -1.1087660 0.25205469 -0.9772899
 ```
 
 ## Using deep neural networks
@@ -583,16 +1212,33 @@ model = sjSDM(Y = Y,
                         hidden = c(10L, 10L, 10L), 
                         activation = "relu"), 
               iter = 50L, se = TRUE, verbose = FALSE)
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
-```
-
-``` r
 summary(model)
 #> Family:  binomial 
 #> 
-#> LogLik:  -242.1242 
-#> Regularization loss:  0
-#> Error in eval(expr, envir, enclos): Required version of NumPy not available: incompatible NumPy binary version 33554432 (expecting version 16777225)
+#> LogLik:  -229.5948 
+#> Regularization loss:  0 
+#> 
+#> Species-species correlation matrix: 
+#> 
+#> 	sp1	 1.0000				
+#> 	sp2	-0.0300	 1.0000			
+#> 	sp3	-0.5010	-0.4330	 1.0000		
+#> 	sp4	 0.4960	-0.2900	-0.3120	 1.0000	
+#> 	sp5	 0.0110	 0.4040	-0.1490	-0.3320	 1.0000
+#> 
+#> 
+#> 
+#> Env architecture:
+#> ===================================
+#> Layer_1:	 (4, 10)
+#> Layer_2:	 relu
+#> Layer_3:	 (10, 10)
+#> Layer_4:	 relu
+#> Layer_5:	 (10, 10)
+#> Layer_6:	 relu
+#> Layer_7:	 (10, 5)
+#> ===================================
+#> Weights :	 290
 ```
 
 The methods for sjSDM() work also for the non-linear model:
@@ -621,127 +1267,61 @@ plot(model)
 
 # Installation problems
 
-The `sjSDM::install_sjSDM()` function can install automatically all necessary 'python' dependencies but it can fail sometimes because of individual system settings or if other 'python'/'conda' installations get into the way.
+Since version 1.1.0 sjSDM runs on the R 'torch' package (libtorch) and no longer needs
+'python', 'conda', 'reticulate' or 'PyTorch'. Installing sjSDM pulls in 'torch', and
+'torch' downloads the libtorch and liblantern binaries on first use. Almost every
+installation problem is a problem with that download.
 
-## PyTorch Installation - Before you start:
-
-A few notes before you start with the installation (skip this point if you do not know conda):
-
--   existing 'conda' installations: make sure you have the latest 'conda' or 'miniconda' version and remove unnecessary 'conda' installations.
--   existing 'conda' or 'virtualenv' environments (skip this point if you do not know 'conda'): we currently enforce the usage of a specific environment called 'r-sjsdm',so if you want use a custom environment it should be named 'r-sjsdm'
-
-## Windows - automatic installation:
-
-Sometimes the automatic 'miniconda' installation (via `sjSDM::install_sjSDM()` ).doesn't work because of white spaces in the user's name. But you can easily download and install 'conda' on your own:
-
-Download and install the latest ['conda' version](https://www.anaconda.com/download/success)
-
-Afterwards run:
+## Check what is missing
 
 
 ``` r
-install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
+sjSDM::install_diagnostic()
 ```
 
-Reload the package and run the example, if this doesn't work:
-
--   Restart RStudio
--   Install manually pytorch, see the following section
-
-## Windows - manual installation:
-
-Download and install the latest ['conda' version](https://www.anaconda.com/download/success)
-
-Open the command window (cmd.exe - hit windows key + r and write cmd)
-
-Run in cmd.exe:
-
-
-``` bash
-conda create --name r-sjsdm python=3.10
-conda activate r-sjsdm
-conda install pytorch torchvision torchaudio cpuonly -c pytorch # cpu
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia #gpu
-python -m pip install pyro-ppl torch_optimizer madgrad
-```
-
-Restart R, try the example, and if it does not work:
-
--   Restart RStudio
--   See the 'Help and bugs' section
-
-## Linux - automatic installation:
-
-Run in R:
+If it reports `libtorch installed: FALSE`, get the binaries and restart R:
 
 
 ``` r
-install_sjSDM(version = c("gpu")) # or "cpu" if you do not have a proper gpu device
+torch::install_torch()      # or, equivalently, sjSDM::install_sjSDM()
 ```
 
-Restart R try to run the example, if this doesn't work:
+## Behind a proxy or without an internet connection
 
--   Restart RStudio
--   Install manually 'PyTorch', see the following section
-
-## Linux - manual installation:
-
-We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
-
-Download and install the latest ['conda' version](https://www.anaconda.com/download/success)
-
-Open your terminal and run:
-
-
-``` bash
-conda create --name r-sjsdm python=3.10
-conda activate r-sjsdm
-conda install pytorch torchvision torchaudio cpuonly -c pytorch # cpu
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia #gpu
-python -m pip install pyro-ppl torch_optimizer madgrad
-```
-
-Restart R try to run the example, if this doesn't work:
-
--   Restart RStudio
--   See the 'Help and bugs' section
-
-## MacOS - automatic installation:
-
-Run in R:
+'torch' can be installed from local files. Download the archives for your platform on a
+machine that has access, then point 'torch' at them before loading it:
 
 
 ``` r
-install_sjSDM()
+Sys.setenv(TORCH_URL = "/path/to/libtorch.zip")
+Sys.setenv(LANTERN_URL = "/path/to/liblantern.zip")
+torch::install_torch()
 ```
 
-Restart R try to run the example, if this doesn't work:
+See `?torch::install_torch` for the current variable names and the download URLs.
 
--   Restart RStudio
--   Install manually 'PyTorch', see the following section
+## GPU support
 
-## MacOS - manual installation:
-
-We strongly advise to use a 'conda' environment but a virtual environment should also work. The only requirement is that it is named 'r-sjsdm'
-
-Download and install the latest conda [conda version](https://www.anaconda.com/download/success)
-
-Open your terminal and run:
+There is no separate CPU and GPU build of sjSDM any more, and `install_sjSDM()` has no
+`version` argument. Whether the GPU can be used follows from the 'torch' installation:
 
 
-``` bash
-conda create --name r-sjsdm python=3.10
-conda activate r-sjsdm
-conda install pytorch::pytorch torchvision torchaudio -c pytorch
-python -m pip install pyro-ppl torch_optimizer madgrad
+``` r
+torch::cuda_is_available()             # CUDA
+torch::backends_mps_is_available()     # Apple silicon
 ```
 
-Restart R, try the example, if it does not work:
+Pass `device = "gpu"` (or the CUDA device index, e.g. `device = 0L`) or `device = "mps"`
+to `sjSDM()`. The default is the CPU.
 
--   Restart RStudio
--   See the 'Help and bugs' section
+## Migrating from sjSDM 1.0.x
+
+The 'r-sjsdm' conda environment is no longer used and can be deleted. Model code does not
+change. Results are not bit-identical to the old backend: the two use different random
+number streams, so weight initialisation and the Monte-Carlo draws differ, and estimates
+agree within Monte-Carlo noise rather than to the last digit.
 
 ## Help and bugs
 
--   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `sjSDM::install_diagnostic()`as a quote.
--   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-emple) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)
+-   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `sjSDM::install_diagnostic()` as a quote.
+-   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)

@@ -4,7 +4,14 @@
 \alias{update.sjSDM}
 \title{Update and re-fit a model call}
 \usage{
-\method{update}{sjSDM}(object, env_formula = NULL, spatial_formula = NULL, biotic = NULL, ...)
+\method{update}{sjSDM}(
+  object,
+  env_formula = NULL,
+  spatial_formula = NULL,
+  biotic = NULL,
+  env_blocks = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{of class 'sjSDM'}
@@ -14,6 +21,11 @@
 \item{spatial_formula}{new spatial formula}
 
 \item{biotic}{new biotic config}
+
+\item{env_blocks}{indices of the environmental blocks to keep in the predictor, 1 being the
+parametric block and the \code{\link{NN}} blocks following it in formula order. Every
+other block is removed from the sum and contributes exactly zero. Random-effect bars are
+not selected here, they are kept in every refit.}
 
 \item{...}{additional arguments}
 }

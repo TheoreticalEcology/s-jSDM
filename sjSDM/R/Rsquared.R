@@ -15,6 +15,11 @@
 #' \item McFadden: \mjseqn{R^2 = 1 - log\mathcal{L}_1 / log\mathcal{L}_0  }
 #'} 
 #'
+#' For a model with random-effect bars the likelihood is conditional on the posterior group means, so
+#' the R-squared is a conditional one: it rises with a bar the data do not need and is not comparable
+#' with the R-squared of a model without it. For the gaussian family McFadden's R-squared depends on
+#' the measurement scale of the response and is not bounded by 1; use Nagelkerke's.
+#'
 #' @return 
 #' 
 #' R-squared as numeric value
@@ -36,7 +41,7 @@ Rsquared = function(model, method = c("McFadden","Nagelkerke"), verbose = TRUE) 
   } else {
     R2 = 1-exp(2/(nrow(model$data$Y))*(-N1+N0))
   }
-  print(R2)
+  if(verbose) print(R2)
   return(invisible(R2))
 }
 

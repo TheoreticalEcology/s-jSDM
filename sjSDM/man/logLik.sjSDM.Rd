@@ -19,3 +19,10 @@ Numeric value or numeric matrix if individual is true.
 \description{
 Extract negative-log-Likelihood from a fitted sjSDM model
 }
+\details{
+For a model with random-effect bars this is the conditional log-likelihood at the posterior means of the
+group effects, not the evidence lower bound and not a marginal likelihood. The Kullback-Leibler term
+enters the training loss only and is visible through \code{object$history$train_l}. Values are therefore
+not comparable with those of a model fitted without a bar, and neither are information criteria built
+from them.
+}

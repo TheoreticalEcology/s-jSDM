@@ -81,6 +81,12 @@ Implemented S3 methods include \code{\link{sjSDM.tune}}, \code{\link{plot.sjSDM_
 \description{
 Cross validation of elastic net tuning
 }
+\details{
+Each fold refits on the already expanded design matrix, which the \code{\link{NN}} blocks and the
+random-effect bars of an environmental formula do not survive. A model with either raises an error on
+the resulting row-count mismatch rather than silently dropping them, so cross-validation of such a
+model is not available.
+}
 \examples{
 \dontrun{
 # simulate sparse community:

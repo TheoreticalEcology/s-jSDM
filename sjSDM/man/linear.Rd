@@ -23,11 +23,48 @@ An S3 class of type 'linear' including the following components:
 \item{data}{Raw data}
 \item{l1_coef}{L1 regularization strength, can be -99 if \code{lambda = 0.0}}
 \item{l2_coef}{L2 regularization strength, can be -99 if \code{lambda = 0.0}}
+\item{nn}{List of the \code{\link{NN}} blocks the formula asks for, empty for a purely
+parametric formula. \code{X} stays the parametric design.}
+\item{re}{List of the random-effect blocks the formula's bars ask for, empty when it has
+none. Each holds the bar's design \code{X}, the group index, the levels, \code{df} and
+\code{loading}.}
 
 Implemented S3 methods include \code{\link{print.linear}}
 }
 \description{
 specify the model to be fitted
+}
+\details{
+The formula is the usual model formula with two additions, and a formula that uses neither is
+parsed exactly as before.
+
+\code{\link{NN}(soil + ndvi, hidden = c(50, 50))} marks a group of covariates as a non-linear
+block. The block is a network from its own covariates to the species and its output is added to
+the linear predictor, so the parametric terms beside it keep their interpretation. Several blocks
+are allowed.
+
+A bar adds a grouping-factor random effect with 'lme4' semantics: \code{(1 | plot)},
+\code{(temp | plot)}, \code{(0 + temp | plot)}, \code{(temp || plot)}, \code{(1 | plot/subplot)}.
+\code{\link{re}(1 | plot, df = 2)} is the explicit form where a bar needs arguments. The group
+effect is a design-level latent factor with its own species covariance, see \code{\link{sjSDM}}.
+
+Rejected while the formula is parsed, each with an error naming the offending term:
+\itemize{
+\item a covariate in both the parametric part and an \code{\link{NN}} block, or in two blocks.
+A linear output layer represents a linear term exactly, so the likelihood is flat along the
+split and only the ratio of the two penalties decides it. \code{~ temp + NN(.)} is an error,
+not a shorthand.
+\item \code{\link{NN}} inside an interaction. Put both covariates inside the block instead.
+\item \code{df} below the number of columns the bar produces, which would force the
+intercept-slope correlation to \eqn{\pm 1}, and \code{df} together with
+\code{loading = "shared"}, which has no latent rank to choose.
+\item \code{\link{re}} wrapping a \code{||} or a nested \code{g/h} bar. The formula parser then
+either drops its arguments or leaves the bar unexpanded, so the bars have to be written out:
+\code{re(1 | g, df = 2) + re(0 + x | g, df = 2)}.
+}
+
+Neither blocks nor bars are available in the spatial formula or in \code{\link{DNN}}, and
+\code{\link{sjSDM_cv}} does not support them.
 }
 \examples{
 \dontrun{
@@ -198,5 +235,5 @@ getWeights(model)
 }
 }
 \seealso{
-\code{\link{DNN}}, \code{\link{sjSDM}}
+\code{\link{DNN}}, \code{\link{NN}}, \code{\link{sjSDM}}
 }

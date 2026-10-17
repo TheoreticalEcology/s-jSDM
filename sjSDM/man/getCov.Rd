@@ -5,19 +5,38 @@
 \alias{getCov.sjSDM}
 \title{getCov}
 \usage{
-getCov(object)
+getCov(object, which = c("residual", "re"))
 
-\method{getCov}{sjSDM}(object)
+\method{getCov}{sjSDM}(object, which = c("residual", "re"))
 }
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}, or \code{\link{sjSDM}} with \code{\link{DNN}} object}
+
+\item{which}{\code{"residual"}, the default, for the residual association matrix
+\eqn{\sigma \sigma' + I}. \code{"re"} for the covariance a random-effect bar induces,
+\eqn{\Lambda \Lambda'}, one entry per bar.}
 }
 \value{
-Matrix of dimensions species by species corresponding to the covariance (occurrence) matrix.
+Matrix of dimensions species by species corresponding to the covariance (occurrence) matrix,
+or for \code{which = "re"} a named list with one covariance matrix per random-effect bar.
 }
 \description{
 get species-species association (covariance) matrix
 }
+\details{
+\code{which = "re"} returns a list named by the grouping variables. A bar with \eqn{q}
+design columns gives the full \eqn{Jq \times Jq} covariance of the group effect, flattened
+species-fast and named \code{<species>_k<column>}, so species \eqn{j}'s own
+\eqn{q \times q} block is \code{\link{getRE}(object)[[b]]$cov[j,,]}; at \eqn{q = 1} it is
+the plain \eqn{J \times J} matrix named by species. A bar with
+\code{\link{re}(loading = "shared")} has no species dimension and returns the scalar
+\eqn{\lambda^2}.
+
+Unlike the residual covariance, \eqn{\Lambda \Lambda'} carries no \eqn{+ I}, so its rank
+is at most \eqn{d} and it is singular whenever \eqn{d < Jq}. \code{\link{getCor}} warns
+there: the group effects of the columns are linearly dependent, and at \eqn{d = 1} every
+correlation is exactly \eqn{\pm 1}.
+}
 \seealso{
-\code{\link{sjSDM}},\code{\link{DNN}}
+\code{\link{sjSDM}},\code{\link{DNN}},\code{\link{getRE}}
 }

@@ -17,7 +17,7 @@ Adamax(betas = c(0.9, 0.999), eps = 1e-08, weight_decay = 0.002)
 Anonymous function that returns optimizer when called.
 }
 \description{
-Adamax optimizer, see Kingma and Ba, 2014
+Deprecated. 'torch' has no Adamax implementation, so this redirects to \code{\link{Adam}}.
 }
 \references{
 Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
