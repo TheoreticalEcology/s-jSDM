@@ -78,11 +78,10 @@ linear = function(data = NULL, formula = NULL, lambda = 0.0, alpha = 0.5) {
   qassert(lambda, "R1[0,)")
   qassert(alpha, "R1[0,)")
   
+  # the formula keeps the environment it was written in; re-evaluating the captured call here
+  # resolved its names, and NN()/re() arguments, in this function's frame
   if(!is.null(formula)) {
-    mf = match.call()
-    m = match("formula", names(mf))
-    if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
-    formula = stats::as.formula(mf[m]$formula)
+    formula = stats::as.formula(formula, env = parent.frame())
   } else {
     formula = stats::as.formula("~.")
   }
@@ -165,11 +164,10 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
   qassert(dropout, "R1[0,)")
   
   
+  # the formula keeps the environment it was written in; re-evaluating the captured call here
+  # resolved its names, and NN()/re() arguments, in this function's frame
   if(!is.null(formula)) {
-    mf = match.call()
-    m = match("formula", names(mf))
-    if(inherits(mf[3]$formula, "name")) mf[3]$formula = eval(mf[3]$formula, envir = parent.env(environment()))
-    formula = stats::as.formula(mf[m]$formula)
+    formula = stats::as.formula(formula, env = parent.frame())
   } else {
     formula = stats::as.formula("~.")
   }
@@ -267,7 +265,7 @@ print.bioticStruct = function(x, ...) {
 
 #' sjSDM control object
 #' 
-#' @param optimizer object of type \code{\link{Adam}}, \code{\link{AdamW}}, \code{\link{Adagrad}}, \code{\link{RMSprop}}, or \code{\link{SGD}}. \code{\link{Adamax}}, \code{\link{AccSGD}}, \code{\link{madgrad}} and \code{\link{AdaBound}} have no 'torch' counterpart, redirect to one of the above with a message, and will be removed in 1.2.0
+#' @param optimizer object of type \code{\link{Adam}} (the default), \code{\link{AdamW}}, \code{\link{Adagrad}}, \code{\link{RMSprop}}, or \code{\link{SGD}}. \code{\link{Adamax}}, \code{\link{AccSGD}}, \code{\link{madgrad}} and \code{\link{AdaBound}} have no 'torch' counterpart, redirect to one of the above with a message, and will be removed in 1.2.0
 #' @param scheduler reduce lr on plateau scheduler or not (0 means no scheduler, > 0 number of epochs before reducing learning rate)
 #' @param lr_reduce_factor factor to reduce learning rate in scheduler
 #' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
@@ -285,7 +283,7 @@ print.bioticStruct = function(x, ...) {
 #' 
 #' @import checkmate
 #' @export
-sjSDMControl = function(optimizer = RMSprop(),
+sjSDMControl = function(optimizer = Adam(),
                         scheduler = 0,
                         lr_reduce_factor = 0.99,
                         early_stopping_training = 0,

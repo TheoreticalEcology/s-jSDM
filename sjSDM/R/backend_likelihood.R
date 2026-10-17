@@ -94,6 +94,9 @@ sjsdm_derivs = function(link, alpha = 1.0) {
 # overshoots. Sites whose occurrences are far from what the fixed effects predict then diverge
 # and the proposal is centred nowhere near the mass -- which the median ESS does not show. Hence
 # a per-site backtracking line search on g itself, and a convergence check the caller can read.
+# Convergence is judged on the Newton decrement sqrt(g' H^-1 g), not on |g|: the gradient
+# scales with 1/residual variance, so a gaussian fit at small scale never reached a gradient
+# tolerance although its mode was exact.
 mvp_laplace_proposal = function(mu, Y, sigma, derivs, theta = NULL, steps = 50L, tol = 1e-4) {
   d = sigma$shape[2]
   eye = torch::torch_eye(d, dtype = mu$dtype, device = mu$device)
@@ -111,10 +114,15 @@ mvp_laplace_proposal = function(mu, Y, sigma, derivs, theta = NULL, steps = 50L,
 
   pp = parts(z)
   f0 = obj(pp, z)
-  for (i in seq_len(steps)) {
-    g = grad(pp, z)
-    if (as.numeric(g$pow(2)$sum(dim = 2)$max()$cpu()) < tol^2) break
+  newton = function(pp, zz) {
+    g = grad(pp, zz)
     step = torch::torch_cholesky_solve(g$unsqueeze(3), torch::linalg_cholesky(hess(pp)))$squeeze(3)
+    list(step = step, dec = g$mul(step)$sum(dim = 2)$clamp(min = 0)$sqrt())
+  }
+  for (i in seq_len(steps)) {
+    nw = newton(pp, z)
+    if (as.numeric(nw$dec$max()$cpu()) < tol) break
+    step = nw$step
     t = torch::torch_ones_like(f0)
     for (bt in 1:25) {
       zn = z$add(step$mul(t$unsqueeze(2)))
@@ -130,7 +138,7 @@ mvp_laplace_proposal = function(mu, Y, sigma, derivs, theta = NULL, steps = 50L,
   }
   pp = parts(z)
   list(mode = z, L = torch::linalg_cholesky(hess(pp)),
-       maxgrad = as.numeric(grad(pp, z)$pow(2)$sum(dim = 2)$sqrt()$max()$cpu()))
+       maxdec = as.numeric(newton(pp, z)$dec$max()$cpu()))
 }
 
 # Draw from N(mode, H^-1) and return log p(z) - log q(z). z = mode + L^-T eps makes the
@@ -235,7 +243,7 @@ mvp_logLik = function(mu, Y, sigma, link = "probit", alpha = 1.0, sampling = 100
 mvp_loss = torch::nn_module(
   "mvp_loss",
   initialize = function(link, species, df, alpha = 1.0, diag = FALSE, l1 = 0.0, l2 = 0.0,
-                        reg_on_Cov = TRUE, reg_on_Diag = TRUE, inverse = FALSE,
+                        reg_on_Cov = TRUE, reg_on_Diag = TRUE, inverse = FALSE, zero = FALSE,
                         dtype = torch::torch_float32(), device = NULL) {
     self$family = sjsdm_family(link)
     self$link = link
@@ -251,7 +259,13 @@ mvp_loss = torch::nn_module(
     if (link == "normal")
       self$theta = torch::nn_parameter(torch::torch_zeros(self$species, dtype = dtype,
                                                           device = device))
-    if (diag) {
+    if (zero) {
+      # no latent term at all: anova()'s sub-models without associations. sigma = I would
+      # leave a fixed unit latent variance, which only probit absorbs into its intercept.
+      self$df = 1L
+      self$register_buffer("sigma", torch::torch_zeros(c(self$species, 1L), dtype = dtype,
+                                                       device = device))
+    } else if (diag) {
       self$df = self$species
       # the independent-species model: fixed, so a buffer rather than a parameter
       self$register_buffer("sigma", torch::torch_eye(self$species, dtype = dtype,

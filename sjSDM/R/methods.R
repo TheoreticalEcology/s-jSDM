@@ -111,6 +111,8 @@ re_cov_list = function(object, cor) {
 #' \itemize{
 #'  \item layers - list of layer weights
 #'  \item sigma - weight to construct covariance matrix
+#'  \item state - every parameter and buffer of the model by name, including NN() blocks,
+#'    random-effect blocks and the dispersion; this is what \code{\link{setWeights}} restores
 #' }
 #' @export
 getWeights = function(object) UseMethod("getWeights")
@@ -122,7 +124,8 @@ getWeights = function(object) UseMethod("getWeights")
 getWeights.sjSDM= function(object) {
   return(list(env=force_r(object$model$env_weights), 
               spatial=force_r(object$model$spatial_weights), 
-              sigma = force_r(object$model$get_sigma)))
+              sigma = force_r(object$model$get_sigma),
+              state = lapply(object$model$state_dict(), function(t) as.array(t$cpu()))))
 }
 
 
@@ -145,6 +148,12 @@ setWeights = function(object, weights) UseMethod("setWeights")
 setWeights.sjSDM= function(object, weights = NULL) {
   if(is.null(weights)) weights = list(env = object$weights, spatial = object$spatial_weights,
                                       sigma = object$sigma)
+  # the three positional parts miss NN() and random blocks and theta; the full state does not
+  if(!is.null(weights$state)) {
+    set_state(object$model, weights$state)
+    sjsdm_state(object$model, object$state)
+    return(invisible(NULL))
+  }
   
   if(!is.null(weights[[1]])) set_state(object$model$env, weights[[1]])
   

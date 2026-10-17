@@ -37,8 +37,15 @@ check_device = function(device) {
 # One design per block, in the order the net adds them.
 sjsdm_newdata = function(config, newdata) {
   if (!is.data.frame(newdata)) newdata = data.frame(newdata)
-  lapply(c(list(config), config$nn), function(b)
-    stats::model.matrix(stats::delete.response(b$terms), newdata, xlev = b$xlevels))
+  lapply(c(list(config), config$nn), function(b) newdata_design(b, newdata))
+}
+
+# na.pass, as predict.lm does: model.matrix() would drop a row with a missing predictor from
+# this block only, and every later row would meet the next site's random block
+newdata_design = function(b, newdata) {
+  tt = stats::delete.response(b$terms)
+  stats::model.matrix(tt, stats::model.frame(tt, newdata, na.action = stats::na.pass,
+                                             xlev = b$xlevels))
 }
 
 addA = function(col, alpha = 0.25) apply(sapply(col, grDevices::col2rgb)/255, 2, function(x) grDevices::rgb(x[1], x[2], x[3], alpha=alpha))

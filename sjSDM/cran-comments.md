@@ -3,8 +3,14 @@
 
 This release replaces the package's computational backend. Up to 1.0.7 sjSDM wrapped a
 bundled 'Python'/'PyTorch' package through 'reticulate'; it now runs natively on the R
-'torch' package. 'reticulate' has been removed from Imports, 'torch' and 'R6' added, and
-`inst/python/` has been deleted from the package. The user-facing API is unchanged.
+'torch' package. 'reticulate' has been removed from Imports, 'torch' and 'reformulas'
+added, and `inst/python/` has been deleted from the package.
+
+The release also adds non-linear `NN()` blocks and grouping-factor random effects to the
+environmental formula, an optional Laplace proposal for the Monte-Carlo likelihood in
+`anova()`, and fixes several `anova()` defects that change variation-partitioning results.
+All additions are new arguments with backward-compatible defaults; no function was removed
+and no argument changed meaning. NEWS.md lists the behaviour changes.
 
 Consequences for the check environment: the package no longer needs 'python', 'conda' or
 any 'pip'/'conda' install step. It does need the libtorch binaries, which 'torch'
@@ -19,8 +25,13 @@ different random number streams. This is documented in NEWS.md and in
 `install_sjSDM()` no longer accepts a `version` argument; it is now a thin wrapper around
 `torch::install_torch()` and is kept only so that existing user scripts keep working.
 
+Two NOTEs seen locally that we believe are false positives: 'stackoverflow.com' and
+'doi.org' answer 403 to the check's URL requests while the links resolve in a browser, and
+'checking for future file timestamps' cannot reach the time server from our network.
+
 ### Successfull R CMD checks under
 * Locally: macOS (R 4.6.0, arm64) - 0 errors, 0 warnings, 0 notes
+* Locally: Ubuntu 26.04.1 LTS (R 4.5.2, x86_64) - 0 errors, 1 warning (qpdf not installed locally), 1 note (the URL false positive above)
 
 <remaining check environments to be filled in before submission>
 

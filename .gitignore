@@ -43,3 +43,19 @@ sjSDM/vignettes/sjSDM_Introduction.R
 !dev/parity/reference/
 !dev/parity/reference/*.RDS
 !dev/parity/reference/*.csv
+
+# Claude Code: assistant config never goes into the repo (Max, 2026-10-14)
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.claude/
+
+# Claude Code: the assistant's project memory. Not package content, and a `git add -A`
+# would otherwise sweep it into a public repository (Max, 2026-10-14)
+HANDOVER.md
+STATUS.md
+CONTEXT.md
+HISTORY.md
+INSIGHTS.md
+LITERATURE.md
+REFACTOR_torch_cito_plan.md

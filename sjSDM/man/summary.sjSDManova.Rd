@@ -29,12 +29,14 @@ The function prints and returns invisible a summary table of an sjSDM ANOVA, cre
 \details{
 The function returns a ANOVA table with Deviance as well as the pseudo-R2 metrics of Nagelkerke and McFadden
 
-There are four options to handle shared ANOVA fractions, which is variance that can be explained, typically as a result of collinearity, by several of the fractions:
+There are six options to handle shared ANOVA fractions, which is variance that can be explained, typically as a result of collinearity, by several of the fractions:
 \enumerate{
+\item "mvp_proportional" (the default) splits Abiotic and Spatial within the model without associations, distributes their shared part proportionally, and gives the remainder of the full model to the associations. Without a spatial component it is the same as "proportional"
+\item "mvp" is the same split without distributing the shared Abiotic and Spatial part. Without a spatial component it is the same as "proportional"
 \item "all" returns the shared fractions explicitly
 \item "discard" discards the fractions, as typically in a type II Anova
-\item "proportional" distributes shared fractions proportional to the unique fractions
-\item "equal" distributions shared fractions equally to the unique fractions
+\item "proportional" distributes shared fractions proportional to the unique fractions, weighted by their absolute size, so a negative unique fraction still attracts shared variance
+\item "equal" distributes shared fractions equally to the unique fractions
 }
 }
 \examples{

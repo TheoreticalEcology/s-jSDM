@@ -5,11 +5,22 @@
 # an object that does not carry this exact string
 sjsdm_backend_version = "1.1.0"
 
-sjsdm_set_seed = function(seed) {
+# Seeds R and torch, and puts the caller's R stream back when the calling function returns:
+# a fit inside a user's simulation loop must not replay the loop's draws.
+sjsdm_set_seed = function(seed, frame = parent.frame()) {
   seed = as.integer(seed)
+  old = if (exists(".Random.seed", globalenv(), inherits = FALSE)) get(".Random.seed", globalenv())
+  do.call(on.exit, list(substitute(restore_r_seed(old), list(old = old)), add = TRUE),
+          envir = frame)
   set.seed(seed)
   torch::torch_manual_seed(seed)
   invisible(seed)
+}
+
+restore_r_seed = function(old) {
+  if (!is.null(old)) assign(".Random.seed", old, envir = globalenv())
+  else if (exists(".Random.seed", globalenv(), inherits = FALSE))
+    rm(".Random.seed", envir = globalenv())
 }
 
 # The single funnel every model build goes through, so the CUDA request is validated here
@@ -505,7 +516,10 @@ set_state = function(module, w) {
                 paste(names(sd), collapse = ", "), call. = FALSE)
   for (k in seq_along(w)) {
     t0 = sd[[at[k]]]
-    v = sjsdm_tensor(w[[k]], t0$dtype, t0$device)
+    # a random block's Lambda is [species, q, d]; torch_tensor() keeps R's index order there
+    v = if (length(dim(w[[k]])) > 2L)
+      torch::torch_tensor(w[[k]], dtype = t0$dtype, device = t0$device)
+    else sjsdm_tensor(w[[k]], t0$dtype, t0$device)
     if (v$numel() != t0$numel())
       stop("cannot set state: '", names(sd)[at[k]], "' needs ", t0$numel(), " values, got ",
            v$numel(), call. = FALSE)

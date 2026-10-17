@@ -229,6 +229,13 @@ bar_specs = function(formula, bars) {
 # has no variables and a model frame of it would have no rows either.
 bar_design = function(lhs, mf, env) {
   tt = stats::terms(stats::as.formula(call("~", lhs), env = env), data = mf)
+  # the shared frame recorded poly()/scale() coefficients; without them predict() refits
+  # them on newdata
+  sh = stats::terms(mf)
+  k = match(vapply(as.list(attr(tt, "variables"))[-1L], deparse1, ""),
+            vapply(as.list(attr(sh, "variables"))[-1L], deparse1, ""))
+  if (!anyNA(k))
+    attr(tt, "predvars") = as.call(c(quote(list), as.list(attr(sh, "predvars"))[-1L][k]))
   X = stats::model.matrix(tt, mf)
   list(X = X, terms = tt, xlevels = stats::.getXlevels(tt, mf),
        intercept = "(Intercept)" %in% colnames(X))
@@ -241,7 +248,7 @@ re_blocks = function(bars, args, mf, env) {
   lapply(seq_along(bars), function(i) {
     b = bars[[i]]
     bd = bar_design(b[[2L]], mf, env)
-    g = factor(eval(b[[3L]], mf, env))
+    g = factor(re_group(b[[3L]], mf, env))
     q = ncol(bd$X)
     a = args[[i]]
     loading = match.arg(a$loading, c("species", "shared"))
@@ -307,13 +314,20 @@ config_X = function(config) {
     lapply(config$re, function(b) cbind(b$X, b$index)))
 }
 
+# the grouping expression with `:` as an interaction, as lme4 reads it: base `:` on two numeric
+# codes is a sequence, which silently turned a nested bar into a two-level grouping
+re_group = function(e, data, env) {
+  ix = function(a, b) interaction(a, b, drop = TRUE, sep = ":", lex.order = TRUE)
+  eval(e, c(list(`:` = ix), as.list(data)), env)
+}
+
 # the random blocks' designs for newdata. A level the fit never saw gets index 0, which the
 # block reads as "draw from the prior": mean zero, variance Lambda Lambda'.
 re_newdata = function(config, newdata) {
   if (!is.data.frame(newdata)) newdata = data.frame(newdata)
   lapply(config$re, function(b) {
-    Z = stats::model.matrix(stats::delete.response(b$terms), newdata, xlev = b$xlevels)
-    g = match(as.character(eval(b$bar[[3L]], newdata)), b$levels)
+    Z = newdata_design(b, newdata)
+    g = match(as.character(re_group(b$bar[[3L]], newdata, environment(b$terms))), b$levels)
     cbind(Z, ifelse(is.na(g), 0L, g))
   })
 }

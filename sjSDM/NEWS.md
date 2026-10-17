@@ -40,6 +40,56 @@
   dropping them. Bars are not available in the spatial formula. The reported group variance
   grows with `df`, because the Kullback-Leibler term constrains the posterior and not the
   loadings; report the rank alongside the variance, and prefer a small `df`.
+* The default optimizer is `Adam()` instead of `RMSprop(weight_decay = 1e-4)`. With
+  random-effect bars, RMSprop shrank the estimated group standard deviation by an amount
+  that grows with the share of groups missing from a minibatch -- about 8 % below the exact
+  maximum-likelihood value at a batch of a quarter of the number of groups, against 1-2 % with
+  the full batch -- and switching the starting point between batch sizes showed the fit settles
+  at the level of the batch size it is trained with. Adam removes the dependence. **Every fit
+  changes;** pass `sjSDMControl(optimizer = RMSprop())` to reproduce earlier results.
+* `anova()` gains `proposal`, and the default is `"laplace"`: the latent factors are drawn
+  from a Gaussian fitted to the per-site mode of the integrand and each draw is reweighted by
+  `log p(z) - log q(z)`. `"prior"` draws them from `N(0, I)`, which is what every earlier
+  version did. At many species almost every prior draw lands where the observed community is
+  implausible -- at 100 species the effective sample size is 3 draws out of 1000 -- and the
+  resulting bias does not cancel between the sub-models the fractions are differenced from.
+  **Variation partitioning results change accordingly.** The realised effective sample size
+  is returned per sub-model in `out$ess`, and `attr(out$ess, "newton_decrement")` carries the
+  largest Newton decrement the mode-finder left behind; a warning is raised above 1e-2.
+* `anova()` no longer fits a saturated model. The saturated log-likelihood is available in
+  closed form for all six links and is now computed, which removes one fit per call and
+  makes the `Saturated` row exact rather than an optimiser's best effort.
+* `anova()` takes all leave-one-out species likelihoods from a single forward pass, and
+  the joint and the leave-one-out likelihoods now share one set of Monte-Carlo draws.
+* The association-only sub-model of `anova()` is now fitted with an intercept. It used to
+  be fitted with `~0`, which pins the linear predictor at exactly zero, so under a probit
+  link every species was held at a marginal prevalence of 0.5 and the covariance cannot
+  compensate -- it shifts no mean. The deficit was not a property of the associations but
+  of the missing intercept, and it was differenced against a null model that does have one.
+  It landed in the unique environment fraction of a non-spatial model and in the shared
+  abiotic-spatial fraction of a spatial one, with the opposite sign in the three-way shared
+  fraction. **Spatial and non-spatial variation partitioning results change accordingly.**
+* The sub-models of `anova()` without associations, and its null model, now carry no latent
+  term at all. They used to be fitted with an identity covariance. Under a probit link that
+  only rescales the coefficients, but for the count, negative binomial and gaussian links it
+  adds a fixed unit latent variance on the link scale, which the full model does not contain.
+  The misfit was reported as associations -- on simulated data with independent species,
+  228, 34 and 587 log-likelihood units for the three links -- and the null model was scored
+  with a likelihood it had not been fitted under, which inflated `Rsquared()`.
+  **Variation partitioning and R-squared results change for these three families; probit
+  results move within the Monte-Carlo error.** `anova()` now refuses a model fitted with
+  `bioticStruct(diag = TRUE)`, whose association sub-models would not be nested in it.
+* The sub-models and the null model of `anova()` now inherit the fitted model's
+  `bioticStruct()` settings. They used to be refitted with a fresh `bioticStruct()`, which
+  silently dropped `df`, `lambda` and `alpha`, so a model tuned with `sjSDM_cv()` was
+  differenced against unpenalised sub-models of a different latent rank.
+* `anova()` for a spatial model used to leave the spatial term in the null model, because
+  the class test matched `"spatial "` with a trailing space. Every spatial variation
+  partitioning computed before this fix used a null that already contained space.
+  **Spatial results change.**
+* The argument order of `anova()` is `object, samples, verbose, proposal`. `proposal` was
+  briefly inserted ahead of `verbose` during development, which would have broken
+  positional calls carried over from 1.0.7.
 * The backend was rewritten. sjSDM now runs on the R 'torch' package (libtorch) and no
   longer depends on 'python', 'conda', 'reticulate' or 'PyTorch'. `install_sjSDM()` is
   now a thin wrapper around `torch::install_torch()`; the 'r-sjsdm' conda environment is
@@ -67,6 +117,45 @@
 
 ## Bug fixes
 
+* The shared abiotic-associations fraction of a non-spatial `anova()` had the opposite sign
+  to every other fraction, so the `"all"` table did not add up to the full model. It now
+  follows the classical convention: a negative shared fraction means the components explain
+  more together than the sum of what each explains alone. **The shared row, the Venn plot
+  and the per-species and per-site shared values change sign.**
+* `summary(fractions = "equal")` of a spatial `anova()` split the pairwise shared fractions
+  in thirds instead of halves and gave the spatial component the abiotic-associations share
+  instead of the abiotic-spatial one.
+* The per-species `Deviance` and `Residual_deviance` of `anova()` were on a scale of -1/2
+  relative to the printed table.
+* `anova()` and `Rsquared()` returned `NA` for every value when the response contained a
+  missing value, because the null log-likelihood was not masked.
+* `sjSDM()`, `anova()` and `simulate()` set the global random seed and left it set, so
+  data simulated after a fit inside a loop repeated across iterations. The caller's random
+  number stream is now restored.
+* `sjSDM()` now stops when `Y` and the design have different numbers of rows. Rows with a
+  missing predictor are dropped from the design by `model.frame()` while `Y` kept them, so
+  every later design row was paired with a different site, without a warning.
+* `predict(newdata = )` keeps rows with a missing predictor and returns `NA` for them, as
+  `predict.lm()` does. With a random-effect bar the row used to be dropped from the fixed
+  design but not from the random block, so every later site received the next site's group
+  effect.
+* A nested bar `(1 | a/b)` with numeric or character grouping columns evaluated `b:a` as a
+  numeric sequence, which fitted a two-level grouping (numeric) or failed (character). The
+  interaction is now built as 'lme4' builds it.
+* `poly()`, `scale()` and other data-dependent terms on the left of a bar were recomputed
+  from `newdata` in `predict()`.
+* Formulas given to `linear()`, `DNN()` and `update()` were evaluated in the package's own
+  frame. A name in the formula, or an `NN()`/`re()` argument, could resolve to a variable of
+  that frame (`I(x * alpha)` read the function's `alpha`), and a formula passed as a
+  variable from inside a user function was not found. Formulas now keep the environment
+  they were written in.
+* `getWeights()` returns the full model state in `state`, and `setWeights()` restores it.
+  The three positional parts did not include `NN()` blocks, random-effect blocks or the
+  negative binomial dispersion, so a round trip silently left those unchanged.
+* `predict(dropout = TRUE)` was ignored for a non-spatial model when `newdata` was not
+  given.
+* The null model of a negative binomial `anova()` and of `Rsquared()` was evaluated with the
+  dispersion of the full model instead of its own fitted dispersion.
 * `getSe()` did not pass the spatial predictors to the Hessian, so standard errors for
   spatial models were computed as if the spatial term were absent. `plot()` on a spatial
   model silently fell back to no standard errors as a result.

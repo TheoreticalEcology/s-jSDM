@@ -159,7 +159,7 @@ testthat::test_that("the KL matches numerical integration at d = 1", {
 
 testthat::test_that("the variational parameters sit in a weight_decay = 0 parameter group", {
   skip_if_no_torch()
-  m = fit_re(~ X1 + (1 | g))
+  m = fit_re(~ X1 + (1 | g), control = sjSDMControl(optimizer = RMSprop()))
   g = m$model$net$parameter_groups()
   testthat::expect_setequal(names(g$variational), c("random.0.m", "random.0.L_raw"))
   testthat::expect_true(all(!grepl("^random\\.[0-9]+\\.(m|L_raw)$", names(g$fixed))))
