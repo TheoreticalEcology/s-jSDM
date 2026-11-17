@@ -13,7 +13,7 @@ getRE(object)
 \item{object}{a model fitted by \code{\link{sjSDM}}}
 }
 \value{
-A list with one element per bar, each holding \code{group} (the grouping variable),
+A list with one element per bar, named by its grouping variable, each holding \code{group} (the grouping variable),
 \code{terms} and \code{levels}, \code{q} (the number of design columns of the bar),
 \code{nlevels}, \code{df}, \code{loading}, \code{cov} (species by q by
 q), \code{mean} (levels by q by species), \code{lambda} (species by q by df, the loading
@@ -47,8 +47,8 @@ model = sjSDM(com$response, env = linear(X, ~ X1 + re(1 | plot, df = 2)),
               iter = 10L, verbose = FALSE)
 
 rr = getRE(model)
-dim(rr[[1]]$cov)   # species by q by q
-dim(rr[[1]]$mean)  # groups by q by species
+dim(rr$plot$cov)   # species by q by q
+dim(rr$plot$mean)  # groups by q by species
 
 getCov(model, which = "re")$plot
 }

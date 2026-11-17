@@ -31,7 +31,7 @@ simulate_SDM(
 
 \item{link}{probit, logit or identical}
 
-\item{response}{pa (presence-absence) or count}
+\item{response}{pa (presence-absence), count, or identical (the latent continuous response)}
 
 \item{sparse}{sparse rate}
 

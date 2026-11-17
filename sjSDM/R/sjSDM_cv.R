@@ -84,6 +84,7 @@ sjSDM_cv = function(Y,
   qassert(device, c("S1", "X1[0,)", "I1[0,)"))
   qassert(n_cores, c("X1[1,)", "0"))
   qassert(n_gpu, c("X+[0,)", "0"))
+  if(!is.null(n_gpu) && is.null(n_cores)) stop("n_gpu needs n_cores: the GPUs are assigned to the parallel workers", call. = FALSE)
   qassert(sampling, "X1[0,)")
   qassert(blocks, "X1[1,)")
   
@@ -198,17 +199,12 @@ sjSDM_cv = function(Y,
       
       pred_test = mean_func(function() predict.sjSDM(model, newdata = X_test, SP = SP_test) )
       pred_train = mean_func(function() predict.sjSDM(model) )
-      auc_test = sapply(1:ncol(Y_test), function(s) {
-        a = Metrics::auc(Y_test[,s], pred_test[,s])
-        return(ifelse(is.na(a),0.5, a))} )
-      auc_train = sapply(1:ncol(Y_train), function(s) {
-        a = Metrics::auc(Y_train[,s], pred_train[,s])
-        return(ifelse(is.na(a),0.5, a))
-        })
-      auc_macro_test = sum(auc_test * (apply(Y_test, 2, sum)/sum(Y_test)))
-      auc_macro_train = sum(auc_train * (apply(Y_train, 2, sum)/sum(Y_train)))
-      auc_test = mean(auc_test)
-      auc_train = mean(auc_train)
+      auc_test = species_auc(Y_test, pred_test)
+      auc_train = species_auc(Y_train, pred_train)
+      auc_macro_test = macro_auc(auc_test, Y_test)
+      auc_macro_train = macro_auc(auc_train, Y_train)
+      auc_test = mean(auc_test, na.rm = TRUE)
+      auc_train = mean(auc_train, na.rm = TRUE)
       ll_train = logLik.sjSDM(model)
       bs =  as.integer(model$settings$step_size)
       if(bs > nrow(X_test)) bs = 1L
@@ -259,7 +255,7 @@ sjSDM_cv = function(Y,
       
       result_list[[i]] = parallel::parLapply(cl, ind_integer, tune_func)
     }
-    result = do.call(rbind, result_list)
+    result = do.call(c, result_list)
     parallel::stopCluster(cl)
     
   }
@@ -284,7 +280,7 @@ sjSDM_cv = function(Y,
       summary_results[summary_results$iter == t & summary_results$CV_set == i, n+2] = result[[t]][[i]]$auc_test
       summary_results[summary_results$iter == t & summary_results$CV_set == i, n+3] = result[[t]][[i]]$auc_macro_test
       summary_results[summary_results$iter == t & summary_results$CV_set == i, n+4] = result[[t]][[i]]$auc_train
-      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+5] = result[[t]][[i]]$auc_macro_test
+      summary_results[summary_results$iter == t & summary_results$CV_set == i, n+5] = result[[t]][[i]]$auc_macro_train
     }
   }
   
@@ -575,19 +571,19 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
     graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,5], pch = 8, cex = 1.5, col = "red")
     graphics::text(x = x_scaled[minP,2], y = x_scaled[minP,5]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
     graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Environmental: alpha * lambda", xpd = NA)
-    graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),5], col = "#0F222E")
+    graphics::points(x_scaled[-c(minP, maxP),2], x_scaled[-c(minP, maxP),5], col = "#0F222E")
     
     new_image(res_spatial[,c(1,6,7)], range = range, cols = cols)
     graphics::polygon(c(-0.037, -0.037, 1.037, 1.037, -0.037), c(-0.037, 1.037, 1.037, -0.037, -0.037), xpd = NA, lwd = 1.2)
     graphics::text(x = c(0.0, 1.0), y = c(-0.12, -0.12), labels = c("LASSO", "Ridge"), pos = 1, xpd = NA)
     graphics::text(x = 0.5, y = -0.2, pos = 1, labels = "alpha", xpd = NA)
     graphics::text(x = -0.40, y = 0.5, pos = 2, labels = "lambda", srt = 90, xpd = NA)
-    graphics::points(x = x_scaled[maxP,2], y = x_scaled[maxP,6], pch = 8, cex = 1.5, col = "darkgreen")
-    graphics::text(x = x_scaled[maxP,2], y = x_scaled[maxP,6]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), xpd = NA, col = "darkgreen")
-    graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,6], pch = 8, cex = 1.5, col = "red")
-    graphics::text(x = x_scaled[minP,2], y = x_scaled[minP,6]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
+    graphics::points(x = x_scaled[maxP,3], y = x_scaled[maxP,6], pch = 8, cex = 1.5, col = "darkgreen")
+    graphics::text(x = x_scaled[maxP,3], y = x_scaled[maxP,6]-0.01, pos = 1,labels = round(x[maxP,perf_ind], 2), xpd = NA, col = "darkgreen")
+    graphics::points(x = x_scaled[minP,3], y = x_scaled[minP,6], pch = 8, cex = 1.5, col = "red")
+    graphics::text(x = x_scaled[minP,3], y = x_scaled[minP,6]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
     graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Spatial: alpha * lambda", xpd = NA)
-    graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),6], col = "#0F222E")
+    graphics::points(x_scaled[-c(minP, maxP),3], x_scaled[-c(minP, maxP),6], col = "#0F222E")
     
     
     
@@ -637,7 +633,7 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
     graphics::points(x = x_scaled[minP,2], y = x_scaled[minP,4], pch = 8, cex = 1.5, col = "red")
     graphics::text(x = x_scaled[minP,2], y = x_scaled[minP,4]-0.01, pos = 1,labels = round(x[minP,perf_ind], 2), xpd = NA, col = "red")
     graphics::text(x = 0.5, y = 1.03, pos = 3, labels = "Coefficients: alpha * lambda", xpd = NA)
-    graphics::points(x_scaled[-c(minP, maxP),1], x_scaled[-c(minP, maxP),3], col = "#0F222E")
+    graphics::points(x_scaled[-c(minP, maxP),2], x_scaled[-c(minP, maxP),4], col = "#0F222E")
     yy = rev(seq(0.35, 0.66, length.out = length(cols)+1))+0.3
     for(i in 1:length(cols)) graphics::rect(xleft = 1.22+0.0, xright = 1.26+0.0, ybottom = yy[i], ytop = yy[i+1], border = NA, xpd = NA, col = rev(cols)[i])
     graphics::text(x =1.24+0.0, y = min(yy), pos = 1, label = round(range[1], 2), xpd = NA)
@@ -663,6 +659,8 @@ plot.sjSDM_cv = function(x, y, perf = c("logLik", "AUC", "AUC_macro"), resolutio
 #' @param z z matrix
 #' @param cols cols for gradient
 #' @param range rescale to range
+#' @return No return value, draws an image.
+#' @keywords internal
 new_image = function(z, cols= (grDevices::colorRampPalette(c("white", "#24526E"), bias = 1.5))(10), range = c(0.5, 1.0)) {
   graphics::plot(NULL, NULL , axes = FALSE, xlab = "", ylab = "", xlim = c(0,1), ylim = c(0,1))
   x = zero_one(z[,2])
@@ -676,4 +674,20 @@ new_image = function(z, cols= (grDevices::colorRampPalette(c("white", "#24526E")
   }
   graphics::axis(1, at = seq(0.0,1.0, length.out = 5), labels = round(unique(z[,2]),2)[seq(1, length(unique(x)), length.out = 5)], lwd = 0.0, lwd.ticks = 1.0)
   graphics::axis(2, at = seq(0.0,1.0, length.out = 5), labels = round(unique(z[,3]),2)[seq(1, length(unique(y)), length.out = 5)], las = 2, lwd = 0.0, lwd.ticks = 1.0)
+}
+
+# per-species AUC on the observed cells; NA where a species has one class in the fold, which an
+# imputed 0.5 would count as chance performance against rare species
+species_auc = function(Y, pred) {
+  vapply(seq_len(ncol(Y)), function(s) {
+    ok = !is.na(Y[, s])
+    if (length(unique(Y[ok, s])) < 2) return(NA_real_)
+    Metrics::auc(Y[ok, s], pred[ok, s])
+  }, 1.0)
+}
+
+macro_auc = function(auc, Y) {
+  w = colSums(Y, na.rm = TRUE)
+  ok = !is.na(auc)
+  sum(auc[ok] * w[ok]) / sum(w[ok])
 }

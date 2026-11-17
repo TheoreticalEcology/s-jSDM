@@ -30,7 +30,7 @@
 
 \item{env_deviance}{environmental deviance}
 
-\item{...}{Additional arguments to pass to \code{plot()}}
+\item{...}{no function, for compatibility with the generic}
 }
 \value{
 List with the following components:

@@ -109,7 +109,8 @@ re_cov_list = function(object, cor) {
 #' @param object object of class \code{\link{sjSDM}} with \code{\link{DNN}}
 #' @return 
 #' \itemize{
-#'  \item layers - list of layer weights
+#'  \item env - list of the environmental layer weights
+#'  \item spatial - list of the spatial layer weights (\code{NULL} without a spatial model)
 #'  \item sigma - weight to construct covariance matrix
 #'  \item state - every parameter and buffer of the model by name, including NN() blocks,
 #'    random-effect blocks and the dispersion; this is what \code{\link{setWeights}} restores
@@ -135,7 +136,9 @@ getWeights.sjSDM= function(object) {
 #' 
 #' set layer weights and sigma in \code{\link{sjSDM}} with \code{\link{DNN}} object
 #' @param object object of class  \code{\link{sjSDM}} with \code{\link{DNN}} object
-#' @param weights list of layer weights:  \code{list(env=list(matrix(...)), spatial=list(matrix(...)), sigma=matrix(...))}, see \code{\link{getWeights}}
+#' @param weights list of layer weights:  \code{list(env=list(matrix(...)), spatial=list(matrix(...)), sigma=matrix(...))}, see \code{\link{getWeights}}.
+#'   If the list holds a \code{state} element, as returned by \code{getWeights()}, the complete
+#'   state is restored from it and the other elements are ignored.
 #' 
 #' @return No return value, weights are changed in place. 
 #' 
@@ -191,7 +194,7 @@ setWeights.sjSDM= function(object, weights = NULL) {
 #' a vector of length \eqn{q} and \code{cov} is \eqn{\lambda \lambda'}, a scalar for
 #' \code{(1 | g)}, rather than the \code{species} by \eqn{q} by \eqn{q} array.
 #'
-#' @return A list with one element per bar, each holding \code{group} (the grouping variable),
+#' @return A list with one element per bar, named by its grouping variable, each holding \code{group} (the grouping variable),
 #' \code{terms} and \code{levels}, \code{q} (the number of design columns of the bar),
 #' \code{nlevels}, \code{df}, \code{loading}, \code{cov} (species by q by
 #' q), \code{mean} (levels by q by species), \code{lambda} (species by q by df, the loading
@@ -208,8 +211,8 @@ setWeights.sjSDM= function(object, weights = NULL) {
 #'               iter = 10L, verbose = FALSE)
 #'
 #' rr = getRE(model)
-#' dim(rr[[1]]$cov)   # species by q by q
-#' dim(rr[[1]]$mean)  # groups by q by species
+#' dim(rr$plot$cov)   # species by q by q
+#' dim(rr$plot$mean)  # groups by q by species
 #'
 #' getCov(model, which = "re")$plot
 #' }
@@ -229,5 +232,5 @@ getRE.sjSDM = function(object) {
   for(k in seq_along(out))
     out[[k]][c("group", "levels", "terms")] =
       list(re[[k]]$group, re[[k]]$levels, colnames(re[[k]]$X))
-  return(out)
+  return(stats::setNames(out, vapply(re, function(r) r$group, "")))
 }

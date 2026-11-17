@@ -1,39 +1,39 @@
 # Version 1.1.0
-### Submission 1, <date>
+### Submission 1
 
 This release replaces the package's computational backend. Up to 1.0.7 sjSDM wrapped a
 bundled 'Python'/'PyTorch' package through 'reticulate'; it now runs natively on the R
-'torch' package. 'reticulate' has been removed from Imports, 'torch' and 'reformulas'
-added, and `inst/python/` has been deleted from the package.
+'torch' package. 'reticulate' has been removed from Imports, 'torch' (>= 0.14.0) and
+'reformulas' added, and `inst/python/` has been deleted from the package.
 
 The release also adds non-linear `NN()` blocks and grouping-factor random effects to the
-environmental formula, an optional Laplace proposal for the Monte-Carlo likelihood in
-`anova()`, and fixes several `anova()` defects that change variation-partitioning results.
-All additions are new arguments with backward-compatible defaults; no function was removed
-and no argument changed meaning. NEWS.md lists the behaviour changes.
+environmental formula and fixes several defects, some of which change results. Three
+defaults changed: the optimizer (`Adam()` instead of `RMSprop()`), the Monte-Carlo proposal of
+`anova()` (`"laplace"`), and `predict()`, which now returns marginal predictions. NEWS.md
+lists every behaviour change and how to restore the earlier behaviour. No exported function
+was removed.
 
-Consequences for the check environment: the package no longer needs 'python', 'conda' or
-any 'pip'/'conda' install step. It does need the libtorch binaries, which 'torch'
-downloads on first use (`torch::install_torch()`); tests and examples that fit a model
-skip themselves via `skip_if_no_torch()` when those binaries are absent, so the package
-checks cleanly on a machine without them.
+libtorch: the package needs the libtorch binaries, which 'torch' downloads on first use
+(`torch::install_torch()`) and which are usually not present on the CRAN check machines.
+- The examples fit models and therefore need libtorch; they are wrapped in \dontrun{} for
+  that reason (missing additional software).
+- Tests that fit a model skip themselves via `skip_if_no_torch()`; we checked the package with
+  libtorch hidden (`TORCH_HOME` pointing to an empty directory) as well as with it installed.
+- The vignette is pre-computed and does not run 'torch' code at build time.
 
-Results differ from 1.0.7 within Monte-Carlo noise, because the two backends draw from
-different random number streams. This is documented in NEWS.md and in
-`?installation_help`.
+There are no reverse dependencies.
 
-`install_sjSDM()` no longer accepts a `version` argument; it is now a thin wrapper around
-`torch::install_torch()` and is kept only so that existing user scripts keep working.
+Two NOTEs seen locally that we believe are false positives: 'stackoverflow.com' answers 403
+to the check's URL request while the link resolves in a browser, and 'checking for future
+file timestamps' cannot reach the time server from our network.
 
-Two NOTEs seen locally that we believe are false positives: 'stackoverflow.com' and
-'doi.org' answer 403 to the check's URL requests while the links resolve in a browser, and
-'checking for future file timestamps' cannot reach the time server from our network.
-
-### Successfull R CMD checks under
-* Locally: macOS (R 4.6.0, arm64) - 0 errors, 0 warnings, 0 notes
-* Locally: Ubuntu 26.04.1 LTS (R 4.5.2, x86_64) - 0 errors, 1 warning (qpdf not installed locally), 1 note (the URL false positive above)
-
-<remaining check environments to be filled in before submission>
+### R CMD checks
+* Local: Ubuntu 26.04.1 LTS, R 4.5.2, `--as-cran`, with libtorch: 0 errors, 1 warning ('qpdf'
+  not installed locally), 2 notes (the two above).
+* Local: same machine with libtorch hidden: 0 errors, 1 warning, 2 notes (same); the tests
+  skip (FAIL 0, SKIP 100, PASS 6).
+* win-builder R-devel, R-release, R-oldrelease: TO FILL from the result e-mails.
+* macOS builder: R 4.6.1, macOS 26.6 arm64: OK, 0 errors, 0 warnings, 0 notes (tests skip without libtorch).
 
 URLs and DOIs are correct.
 

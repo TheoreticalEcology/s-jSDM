@@ -9,7 +9,7 @@ generateSpatialEV(coords = NULL, threshold = 0)
 \arguments{
 \item{coords}{matrix or data.frame of coordinates}
 
-\item{threshold}{ignore distances greater than threshold}
+\item{threshold}{pairs of sites closer than \code{threshold} get weight 1 instead of 1/distance, which caps the weight of very close sites; 0 (the default) leaves all weights at 1/distance}
 }
 \value{
 Matrix of spatial eigenvectors.

@@ -14,7 +14,8 @@ getWeights(object)
 }
 \value{
 \itemize{
-\item layers - list of layer weights
+\item env - list of the environmental layer weights
+\item spatial - list of the spatial layer weights (\code{NULL} without a spatial model)
 \item sigma - weight to construct covariance matrix
 \item state - every parameter and buffer of the model by name, including NN() blocks,
 random-effect blocks and the dispersion; this is what \code{\link{setWeights}} restores

@@ -11,14 +11,17 @@
 
 \item{nsim}{number of simulations}
 
-\item{seed}{seed for random number generator}
+\item{seed}{seed for random number generator; the caller's random number stream is
+restored afterwards}
 
 \item{...}{optional arguments for compatibility with the generic function, no functionality implemented}
 }
 \value{
-Array of simulated species occurrences of dimension order (nsim, sites, species)
+Array of simulated responses of dimension order (nsim, sites, species)
 }
 \description{
-Simulate nsim responses from the fitted model following a multivariate probit model.
-So currently only supported for \code{family = stats::binomial("probit")}
+Simulate nsim responses from the fitted model. Each simulation draws the latent factors
+first, so the simulated species carry the fitted associations, and then the response from
+the family: binomial, poisson, negative binomial or gaussian. Random-effect blocks enter at
+their predicted group effects.
 }

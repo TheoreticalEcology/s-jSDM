@@ -12,7 +12,9 @@ setWeights(object, weights)
 \arguments{
 \item{object}{object of class  \code{\link{sjSDM}} with \code{\link{DNN}} object}
 
-\item{weights}{list of layer weights:  \code{list(env=list(matrix(...)), spatial=list(matrix(...)), sigma=matrix(...))}, see \code{\link{getWeights}}}
+\item{weights}{list of layer weights:  \code{list(env=list(matrix(...)), spatial=list(matrix(...)), sigma=matrix(...))}, see \code{\link{getWeights}}.
+If the list holds a \code{state} element, as returned by \code{getWeights()}, the complete
+state is restored from it and the other elements are ignored.}
 }
 \value{
 No return value, weights are changed in place.

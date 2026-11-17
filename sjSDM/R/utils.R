@@ -52,6 +52,8 @@ addA = function(col, alpha = 0.25) apply(sapply(col, grDevices::col2rgb)/255, 2,
 
 #' check model
 #' check model and rebuild if necessary
+#' @return The model, with its 'torch' module rebuilt if it was lost by saving and reloading.
+#' @keywords internal
 #' @param object of class sjSDM
 checkModel = function(object) {
   check_module()
@@ -89,6 +91,8 @@ is_linux = function() {
 #' check module
 #' 
 #' check if module is loaded
+#' @return No return value; stops if 'torch' or libtorch is missing.
+#' @keywords internal
 check_module = function(){
   if(!is_torch_available())
     stop("'torch' is not available. Run torch::install_torch(), see ?installation_help",
@@ -131,7 +135,7 @@ parse_nn = function(nn) {
 #' Generates a Moran's eigenvector map of the distance matrix. See Dray, Legendre, and Peres-Neto, 2006 for more information.
 #' 
 #' @param coords matrix or data.frame of coordinates
-#' @param threshold ignore distances greater than threshold
+#' @param threshold pairs of sites closer than \code{threshold} get weight 1 instead of 1/distance, which caps the weight of very close sites; 0 (the default) leaves all weights at 1/distance
 #' 
 #' @return
 #' Matrix of spatial eigenvectors. 

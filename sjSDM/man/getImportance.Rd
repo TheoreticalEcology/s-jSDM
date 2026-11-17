@@ -17,9 +17,13 @@ getImportance(beta, sp = NULL, association, covX, covSP = NULL)
 
 \item{covSP}{spatial covariance matrix}
 }
+\value{
+List of importance matrices.
+}
 \description{
 variation partitioning with coefficients
 }
 \author{
 Maximilian Pichler
 }
+\keyword{internal}

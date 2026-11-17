@@ -9,7 +9,8 @@
 \arguments{
 \item{object}{a model fitted by \code{\link{sjSDM}}}
 
-\item{type}{residual type. Currently only supports raw}
+\item{type}{residual type. Currently only supports raw: the observed response minus the
+fitted marginal expectation on the response scale}
 
 \item{...}{further arguments, not supported yet.}
 }

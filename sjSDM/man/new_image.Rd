@@ -17,6 +17,10 @@ new_image(
 
 \item{range}{rescale to range}
 }
+\value{
+No return value, draws an image.
+}
 \description{
 new_image function
 }
+\keyword{internal}

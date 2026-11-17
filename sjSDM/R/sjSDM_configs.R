@@ -196,17 +196,19 @@ DNN = function(data = NULL, formula = NULL, hidden = c(10L, 10L, 10L), activatio
 #' 
 #' @param x object created by \code{\link{DNN}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @return \code{x}, invisibly.
 #' @export
 print.DNN = function(x, ...) {
   print(x$formula)
   cat("\nLayers with n nodes: ", x$hidden)
+  invisible(x)
 }
 
 
 #' biotic structure
 #' 
 #' define biotic (species-species) association (interaction) structure
-#' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}
+#' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{max(5, floor(ncol(Y)/2))}
 #' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}
 #' @param on_diag regularization on diagonals 
@@ -256,9 +258,11 @@ bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = FALSE,reg
 #' 
 #' @param x object created by \code{\link{bioticStruct}}
 #' @param ... optional arguments for compatibility with the generic function, no function implemented
+#' @return \code{x}, invisibly.
 #' @export
 print.bioticStruct = function(x, ...) {
   cat("df: ",x$df)
+  invisible(x)
 }
 
 

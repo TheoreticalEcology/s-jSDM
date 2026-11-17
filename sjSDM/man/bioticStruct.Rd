@@ -15,7 +15,7 @@ bioticStruct(
 )
 }
 \arguments{
-\item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{ncol(Y)/2}}
+\item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{max(5, floor(ncol(Y)/2))}}
 
 \item{lambda}{lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
 

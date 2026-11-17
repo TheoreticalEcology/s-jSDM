@@ -1,7 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
-^.travis\.yml$
+^\.travis\.yml$
 ^doc$
 ^Meta$
 ^cran-comments\.md$
@@ -21,3 +21,7 @@
 ^HISTORY\.md$
 ^INSIGHTS\.md$
 ^LITERATURE\.md$
+^tests/testthat/Rplots\.pdf$
+^vignettes/build\.R$
+^vignettes/.*\.orig$
+^man/figures/README-.*\.png$

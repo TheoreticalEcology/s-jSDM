@@ -1,8 +1,10 @@
+source("utils.R")
+
 # Regression tests for the two backend bugs found by the 2026-09-02 audit of the torch port.
 # Both fail against the pre-fix backend_model.R.
 
 testthat::test_that("the environmental penalty skips an intercept-only design", {
-  sjSDM:::check_module()
+  skip_if_no_torch()
   pen = function(P, intercept) {
     m = sjSDM:::Model_sjSDM(blocks = list(list(input_shape = P, output_shape = 3L, l1 = 0.5,
                                                l2 = -99, intercept = intercept)),
@@ -18,7 +20,7 @@ testthat::test_that("the environmental penalty skips an intercept-only design", 
 })
 
 testthat::test_that("se() reports NaN rather than a plausible number off a maximum", {
-  sjSDM:::check_module()
+  skip_if_no_torch()
   sim = sjSDM::simulate_SDM(env = 2L, species = 3L, sites = 60L, seed = 1L)
   X = sim$env_weights; colnames(X) = paste0("X", seq_len(2))
   m = sjSDM::sjSDM(sim$response, env = sjSDM::linear(X, ~.), iter = 5L, step_size = 10L,
