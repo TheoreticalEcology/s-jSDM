@@ -31,7 +31,6 @@ knitr::opts_chunk$set(
 )
 options("progress_enabled" = FALSE)
 ```
-```
 
 # Getting started
 
@@ -189,7 +188,7 @@ plot(an)
 summary(an)
 ```
 
-The table has one row per component plus the full model. Here the environment explains most of the explainable deviance, followed by space and then the associations, and the three unique fractions sum to the full R^2^.
+The table has one row per component plus the full model. Here the environment explains most of the explainable deviance, followed by space and then the associations, and the three unique fractions sum to the full model in the deviance and McFadden columns (Nagelkerke's R^2^ is not additive).
 
 Variation that two or three components could explain equally well -- because the predictors are collinear, or because the species associations line up with an environmental gradient -- is *shared* between them, and the default summary has already distributed it over the unique fractions. `summary(an, fractions = "all")` reports those shared fractions as rows of their own instead. That is also where negative values show up: a negative shared fraction means the components together explain *more* than the sum of what each explains alone, so it cannot be read as an amount of variance.
 
@@ -221,7 +220,7 @@ The results can be plotted via
 plot(results)
 ```
 
-The ternary plots report the relative importance of the components for sites and species. Leaning to one of the corners means that this corner is mot important (e.g. here Species and Sites lean more to the environmental corner).
+The ternary plots report the relative importance of the components for sites and species. Leaning to one of the corners means that this corner is most important (e.g. here Species and Sites lean more to the environmental corner).
 
 ### Testing for predictors of the assembly processes
 
@@ -270,7 +269,7 @@ sjSDM supports other responses than presence-absence data: Simulate non-presence
 
 ```{r,eval=TRUE}
 com = simulate_SDM(env = 3L, species = 5L, sites = 100L,
-                   link = "identical", response = "count", verbose = FALSE) 
+                   link = "identical", response = "count")
 X = com$env_weights
 Y = com$response
 ```
@@ -367,6 +366,85 @@ model = sjSDM(Y,
 summary(model)
 ```
 
+## Grouping factors (random effects)
+
+Sites are often not independent observations of the environment: several plots share a transect,
+several samples come from the same lake, a site is revisited in different years. Whatever these sites
+have in common beyond the measured covariates shifts the occurrences of many species at once. If the
+model does not know about the grouping, it has only one place to put such a shift: the
+species-species associations. The residual correlations then describe the sampling design rather than
+the community.
+
+Grouping factors are written into the environmental formula with the same bar syntax as in 'lme4'.
+As an example, 240 sites in 30 plots, where each plot has an unmeasured condition that some species
+like and others avoid:
+
+```{r,eval=TRUE}
+set.seed(42)
+n_plots = 30L
+J = 10L
+X_plot = data.frame(temp = rnorm(n_plots * 8L),
+               plot = factor(rep(seq_len(n_plots), each = 8L)))
+beta = rnorm(J, 0, 1)
+plot_condition = rnorm(n_plots)
+response_to_plot = runif(J, 0.5, 1.5) * sample(c(-1, 1), J, replace = TRUE)
+eta = outer(X_plot$temp, beta) + outer(plot_condition[X_plot$plot], response_to_plot)
+Y_plot = matrix(rbinom(length(eta), 1, pnorm(eta)), ncol = J,
+           dimnames = list(NULL, paste0("sp", 1:J)))
+
+model_plot = sjSDM(Y_plot, env = linear(X_plot, ~ temp + (1 | plot)), iter = 100L, verbose = FALSE)
+model_noplot = sjSDM(Y_plot, env = linear(X_plot, ~ temp), iter = 100L, verbose = FALSE)
+```
+
+`getRE()` returns, per grouping factor, how strongly each species responds to it (the standard
+deviation of the group effect on the linear predictor) and the predicted effect of every group:
+
+```{r,eval=TRUE}
+plot_effect = getRE(model_plot)$plot
+round(cbind(estimated = sqrt(plot_effect$cov[, 1, 1]), simulated = abs(response_to_plot)), 2)
+```
+
+Because species respond to the plots in their own way, the group effect has its own species-species
+covariance. `getCov(model, which = "re")` returns it; here it recovers which species react to the plot
+condition in the same and which in opposite directions:
+
+```{r,eval=TRUE}
+round(cov2cor(getCov(model_plot, which = "re")$plot)[1:4, 1:4], 2)
+```
+
+Leaving the grouping factor out is not harmless. The plot effect is then absorbed by the residual
+associations, which become several times stronger than they are:
+
+```{r,eval=TRUE}
+mean_abs_cor = function(R) mean(abs(R[upper.tri(R)]))
+c(with_plot = mean_abs_cor(getCor(model_plot)), without_plot = mean_abs_cor(getCor(model_noplot)))
+```
+
+For predictions, a site in a plot the model has seen gets that plot's estimated effect. A site in a new
+plot is predicted over all plots the model could expect, which pulls its probabilities towards the
+middle:
+
+```{r,eval=TRUE}
+new_sites = data.frame(temp = c(0, 0), plot = factor(c("3", "a new plot")))
+round(predict(model_plot, newdata = new_sites), 2)
+```
+
+Some practical points:
+
+- `(1 | plot)` lets every species respond to a plot differently. `re(1 | plot, loading = "shared")` is
+  the classical random intercept, one shift per plot that is the same for all species; use it for
+  effects that act on all species alike, such as sampling effort. In the example above the species
+  respond in opposite directions, so a shared intercept would estimate a group variance close to zero.
+- Random slopes `(temp | plot)`, several bars and nested groups `(1 | transect/plot)` work as in 'lme4'.
+- What a grouping factor needs most is several sites per group. With few sites per group the group
+  effect and the residual associations are hard to tell apart, and more sites per group helps more
+  than more groups.
+- The estimated group variance does not reach zero when there is no group effect, so it is not a test
+  for whether a group effect exists. Report it together with the
+  latent rank `df` (`re(1 | plot, df = 2)`), because a larger `df` gives a larger variance.
+- `anova()` is not available for models with random effects, and `logLik()` of such a model is
+  conditional on the estimated group effects, so it cannot be compared with a model without them.
+
 ## Adjusting regularization parameters
 
 ### Regularization on abiotic coefficients
@@ -374,8 +452,8 @@ summary(model)
 sjSDM supports l1 (lasso) and l2 (ridge) regularization: \* alpha is the weighting between lasso and ridge \* alpha = 0.0 corresponds to pure lasso \* alpha = 1.0 corresponds to pure ridge
 
 ```{r,eval=TRUE}
-model = sjSDM(Y = com$response, 
-              env = linear(data = com$env_weights, 
+model = sjSDM(Y = Y, 
+              env = linear(data = X, 
                            formula = ~0+ I(X1^2),
                            lambda = 0.5), 
               iter = 50L, verbose = FALSE)
@@ -387,8 +465,8 @@ summary(model)
 We can do the same for the species associations:
 
 ```{r,eval=TRUE}
-model = sjSDM(Y = com$response, 
-              env = linear(data = com$env_weights, 
+model = sjSDM(Y = Y, 
+              env = linear(data = X, 
                            formula = ~0+ I(X1^2),
                            lambda = 0.5),
               biotic = bioticStruct(lambda =0.1),
@@ -491,10 +569,16 @@ to `sjSDM()`. The default is the CPU.
 
 ## Migrating from sjSDM 1.0.x
 
-The 'r-sjsdm' conda environment is no longer used and can be deleted. Model code does not
-change. Results are not bit-identical to the old backend: the two use different random
-number streams, so weight initialisation and the Monte-Carlo draws differ, and estimates
-agree within Monte-Carlo noise rather than to the last digit.
+The 'r-sjsdm' conda environment is no longer used and can be deleted. Model code runs
+unchanged, but results differ from 1.0.x:
+
+- the default optimizer is `Adam()`; `sjSDMControl(optimizer = RMSprop())` restores the old one;
+- `predict()` returns marginal predictions that integrate over the latent associations;
+  `predict(marginal = FALSE)` gives the 1.0.x behaviour;
+- `anova()` and `Rsquared()` results change, because several defects were fixed
+  (see `news(package = "sjSDM")`);
+- `model$history` is a data.frame, the losses are in `model$history$train_l`;
+- the backends use different random number streams, so no result is bit-identical.
 
 ## Help and bugs
 

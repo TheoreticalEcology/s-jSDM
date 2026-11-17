@@ -19,7 +19,7 @@ The sjSDM package is an R package for estimating joint species distribution mode
 
 A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. 
 
-Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation. Model fits are unchanged apart from Monte-Carlo noise. `anova()` is an exception: 1.1.0 fixes several defects in it that move variation-partitioning results, see `news(package = "sjSDM")`.
+Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation. Model code runs unchanged, but results differ from 1.0.x: the default optimizer is now `Adam()` (`sjSDMControl(optimizer = RMSprop())` restores the old one), `predict()` returns marginal predictions, and `anova()` and `Rsquared()` results change because several defects were fixed. See `news(package = "sjSDM")`.
 
 To get citation info for sjSDM when you use it for your reseach, type  
 
@@ -67,7 +67,7 @@ Simulate some community data
 
 ```{r}
 set.seed(42)
-community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
+community <- simulate_SDM(sites = 100, species = 10, env = 3)
 Env <- community$env_weights
 Occ <- community$response
 SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates (no effect on species occurences)
@@ -123,10 +123,10 @@ The anova shows the relative changes in the R^2^ of the groups and their interse
 Following [Leibold et al., 2022](https://doi.org/10.1111/oik.08618) we can calculate and visualize the internal metacommunity structure (=partitioning of the three components for species and sites). The internal structure is already calculated by the ANOVA and we can visualize it with the plot method:
 
 ```{r,fig.height=7, fig.width=8, warning=FALSE}
-results = internalStructure(an) # or plot(an, internal = TRUE)
+results = internalStructure(an)
 ```
 
-The plot function returns the results for the internal metacommunity structure:
+The internal structure can be plotted:
 
 ```{r,fig.height=7, fig.width=12}
 plot(results)
