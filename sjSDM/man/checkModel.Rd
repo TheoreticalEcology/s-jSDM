@@ -10,7 +10,11 @@ checkModel(object)
 \arguments{
 \item{object}{of class sjSDM}
 }
+\value{
+The model, with its 'torch' module rebuilt if it was lost by saving and reloading.
+}
 \description{
 check model
 check model and rebuild if necessary
 }
+\keyword{internal}

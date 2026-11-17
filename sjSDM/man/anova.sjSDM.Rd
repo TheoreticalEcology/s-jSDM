@@ -46,7 +46,7 @@ An S3 class of type 'sjSDManova' including the following components:
 One column per fitted sub-model, so a low column shows which model's likelihood rests on few
 draws. \code{attr(, "newton_decrement")} carries the largest Newton decrement the Laplace mode-finder left
 behind, per sub-model.}
-\item{model}{model}
+\item{object}{the fitted model the anova was computed for}
 
 Implemented S3 methods are \code{\link{print.sjSDManova}} and \code{\link{plot.sjSDManova}}
 }
@@ -84,8 +84,9 @@ For the gaussian family the McFadden R-squared is a ratio of log-densities, whic
 measurement scale of the response and turn positive for small residual variances, so it is not bounded
 by 1 and differs between units. The deviances and the Nagelkerke R-squared do not have this problem.
 
-\code{anova} is not defined for a model with random-effect bars in the environmental formula and raises
-an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed
+\code{anova} is not defined for a model fitted with \code{bioticStruct(diag = TRUE)}, whose sub-models with
+associations would not be nested in it, and raises an error. It is also not defined for a model with
+random-effect bars in the environmental formula and raises an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed
 instead of cancelling from the difference. Use \code{\link{getRE}} for the group variances.
 
 The \code{species} and \code{sites} components are not the printed table restricted to a species or a

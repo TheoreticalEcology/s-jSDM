@@ -11,6 +11,9 @@
 
 \item{...}{additional arguments to \code{\link{summary.sjSDManova}}}
 }
+\value{
+The table printed by \code{\link{summary.sjSDManova}}, invisibly.
+}
 \description{
 This is a wrapper for \code{\link{summary.sjSDManova}}, maintained for backwards compatibility - prefer to use summary() instead
 }

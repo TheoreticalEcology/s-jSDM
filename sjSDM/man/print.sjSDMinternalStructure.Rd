@@ -11,6 +11,9 @@
 
 \item{...}{no function}
 }
+\value{
+\code{x}, invisibly.
+}
 \description{
 Print internal structure object
 }

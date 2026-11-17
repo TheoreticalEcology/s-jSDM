@@ -15,13 +15,16 @@
 \arguments{
 \item{x}{and object of class sjSDMinternalStructure create by anova object from \code{\link{internalStructure}}}
 
-\item{alpha}{alpha of points}
+\item{alpha}{currently unused, kept for compatibility}
 
 \item{env_deviance}{environmental deviance/gradient (points will be colored)}
 
 \item{negatives}{how to handle negative R squareds}
 
 \item{...}{no function}
+}
+\value{
+An empty list, invisibly; the function is called for the plot.
 }
 \description{
 Creates a ternary diagram of an object of class

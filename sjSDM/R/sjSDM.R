@@ -190,7 +190,8 @@
 #' \item{sessionInfo}{Output of \code{\link{sessionInfo}}.}
 #' \item{weights}{List of model coefficients (environmental (and spatial)).}
 #' \item{sigma}{Lower triangular weight matrix for the covariance matrix.}
-#' \item{history}{History of iteration losses.}
+#' \item{history}{data.frame with the training loss (\code{train_l}) per \code{epoch} that ran.}
+#' \item{theta}{Dispersion parameters of the negative binomial and gaussian families.}
 #' \item{se}{Matrix of standard errors, if \code{se = FALSE} the field 'se' is \code{NULL}.}
 #' 
 #' Implemented S3 methods include \code{\link{summary.sjSDM}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, and \code{\link{coef.sjSDM}}. For other methods, see section 'See Also'.
@@ -334,7 +335,7 @@ sjSDM = function(Y = NULL,
                                   early_stopping_training=control$early_stopping_training,
                                   verbose = verbose)})[3]
     out$logLik = force_r( model$logLik(envX, Y,batch_size = step_size,parallel = parallel) )
-    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(envX, Y, batch_size = step_size, parallel = parallel)),along=0L)) })
+    if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(envX, Y, batch_size = step_size, parallel = parallel, verbose = verbose)),along=0L)) })
   
   } else {
     time = system.time({model$fit(envX, Y=Y,SP=spX, batch_size = step_size, 
@@ -411,10 +412,13 @@ print.sjSDM = function(x, ...) {
 #'   \eqn{E_z[\mathrm{link}(\mu + z\Sigma')]} and not \eqn{\mathrm{link}(\mu)}, which is the
 #'   prediction at \eqn{z = 0}. The two differ whenever the associations are non-zero: for the
 #'   probit link the marginal is \eqn{\Phi(\mu / \sqrt{\mathrm{diag}(\Sigma\Sigma' + I)})}.
-#'   The integral is approximated by Monte Carlo, so predictions are stochastic; raise
-#'   \code{sampling} for more stable values. \code{marginal = FALSE} restores the behaviour of
-#'   sjSDM <= 1.1.0 and is only there for reproducing older results.
-#' @param ... optional arguments for compatibility with the generic function, no function implemented
+#'   The probit, poisson, negative binomial and gaussian families use exact closed forms; the
+#'   logit and linear links have none, so their marginal is approximated by Monte Carlo and is
+#'   stochastic. \code{marginal = FALSE} restores the behaviour of sjSDM <= 1.0.7 and is only
+#'   there for reproducing older results.
+#' @param ... \code{sampling}, the number of Monte-Carlo draws for the logit and linear marginals
+#'   and for conditional predictions (default 1000; conditional predictions need several
+#'   thousand for stable values)
 #'
 #' @details
 #' For a model with random-effect bars the prediction for a group the fit saw is taken at the posterior
@@ -435,7 +439,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("
   object = checkModel(object)
   
   assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata) )
-  assert( checkNull(SP), checkMatrix(newdata), checkDataFrame(newdata) )
+  assert( checkNull(SP), checkMatrix(SP), checkDataFrame(SP) )
   qassert( dropout, "B1")
   
   if(!is.null(Y)) {
@@ -656,45 +660,41 @@ summary.sjSDM = function(object, ...) {
 
 #' Generates simulations from sjSDM model
 #'
-#' Simulate nsim responses from the fitted model following a multivariate probit model. 
-#' So currently only supported for \code{family = stats::binomial("probit")}
+#' Simulate nsim responses from the fitted model. Each simulation draws the latent factors
+#' first, so the simulated species carry the fitted associations, and then the response from
+#' the family: binomial, poisson, negative binomial or gaussian. Random-effect blocks enter at
+#' their predicted group effects.
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param nsim number of simulations
-#' @param seed seed for random number generator
+#' @param seed seed for random number generator; the caller's random number stream is
+#'   restored afterwards
 #' @param ... optional arguments for compatibility with the generic function, no functionality implemented
 #' 
-#' @return Array of simulated species occurrences of dimension order (nsim, sites, species)
+#' @return Array of simulated responses of dimension order (nsim, sites, species)
 #' 
 #' @importFrom stats simulate
 #' @export
 simulate.sjSDM = function(object, nsim = 1, seed = NULL, ...) {
   object = checkModel(object)
   if(!is.null(seed)) sjsdm_set_seed(seed)
-  pred = predict(object)
-  
-  if(object$family$family$family == "binomial") {
-    sim = apply(pred, 1:2, function(p) stats::rbinom(nsim, 1, p))
-  } else if(object$family$family$family == "poisson") {
-    sim = apply(pred, 1:2, function(p) stats::rpois(nsim, p))
-  } else if(object$family$family$family == "nbinom") {
-    theta = 1/(softplus(object$theta)+0.00001)
-    
-    sim = 
-      lapply(1:nsim, function(n) {
-          t(sapply(1:nrow(pred), function(i) {
-              sapply(1:ncol(pred), function(j) {
-                prob = theta[j] / (theta[j] +pred[i,j]) +0.00001
-                stats::rnbinom(1, size = theta[j], prob = prob)
-                })
-            })
-          )
-        })
-    sim = abind::abind(sim, along = 0L)
-  }
-  return(sim)
+  # independent draws around predict() would lose the associations: draw eta with its latent
+  # factors, [nsim, sites, species], and the response conditional on it
+  eta = object$model$predict(newdata = config_X(object$settings$env), SP = config_X(object$spatial),
+                             simulate = TRUE, sampling = as.integer(nsim))
+  loss = object$model$loss
+  E = as.array(loss$family$predict_response(torch::torch_tensor(eta), loss$alpha)$cpu())
+  J = dim(E)[3]
+  theta = object$model$get_theta
+  per_species = function(v) aperm(array(v, c(J, dim(E)[1], dim(E)[2])), c(2, 3, 1))
+  sim = switch(object$family$family$family,
+               binomial = stats::rbinom(length(E), 1, E),
+               poisson = stats::rpois(length(E), E),
+               nbinom = stats::rnbinom(length(E), size = per_species(1 / (softplus(theta) + 0.0001)), mu = E),
+               gaussian = stats::rnorm(length(E), E, per_species(exp(theta))),
+               stop("simulate() is not available for family ", object$family$family$family, call. = FALSE))
+  array(sim, dim(E))
 }
-
 
 
 #' Extract negative-log-Likelihood from a fitted sjSDM model
@@ -797,14 +797,14 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
 #' Returns residuals for a fitted sjSDM model
 #'
 #' @param object a model fitted by \code{\link{sjSDM}}
-#' @param type residual type. Currently only supports raw
+#' @param type residual type. Currently only supports raw: the observed response minus the
+#'   fitted marginal expectation on the response scale
 #' @param ... further arguments, not supported yet.
 #' @return residuals in the format of the provided community matrix
 #' 
 #' @export
 residuals.sjSDM <- function(object, type = "raw", ...){
-  raw = object$data$Y - predict(object, type = "raw")
-  return(raw)
+  object$data$Y - predict(object)
 }
 
 

@@ -6,6 +6,10 @@
 \usage{
 check_module()
 }
+\value{
+No return value; stops if 'torch' or libtorch is missing.
+}
 \description{
 check if module is loaded
 }
+\keyword{internal}

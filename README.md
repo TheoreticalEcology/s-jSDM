@@ -17,7 +17,7 @@ The sjSDM package is an R package for estimating joint species distribution mode
 
 A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. 
 
-Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation. Model fits are unchanged apart from Monte-Carlo noise. `anova()` is an exception: 1.1.0 fixes several defects in it that move variation-partitioning results, see `news(package = "sjSDM")`.
+Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation. Model code runs unchanged, but results differ from 1.0.x: the default optimizer is now `Adam()` (`sjSDMControl(optimizer = RMSprop())` restores the old one), `predict()` returns marginal predictions, and `anova()` and `Rsquared()` results change because several defects were fixed. See `news(package = "sjSDM")`.
 
 To get citation info for sjSDM when you use it for your reseach, type  
 
@@ -71,7 +71,7 @@ Simulate some community data
 
 ``` r
 set.seed(42)
-community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
+community <- simulate_SDM(sites = 100, species = 10, env = 3)
 Env <- community$env_weights
 Occ <- community$response
 SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates (no effect on species occurences)
@@ -92,73 +92,73 @@ summary(model)
 ```
 ## Family:  binomial 
 ## 
-## LogLik:  -503.8592 
+## LogLik:  -497.2144 
 ## Regularization loss:  0 
 ## 
 ## Species-species correlation matrix: 
 ## 
 ## 	sp1	 1.0000									
-## 	sp2	-0.3810	 1.0000								
-## 	sp3	-0.1950	-0.4020	 1.0000							
-## 	sp4	-0.1810	-0.3680	 0.8110	 1.0000						
-## 	sp5	 0.6740	-0.3740	-0.1320	-0.1130	 1.0000					
-## 	sp6	-0.3110	 0.4810	 0.1760	 0.1940	-0.0970	 1.0000				
-## 	sp7	 0.5490	-0.1050	 0.1130	 0.1420	 0.5440	 0.2650	 1.0000			
-## 	sp8	 0.2570	 0.1990	-0.5030	-0.5010	 0.2170	-0.0670	 0.0870	 1.0000		
-## 	sp9	-0.0760	-0.0500	 0.0580	 0.0420	-0.4100	-0.3410	-0.2510	-0.1010	 1.0000	
-## 	sp10	 0.2250	 0.4580	-0.6980	-0.6540	 0.2740	 0.1340	 0.1610	 0.4660	-0.2760	 1.0000
+## 	sp2	 0.6820	 1.0000								
+## 	sp3	 0.6730	 0.5890	 1.0000							
+## 	sp4	-0.2840	-0.4660	-0.4360	 1.0000						
+## 	sp5	 0.4090	 0.5100	 0.2880	-0.4000	 1.0000					
+## 	sp6	 0.4020	 0.3400	 0.5710	-0.2850	 0.3540	 1.0000				
+## 	sp7	 0.1360	-0.0520	 0.4840	-0.2290	 0.0950	 0.5180	 1.0000			
+## 	sp8	 0.0410	 0.0520	-0.2300	 0.2600	-0.2730	-0.4100	-0.5610	 1.0000		
+## 	sp9	-0.4050	-0.0030	-0.0850	-0.2170	 0.0430	 0.0400	 0.0520	-0.2240	 1.0000	
+## 	sp10	 0.3360	 0.4290	 0.5850	-0.2930	 0.0450	 0.3740	 0.2800	-0.0860	 0.1390	 1.0000
 ## 
 ## 
 ## 
 ## Spatial: 
-##            sp1       sp2      sp3       sp4      sp5       sp6     sp7      sp8
-## X1:X2 1.645019 -3.182818 2.972885 0.5640423 2.251627 0.9544154 2.98084 1.918683
-##            sp9     sp10
-## X1:X2 1.020852 1.026658
+##             sp1        sp2       sp3       sp4       sp5      sp6      sp7
+## X1:X2 0.3514133 -0.8500652 -1.957628 0.5300332 0.7929875 1.074655 1.609042
+##            sp8       sp9      sp10
+## X1:X2 0.450536 -2.314983 0.4139834
 ## 
 ## 
 ## 
-##                  Estimate  Std.Err Z value Pr(>|z|)    
-## sp1 (Intercept)  -0.04997  0.25093   -0.20  0.84216    
-## sp1 X1            1.26035  0.48592    2.59  0.00949 ** 
-## sp1 X2           -2.29708  0.44545   -5.16  2.5e-07 ***
-## sp1 X3           -0.16742  0.41938   -0.40  0.68974    
-## sp2 (Intercept)  -0.00757  0.26008   -0.03  0.97677    
-## sp2 X1            1.22945  0.51076    2.41  0.01608 *  
-## sp2 X2            0.26143  0.47187    0.55  0.57956    
-## sp2 X3            0.59345  0.43289    1.37  0.17040    
-## sp3 (Intercept)  -0.46861  0.26464   -1.77  0.07660 .  
-## sp3 X1            1.32720  0.48628    2.73  0.00635 ** 
-## sp3 X2           -0.43543  0.48236   -0.90  0.36667    
-## sp3 X3           -0.99407  0.47882   -2.08  0.03789 *  
-## sp4 (Intercept)  -0.04630  0.23260   -0.20  0.84221    
-## sp4 X1           -1.44001  0.45007   -3.20  0.00138 ** 
-## sp4 X2           -1.79183  0.46679   -3.84  0.00012 ***
-## sp4 X3           -0.36523  0.40532   -0.90  0.36754    
-## sp5 (Intercept)  -0.20750  0.26492   -0.78  0.43348    
-## sp5 X1            0.71878  0.50462    1.42  0.15434    
-## sp5 X2            0.55711  0.49486    1.13  0.26026    
-## sp5 X3           -0.66421  0.42339   -1.57  0.11670    
-## sp6 (Intercept)   0.26138  0.24523    1.07  0.28648    
-## sp6 X1            2.32184  0.49322    4.71  2.5e-06 ***
-## sp6 X2           -0.97278  0.45923   -2.12  0.03415 *  
-## sp6 X3            0.11280  0.40215    0.28  0.77909    
-## sp7 (Intercept)  -0.01080  0.25176   -0.04  0.96578    
-## sp7 X1           -0.32307  0.46673   -0.69  0.48881    
-## sp7 X2            0.34819  0.45655    0.76  0.44566    
-## sp7 X3           -1.42476  0.42948   -3.32  0.00091 ***
-## sp8 (Intercept)   0.13233  0.15820    0.84  0.40289    
-## sp8 X1            0.32278  0.30744    1.05  0.29377    
-## sp8 X2            0.30161  0.29871    1.01  0.31263    
-## sp8 X3           -1.15826  0.28079   -4.13  3.7e-05 ***
-## sp9 (Intercept)   0.03055  0.19389    0.16  0.87481    
-## sp9 X1            1.34476  0.38191    3.52  0.00043 ***
-## sp9 X2           -1.02651  0.37237   -2.76  0.00584 ** 
-## sp9 X3            0.77492  0.32625    2.38  0.01754 *  
-## sp10 (Intercept) -0.10586  0.19967   -0.53  0.59599    
-## sp10 X1          -0.51578  0.36281   -1.42  0.15514    
-## sp10 X2          -1.21615  0.36411   -3.34  0.00084 ***
-## sp10 X3          -0.54970  0.33679   -1.63  0.10264    
+##                  Estimate Std.Err Z value Pr(>|z|)    
+## sp1 (Intercept)   -0.2027  0.3024   -0.67  0.50262    
+## sp1 X1             1.0651  0.5788    1.84  0.06573 .  
+## sp1 X2             1.8100  0.5174    3.50  0.00047 ***
+## sp1 X3             1.3130  0.5048    2.60  0.00929 ** 
+## sp2 (Intercept)   -0.5442  0.2949   -1.84  0.06504 .  
+## sp2 X1             1.4173  0.5605    2.53  0.01145 *  
+## sp2 X2             1.0692  0.5166    2.07  0.03846 *  
+## sp2 X3            -0.9501  0.5094   -1.87  0.06217 .  
+## sp3 (Intercept)   -0.1459  0.2686   -0.54  0.58710    
+## sp3 X1            -1.1306  0.4906   -2.30  0.02119 *  
+## sp3 X2            -0.3583  0.4502   -0.80  0.42610    
+## sp3 X3             1.5558  0.4687    3.32  0.00090 ***
+## sp4 (Intercept)    0.3756  0.1839    2.04  0.04107 *  
+## sp4 X1            -1.4691  0.3672   -4.00  6.3e-05 ***
+## sp4 X2             0.6849  0.3107    2.20  0.02751 *  
+## sp4 X3             0.4500  0.3135    1.44  0.15118    
+## sp5 (Intercept)   -0.5160  0.2164   -2.38  0.01712 *  
+## sp5 X1            -1.3180  0.4068   -3.24  0.00120 ** 
+## sp5 X2            -0.9073  0.3657   -2.48  0.01310 *  
+## sp5 X3             0.5397  0.3702    1.46  0.14484    
+## sp6 (Intercept)    0.1168  0.2045    0.57  0.56797    
+## sp6 X1             0.2329  0.3865    0.60  0.54673    
+## sp6 X2             1.5486  0.3726    4.16  3.2e-05 ***
+## sp6 X3             1.2412  0.3717    3.34  0.00084 ***
+## sp7 (Intercept)    0.0194  0.2353    0.08  0.93412    
+## sp7 X1             0.8847  0.4299    2.06  0.03961 *  
+## sp7 X2             0.7401  0.4029    1.84  0.06624 .  
+## sp7 X3            -1.0197  0.4238   -2.41  0.01611 *  
+## sp8 (Intercept)    0.2507  0.2069    1.21  0.22575    
+## sp8 X1            -1.3380  0.4027   -3.32  0.00089 ***
+## sp8 X2             1.4653  0.3811    3.85  0.00012 ***
+## sp8 X3             1.4441  0.3938    3.67  0.00025 ***
+## sp9 (Intercept)   -0.0981  0.2004   -0.49  0.62454    
+## sp9 X1            -0.6684  0.3691   -1.81  0.07016 .  
+## sp9 X2            -1.0043  0.3498   -2.87  0.00409 ** 
+## sp9 X3            -0.8923  0.3593   -2.48  0.01301 *  
+## sp10 (Intercept)   0.0723  0.1908    0.38  0.70476    
+## sp10 X1           -1.7041  0.3845   -4.43  9.3e-06 ***
+## sp10 X2           -0.5234  0.3306   -1.58  0.11332    
+## sp10 X3           -0.6881  0.3213   -2.14  0.03221 *  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
@@ -218,10 +218,10 @@ summary(an)
 ## Analysis of Deviance Table
 ## 
 ##                Deviance Residual deviance R2 Nagelkerke R2 McFadden
-## Abiotic       155.85856        1226.60906       0.78957      0.1127
-## Associations  202.98152        1179.48611       0.86864      0.1468
-## Spatial        17.75269        1364.71494       0.16266      0.0128
-## Full          376.59277        1005.87485       0.97685      0.2724
+## Abiotic      1.9813e+02        1.1747e+03    8.6211e-01      0.1443
+## Associations 1.8424e+02        1.1886e+03    8.4156e-01      0.1342
+## Spatial      6.0126e+00        1.3669e+03    5.8355e-02      0.0044
+## Full         3.8838e+02        9.8449e+02    9.7943e-01      0.2829
 ```
 
 ``` r
@@ -238,10 +238,10 @@ Following [Leibold et al., 2022](https://doi.org/10.1111/oik.08618) we can calcu
 
 
 ``` r
-results = internalStructure(an) # or plot(an, internal = TRUE)
+results = internalStructure(an)
 ```
 
-The plot function returns the results for the internal metacommunity structure:
+The internal structure can be plotted:
 
 
 ``` r

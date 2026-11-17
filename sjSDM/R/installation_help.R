@@ -49,12 +49,17 @@
 #'
 #' @section Migrating from sjSDM 1.0.x:
 #'
-#' The 'r-sjsdm' conda environment is no longer used and can be deleted. Model code does
-#' not change. Two things behave differently:
+#' The 'r-sjsdm' conda environment is no longer used and can be deleted. Model code runs
+#' unchanged, but results differ from 1.0.x:
 #' \itemize{
-#'  \item results are not bit-identical to the 'PyTorch' backend. The two use different
-#'    random number streams, so weight initialisation and the Monte-Carlo draws differ.
-#'    Estimates agree within Monte-Carlo noise, they do not agree to the last digit.
+#'  \item the default optimizer is \code{Adam()}; \code{sjSDMControl(optimizer = RMSprop())}
+#'    restores the old one.
+#'  \item \code{predict()} returns marginal predictions; \code{predict(marginal = FALSE)} gives
+#'    the 1.0.x behaviour.
+#'  \item \code{anova()} and \code{Rsquared()} results change, because several defects were
+#'    fixed (see \code{news(package = "sjSDM")}).
+#'  \item \code{model$history} is a data.frame, the losses are in \code{model$history$train_l}.
+#'  \item the backends use different random number streams, so no result is bit-identical.
 #'  \item \code{sjSDMControl(mixed = TRUE)} (half precision) is accepted but ignored.
 #' }
 #'

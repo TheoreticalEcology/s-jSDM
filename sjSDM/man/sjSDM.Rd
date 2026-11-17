@@ -80,7 +80,8 @@ An S3 class of type 'sjSDM' including the following components:
 \item{sessionInfo}{Output of \code{\link{sessionInfo}}.}
 \item{weights}{List of model coefficients (environmental (and spatial)).}
 \item{sigma}{Lower triangular weight matrix for the covariance matrix.}
-\item{history}{History of iteration losses.}
+\item{history}{data.frame with the training loss (\code{train_l}) per \code{epoch} that ran.}
+\item{theta}{Dispersion parameters of the negative binomial and gaussian families.}
 \item{se}{Matrix of standard errors, if \code{se = FALSE} the field 'se' is \code{NULL}.}
 
 Implemented S3 methods include \code{\link{summary.sjSDM}}, \code{\link{plot.sjSDM}}, \code{\link{print.sjSDM}}, \code{\link{predict.sjSDM}}, and \code{\link{coef.sjSDM}}. For other methods, see section 'See Also'.

@@ -373,6 +373,8 @@ Model_sjSDM = torch::nn_module(
 
   logLik = function(X, Y, SP = NULL, batch_size = 25L, parallel = 0L, sampling = 100L,
                     individual = FALSE, train = TRUE) {
+    # a model rebuilt after readRDS() starts in training mode, i.e. with dropout on
+    self$net$eval()
     d = self$as_tensors(c(as_input(X), as_input(SP)), Y)
     n = d$inputs[[1]]$shape[1]
     rng = batch_ranges(n, max(1L, as.integer(batch_size)), drop_last = FALSE)
@@ -422,6 +424,7 @@ Model_sjSDM = torch::nn_module(
 
   se = function(X, Y, SP = NULL, batch_size = 25L, parallel = 0L, sampling = 100L,
                 verbose = TRUE) {
+    self$net$eval()
     d = self$as_tensors(c(as_input(X), as_input(SP)), Y)
     n = d$inputs[[1]]$shape[1]
     w0 = self$env$parameters[[1]]$detach()$t()          # [predictors, species]

@@ -25,11 +25,10 @@
 * The bars are integrated out by a stochastic variational approximation: each group gets a
   Gaussian posterior drawn with the reparameterisation trick, and the Kullback-Leibler term
   to the `N(0, I)` prior supplies the shrinkage. The Monte-Carlo likelihood itself is
-  unchanged. The variational parameters are optimised in their own parameter group with
-  `weight_decay = 0`; with the shared decay, groups absent from a minibatch were shrunk to
-  zero by the optimiser rather than by the data.
-* `getRE()` returns, per bar, the group covariance, the predicted group effects, the
-  loadings and the posterior Cholesky factor. `getCov()` and `getCor()` gain
+  unchanged. The variational parameters are optimised without weight decay, so groups that
+  are absent from a minibatch are shrunk only by the prior, not by the optimiser.
+* `getRE()` returns, per bar and named by the grouping variable, the group covariance, the
+  predicted group effects, the loadings and the posterior Cholesky factor. `getCov()` and `getCor()` gain
   `which = c("residual", "re")`; `"re"` returns one entry per bar, named by the grouping
   variable.
 * Known limitations of the random effects. `anova()` refuses on a model containing a bar:
@@ -87,17 +86,15 @@
   the class test matched `"spatial "` with a trailing space. Every spatial variation
   partitioning computed before this fix used a null that already contained space.
   **Spatial results change.**
-* The argument order of `anova()` is `object, samples, verbose, proposal`. `proposal` was
-  briefly inserted ahead of `verbose` during development, which would have broken
-  positional calls carried over from 1.0.7.
 * The backend was rewritten. sjSDM now runs on the R 'torch' package (libtorch) and no
   longer depends on 'python', 'conda', 'reticulate' or 'PyTorch'. `install_sjSDM()` is
   now a thin wrapper around `torch::install_torch()`; the 'r-sjsdm' conda environment is
   no longer used and can be deleted.
 * Results are not bit-identical to the 'PyTorch' backend. The two backends use different
-  random number streams, so weight initialisation and the Monte-Carlo draws differ.
-  Coefficients, associations and log-likelihoods agree within Monte-Carlo noise
-  (validated against 1.0.7 across all families, spatial and DNN models).
+  random number streams, so weight initialisation and the Monte-Carlo draws differ. With
+  the old optimizer (`sjSDMControl(optimizer = RMSprop())`), coefficients, associations
+  and log-likelihoods agreed with 1.0.7 within Monte-Carlo noise across all families,
+  spatial and DNN models.
 * `install_sjSDM()` no longer takes a `version` argument; whether the GPU is used is
   decided by the 'torch' installation. `device = "mps"` now works on Apple silicon.
 * `sjSDMControl(mixed = TRUE)` (half precision) is accepted but ignored.
@@ -106,7 +103,7 @@
   remaining epochs as zeros, which `plot()` drew as part of the loss curve. Code that
   indexed `model$history` as a vector has to read `model$history$train_l`.
 * `Adam()`, `AdamW()` and `Adagrad()` are new and are the recommended optimizers.
-  `Adamax()`, `AdaBound()`, `DiffGrad()` and `madgrad()` have no counterpart in 'torch',
+  `Adamax()`, `AdaBound()` and `madgrad()` have no counterpart in 'torch',
   redirect to `Adam()` with a message, and `AccSGD()` redirects to `SGD()`. They are kept
   only because they are part of the 1.0.7 API and will be removed in 1.2.0.
 * A GPU request is now validated before anything is allocated. `device = 0L`, `"gpu"`,
@@ -115,8 +112,45 @@
   a backend failure inside libtorch. The check sits in the one place every model rebuild
   goes through, so it also covers `anova()`, `sjSDM_cv()` and a reloaded model.
 
+* `summary()` of an `anova()` object defaults to `fractions = "mvp_proportional"` (was
+  `"all"`), and `internalStructure()` to `"mvp_proportional"` (was `"discard"`, which fell
+  through to the `"equal"` branch). `"mvp"` and `"mvp_proportional"` are new: Abiotic and
+  Spatial are split within the model without associations and the associations receive the
+  remainder of the full model. Without a spatial component both equal `"proportional"`.
+  `plot()` of an `anova()` object keeps `"discard"` as its default.
+* `plot()` of an `internalStructure()` object draws the ternary plots with base graphics;
+  'ggtern' is no longer needed, and no plot objects are returned.
+* `anova()` takes `mc_batch` through `...`, the number of sites whose Monte-Carlo draws are
+  held in memory at once.
+* sjSDM now requires R >= 4.1.0.
+
 ## Bug fixes
 
+* `sjSDM_cv()` with `n_cores` and `blocks > 1` attached results to the wrong
+  hyperparameters: the per-block results were combined with `rbind()` into a list matrix
+  that was then read column-wise. `summary()`, `plot()` and `sjSDM.tune()` of such a run
+  reported the performance of one tuning step under the settings of another.
+* `sjSDM_cv()` scored a species that had only one class in a fold as AUC 0.5, which pulled
+  the mean towards chance for rare species; such species are now left out of the mean, and a
+  missing value in `Y` no longer makes the macro AUC `NA`. The `AUC_macro_train` column held
+  the test value. `n_gpu` without `n_cores` now stops with a message instead of failing, and
+  `plot()` of a `sjSDM_cv()` object drew some tuning points against the wrong axes.
+* `simulate()` drew every species independently around `predict()`, so the simulated
+  communities carried none of the fitted associations, and it failed for the gaussian
+  family. It now draws the latent factors first and the response from the family, for
+  binomial, poisson, negative binomial and gaussian models, and always returns an array of
+  dimension (nsim, sites, species).
+* `residuals()` returned the response minus the linear predictor; it now returns the
+  response minus the fitted marginal expectation on the response scale.
+* `logLik()`, and through it `anova()` and `Rsquared()`, as well as the standard errors
+  evaluated a model reloaded with `readRDS()` with dropout switched on.
+* `simulate_SDM(link = "logit")` produced exactly the probit data; it now draws the
+  presence-absence response from the logistic probabilities. `link = "probit"` with
+  `response = "count"` returned presence-absence data, and a link without a matching response
+  returned no response at all; both now follow `response` or stop with a message.
+* `print()` of an `internalStructure()` object printed nothing.
+* The startup message is shown by `library(sjSDM)` only, not whenever the namespace is
+  loaded by `sjSDM::` or by another package.
 * The shared abiotic-associations fraction of a non-spatial `anova()` had the opposite sign
   to every other fraction, so the `"all"` table did not add up to the full model. It now
   follows the classical convention: a negative shared fraction means the components explain
@@ -136,22 +170,16 @@
   missing predictor are dropped from the design by `model.frame()` while `Y` kept them, so
   every later design row was paired with a different site, without a warning.
 * `predict(newdata = )` keeps rows with a missing predictor and returns `NA` for them, as
-  `predict.lm()` does. With a random-effect bar the row used to be dropped from the fixed
-  design but not from the random block, so every later site received the next site's group
-  effect.
-* A nested bar `(1 | a/b)` with numeric or character grouping columns evaluated `b:a` as a
-  numeric sequence, which fitted a two-level grouping (numeric) or failed (character). The
-  interaction is now built as 'lme4' builds it.
-* `poly()`, `scale()` and other data-dependent terms on the left of a bar were recomputed
-  from `newdata` in `predict()`.
+  `predict.lm()` does, instead of dropping them, which made the rows of the prediction
+  disagree with the rows of `newdata`.
 * Formulas given to `linear()`, `DNN()` and `update()` were evaluated in the package's own
-  frame. A name in the formula, or an `NN()`/`re()` argument, could resolve to a variable of
-  that frame (`I(x * alpha)` read the function's `alpha`), and a formula passed as a
-  variable from inside a user function was not found. Formulas now keep the environment
+  frame. A name in the formula could resolve to a variable of that frame (`I(x * alpha)`
+  read the function's `alpha`), and a formula passed as a variable from inside a user
+  function was not found. Formulas now keep the environment
   they were written in.
 * `getWeights()` returns the full model state in `state`, and `setWeights()` restores it.
-  The three positional parts did not include `NN()` blocks, random-effect blocks or the
-  negative binomial dispersion, so a round trip silently left those unchanged.
+  The three positional parts do not include the negative binomial dispersion, so a round
+  trip silently left it unchanged.
 * `predict(dropout = TRUE)` was ignored for a non-spatial model when `newdata` was not
   given.
 * The null model of a negative binomial `anova()` and of `Rsquared()` was evaluated with the
@@ -166,10 +194,9 @@
   bounds for non-spatial models.
 * `se()` dropped the last incomplete batch, so the Hessian was accumulated over fewer
   observations than the model was fitted on.
-* `predict(type = "raw")` returned `0.999999 * mu + 5e-7` instead of `mu`; the
-  probability guard is now only applied to bounded links.
-* The probability guard was also applied to Poisson, negative binomial and Gaussian
-  rates in `MVP_logLik`, which is not meaningful for an unbounded mean.
+* `predict(type = "raw")` returned `0.999999 * mu + 5e-7` instead of `mu`, and the same
+  probability guard was applied to Poisson, negative binomial and Gaussian rates in the
+  likelihood. It is now applied to bounded links only.
 * The Hessian ridge in `se()` was added to every element of the matrix rather than to its
   diagonal.
 * A `verbose` argument passed to `sjSDM_cv()` errored with "matched by multiple actual
@@ -187,12 +214,6 @@
   probit, poisson, nbinom and gaussian use exact closed forms and stay deterministic; logit
   and linear have no closed form and are approximated by Monte Carlo, so they are stochastic
   and respond to `sampling`.
-* **R squared values change as a result.** `anova()` measures against a null model fitted
-  with `bioticStruct(diag = TRUE)`, which is `sigma = I` and therefore `diag(getCov) = 2`,
-  and it takes `predict(null_model)` as the null probability. With the corrected marginal the
-  null likelihood shifts, moving McFadden and Nagelkerke R squared by roughly a quarter of
-  their value in tests. Variation-partitioning results from earlier versions are not
-  comparable.
 * Conditional predictions (`predict(model, Y = ...)`) failed for a model with two species
   when one of them was conditioned on, with `IndexError: tuple index out of range`. With a
   single conditioning species `Y[, focal]`, `predictions[, focal]` and `sigma[focal, ]` all
@@ -233,27 +254,18 @@
   component. Standard errors are only defined for the linear model; the Hessian code
   previously errored inside 'torch' when the number of species exceeded the width of the
   first hidden layer, and was silently wrong otherwise.
-* `anova()`'s leave-one-out likelihood used a single species' row of the association matrix,
-  broadcast over the remaining species, instead of every species but one. Introduced during
-  the torch port: 'torch' follows python's negative-index semantics, so `sigma[-i, ]` is the
-  i-th row counted from the end rather than "all rows except i". The aggregate variation
-  partitioning was almost unaffected, but the per-species decomposition that
-  `internalStructure()` builds on was systematically wrong.
-
 ## Minor changes
 
 * The Monte-Carlo reduction in the likelihood uses `torch_logsumexp()` instead of a
   hand-rolled max-shift, which replaces seven kernel launches with three. `torch_logsumexp`
   performs the same max-subtraction internally, so the computation is unchanged; the
   fixed-noise parity against the 'PyTorch' backend agrees to 1e-8 for all six links.
-* Every optimizer is now one of 'torch''s own `optim_ignite_*` builds, which run in libtorch
-  rather than in R. `RMSprop()` and `SGD()` are bit-identical to the hand-written
-  implementations they replace (verified per optimizer step across momentum, centered,
-  nesterov and dampening) and 2-3.5x faster per step; the five with no 'torch' counterpart
-  redirect, see Major changes.
+* Every optimizer is one of 'torch''s own `optim_ignite_*` builds, which run in libtorch
+  rather than in R. `torch::optim_rmsprop()` and `torch::optim_sgd()` are not used: in
+  'torch' 0.17.0 they apply `weight_decay` with the parameter's index instead of its value.
+  The optimizers with no 'torch' counterpart redirect, see Major changes.
 * 'iml' was dropped from `Suggests`. It was a leftover from the removed `importance()` and
-  was used nowhere in the package, but `R CMD check` refuses to run without an installed
-  suggested package.
+  was used nowhere in the package.
 
 
 # sjSDM 1.0.7

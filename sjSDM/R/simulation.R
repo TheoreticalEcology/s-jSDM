@@ -6,7 +6,7 @@
 #' @param correlation correlated species TRUE or FALSE, can be also a function or a matrix
 #' @param weight_range sample true weights from uniform range, default -1,1
 #' @param link probit, logit or identical
-#' @param response pa (presence-absence) or count
+#' @param response pa (presence-absence), count, or identical (the latent continuous response)
 #' @param sparse sparse rate
 #' @param tolerance tolerance for sparsity check
 #' @param iter tries until sparse rate is achieved
@@ -117,38 +117,23 @@ simulate_SDM = function(
   raw_response = linear_reponse + re_i_j
   
 
-  inv_logit = function(x) 1/(1+exp(-x))
-
-  # logit is kind of hard coded, but I think for the time its easier then additional sampling
-  site_response =
-    if(link == "probit"){
-      apply(raw_response,1:2, function(x) return(if(x>0) 1 else 0))
-    } else if(link == "logit"){
-      apply(raw_response,1:2, function(x) return(if(inv_logit(x)>0.5) 1 else 0))
-    } else if(response == "count"){
-      apply(raw_response,1:2, function(x) return(floor(exp(x))))
-    } else if(response == "identical") {
-      raw_response
-    }
+  # response first: the link only decides how presence-absence is drawn
+  respond = function(raw) {
+    if (response == "count") return(floor(exp(raw)))
+    if (response == "identical") return(raw)
+    if (response != "pa") stop("response must be 'pa', 'count' or 'identical'", call. = FALSE)
+    switch(link,
+           probit = 1 * (raw > 0),
+           logit = matrix(stats::rbinom(length(raw), 1, stats::plogis(raw)), nrow(raw)),
+           stop("presence-absence needs link = 'probit' or 'logit'", call. = FALSE))
+  }
+  site_response = respond(raw_response)
 
   out$resample = function(){
     re_i_j =
       mvtnorm::rmvnorm(sites, mean = rep(0,species), sigma = species_covariance)
 
-    raw_response = linear_reponse + re_i_j
-
-
-    site_response =
-      if(link == "probit"){
-        apply(raw_response,1:2, function(x) return(if(x>0) 1 else 0))
-      } else if(link == "logit"){
-        apply(raw_response,1:2, function(x) return(if(inv_logit(x)>0.5) 1 else 0))
-      } else if(response == "count"){
-        apply(raw_response,1:2, function(x) return(floor(exp(x))))
-      } else if(response == "identical") {
-        raw_response
-      }
-    return(site_response)
+    respond(linear_reponse + re_i_j)
 
   }
 

@@ -173,6 +173,7 @@ testthat::test_that("a fitted model reports and restores its random effects", {
   skip_if_no_torch()
   m = fit_re(~ X1 + (X1 | g))
   r = getRE(m)
+  testthat::expect_named(r, "g")
   testthat::expect_length(r, 1L)
   testthat::expect_equal(dim(r[[1]]$cov), c(4L, 2L, 2L))
   testthat::expect_equal(dim(r[[1]]$mean), c(6L, 2L, 4L))

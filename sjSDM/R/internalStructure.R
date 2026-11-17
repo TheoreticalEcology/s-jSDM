@@ -126,10 +126,12 @@ standardize_df = function(df, standardize) {
 #' 
 #' @param x object of class sjSDMinternalStructure
 #' @param ... no function
+#' @return \code{x}, invisibly.
 #' 
 #' @export
 print.sjSDMinternalStructure <- function(x, ...){
-  return(x$internals)
+  print(x$internals)
+  invisible(x)
 }
 
 
@@ -138,11 +140,11 @@ print.sjSDMinternalStructure <- function(x, ...){
 #' Creates a ternary diagram of an object of class 
 #' 
 #' @param x and object of class sjSDMinternalStructure create by anova object from \code{\link{internalStructure}}
-#' @param alpha alpha of points
+#' @param alpha currently unused, kept for compatibility
 #' @param env_deviance environmental deviance/gradient (points will be colored)
 #' @param negatives how to handle negative R squareds
 #' @param ... no function
-#' 
+#' @return An empty list, invisibly; the function is called for the plot.
 #' 
 #' @example /inst/examples/anova-example.R
 #' @export

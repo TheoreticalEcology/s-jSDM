@@ -125,7 +125,7 @@ print.sjSDMimportance= function(x, ...) {
 #' @export
 plot.sjSDMimportance= function(x, y, col.points="#24526e",cex.points=1.2, ...) {
   
-  warning("Depcreated, see ?internalStructure")
+  warning("Deprecated, see ?internalStructure")
   # oldpar = par(no.readonly = TRUE)
   # on.exit(par(oldpar))
   
@@ -189,7 +189,9 @@ plot.sjSDMimportance= function(x, y, col.points="#24526e",cex.points=1.2, ...) {
 #' @param covX environmental covariance matrix
 #' @param covSP spatial covariance matrix
 #' 
+#' @return List of importance matrices.
 #' @author Maximilian Pichler
+#' @keywords internal
 getImportance = function(beta, sp=NULL, association, covX, covSP=NULL) {
   nsp = ncol(beta)
   nGroups = nrow(beta)

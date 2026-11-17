@@ -7,10 +7,15 @@ pkg.env$torch_available = FALSE
 
 
 .onLoad = function(libname, pkgname){
+  pkg.env$torch_available = all(check_installation()[, 2] == "1")
+  invisible()
+}
+
+# the banner belongs to library(), not to every sjSDM:: call or importing package
+.onAttach = function(libname, pkgname){
   msg( text_col( cli::rule(left = "Attaching sjSDM", right = utils::packageVersion("sjSDM")) ), startup = TRUE)
 
   check = check_installation()
-  pkg.env$torch_available = all(check[, 2] == "1")
 
   info = apply(check, 1, function(d) paste0(d[1], " ", crayon::black(d[3]), "\n"))
   msg(info, startup = TRUE)

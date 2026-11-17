@@ -131,3 +131,66 @@ testthat::test_that("getWeights/setWeights round trip carries random blocks and 
   setWeights(m2, getWeights(m1))
   testthat::expect_equal(predict(m2, type = "raw"), predict(m1, type = "raw"), tolerance = 1e-6)
 })
+
+# Regressions from the 2026-11-12 pre-release review.
+
+testthat::test_that("simulate() carries the associations and covers all families", {
+  skip_if_no_torch()
+  set.seed(9)
+  n = 300L
+  z = rnorm(n)
+  Y = 1 * (outer(z, rep(1.5, 4)) + matrix(rnorm(n * 4), n, 4) > 0)
+  m = sjSDM(Y, env = linear(data.frame(x = rnorm(n)), ~ x), iter = 60L, verbose = FALSE,
+            device = "cpu", seed = 1L)
+  sim = simulate(m, nsim = 2L, seed = 1L)
+  testthat::expect_identical(dim(sim), c(2L, n, 4L))
+  R = stats::cor(sim[1, , ])
+  testthat::expect_gt(mean(R[upper.tri(R)]), 0.2)
+  for (fam in list(gaussian(), poisson(), "nbinom")) {
+    Yc = if (identical(fam, "nbinom") || inherits(fam, "family") && fam$family == "poisson")
+      matrix(rpois(n * 3, 2), n, 3) else matrix(rnorm(n * 3), n, 3)
+    mf = sjSDM(Yc, env = linear(data.frame(x = rnorm(n)), ~ x), family = fam, iter = 5L,
+               verbose = FALSE, device = "cpu")
+    testthat::expect_identical(dim(simulate(mf)), c(1L, n, 3L))
+  }
+})
+
+testthat::test_that("residuals are on the response scale", {
+  skip_if_no_torch()
+  d = adv_data(n = 60L)
+  m = sjSDM(d$Y, env = linear(d$X, ~ X1), iter = 5L, verbose = FALSE, device = "cpu")
+  r = residuals(m)
+  testthat::expect_true(all(abs(r) <= 1))
+  testthat::expect_equal(r, d$Y - predict(m))
+})
+
+testthat::test_that("a reloaded model is evaluated without dropout", {
+  skip_if_no_torch()
+  d = adv_data(n = 80L)
+  m = sjSDM(d$Y, env = DNN(d$X, ~ X1 + X2, hidden = c(10L, 10L), dropout = 0.3), iter = 5L,
+            verbose = FALSE, device = "cpu")
+  f = tempfile(fileext = ".RDS")
+  saveRDS(m, f)
+  m2 = sjSDM:::checkModel(readRDS(f))
+  testthat::expect_true(m2$model$net$training)
+  m2$model$logLik(sjSDM:::config_X(m2$settings$env), m2$data$Y)
+  testthat::expect_false(m2$model$net$training)
+})
+
+testthat::test_that("cross-validation AUC leaves one-class species out", {
+  Y = cbind(c(0, 1, 0, 1), c(0, 0, 0, 0), c(1, NA, 0, 1))
+  pred = cbind(c(0.1, 0.9, 0.2, 0.8), c(0.5, 0.5, 0.5, 0.5), c(0.9, 0.5, 0.1, 0.8))
+  a = sjSDM:::species_auc(Y, pred)
+  testthat::expect_equal(a, c(1, NA, 1))
+  testthat::expect_equal(sjSDM:::macro_auc(a, Y), 1)
+})
+
+testthat::test_that("simulate_SDM follows the response and the link", {
+  p = simulate_SDM(sites = 200L, species = 3L, link = "probit", seed = 3L)$response
+  l = simulate_SDM(sites = 200L, species = 3L, link = "logit", seed = 3L)$response
+  testthat::expect_false(identical(p, l))
+  testthat::expect_true(all(l %in% c(0, 1)))
+  cnt = simulate_SDM(sites = 50L, species = 3L, link = "probit", response = "count", seed = 3L)$response
+  testthat::expect_true(any(cnt > 1))
+  testthat::expect_error(simulate_SDM(link = "identical", response = "pa"), "presence-absence")
+})
