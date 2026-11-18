@@ -327,10 +327,19 @@ Model_sjSDM = torch::nn_module(
     es_count = 0L
     if (self$mixed) message("mixed precision is not available in the torch backend, ignored")
     self$net$train()
-    train_l = ""
-    if (verbose)
-      pb = cli::cli_progress_bar(format = "{cli::pb_bar} {cli::pb_current}/{cli::pb_total} loss: {train_l}",
-                                 total = epochs, clear = FALSE)
+    train_l = "Inf"
+    epoch = 0L
+    k = 0L
+    nb = length(rng)
+    if (verbose) {
+      # visible from the first step, as the PyTorch backend's bar was; cli waits 2 s by default
+      old_show = options(cli.progress_show_after = 0)
+      on.exit(options(old_show), add = TRUE)
+      pb = cli::cli_progress_bar(
+        format = paste("Iter: {epoch}/{epochs} [{k}/{nb}] loss: {train_l} {cli::pb_bar}",
+                       "{cli::pb_percent} [{cli::pb_elapsed}, {cli::pb_rate}]"),
+        total = epochs * nb, clear = FALSE, auto_terminate = FALSE)
+    }
 
     for (epoch in seq_len(epochs)) {
       perm = torch::torch_randperm(n, dtype = torch::torch_long(),
@@ -348,12 +357,13 @@ Model_sjSDM = torch::nn_module(
           self$optimizer$step()
         }
         bl[k] = as.numeric(l$detach()$cpu())
+        if (verbose) cli::cli_progress_update(id = pb, set = (epoch - 1L) * nb + k)
       }
       m = round(mean(bl), 3)
       losses[epoch] = m
       done = epoch
       train_l = format(m)
-      if (verbose) cli::cli_progress_update(id = pb, set = epoch)
+      if (verbose) cli::cli_progress_update(id = pb, set = epoch * nb, force = TRUE)
       if (!is.null(self$scheduler)) self$scheduler$step(m)
       if (es_on) {
         if (m < es_best) {

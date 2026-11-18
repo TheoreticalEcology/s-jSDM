@@ -256,6 +256,10 @@
   first hidden layer, and was silently wrong otherwise.
 ## Minor changes
 
+* The progress bar of `sjSDM()` (`verbose = TRUE`) is shown from the first optimiser step,
+  as in the 'PyTorch' version, and reports the epoch, the step within the epoch, the loss,
+  the elapsed time and the steps per second. It used to appear only after two seconds and
+  to advance once per epoch, so short fits looked silent.
 * The Monte-Carlo reduction in the likelihood uses `torch_logsumexp()` instead of a
   hand-rolled max-shift, which replaces seven kernel launches with three. `torch_logsumexp`
   performs the same max-subtraction internally, so the computation is unchanged; the
