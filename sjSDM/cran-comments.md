@@ -1,46 +1,51 @@
 # Version 1.1.0
-### Submission 1
+## sjSDM submission 1 2026/11/22
 
-This release replaces the package's computational backend. Up to 1.0.7 sjSDM wrapped a
-bundled 'Python'/'PyTorch' package through 'reticulate'; it now runs natively on the R
-'torch' package. 'reticulate' has been removed from Imports, 'torch' (>= 0.14.0) and
-'reformulas' added, and `inst/python/` has been deleted from the package.
+Dear CRAN Team,
 
-The release also adds non-linear `NN()` blocks and grouping-factor random effects to the
-environmental formula and fixes several defects, some of which change results. Three
-defaults changed: the optimizer (`Adam()` instead of `RMSprop()`), the Monte-Carlo proposal of
-`anova()` (`"laplace"`), and `predict()`, which now returns marginal predictions. NEWS.md
-lists every behaviour change and how to restore the earlier behaviour. No exported function
-was removed.
+this is a major update. sjSDM no longer wraps a bundled 'Python'/'PyTorch' package through
+'reticulate'; it now runs natively on the R 'torch' package, which removes the Python
+installation that most of our users struggled with. The release also adds non-linear `NN()`
+blocks and grouping-factor random effects to the environmental formula, rewrites the
+conditional predictions, and fixes several defects in the variation partitioning (`anova()`),
+some of which change results. NEWS.md lists every behaviour change and how to restore the
+earlier behaviour; no exported function was removed.
 
-libtorch: the package needs the libtorch binaries, which 'torch' downloads on first use
-(`torch::install_torch()`) and which are usually not present on the CRAN check machines.
-- The examples fit models and therefore need libtorch; they are wrapped in \dontrun{} for
-  that reason (missing additional software).
-- Tests that fit a model skip themselves via `skip_if_no_torch()`; we checked the package with
+Dependencies: in Imports, 'reticulate' was removed and 'torch' (>= 0.14.0) and 'reformulas' were
+added; 'iml' was removed from Suggests, and `inst/python/` was deleted. Models saved with 1.0.7
+cannot be restored by the new backend and have to be refitted; NEWS.md says so.
+
+The package needs the libtorch binaries, which 'torch' downloads on first use
+(`torch::install_torch()`) and which are usually not present on the CRAN check machines:
+* The examples fit models and therefore need libtorch; they are wrapped in \dontrun{} for that
+  reason (missing additional software).
+* Tests that fit a model skip themselves via `skip_if_no_torch()`. We checked the package with
   libtorch hidden (`TORCH_HOME` pointing to an empty directory) as well as with it installed.
-- The vignette is pre-computed and does not run 'torch' code at build time.
+* The vignette is pre-computed and does not run 'torch' code at build time.
+
+Thank you for your time and work.
+
+Best,
+Max Pichler
+
+### Reverse dependencies
 
 There are no reverse dependencies.
 
-Two NOTEs seen locally that we believe are false positives: 'stackoverflow.com' answers 403
-to the check's URL request while the link resolves in a browser, and 'checking for future
-file timestamps' cannot reach the time server from our network.
-
 ### R CMD checks
-* Local: Ubuntu 26.04.1 LTS, R 4.5.2, `--as-cran`, with libtorch: 0 errors, 1 warning ('qpdf'
-  not installed locally), 2 notes (the two above).
-* Local: same machine with libtorch hidden: 0 errors, 1 warning, 2 notes (same); the tests
-  skip (FAIL 0, SKIP 100, PASS 6).
-* win-builder R-devel, R-release, R-oldrelease: TO FILL from the result e-mails.
-* macOS builder: R 4.6.1, macOS 26.6 arm64: OK, 0 errors, 0 warnings, 0 notes (tests skip without libtorch).
 
-URLs and DOIs are correct.
+Locally:
+* Ubuntu 26.04 LTS (R 4.5.2), `--as-cran`, with libtorch: no ERRORs or NOTEs, one WARNING
+  ('qpdf' is not installed on this machine)
+* the same machine with libtorch hidden: no ERRORs or NOTEs, the same WARNING; the tests
+  skip (FAIL 0, SKIP 107, PASS 6)
+* Ubuntu 24.04 LTS (R 4.6.1): full test suite on the CPU and on a CUDA device (FAIL 0, PASS 1337)
 
-Possibly misspelled words in DESCRIPTION:
-  ANOVA, Leibold, al, biotic, eDNA, et, jSDM, metacommunity, probit
+Win-builder:
+* R-release, R-devel and R-oldrelease: TO FILL from the result e-mails
 
-The spelling is intended.
+Spelling has been checked (potential errors are intended): ANOVA, Leibold, al, biotic, eDNA,
+et, jSDM, metacommunity, probit.
 
 
 # Version 1.0.7

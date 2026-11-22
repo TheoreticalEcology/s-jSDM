@@ -14,7 +14,9 @@
 #' @param ... optional arguments which are passed to the calculation of the logLikelihood,
 #'   including \code{mc_batch}, the number of sites whose Monte-Carlo draws are held in
 #'   memory at once. It defaults to the model's \code{step_size}, lowered if that would
-#'   exceed roughly 2.5 GB; lower it by hand on a device with less memory.
+#'   exceed roughly 2.5 GB; lower it by hand on a device with less memory. For a model with
+#'   random effects also \code{re_draws} (default 50), the number of draws of the group effects
+#'   their marginal likelihood is averaged over; the cost of the anova grows linearly with it.
 #' 
 #' @details The ANOVA function removes each of the three fractions (Environment, Space, Associations) and measures the drop in variance explained, and thus the importance of the three fractions.
 #' 
@@ -27,6 +29,15 @@
 #' were fitted with an identity covariance, which for a probit link only rescales the coefficients but for
 #' the count, negative binomial and gaussian links adds a fixed unit latent variance; that misfit was then
 #' reported as associations.
+#'
+#' For the count family this has a consequence worth knowing: the latent term of the full model also
+#' carries each species' own extra variance (the diagonal of the association matrix), i.e. log-normal
+#' overdispersion, and the sub-models without associations cannot. Overdispersion is therefore part of the
+#' Associations fraction. In simulations with 7 independent species and 180 sites, the Associations
+#' fraction (McFadden R-squared, mean over 5 datasets) of a Poisson model was 0.002 without
+#' overdispersion, 0.02 with a log-normal standard deviation of 0.5 and 0.15 with 1. For overdispersed
+#' counts use \code{family = "nbinom"}, whose dispersion parameter is present in every sub-model; on
+#' the same data it was 0.002, 0.004 and 0.008.
 #' 
 #' `proposal = "prior"` draws the latent factors blind and weights them by the likelihood.
 #' At many species almost every draw lands where the observed community is implausible, so the effective
@@ -47,9 +58,23 @@
 #' by 1 and differs between units. The deviances and the Nagelkerke R-squared do not have this problem.
 #' 
 #' \code{anova} is not defined for a model fitted with \code{bioticStruct(diag = TRUE)}, whose sub-models with
-#' associations would not be nested in it, and raises an error. It is also not defined for a model with
-#' random-effect bars in the environmental formula and raises an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed
-#' instead of cancelling from the difference. Use \code{\link{getRE}} for the group variances.
+#' associations would not be nested in it, and raises an error.
+#' 
+#' For a model with random-effect bars the anova is conditional on the random intercepts: the null model
+#' and every sub-model contain the random intercept of each grouping factor, so the fractions are the
+#' variation explained by environment, associations and space beyond the grouping. A random slope belongs
+#' to the abiotic component and is removed with it; for \code{(temp | plot)} the null holds
+#' \code{(1 | plot)} and only the sub-models with the abiotic component hold \code{(temp | plot)}. The
+#' \code{grouping} component reports what the random intercepts alone explain against an intercept-only
+#' model. Every model is scored on its marginal likelihood, with the group effects integrated out by
+#' importance sampling from their fitted posterior (\code{re_draws}, see \code{...}). With a random
+#' intercept on a site or plot identifier, covariates that are constant within sites compete with it for
+#' the variation between groups: in simulations such a covariate kept about half of its deviance, while
+#' covariates that vary within groups kept all of it. The estimated group variance does not reach zero,
+#' so a random intercept without a true group effect still takes a little from the full model (about
+#' 2.5 per cent of its R-squared in simulations), and a random slope without a true slope variance adds a
+#' little to the abiotic fraction. With crossed grouping factors, e.g. \code{(1 | plot) + (1 | year)},
+#' the group effects cannot be integrated separately and \code{re_draws} has to be raised substantially.
 #' 
 #' The \code{species} and \code{sites} components are not the printed table restricted to a species or a
 #' site, and they are read differently. The table composes the fractions on the log-likelihood scale and
@@ -73,6 +98,8 @@
 #' \item{sites}{individual site R2s.}
 #' \item{lls}{individual site by species negative-log-likelihood values.}
 #' \item{proposal}{the sampler the latent factors were drawn from.}
+#' \item{grouping}{for a model with random effects: log-likelihood of the intercept-only model, of the
+#'   null with random intercepts, and the McFadden R-squared of the random intercepts alone.}
 #' \item{ess}{sites-by-sub-model matrix of effective sample sizes, as a fraction of `samples`.
 #'   One column per fitted sub-model, so a low column shows which model's likelihood rests on few
 #'   draws. `attr(, "newton_decrement")` carries the largest Newton decrement the Laplace mode-finder left
@@ -95,13 +122,6 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE,
   samples = as.integer(samples)
   proposal = match.arg(proposal)
   object = checkModel(object)
-  # the random blocks are re-estimated in every refit, so they absorb what the removed term
-  # explained instead of cancelling, and get_conditional_lls() rescales each refit by its own
-  # `rates`, so nothing cancels algebraically either (PREDICTOR_plan.md 8.4)
-  if(length(object$settings$env$re))
-    stop("anova() is not defined for a model with random effects: every refit re-estimates ",
-         "the random blocks, so they absorb the fraction that was removed rather than ",
-         "cancelling from the difference. Use getRE() for the group variances.", call. = FALSE)
   # with a diagonal covariance the association-carrying sub-models would not be nested in it
   if(isTRUE(object$settings$biotic$diag))
     stop("anova() needs a model with associations, it is not defined for ",
@@ -119,7 +139,17 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE,
   
   object$settings$se = FALSE
   
-  null_m = -get_null_ll(object, verbose = verbose)
+  # random intercepts belong to the base: the null and every sub-model carry them, so the
+  # fractions are conditional on the grouping; random slopes go with their predictor (Abiotic)
+  base = anova_ri_formula(object)
+  null_m = -get_null_ll(object, verbose = verbose, condition = TRUE, sampling = samples,
+                        proposal = proposal, ...)
+  # a model whose only bars are random slopes has no grouping row: its base is ~1
+  if(any(vapply(object$settings$env$re, function(b) isTRUE(b$intercept), TRUE))) {
+    pure = get_null_ll(object, verbose = verbose)
+    out$grouping = c(ll_intercept = sum(pure), ll_grouping = -sum(null_m),
+                     R2_McFadden = 1 - sum(null_m) / -sum(pure))
+  }
   
   full_m = get_conditional_lls(object, null_m, sampling = samples, proposal = proposal, ...)
   
@@ -130,7 +160,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE,
     
     m = update(object, env_formula = NULL, spatial_formula = ~0, biotic = anova_biotic(object, TRUE), verbose = verbose)
     A_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
-    m = update(object, env_formula = ~1, spatial_formula = ~0, biotic = anova_biotic(object, FALSE), verbose = verbose)
+    m = update(object, env_formula = base, spatial_formula = ~0, biotic = anova_biotic(object, FALSE), verbose = verbose)
     B_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     SAT_m = saturated_nll(object$data$Y, object$family$link, object$theta)
     
@@ -180,11 +210,11 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE,
     A_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # B only model
-    m = update(object, env_formula = ~1, spatial_formula = ~0, biotic = anova_biotic(object, FALSE), verbose = verbose)
+    m = update(object, env_formula = base, spatial_formula = ~0, biotic = anova_biotic(object, FALSE), verbose = verbose)
     B_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # S only model
-    m = update(object, env_formula = ~1, spatial_formula = NULL, biotic = anova_biotic(object, TRUE), verbose = verbose)
+    m = update(object, env_formula = base, spatial_formula = NULL, biotic = anova_biotic(object, TRUE), verbose = verbose)
     S_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # AB
@@ -196,7 +226,7 @@ anova.sjSDM = function(object, samples = 5000L, verbose = TRUE,
     AS_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # BS
-    m = update(object, env_formula = ~1, spatial_formula = NULL, biotic = anova_biotic(object, FALSE), verbose = verbose)
+    m = update(object, env_formula = base, spatial_formula = NULL, biotic = anova_biotic(object, FALSE), verbose = verbose)
     BS_m = get_conditional_lls(m, null_m, sampling = samples, proposal = proposal, ...)
     
     # Saturated, do we really need it?
@@ -440,7 +470,170 @@ collect_ess = function(models) {
   e
 }
 
+# The random intercepts of the fitted bars, one per grouping factor, as the base formula of the
+# null and of every sub-model; ~1 for a model without bars.
+anova_ri_formula = function(object) {
+  re = Filter(function(b) isTRUE(b$intercept), object$settings$env$re)
+  re = re[!duplicated(vapply(re, function(b) b$group, ""))]
+  ri = vapply(re, function(b)
+    if (b$loading == "shared") sprintf("re(1 | %s, loading = \"shared\")", b$group)
+    else sprintf("re(1 | %s, df = %dL)", b$group, b$df), "")
+  stats::as.formula(paste("~", paste(c("1", ri), collapse = " + ")),
+                    env = environment(object$settings$env$formula))
+}
+
+# sites coupled through a shared group of any bar; the marginal likelihood factorises over them
+re_components = function(index) {
+  comp = seq_along(index[[1]])
+  repeat {
+    old = comp
+    for (g in index) comp = pmin(comp, stats::ave(comp, g, FUN = min))
+    if (identical(old, comp)) break
+  }
+  match(comp, unique(comp))
+}
+
+# Marginal log-likelihood of a model with random blocks. The group effects u are integrated out
+# by importance sampling from their variational posterior q (weights p(u)/q(u), `re_draws`
+# joint draws), the latent factors per site by the usual estimator at every draw, with one set of
+# inner draws shared across the outer ones. A plug-in at the posterior means is a conditional
+# likelihood and would not be comparable with the sub-models. Per-site values are the
+# posterior-weighted conditional log-likelihoods plus an equal share of their component's
+# integration term, so they sum to the component's marginal (a convention).
+re_marginal = function(m, sampling = 1000L, proposal = "prior", re_draws = 50L, mc_batch = NULL, ...) {
+  model = m$model
+  net = model$net
+  net$eval()
+  d = model$as_tensors(c(as_input(config_X(m$settings$env)), as_input(config_X(m$spatial))),
+                       m$data$Y)
+  inp = d$inputs
+  Y = d$Y
+  n = Y$shape[1]
+  S = Y$shape[2]
+  zero = isTRUE(m$settings$biotic$zero)
+  sampling = if (zero) 1L else as.integer(sampling)
+  draws = as.integer(re_draws)
+  dev = model$device
+  dt = model$dtype
+  sigma = model$sigma$detach()
+  theta = model$theta
+  link = m$family$link
+  derivs = if (proposal == "laplace" && !zero) sjsdm_derivs(link, model$alpha) else NULL
+  K = length(net$re_at)
+  blocks = lapply(seq_len(K), function(k) net$random[[k]])
+  index = lapply(seq_len(K), function(k)
+    as.integer(inp[[net$re_at[k]]]$select(2, blocks[[k]]$q + 1L)$cpu()))
+  comp = re_components(index)
+  C = max(comp)
+
+  torch::with_no_grad({
+    mu_fixed = net(inp, FALSE)
+    for (k in seq_len(K)) mu_fixed = mu_fixed$sub(blocks[[k]](inp[[net$re_at[k]]], FALSE))
+    # outer draws per bar and group, and their log p(u) - log q(u) summed per component
+    eps = lapply(blocks, function(b) torch::torch_randn(c(draws, b$nlevels, b$d), dtype = dt, device = dev))
+    W = matrix(0, draws, C)
+    for (k in seq_len(K)) {
+      b = blocks[[k]]
+      L = b$L_mat()
+      u = b$m$unsqueeze(1)$add(torch::torch_matmul(L$unsqueeze(1), eps[[k]]$unsqueeze(4))$squeeze(4))
+      logdet = as.numeric(torch::torch_diagonal(L, dim1 = 2, dim2 = 3)$log()$sum(dim = 2)$cpu())
+      lw = as.matrix(eps[[k]]$pow(2)$sum(dim = 3)$sub(u$pow(2)$sum(dim = 3))$mul(0.5)$cpu())
+      lw = sweep(lw, 2, logdet, "+")
+      gc_ = vapply(seq_len(b$nlevels), function(g) comp[match(g, index[[k]])], 1L)
+      for (g in which(!is.na(gc_))) W[, gc_[g]] = W[, gc_[g]] + lw[, g]
+    }
+  })
+
+  if (is.null(mc_batch))
+    mc_batch = min(as.integer(m$settings$step_size), as.integer(2.5e9 / (24 * as.numeric(sampling) * S)))
+  mc_batch = max(1L, as.integer(mc_batch))
+  Lk = matrix(0, draws, n)
+  cond = array(0, c(draws, n, S))
+  cell = if (zero) array(0, c(draws, n, S)) else NULL
+  maxdec = if (!is.null(derivs)) 0 else NA_real_
+  for (start in seq(1L, n, by = mc_batch)) {
+    rows = start:min(start + mc_batch - 1L, n)
+    r1 = torch::torch_tensor(rows, dtype = torch::torch_long(), device = dev)
+    Y_b = Y$index_select(1, r1)
+    inp_b = lapply(inp, function(z) if (is.null(z)) NULL else z$index_select(1, r1))
+    torch::with_no_grad({
+      mu_b = mu_fixed$index_select(1, r1)
+      if (zero) {
+        noise = torch::torch_zeros(c(1L, length(rows), sigma$shape[2]), dtype = dt, device = dev)
+        lw_in = NULL
+      } else if (!is.null(derivs)) {
+        mean_b = mu_b
+        for (k in seq_len(K)) mean_b = mean_b$add(blocks[[k]](inp_b[[net$re_at[k]]], FALSE))
+        prop = mvp_laplace_proposal(mean_b, Y_b, sigma, derivs, theta)
+        maxdec = max(maxdec, prop$maxdec)
+        dr = mvp_laplace_draw(prop, sampling)
+        noise = dr$z
+        lw_in = dr$lw
+      } else {
+        noise = torch::torch_randn(c(sampling, length(rows), sigma$shape[2]), dtype = dt, device = dev)
+        lw_in = NULL
+      }
+      for (j in seq_len(draws)) {
+        mu_j = mu_b
+        for (k in seq_len(K)) {
+          x = inp_b[[net$re_at[k]]]
+          gi = x$select(2, blocks[[k]]$q + 1L)$clamp(min = 1)$to(dtype = torch::torch_long())
+          mu_j = mu_j$add(blocks[[k]](x, TRUE, eps[[k]][j, , ]$index_select(1, gi)))
+        }
+        lp = mvp_species_logprob(mu_j, Y_b, sigma, link = link, alpha = model$alpha,
+                                 sampling = sampling, theta = theta, noise = noise)
+        jt = lp$sum(dim = 3)
+        if (!is.null(lw_in)) jt = jt$add(lw_in)
+        joint = mvp_mc_nll(jt)
+        cf = lp$cumsum(dim = 3)
+        cb = lp$flip(3)$cumsum(dim = 3)$flip(3)
+        z0 = torch::torch_zeros_like(cf$select(3, 1)$unsqueeze(3))
+        loo = torch::torch_cat(list(z0, cf$narrow(3, 1, S - 1L)), dim = 3)$
+          add(torch::torch_cat(list(cb$narrow(3, 2, S - 1L), z0), dim = 3))
+        if (!is.null(lw_in)) loo = loo$add(lw_in$unsqueeze(3))
+        Lk[j, rows] = -as.numeric(joint$cpu())
+        cond[j, rows, ] = as.matrix(joint$unsqueeze(2)$sub(mvp_mc_nll(loo))$cpu())
+        if (zero) cell[j, rows, ] = as.matrix(lp$select(1, 1)$cpu())
+      }
+    })
+  }
+
+  # per component: total log marginal and posterior weights over the outer draws
+  joint = numeric(n)
+  ess = numeric(n)
+  pi_ = matrix(0, draws, n)
+  for (c in seq_len(C)) {
+    i = which(comp == c)
+    a = W[, c] + rowSums(Lk[, i, drop = FALSE])
+    tot = max(a) + log(mean(exp(a - max(a))))
+    w = exp(a - max(a))
+    w = w / sum(w)
+    pi_[, i] = w
+    e = drop(w %*% Lk[, i, drop = FALSE])
+    joint[i] = e + (tot - sum(e)) / length(i)
+    ess[i] = 1 / sum(w^2) / draws
+  }
+  wsum = function(A) apply(A * as.vector(pi_), c(2, 3), sum)
+  out = list(joint = -joint, conditional = wsum(cond), ess = ess, maxdec = maxdec)
+  if (zero) {
+    cl = wsum(cell)
+    obs = !is.na(m$data$Y)
+    shift = (joint - rowSums(cl)) / pmax(rowSums(obs), 1)
+    out$cell = cl + shift * obs
+  }
+  out
+}
+
 get_conditional_lls = function(m, null_m, mc_batch = NULL, proposal = "prior", ...) {
+  if (length(m$settings$env$re)) {
+    r = re_marginal(m, mc_batch = mc_batch, proposal = proposal, ...)
+    diff_ll = colSums(null_m - r$conditional)
+    rates = diff_ll / sum(diff_ll)
+    out = null_m - matrix(rates, nrow(null_m), ncol(null_m), byrow = TRUE) * (rowSums(null_m) - r$joint)
+    attr(out, "ess") = r$ess
+    attr(out, "maxdec") = r$maxdec
+    return(out)
+  }
   
   predictions = predict(m, type = "raw")  
   args = list(...)
@@ -531,7 +724,7 @@ get_conditional_lls = function(m, null_m, mc_batch = NULL, proposal = "prior", .
   # A site whose mode was missed gets a proposal centred away from the mass, and the median ESS
   # does not show it because a failing minority does not move a median. A decrement of 1e-2
   # bounds the log-density error at the mode by about 5e-5.
-  if (proposal == "laplace" && maxdec > 1e-2)
+  if (isTRUE(maxdec > 1e-2))
     warning("Laplace proposal: the mode was not reached for at least one site (Newton decrement ",
             signif(maxdec, 3), "). Check the per-site `ess` and compare against ",
             "proposal = \"prior\".", call. = FALSE)
@@ -614,20 +807,20 @@ get_shared_anova = function(R2objt, fractions = c("2", "3")) {
   return(list(proportional = proportional, equal = equal, mvp = mvp, mvp_proportional = mvp_proportional))
 }
 
-get_null_ll = function(object, verbose = TRUE, ...) {
+get_null_ll = function(object, verbose = TRUE, condition = FALSE, ...) {
   
   object_tmp = object
   object_tmp$settings$se = FALSE
-  
-  
+  base = if(condition) anova_ri_formula(object) else ~1
   
   if(inherits(object, "spatial")) {
-    null_model = update(object_tmp, env_formula = ~1, spatial_formula = ~0, biotic = anova_biotic(object, TRUE), verbose = verbose)
-    null_pred = predict(null_model)
+    null_model = update(object_tmp, env_formula = base, spatial_formula = ~0, biotic = anova_biotic(object, TRUE), verbose = verbose)
   } else {
-    null_model = update(object_tmp, env_formula = ~1, biotic = anova_biotic(object, TRUE), verbose = verbose)
-    null_pred = predict(null_model)
+    null_model = update(object_tmp, env_formula = base, biotic = anova_biotic(object, TRUE), verbose = verbose)
   }
+  # with random intercepts the null has no closed form: integrate them out
+  if(length(null_model$settings$env$re)) return(re_marginal(null_model, ...)$cell)
+  null_pred = predict(null_model)
   
   if(object$family$family$family == "binomial") {
     null_m = stats::dbinom( object$data$Y, 1, null_pred, log = TRUE)
@@ -689,6 +882,9 @@ summary.sjSDManova = function(object,
   
   out = object$to_print[[fractions]]
   stats::printCoefmat(out)
+  if(!is.null(object$grouping))
+    cat(sprintf("\nConditional on the random intercepts, which alone explain R2 McFadden %.4f\n",
+                object$grouping[["R2_McFadden"]]))
   return(invisible(out))
   
 }

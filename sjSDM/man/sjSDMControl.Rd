@@ -9,7 +9,8 @@ sjSDMControl(
   scheduler = 0,
   lr_reduce_factor = 0.99,
   early_stopping_training = 0,
-  mixed = FALSE
+  mixed = FALSE,
+  jit = FALSE
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ sjSDMControl(
 \item{early_stopping_training}{number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping).}
 
 \item{mixed}{mixed (half-precision) training. Accepted and ignored, 'torch' has no equivalent}
+
+\item{jit}{trace the likelihood with \code{\link[torch]{jit_trace}} on the first batch and train with the traced graph. Same model, fewer R-level dispatches per step; the last incomplete batch is dropped in either case, so every traced batch has the same shape}
 }
 \value{
 List with the following fields:
@@ -31,6 +34,7 @@ List with the following fields:
 \item{scheduler_patience}{Integer, number of epochs to wait before applying plateau scheduler.}
 \item{lr_reduce_factor}{Numerical, learning rate reduce factor.}
 \item{mixed}{Logical, use mixed training or not.}
+\item{jit}{Logical, train with the traced likelihood or not.}
 \item{early_stopping_training}{Numerical, early stopping after n epochs.}
 }
 \description{

@@ -15,7 +15,8 @@ bioticStruct(
 )
 }
 \arguments{
-\item{df}{degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{max(5, floor(ncol(Y)/2))}}
+\item{df}{number of latent dimensions of the association matrix, i.e. its rank. If \code{NULL}, df is
+set to \code{max(5, min(floor(J/2), floor(n/10)))} for \code{J} species and \code{n} sites, see details}
 
 \item{lambda}{lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}}
 
@@ -43,6 +44,17 @@ Implemented S3 methods include \code{\link{print.bioticStruct}}
 }
 \description{
 define biotic (species-species) association (interaction) structure
+}
+\details{
+The association matrix is \eqn{\sigma\sigma^T + I} with \eqn{\sigma} of size species x df. Up to 1.0.7 the
+default was \code{max(5, floor(J/2))}, which ignores how much information the data hold. Every latent
+dimension beyond what the sites can identify fits noise and inflates the associations: in simulations with
+500 sites and a true rank of 5, the slope of estimated on true covariances was about 1 for df up to
+100 (n/5), 1.2 at df = n/2, 1.9 at df = n and 36 at df = 5n (5000 species), and conditional predictions
+degraded with it. The default is therefore also capped at n/10. It changes nothing when
+\code{J/2 <= n/10}, i.e. for fewer species than a fifth of the sites. With many species and few sites,
+set df explicitly, or compare a few values by cross-validation; the cap is a guard against
+overfitting, not an estimate of the true rank.
 }
 \examples{
 \dontrun{
@@ -131,11 +143,11 @@ an = anova(model,
 internal = internalStructure(an)
 plot(internal)
 
-## Visualize community assemlby effects 
+## Visualize community assembly effects 
 
 plotAssemblyEffects(internal)
 
-### see ?anova.sjSDM for mroe details
+### see ?anova.sjSDM for more details
 
 
 ## non-linear(deep neural network) model
@@ -179,7 +191,7 @@ print(result)
 plot(result)
 
 ## visualize internal meta-community structure
-internal = internalStructure(an)
+internal = internalStructure(result)
 plot(internal)
 
 

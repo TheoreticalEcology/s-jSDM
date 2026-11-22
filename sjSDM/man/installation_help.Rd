@@ -81,7 +81,7 @@ fixed (see \code{news(package = "sjSDM")}).
 
 
 To report bugs or ask for help, post a
-\href{https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example/}{reproducible example}
+reproducible example
 via the sjSDM \href{https://github.com/TheoreticalEcology/s-jSDM/issues/}{issue tracker}
 with a copy of the \code{\link{install_diagnostic}} output as a quote.
 }

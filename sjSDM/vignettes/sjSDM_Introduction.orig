@@ -42,7 +42,7 @@ A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to th
 
 ![Figure 1: jSDM structure. jSDM uses a community matrix as response (rows = number of observations, columns = number of species) and tries to explain the occurrences in the community matrix as a function of environment and space. Moreover, compared to classical SDM, jSDM have an additional component, the biotic associations, that tries to account for unobservable species-species interactions. More precisely, the biotic association matrix is a variance-covariance matrix that accounts for co-occurrence patterns not explainable by environment and space.](jSDM-structure.png)
 
-A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, <https://www.doi.org/10.1111/2041-210X.13687>.
+A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, <https://doi.org/10.1111/2041-210X.13687>.
 
 Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation.
 
@@ -442,8 +442,14 @@ Some practical points:
 - The estimated group variance does not reach zero when there is no group effect, so it is not a test
   for whether a group effect exists. Report it together with the
   latent rank `df` (`re(1 | plot, df = 2)`), because a larger `df` gives a larger variance.
-- `anova()` is not available for models with random effects, and `logLik()` of such a model is
-  conditional on the estimated group effects, so it cannot be compared with a model without them.
+- `anova()` of a model with random effects is conditional on the random intercepts: they are part of
+  the null model and of every sub-model, so the fractions are the variation explained beyond the
+  grouping, and random slopes count towards the environment. With a random intercept on a site or
+  plot identifier, covariates that are constant within sites compete with it for the differences
+  between sites and keep only part of their fraction (about half in simulations), while covariates
+  that vary within sites keep theirs.
+- `logLik()` of a model with random effects is conditional on the estimated group effects, so it
+  cannot be compared with a model without them.
 
 ## Adjusting regularization parameters
 
@@ -583,4 +589,4 @@ unchanged, but results differ from 1.0.x:
 ## Help and bugs
 
 -   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `sjSDM::install_diagnostic()` as a quote.
--   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)
+-   report bugs with a reproducible example via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)

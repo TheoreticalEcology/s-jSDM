@@ -285,6 +285,25 @@ mvp_loss = torch::nn_module(
                sampling = as.integer(sampling), theta = self$theta, noise = noise)
   },
 
+  # fit(jit = TRUE): the likelihood traced on the first batch, noise as an input. A trace
+  # freezes R-side branches, so the NA mask is applied unconditionally: mvp_species_logprob()
+  # skips it when the traced batch happens to have no NA, and every later batch would too.
+  traced_nll = function(sampling) {
+    f = function(mu, Y, sigma, noise, theta = NULL) {
+      isna = Y$isnan()
+      lp = mvp_species_logprob(mu, Y$masked_fill(isna, 0.0), sigma, link = self$family,
+                               alpha = self$alpha, theta = theta, noise = noise, na_rm = FALSE)
+      mvp_mc_nll(lp$masked_fill(isna$unsqueeze(1), 0.0)$sum(dim = 3))
+    }
+    tr = NULL
+    function(mu, Y) {
+      noise = mvp_noise(as.integer(sampling), mu$shape[1], self$sigma$shape[2], mu$device, mu$dtype)
+      args = c(list(mu, Y, self$sigma, noise), if (!is.null(self$theta)) list(self$theta))
+      if (is.null(tr)) tr <<- do.call(torch::jit_trace, c(list(f), args))
+      do.call(tr, args)
+    }
+  },
+
   # z is not observed, so the marginal is E_z[link(mu + z sigma')], not link(mu); logit and
   # linear have no closed form and fall back to sampling.
   # `extra_v` is the per-site latent variance a random block contributes for a group the fit

@@ -194,10 +194,33 @@ testthat::test_that("a fitted model reports and restores its random effects", {
 })
 
 
-testthat::test_that("anova() refuses a model with a random block", {
+testthat::test_that("anova() conditions on the random intercepts", {
   skip_if_no_torch()
-  testthat::expect_error(anova(fit_re(~ X1 + (1 | g)), samples = 20L, verbose = FALSE),
-                         "random effects")
+  an = anova(fit_re(~ X1 + (X1 | g)), samples = 50L, verbose = FALSE, re_draws = 10L)
+  r = an$to_print$all$`R2 McFadden`
+  testthat::expect_equal(sum(r[1:3]), r[4], tolerance = 1e-6)
+  testthat::expect_named(an$grouping, c("ll_intercept", "ll_grouping", "R2_McFadden"))
+  testthat::expect_identical(deparse(sjSDM:::anova_ri_formula(an$object)), "~1 + re(1 | g, df = 5L)")
+})
+
+testthat::test_that("the random-effect marginal likelihood matches the exact gaussian one", {
+  skip_if_no_torch()
+  set.seed(1)
+  X = data.frame(x = rnorm(60), g = factor(rep(1:10, each = 6)))
+  Y = matrix(rnorm(60 * 3), 60, 3) + rnorm(10)[X$g]
+  zero = bioticStruct()
+  zero$zero = TRUE
+  m = sjSDM(Y, env = linear(X, ~ re(1 | g, loading = "shared")), family = gaussian(),
+            biotic = zero, iter = 50L, verbose = FALSE, device = "cpu")
+  lam = as.numeric(getRE(m)$g$lambda)
+  mu = as.numeric(m$model$env_weights[[1]])
+  s = exp(m$model$get_theta)
+  exact = sum(vapply(1:10, function(k) {
+    i = which(X$g == k)
+    V = lam^2 + diag(rep(s^2, each = length(i)))
+    mvtnorm::dmvnorm(c(Y[i, ]), rep(mu, each = length(i)), V, log = TRUE)
+  }, 1.0))
+  testthat::expect_equal(sum(sjSDM:::re_marginal(m, re_draws = 2000L)$cell), exact, tolerance = 1e-3)
 })
 
 

@@ -2,6 +2,14 @@
 
 ## Major changes
 
+* The default rank of the association matrix, `bioticStruct(df = NULL)`, is
+  `max(5, min(floor(J/2), floor(n/10)))` for `J` species and `n` sites; it used to be
+  `max(5, floor(J/2))`. Fits change only where `J/2 > n/10`, i.e. with more species than a
+  fifth of the sites. There the old default gave the model more latent dimensions than the
+  sites can identify, and the associations were overestimated: with 500 sites and 5000
+  species (df = 2500) the slope of estimated on true covariances was 36 in simulations, and
+  0.89 with df = 100. `sjSDM_cv()` resolves the default on the full data, so every fold
+  fits the same rank. See the details of `bioticStruct()`.
 * `NN()` is new. It marks a group of covariates inside an environmental formula as a
   non-linear block, so that a flexible term can sit *beside* interpretable linear terms
   rather than replacing them: `linear(X, ~ temp + NN(soil + ndvi, hidden = c(50, 50)))`.
@@ -31,9 +39,12 @@
   predicted group effects, the loadings and the posterior Cholesky factor. `getCov()` and `getCor()` gain
   `which = c("residual", "re")`; `"re"` returns one entry per bar, named by the grouping
   variable.
-* Known limitations of the random effects. `anova()` refuses on a model containing a bar:
-  the block is re-estimated in every refit and the per-species rescaling is recomputed with
-  it, so the fractions would not decompose. `logLik()` for such a model is the conditional
+* `anova()` of a model with random effects is conditional on the random intercepts: the null
+  model and every sub-model contain the random intercept of each grouping factor, random
+  slopes belong to the abiotic component, every model is scored on its marginal likelihood
+  with the group effects integrated out by importance sampling, and the `grouping`
+  component reports what the random intercepts alone explain.
+* Known limitations of the random effects. `logLik()` for such a model is the conditional
   value at the posterior means, so it is not comparable with a model fitted without a bar.
   `sjSDM_cv()` does not support bars or `NN()` blocks and raises an error rather than
   dropping them. Bars are not available in the spatial formula. The reported group variance
@@ -46,6 +57,20 @@
   the full batch -- and switching the starting point between batch sizes showed the fit settles
   at the level of the batch size it is trained with. Adam removes the dependence. **Every fit
   changes;** pass `sjSDMControl(optimizer = RMSprop())` to reproduce earlier results.
+* Conditional predictions, `predict(model, Y = )`, were rewritten. NA cells of `Y` are
+  predicted from the observed cells of the same site through the latent factors: the latent
+  factors are drawn from a Laplace approximation of their conditional distribution and
+  weighted by the likelihood of the observed species, and all NA cells of a site are predicted
+  in one pass, whatever the pattern of missing values. Binomial models give the conditional
+  probability of occurrence, poisson and negative binomial models the conditional expected
+  abundance, gaussian models the conditional mean. `predict(loo = TRUE)` with a complete `Y`
+  predicts every species from all the others in one pass. The effective sample size of the
+  weights is returned per site in `attr(, "ess")`. The earlier estimator divided two
+  independently simulated likelihoods: in simulations with 100 or more species it was worse
+  than the unconditional prediction (AUC 0.53 against 0.75 at 1000 species, 43 % of the
+  predictions exactly 0 or 1), and for counts it returned the probability of exactly one
+  individual. Sites are processed in batches, so memory no longer grows with the number of
+  sites. **Conditional predictions change.**
 * `anova()` gains `proposal`, and the default is `"laplace"`: the latent factors are drawn
   from a Gaussian fitted to the per-site mode of the integrand and each draw is reweighted by
   `log p(z) - log q(z)`. `"prior"` draws them from `N(0, I)`, which is what every earlier
@@ -76,7 +101,12 @@
   228, 34 and 587 log-likelihood units for the three links -- and the null model was scored
   with a likelihood it had not been fitted under, which inflated `Rsquared()`.
   **Variation partitioning and R-squared results change for these three families; probit
-  results move within the Monte-Carlo error.** `anova()` now refuses a model fitted with
+  results move within the Monte-Carlo error.** For `poisson()` the Associations fraction
+  now includes independent log-normal overdispersion, which only the full model's latent term
+  can absorb: on simulated independent species it was 0.002, 0.02 and 0.15 (McFadden) for a
+  log-normal standard deviation of 0, 0.5 and 1, against 0.002, 0.004 and 0.008 with
+  `family = "nbinom"`. Use the negative binomial family for overdispersed counts; see the details
+  of `anova()`. `anova()` now refuses a model fitted with
   `bioticStruct(diag = TRUE)`, whose association sub-models would not be nested in it.
 * The sub-models and the null model of `anova()` now inherit the fitted model's
   `bioticStruct()` settings. They used to be refitted with a fresh `bioticStruct()`, which
@@ -95,7 +125,7 @@
   the old optimizer (`sjSDMControl(optimizer = RMSprop())`), coefficients, associations
   and log-likelihoods agreed with 1.0.7 within Monte-Carlo noise across all families,
   spatial and DNN models.
-* `install_sjSDM()` no longer takes a `version` argument; whether the GPU is used is
+* `install_sjSDM()` no longer takes the `version`, `conda` or `restart_session` arguments; whether the GPU is used is
   decided by the 'torch' installation. `device = "mps"` now works on Apple silicon.
 * `sjSDMControl(mixed = TRUE)` (half precision) is accepted but ignored.
 * `model$history` is a `data.frame` with columns `epoch` and `train_l`, not a numeric
@@ -113,19 +143,36 @@
   goes through, so it also covers `anova()`, `sjSDM_cv()` and a reloaded model.
 
 * `summary()` of an `anova()` object defaults to `fractions = "mvp_proportional"` (was
-  `"all"`), and `internalStructure()` to `"mvp_proportional"` (was `"discard"`, which fell
-  through to the `"equal"` branch). `"mvp"` and `"mvp_proportional"` are new: Abiotic and
-  Spatial are split within the model without associations and the associations receive the
-  remainder of the full model. Without a spatial component both equal `"proportional"`.
-  `plot()` of an `anova()` object keeps `"discard"` as its default.
-* `plot()` of an `internalStructure()` object draws the ternary plots with base graphics;
-  'ggtern' is no longer needed, and no plot objects are returned.
+  `"all"`), and `internalStructure()` to `"mvp_proportional"` (was `"discard"`). `"mvp"` and
+  `"mvp_proportional"` are new: Abiotic and Spatial are split within the model without
+  associations and the associations receive the remainder of the full model. Without a spatial
+  component the printed tables equal `"proportional"`, while the per-species and per-site
+  components give Abiotic the environment-only model and the associations the remainder.
+* `summary(fractions = "proportional")` and `"equal"` allocate the shared fractions on the
+  community totals instead of per species, and in a spatial model the three-way fraction is
+  first split onto the pairwise fractions and then onto the single ones. Results change.
+* The printed row label "Assocations" in `anova()` tables is now "Associations"; code that
+  indexes the tables by the old name has to be updated.
+* `summary()` of a fitted model prints the random-effect blocks and the architecture of the
+  `NN()` blocks.
+* `update()`, and through it every `anova()` sub-model and null model, reuses the seed of the
+  fitted model; `update(seed = )` sets another one.
+* Models fitted and saved with sjSDM <= 1.0.7 cannot be restored by the 'torch' backend and
+  have to be refitted.
+* 'torch' and 'reformulas' are new dependencies; 'reticulate' was removed.
+* `plot()` of an `anova()` object keeps `"discard"` as its default.
 * `anova()` takes `mc_batch` through `...`, the number of sites whose Monte-Carlo draws are
   held in memory at once.
-* sjSDM now requires R >= 4.1.0.
 
 ## Bug fixes
 
+* `predict(model, Y = )` without `newdata` ignored `Y` and returned the unconditional
+  prediction; conditional predictions on the training sites now condition on `Y`.
+* `sjSDM()` failed with "missing value where TRUE/FALSE needed" whenever `Y` contained `NA`;
+  missing responses are now masked in the likelihood as documented.
+* The per-species and per-site shared fractions of `anova()` (and `internalStructure()` with
+  `"proportional"` or `"equal"`) were computed from the fractions instead of the sub-model R
+  squared, and were empty for non-spatial models. Values change.
 * `sjSDM_cv()` with `n_cores` and `blocks > 1` attached results to the wrong
   hyperparameters: the per-block results were combined with `rbind()` into a list matrix
   that was then read column-wise. `summary()`, `plot()` and `sjSDM.tune()` of such a run
@@ -211,6 +258,9 @@
   the strength of the associations — up to 0.12 in probability for probit, and a factor of
   roughly 1.5 on the rate for poisson and nbinom. `predict()` now returns the marginal;
   `predict(marginal = FALSE)` restores the old behaviour for reproducing earlier results.
+  **Code that rescaled `predict()` output by hand to obtain the marginal, e.g. dividing the
+  probit linear predictor by `sqrt(diag(getCov(model)))`, must drop that step**: applied to
+  the new default it scales twice and pulls the probabilities towards 0.5.
   probit, poisson, nbinom and gaussian use exact closed forms and stay deterministic; logit
   and linear have no closed form and are approximated by Monte Carlo, so they are stochastic
   and respond to `sampling`.
@@ -268,6 +318,14 @@
   rather than in R. `torch::optim_rmsprop()` and `torch::optim_sgd()` are not used: in
   'torch' 0.17.0 they apply `weight_decay` with the parameter's index instead of its value.
   The optimizers with no 'torch' counterpart redirect, see Major changes.
+* `sjSDMControl(jit = TRUE)` trains with the likelihood traced by `torch::jit_trace()` on
+  the first batch; the Monte-Carlo noise is an input of the trace and the last incomplete
+  batch is dropped as before, so every traced batch has the same shape. The fitted model is
+  the same as with `jit = FALSE` up to float rounding. On a GPU (binomial, 500 sites,
+  200 epochs) the fit is 1.4 to 3.9 times faster, from 50 to 5000 species, and at 5000
+  species as fast as the 'PyTorch' version. On the CPU it helps only below about 100
+  species (1.3 times faster at 50) and is 13 to 25 % slower from 500 species on, so it is
+  meant for GPU fits. The default is `FALSE`.
 * 'iml' was dropped from `Suggests`. It was a leftover from the removed `importance()` and
   was used nowhere in the package.
 

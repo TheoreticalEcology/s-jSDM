@@ -73,6 +73,7 @@ sjSDM_cv = function(Y,
   assert(checkMatrix(env), checkDataFrame(env), checkClass(env, "DNN"), checkClass(env, "linear"))
   assert(checkClass(spatial, "DNN"), checkClass(spatial, "linear"), checkNull(spatial))
   assert_class(biotic, "bioticStruct")
+  if (is.null(biotic$df)) biotic$df = default_df(Y)
   #qassert(CV, "X1[1,)")
   qassert(tune_steps, "X1[1,)")
   qassert(alpha_cov, "R+[0,)")

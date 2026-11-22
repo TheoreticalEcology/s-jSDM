@@ -11,7 +11,9 @@
 #' @param Y matrix of species occurrences/responses in range
 #' @param env matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}. A
 #'   \code{\link{linear}} formula may contain \code{\link{NN}} blocks and random-effect bars, see details
-#' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}
+#' @param biotic defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}.
+#'   Its rank \code{df} defaults to \code{max(5, min(floor(J/2), floor(n/10)))} for \code{J} species and \code{n}
+#'   sites; with many species and few sites a larger rank overestimates the associations, see \code{\link{bioticStruct}}
 #' @param spatial defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}
 #' @param family error distribution with link function, see details for supported distributions
 #' @param iter number of fitting iterations
@@ -284,11 +286,7 @@ sjSDM = function(Y = NULL,
   out$species = colnames(Y)
   
   ### settings ##
-  if(is.null(biotic$df)) {
-    
-    biotic$df = max(5L, as.integer(floor(ncol(Y) / 2)))
-    
-  }
+  if(is.null(biotic$df)) biotic$df = default_df(Y)
   if(is.null(step_size)) step_size = as.integer(floor(nrow(env$X) * 0.1))
   else step_size = as.integer(step_size)
   
@@ -333,7 +331,7 @@ sjSDM = function(Y = NULL,
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
                                   early_stopping_training=control$early_stopping_training,
-                                  verbose = verbose)})[3]
+                                  verbose = verbose, jit = isTRUE(control$jit))})[3]
     out$logLik = force_r( model$logLik(envX, Y,batch_size = step_size,parallel = parallel) )
     if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(envX, Y, batch_size = step_size, parallel = parallel, verbose = verbose)),along=0L)) })
   
@@ -342,7 +340,7 @@ sjSDM = function(Y = NULL,
                                   epochs = as.integer(iter), parallel = parallel, 
                                   sampling = as.integer(sampling),
                                   early_stopping_training=control$early_stopping_training,
-                                  verbose = verbose)})[3]
+                                  verbose = verbose, jit = isTRUE(control$jit))})[3]
     out$logLik = force_r( model$logLik(envX, Y, SP=spX, batch_size = step_size,parallel = parallel) )
     if(se && !inherits(env, "DNN")) try({ out$se = t(abind::abind(force_r(model$se(envX, Y, SP=spX,batch_size = step_size, parallel = parallel, verbose = verbose)),along=0L)) })
     
@@ -404,7 +402,24 @@ print.sjSDM = function(x, ...) {
 #' @param object a model fitted by \code{\link{sjSDM}}
 #' @param newdata newdata for predictions
 #' @param SP spatial predictors (e.g. X and Y coordinates)
-#' @param Y Known occurrences of species, must be a matrix of the original size, species to be predicted must consist of NAs
+#' @param Y Observed responses (occurrences, abundances or values) of the sites in \code{newdata}, a matrix
+#'   with one column per species. \code{NA} cells are predicted conditional on the observed cells of the
+#'   same site, through the latent factors that carry the species associations: the conditional
+#'   probability of occurrence for binomial models, the conditional expected abundance for poisson and
+#'   negative binomial models and the conditional mean for gaussian models. All NA cells of a site are
+#'   predicted in one pass, whatever their pattern. The result has one column per species with at least
+#'   one NA cell; observed cells are \code{NA} in it. \code{attr(, "ess")} holds the effective sample
+#'   size of the importance weights per site, as a fraction of \code{sampling} (default 1000 for
+#'   conditional predictions); values near 0 mean the prediction rests on few draws, which happens with
+#'   many observed species and a large latent rank \code{df}.
+#' @param loo with a complete \code{Y}: predict every species conditional on all other species of the same
+#'   site (leave one species out), all in one pass. \code{attr(, "ess")} is then a sites by species matrix.
+#'   The Laplace proposal is built from the complete row, the target species included, and only the
+#'   importance weights remove it, so at a low effective sample size the result is optimistic: in
+#'   simulations with 1000 species (\code{df = 500}) by 0.012 AUC (binomial) and 0.08 Spearman correlation
+#'   (Poisson) against setting the species to \code{NA}. With 5000 species, \code{df = 100} and an
+#'   effective sample size of 0.9 the two agreed (AUC 0.856 and 0.857). For an evaluation, check
+#'   \code{attr(, "ess")}, or set the held-out species to \code{NA} in \code{Y} instead.
 #' @param type raw or link
 #' @param dropout use dropout for predictions or not, only supported for DNNs and NN() blocks
 #' @param marginal integrate the latent factor out of the prediction. The species associations
@@ -415,10 +430,11 @@ print.sjSDM = function(x, ...) {
 #'   The probit, poisson, negative binomial and gaussian families use exact closed forms; the
 #'   logit and linear links have none, so their marginal is approximated by Monte Carlo and is
 #'   stochastic. \code{marginal = FALSE} restores the behaviour of sjSDM <= 1.0.7 and is only
-#'   there for reproducing older results.
+#'   there for reproducing older results. The default is already the marginal, so code that
+#'   rescaled predictions by hand (e.g. by \code{sqrt(diag(getCov(model)))}) to obtain it
+#'   must drop that step.
 #' @param ... \code{sampling}, the number of Monte-Carlo draws for the logit and linear marginals
-#'   and for conditional predictions (default 1000; conditional predictions need several
-#'   thousand for stable values)
+#'   and for conditional predictions (default 1000)
 #'
 #' @details
 #' For a model with random-effect bars the prediction for a group the fit saw is taken at the posterior
@@ -435,15 +451,16 @@ print.sjSDM = function(x, ...) {
 #' @import checkmate
 #' @export
 predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("link", "raw"),
-                         dropout = FALSE, marginal = TRUE, ...) {
+                         dropout = FALSE, marginal = TRUE, loo = FALSE, ...) {
   object = checkModel(object)
   
   assert( checkNull(newdata), checkMatrix(newdata), checkDataFrame(newdata) )
   assert( checkNull(SP), checkMatrix(SP), checkDataFrame(SP) )
   qassert( dropout, "B1")
+  qassert( loo, "B1")
+  if(loo && is.null(Y)) stop("loo = TRUE needs the complete observations in Y", call. = FALSE)
   
   if(!is.null(Y)) {
-    if(object$family$link == "count") warning("Conditional predictions are available for binomial response only")
     type = "raw"
   }
   
@@ -459,14 +476,14 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("
   if(inherits(object, "spatial")) {
     
     
+    # without newdata the fitted designs are used; Y must still condition them below
     if(is.null(newdata)) {
-      return(force_r( object$model$predict(newdata = config_X(object$settings$env), SP = config_X(object$spatial), link=link, dropout = dropout, marginal = marginal, ...)))
+      newdata = config_X(object$settings$env)
+      sp = config_X(object$spatial)
     } else {
-      
       newdata = c(sjsdm_newdata(object$settings$env, newdata),
                   re_newdata(object$settings$env, newdata))
       sp = sjsdm_newdata(object$spatial, SP)
-      
     }
     pred = force_r(object$model$predict(newdata = newdata, SP = sp, link=link, dropout = dropout, marginal = marginal, ...))
     
@@ -474,7 +491,7 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("
   } else {
     
     if(is.null(newdata)) {
-      return(force_r(object$model$predict(newdata = config_X(object$settings$env), link=link, dropout = dropout, marginal = marginal, ...)))
+      newdata = config_X(object$settings$env)
     } else {
       newdata = c(sjsdm_newdata(object$settings$env, newdata),
                   re_newdata(object$settings$env, newdata))
@@ -484,8 +501,8 @@ predict.sjSDM = function(object, newdata = NULL, SP = NULL, Y = NULL, type = c("
   
   if(!is.null(Y)) {
     args = list(...)
-    sampling = if(is.null(args[["sampling"]])) object$settings$sampling else args[["sampling"]]
-    pred = sjsdm_conditional(object$model, pred, Y, sampling)
+    sampling = if(is.null(args[["sampling"]])) 1000L else args[["sampling"]]
+    pred = sjsdm_conditional(object$model, pred, Y, sampling, loo = loo)
   }
 
 
@@ -736,12 +753,13 @@ logLik.sjSDM <- function(object, individual=FALSE,...){
 #'   parametric block and the \code{\link{NN}} blocks following it in formula order. Every
 #'   other block is removed from the sum and contributes exactly zero. Random-effect bars are
 #'   not selected here, they are kept in every refit.
+#' @param seed seed of the refit; \code{NULL} (the default) reuses the seed of \code{object}
 #' @param ... additional arguments
 #' 
 #' @return An S3 class of type 'sjSDM'. See \code{\link{sjSDM}} for more information.
 #' @export
 update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biotic = NULL,
-                        env_blocks = NULL, ...) {
+                        env_blocks = NULL, seed = NULL, ...) {
   
   if(!is.null(env_formula)){
     env_formula = stats::as.formula(env_formula, env = parent.frame())
@@ -785,7 +803,7 @@ update.sjSDM = function(object, env_formula = NULL, spatial_formula = NULL, biot
                     device = object$settings$device, 
                     dtype = object$settings$dtype,
                     se = object$settings$se,
-                    seed = object$seed,
+                    seed = if(is.null(seed)) object$seed else seed,
                     ...
   )
   return(new_model)
