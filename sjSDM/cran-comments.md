@@ -38,8 +38,8 @@ Locally:
 * Ubuntu 26.04 LTS (R 4.5.2), `--as-cran`, with libtorch: no ERRORs or NOTEs, one WARNING
   ('qpdf' is not installed on this machine)
 * the same machine with libtorch hidden: no ERRORs or NOTEs, the same WARNING; the tests
-  skip (FAIL 0, SKIP 107, PASS 6)
-* Ubuntu 24.04 LTS (R 4.6.1): full test suite on the CPU and on a CUDA device (FAIL 0, PASS 1337)
+  skip (FAIL 0, SKIP 108, PASS 6)
+* Ubuntu 24.04 LTS (R 4.6.1): full test suite on the CPU and on a CUDA device (FAIL 0)
 
 Win-builder:
 * R-release, R-devel and R-oldrelease: TO FILL from the result e-mails

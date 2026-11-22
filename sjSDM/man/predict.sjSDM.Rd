@@ -32,7 +32,8 @@ predicted in one pass, whatever their pattern. The result has one column per spe
 one NA cell; observed cells are \code{NA} in it. \code{attr(, "ess")} holds the effective sample
 size of the importance weights per site, as a fraction of \code{sampling} (default 1000 for
 conditional predictions); values near 0 mean the prediction rests on few draws, which happens with
-many observed species and a large latent rank \code{df}.}
+many observed species and a large latent rank \code{df}. Every site needs at least one observed
+cell; predict a site without observations unconditionally.}
 
 \item{type}{raw or link}
 
@@ -63,7 +64,9 @@ effective sample size of 0.9 the two agreed (AUC 0.856 and 0.857). For an evalua
 and for conditional predictions (default 1000)}
 }
 \value{
-Matrix of predictions (sites by species)
+Matrix of predictions, sites by species. With \code{Y}: sites by the species that have an
+\code{NA} cell, with the per-site effective sample size in \code{attr(, "ess")}; with
+\code{loo = TRUE}: sites by species, and \code{attr(, "ess")} a matrix of the same shape.
 }
 \description{
 Predict from a fitted sjSDM model
@@ -79,21 +82,29 @@ of Monte-Carlo noise.
 \examples{
 \dontrun{
 
-## Conditional predictions based on focal species
-com = simulate_SDM(sites = 200L)
+## Conditional predictions based on observed species
+com = simulate_SDM(sites = 200L, species = 10L)
 ## first 100 observations are the training data
-model = sjSDM(com$response[1:100, ], com$env_weights[1:100,])
-## Assume that for the other 100 observations, only the first species is missing 
-## and we want to use the other 4 species to improve the predictions:
+model = sjSDM(com$response[1:100, ], com$env_weights[1:100,], iter = 50L, verbose = FALSE)
+## Assume that for the other 100 observations the first three species are missing
+## and we want to use the other species to improve their predictions:
 Y_focal = com$response[101:200, ]
-Y_focal[,1] = NA # set to NA because occurrences are unknown
+Y_focal[, 1:3] = NA # set to NA because occurrences are unknown
 
+## all NA cells of a site are predicted together, conditional on its observed species
 pred_conditional = predict(model, newdata = com$env_weights[101:200,], Y = Y_focal)
-pred_unconditional = predict(model, newdata = com$env_weights[101:200,])[,1]
+pred_unconditional = predict(model, newdata = com$env_weights[101:200,])[, 1:3]
 
-## Compare performance:
-Metrics::auc(com$response[101:200, 1], pred_conditional)
-Metrics::auc(com$response[101:200, 1], pred_unconditional)
+## Compare performance for the first species:
+Metrics::auc(com$response[101:200, 1], pred_conditional[, 1])
+Metrics::auc(com$response[101:200, 1], pred_unconditional[, 1])
+
+## effective sample size of the importance sampler per site, 1 means every draw counted
+summary(attr(pred_conditional, "ess"))
+
+## Leave one species out: every species conditional on all others, in one pass
+pred_loo = predict(model, newdata = com$env_weights[101:200,],
+                   Y = com$response[101:200, ], loo = TRUE)
 
 ## Conditional predictions are better, however, it only works if occurrences of
 ## other species for new sites are known!
