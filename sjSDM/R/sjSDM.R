@@ -411,7 +411,8 @@ print.sjSDM = function(x, ...) {
 #'   one NA cell; observed cells are \code{NA} in it. \code{attr(, "ess")} holds the effective sample
 #'   size of the importance weights per site, as a fraction of \code{sampling} (default 1000 for
 #'   conditional predictions); values near 0 mean the prediction rests on few draws, which happens with
-#'   many observed species and a large latent rank \code{df}.
+#'   many observed species and a large latent rank \code{df}. Every site needs at least one observed
+#'   cell; predict a site without observations unconditionally.
 #' @param loo with a complete \code{Y}: predict every species conditional on all other species of the same
 #'   site (leave one species out), all in one pass. \code{attr(, "ess")} is then a sites by species matrix.
 #'   The Laplace proposal is built from the complete row, the target species included, and only the
@@ -444,7 +445,9 @@ print.sjSDM = function(x, ...) {
 #' \code{linear} links the prior variance is added by sampling, so those predictions carry one more source
 #' of Monte-Carlo noise.
 #'
-#' @return Matrix of predictions (sites by species)
+#' @return Matrix of predictions, sites by species. With \code{Y}: sites by the species that have an
+#'   \code{NA} cell, with the per-site effective sample size in \code{attr(, "ess")}; with
+#'   \code{loo = TRUE}: sites by species, and \code{attr(, "ess")} a matrix of the same shape.
 #'
 #' @example /inst/examples/predict-example.R
 #'

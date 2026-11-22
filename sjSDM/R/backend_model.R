@@ -562,6 +562,8 @@ sjsdm_state = function(module, cell = new.env(parent = emptyenv())) {
 sjsdm_conditional = function(model, predictions, Y, sampling, loo = FALSE) {
   Y = as.matrix(Y)
   predictions = as.matrix(predictions)
+  if (!identical(dim(Y), dim(predictions)))
+    stop("Y needs one row per site of newdata and one column per species", call. = FALSE)
   na = is.na(Y)
   if (loo && any(na)) stop("loo = TRUE needs a complete Y", call. = FALSE)
   if (!loo && !any(na)) stop("Y has no NA cells to predict", call. = FALSE)

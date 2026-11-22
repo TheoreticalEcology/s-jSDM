@@ -320,3 +320,15 @@ testthat::test_that("conditional predictions keep newdata rows with a missing pr
   testthat::expect_true(is.na(p[2, 1]) && is.na(attr(p, "ess")[2]))
   testthat::expect_false(anyNA(p[-2, 1]))
 })
+
+testthat::test_that("conditional predictions refuse a Y that does not match newdata", {
+  skip_if_no_torch()
+  set.seed(1)
+  X = data.frame(x = rnorm(80))
+  Y = matrix(rbinom(80 * 5, 1, 0.5), 80)
+  m = sjSDM(Y, env = linear(X, ~.), iter = 3L, verbose = FALSE, se = FALSE)
+  Yc = Y
+  Yc[, 1] = NA
+  testthat::expect_error(predict(m, newdata = X[1:10, , drop = FALSE], Y = Yc), "one row per site")
+  testthat::expect_error(predict(m, newdata = X, Y = Yc[, 1:4]), "one row per site")
+})

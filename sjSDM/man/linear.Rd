@@ -232,6 +232,31 @@ model = sjSDM(Y = com$response,
               iter = 2L) # increase iter for your own data 
 getCov(model)
 getWeights(model)
+
+
+# Grouping factors (random effects)
+## the 100 sites lie in 10 plots; bars as in 'lme4' go into the environmental formula
+com = simulate_SDM(env = 3L, species = 7L, sites = 100L)
+X = data.frame(com$env_weights, plot = factor(rep(1:10, each = 10)))
+model = sjSDM(Y = com$response,
+              env = linear(X, ~ X1 + X2 + X3 + (1 | plot)),
+              verbose = FALSE,
+              iter = 50L) # increase iter for your own data
+summary(model)
+getRE(model)$plot$cov[, 1, 1] # group variance per species
+
+## the variation partitioning is conditional on the plots, and reports what
+## the plots alone explain
+result = anova(model, verbose = FALSE)
+summary(result)
+
+
+# Faster training on a GPU with the traced likelihood (falls back to the CPU
+# with a warning if no GPU is available; on the CPU it helps only for small communities)
+model = sjSDM(Y = com$response, env = linear(com$env_weights),
+              device = "gpu", control = sjSDMControl(jit = TRUE),
+              verbose = FALSE,
+              iter = 50L)
 }
 }
 \seealso{
