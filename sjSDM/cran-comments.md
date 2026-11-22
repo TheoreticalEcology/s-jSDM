@@ -42,7 +42,7 @@ Locally:
 * Ubuntu 24.04 LTS (R 4.6.1): full test suite on the CPU and on a CUDA device (FAIL 0)
 
 Win-builder:
-* R-release, R-devel and R-oldrelease: TO FILL from the result e-mails
+* R-release, R-devel and R-oldrelease: no ERRORs, WARNINGs or NOTEs
 
 Spelling has been checked (potential errors are intended): ANOVA, Leibold, al, biotic, eDNA,
 et, jSDM, metacommunity, probit.
