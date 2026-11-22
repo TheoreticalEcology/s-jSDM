@@ -84,11 +84,11 @@ an = anova(model,
 internal = internalStructure(an)
 plot(internal)
 
-## Visualize community assemlby effects 
+## Visualize community assembly effects 
 
 plotAssemblyEffects(internal)
 
-### see ?anova.sjSDM for mroe details
+### see ?anova.sjSDM for more details
 
 
 ## non-linear(deep neural network) model
@@ -132,7 +132,7 @@ print(result)
 plot(result)
 
 ## visualize internal meta-community structure
-internal = internalStructure(an)
+internal = internalStructure(result)
 plot(internal)
 
 

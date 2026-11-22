@@ -10,6 +10,7 @@
   spatial_formula = NULL,
   biotic = NULL,
   env_blocks = NULL,
+  seed = NULL,
   ...
 )
 }
@@ -26,6 +27,8 @@
 parametric block and the \code{\link{NN}} blocks following it in formula order. Every
 other block is removed from the sum and contributes exactly zero. Random-effect bars are
 not selected here, they are kept in every refit.}
+
+\item{seed}{seed of the refit; \code{NULL} (the default) reuses the seed of \code{object}}
 
 \item{...}{additional arguments}
 }

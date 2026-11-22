@@ -1,7 +1,7 @@
 ---
 title: "sjSDM: Getting started with sjSDM - a scalable joint Species Distribution Model"
 author: "Maximilian Pichler & Florian Hartig, Theoretical Ecology, University of Regensburg"
-date: "2026-11-12"
+date: "2026-11-22"
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -28,7 +28,7 @@ A jSDM is a GLMM that models a multivariate (i.e. a many-species) response to th
 
 ![Figure 1: jSDM structure. jSDM uses a community matrix as response (rows = number of observations, columns = number of species) and tries to explain the occurrences in the community matrix as a function of environment and space. Moreover, compared to classical SDM, jSDM have an additional component, the biotic associations, that tries to account for unobservable species-species interactions. More precisely, the biotic association matrix is a variance-covariance matrix that accounts for co-occurrence patterns not explainable by environment and space.](jSDM-structure.png)
 
-A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, <https://www.doi.org/10.1111/2041-210X.13687>.
+A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, <https://doi.org/10.1111/2041-210X.13687>.
 
 Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation.
 
@@ -448,13 +448,13 @@ We can then predict occurrences for the first 6 species, conditioning on the res
 ``` r
 pred = predict(model, newdata = Env, SP = Coords, Y = New_PA)
 head(pred)
-#>             ALA          ARE       BAX          CAM         GON          MEL
-#> [1,] 0.06781613 0.0029573406 0.2482722 0.0020618244 0.017007928 0.0041435466
-#> [2,] 0.10112725 0.0018871043 0.1996141 0.0004531474 0.006555796 0.0007504206
-#> [3,] 0.04766515 0.0013105572 0.2461754 0.0029353312 0.010688946 0.0020530586
-#> [4,] 0.02979333 0.0008045580 0.5885630 0.0022330045 0.004372215 0.0077072862
-#> [5,] 0.02819901 0.0003650051 0.9262074 0.0021866829 0.001447690 0.0176913255
-#> [6,] 0.06589613 0.0006846486 0.3052071 0.0012634862 0.019939523 0.0015146832
+#>             ALA          ARE       BAX          CAM          GON          MEL
+#> [1,] 0.06905651 0.0012154412 0.2489829 8.927818e-04 0.0135766827 1.459136e-03
+#> [2,] 0.11149334 0.0008313929 0.2181379 2.054316e-05 0.0081691938 5.072801e-05
+#> [3,] 0.04689207 0.0012771345 0.2383958 6.479259e-04 0.0148245469 3.141727e-04
+#> [4,] 0.02596033 0.0005803439 0.6375118 8.000252e-04 0.0035677883 2.987237e-03
+#> [5,] 0.02101481 0.0003416643 0.7762521 1.101890e-03 0.0004100669 1.012278e-02
+#> [6,] 0.06968782 0.0005486101 0.2543242 1.905323e-04 0.0146277826 1.191086e-04
 ```
 
 Note that the predict function returns only predictions for species with NA in Y
@@ -884,8 +884,14 @@ Some practical points:
 - The estimated group variance does not reach zero when there is no group effect, so it is not a test
   for whether a group effect exists. Report it together with the
   latent rank `df` (`re(1 | plot, df = 2)`), because a larger `df` gives a larger variance.
-- `anova()` is not available for models with random effects, and `logLik()` of such a model is
-  conditional on the estimated group effects, so it cannot be compared with a model without them.
+- `anova()` of a model with random effects is conditional on the random intercepts: they are part of
+  the null model and of every sub-model, so the fractions are the variation explained beyond the
+  grouping, and random slopes count towards the environment. With a random intercept on a site or
+  plot identifier, covariates that are constant within sites compete with it for the differences
+  between sites and keep only part of their fraction (about half in simulations), while covariates
+  that vary within sites keep theirs.
+- `logLik()` of a model with random effects is conditional on the estimated group effects, so it
+  cannot be compared with a model without them.
 
 ## Adjusting regularization parameters
 
@@ -1127,4 +1133,4 @@ unchanged, but results differ from 1.0.x:
 ## Help and bugs
 
 -   ask for help via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues). Please post the output of `sjSDM::install_diagnostic()` as a quote.
--   report bugs with a [reproducible example](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example) via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)
+-   report bugs with a reproducible example via the [issue tracker](https://github.com/TheoreticalEcology/s-jSDM/issues)

@@ -12,6 +12,7 @@
   type = c("link", "raw"),
   dropout = FALSE,
   marginal = TRUE,
+  loo = FALSE,
   ...
 )
 }
@@ -22,7 +23,16 @@
 
 \item{SP}{spatial predictors (e.g. X and Y coordinates)}
 
-\item{Y}{Known occurrences of species, must be a matrix of the original size, species to be predicted must consist of NAs}
+\item{Y}{Observed responses (occurrences, abundances or values) of the sites in \code{newdata}, a matrix
+with one column per species. \code{NA} cells are predicted conditional on the observed cells of the
+same site, through the latent factors that carry the species associations: the conditional
+probability of occurrence for binomial models, the conditional expected abundance for poisson and
+negative binomial models and the conditional mean for gaussian models. All NA cells of a site are
+predicted in one pass, whatever their pattern. The result has one column per species with at least
+one NA cell; observed cells are \code{NA} in it. \code{attr(, "ess")} holds the effective sample
+size of the importance weights per site, as a fraction of \code{sampling} (default 1000 for
+conditional predictions); values near 0 mean the prediction rests on few draws, which happens with
+many observed species and a large latent rank \code{df}.}
 
 \item{type}{raw or link}
 
@@ -36,11 +46,21 @@ probit link the marginal is \eqn{\Phi(\mu / \sqrt{\mathrm{diag}(\Sigma\Sigma' + 
 The probit, poisson, negative binomial and gaussian families use exact closed forms; the
 logit and linear links have none, so their marginal is approximated by Monte Carlo and is
 stochastic. \code{marginal = FALSE} restores the behaviour of sjSDM <= 1.0.7 and is only
-there for reproducing older results.}
+there for reproducing older results. The default is already the marginal, so code that
+rescaled predictions by hand (e.g. by \code{sqrt(diag(getCov(model)))}) to obtain it
+must drop that step.}
+
+\item{loo}{with a complete \code{Y}: predict every species conditional on all other species of the same
+site (leave one species out), all in one pass. \code{attr(, "ess")} is then a sites by species matrix.
+The Laplace proposal is built from the complete row, the target species included, and only the
+importance weights remove it, so at a low effective sample size the result is optimistic: in
+simulations with 1000 species (\code{df = 500}) by 0.012 AUC (binomial) and 0.08 Spearman correlation
+(Poisson) against setting the species to \code{NA}. With 5000 species, \code{df = 100} and an
+effective sample size of 0.9 the two agreed (AUC 0.856 and 0.857). For an evaluation, check
+\code{attr(, "ess")}, or set the held-out species to \code{NA} in \code{Y} instead.}
 
 \item{...}{\code{sampling}, the number of Monte-Carlo draws for the logit and linear marginals
-and for conditional predictions (default 1000; conditional predictions need several
-thousand for stable values)}
+and for conditional predictions (default 1000)}
 }
 \value{
 Matrix of predictions (sites by species)

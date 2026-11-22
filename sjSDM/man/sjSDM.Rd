@@ -32,7 +32,9 @@ sjSDM.tune(object)
 \item{env}{matrix of environmental predictors, object of type \code{\link{linear}} or \code{\link{DNN}}. A
 \code{\link{linear}} formula may contain \code{\link{NN}} blocks and random-effect bars, see details}
 
-\item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}}
+\item{biotic}{defines biotic (species-species associations) structure, object of type \code{\link{bioticStruct}}.
+Its rank \code{df} defaults to \code{max(5, min(floor(J/2), floor(n/10)))} for \code{J} species and \code{n}
+sites; with many species and few sites a larger rank overestimates the associations, see \code{\link{bioticStruct}}}
 
 \item{spatial}{defines spatial structure, object of type \code{\link{linear}} or \code{\link{DNN}}}
 
@@ -328,11 +330,11 @@ an = anova(model,
 internal = internalStructure(an)
 plot(internal)
 
-## Visualize community assemlby effects 
+## Visualize community assembly effects 
 
 plotAssemblyEffects(internal)
 
-### see ?anova.sjSDM for mroe details
+### see ?anova.sjSDM for more details
 
 
 ## non-linear(deep neural network) model
@@ -376,7 +378,7 @@ print(result)
 plot(result)
 
 ## visualize internal meta-community structure
-internal = internalStructure(an)
+internal = internalStructure(result)
 plot(internal)
 
 

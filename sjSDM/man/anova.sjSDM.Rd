@@ -29,7 +29,9 @@ from, keeps a bias of roughly \code{(1/ess - 1)/(2 * samples)} per site. See Det
 \item{...}{optional arguments which are passed to the calculation of the logLikelihood,
 including \code{mc_batch}, the number of sites whose Monte-Carlo draws are held in
 memory at once. It defaults to the model's \code{step_size}, lowered if that would
-exceed roughly 2.5 GB; lower it by hand on a device with less memory.}
+exceed roughly 2.5 GB; lower it by hand on a device with less memory. For a model with
+random effects also \code{re_draws} (default 50), the number of draws of the group effects
+their marginal likelihood is averaged over; the cost of the anova grows linearly with it.}
 }
 \value{
 An S3 class of type 'sjSDManova' including the following components:
@@ -42,6 +44,8 @@ An S3 class of type 'sjSDManova' including the following components:
 \item{sites}{individual site R2s.}
 \item{lls}{individual site by species negative-log-likelihood values.}
 \item{proposal}{the sampler the latent factors were drawn from.}
+\item{grouping}{for a model with random effects: log-likelihood of the intercept-only model, of the
+null with random intercepts, and the McFadden R-squared of the random intercepts alone.}
 \item{ess}{sites-by-sub-model matrix of effective sample sizes, as a fraction of \code{samples}.
 One column per fitted sub-model, so a low column shows which model's likelihood rests on few
 draws. \code{attr(, "newton_decrement")} carries the largest Newton decrement the Laplace mode-finder left
@@ -66,6 +70,15 @@ were fitted with an identity covariance, which for a probit link only rescales t
 the count, negative binomial and gaussian links adds a fixed unit latent variance; that misfit was then
 reported as associations.
 
+For the count family this has a consequence worth knowing: the latent term of the full model also
+carries each species' own extra variance (the diagonal of the association matrix), i.e. log-normal
+overdispersion, and the sub-models without associations cannot. Overdispersion is therefore part of the
+Associations fraction. In simulations with 7 independent species and 180 sites, the Associations
+fraction (McFadden R-squared, mean over 5 datasets) of a Poisson model was 0.002 without
+overdispersion, 0.02 with a log-normal standard deviation of 0.5 and 0.15 with 1. For overdispersed
+counts use \code{family = "nbinom"}, whose dispersion parameter is present in every sub-model; on
+the same data it was 0.002, 0.004 and 0.008.
+
 \code{proposal = "prior"} draws the latent factors blind and weights them by the likelihood.
 At many species almost every draw lands where the observed community is implausible, so the effective
 sample size collapses -- measured at 100 species it is 3 draws out of 1000 -- and the negative
@@ -85,9 +98,23 @@ measurement scale of the response and turn positive for small residual variances
 by 1 and differs between units. The deviances and the Nagelkerke R-squared do not have this problem.
 
 \code{anova} is not defined for a model fitted with \code{bioticStruct(diag = TRUE)}, whose sub-models with
-associations would not be nested in it, and raises an error. It is also not defined for a model with
-random-effect bars in the environmental formula and raises an error. Every refit re-estimates the random blocks, so they absorb the fraction that was removed
-instead of cancelling from the difference. Use \code{\link{getRE}} for the group variances.
+associations would not be nested in it, and raises an error.
+
+For a model with random-effect bars the anova is conditional on the random intercepts: the null model
+and every sub-model contain the random intercept of each grouping factor, so the fractions are the
+variation explained by environment, associations and space beyond the grouping. A random slope belongs
+to the abiotic component and is removed with it; for \code{(temp | plot)} the null holds
+\code{(1 | plot)} and only the sub-models with the abiotic component hold \code{(temp | plot)}. The
+\code{grouping} component reports what the random intercepts alone explain against an intercept-only
+model. Every model is scored on its marginal likelihood, with the group effects integrated out by
+importance sampling from their fitted posterior (\code{re_draws}, see \code{...}). With a random
+intercept on a site or plot identifier, covariates that are constant within sites compete with it for
+the variation between groups: in simulations such a covariate kept about half of its deviance, while
+covariates that vary within groups kept all of it. The estimated group variance does not reach zero,
+so a random intercept without a true group effect still takes a little from the full model (about
+2.5 per cent of its R-squared in simulations), and a random slope without a true slope variance adds a
+little to the abiotic fraction. With crossed grouping factors, e.g. \code{(1 | plot) + (1 | year)},
+the group effects cannot be integrated separately and \code{re_draws} has to be raised substantially.
 
 The \code{species} and \code{sites} components are not the printed table restricted to a species or a
 site, and they are read differently. The table composes the fractions on the log-likelihood scale and

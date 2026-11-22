@@ -194,3 +194,129 @@ testthat::test_that("simulate_SDM follows the response and the link", {
   testthat::expect_true(any(cnt > 1))
   testthat::expect_error(simulate_SDM(link = "identical", response = "pa"), "presence-absence")
 })
+
+# Regressions from the 2026-11-18 NEWS-completeness review.
+
+testthat::test_that("predict(Y = ) conditions without newdata, update() takes a seed", {
+  skip_if_no_torch()
+  set.seed(11)
+  n = 150L
+  z = rnorm(n)
+  Y = 1 * (outer(z, rep(1.5, 4)) + matrix(rnorm(n * 4), n, 4) > 0)
+  X = data.frame(x = rnorm(n))
+  m = sjSDM(Y, env = linear(X, ~ x), iter = 40L, verbose = FALSE, device = "cpu", seed = 1L)
+  Yc = Y
+  Yc[, 1] = NA
+  cond = predict(m, Y = Yc, sampling = 2000L)
+  uncond = predict(m)
+  testthat::expect_gt(max(abs(cond[, 1] - uncond[, 1])), 0.1)
+  testthat::expect_gt(stats::cor(cond[, 1], Y[, 2]), stats::cor(uncond[, 1], Y[, 2]))
+  testthat::expect_s3_class(update(m, seed = 3L), "sjSDM")
+})
+
+testthat::test_that("conditional expected abundance matches a brute-force reference", {
+  skip_if_no_torch()
+  set.seed(12)
+  n = 200L
+  z = rnorm(n)
+  lam = exp(outer(rep(0.5, n), rep(1, 3)) + outer(z, c(0.8, 0.7, -0.6)))
+  for (fam in list(poisson(), "nbinom")) {
+    Y = matrix(rpois(length(lam), lam), n, 3)
+    m = sjSDM(Y, env = linear(data.frame(x = rnorm(n)), ~ x), family = fam, iter = 60L,
+              verbose = FALSE, device = "cpu", seed = 1L)
+    Yc = Y
+    Yc[, 1] = NA
+    cond = predict(m, Y = Yc, sampling = 5000L)
+    mu = predict(m, type = "raw")
+    sig = m$model$get_sigma
+    th = m$model$get_theta
+    lik = if (identical(fam, "nbinom")) {
+      r = 1 / (log1p(exp(th)) + 1e-4)
+      function(y, E, j) stats::dnbinom(y, size = r[j], mu = E, log = TRUE)
+    } else function(y, E, j) stats::dpois(y, E, log = TRUE)
+    Z = matrix(rnorm(2e5 * ncol(sig)), ncol = ncol(sig))
+    for (i in c(1L, 7L, 50L)) {
+      lw = lik(Y[i, 2], exp(mu[i, 2] + Z %*% sig[2, ]), 2) + lik(Y[i, 3], exp(mu[i, 3] + Z %*% sig[3, ]), 3)
+      w = exp(lw - max(lw))
+      ref = sum(w * exp(mu[i, 1] + Z %*% sig[1, ])) / sum(w)
+      testthat::expect_equal(cond[i, 1], ref, tolerance = 0.05)
+    }
+  }
+})
+
+testthat::test_that("conditional predictions: exact gaussian, any NA pattern, loo in one pass", {
+  skip_if_no_torch()
+  set.seed(3)
+  n = 200L
+  J = 4L
+  X = data.frame(x = rnorm(n))
+  L = matrix(c(0.8, 0.7, -0.6, 0.5, 0.2, -0.3, 0.4, 0.6), J, 2)
+  Y = outer(X$x, rnorm(J)) + matrix(rnorm(n * 2), n, 2) %*% t(L) + matrix(rnorm(n * J, 0, 0.5), n, J)
+  m = sjSDM(Y, env = linear(X, ~ x), family = gaussian(), iter = 60L, verbose = FALSE,
+            device = "cpu", seed = 1L)
+  mu = predict(m, type = "raw")
+  sig = m$model$get_sigma
+  V = sig %*% t(sig) + diag(exp(m$model$get_theta)^2)
+  Yc = Y
+  Yc[1:50, 1] = NA
+  Yc[26:75, c(2, 4)] = NA
+  p = predict(m, Y = Yc, sampling = 3000L)
+  testthat::expect_identical(dim(p), c(n, 3L))
+  testthat::expect_true(all(is.na(p[76:n, ])))
+  for (i in c(1L, 30L, 60L)) {
+    t = which(is.na(Yc[i, ]))
+    o = which(!is.na(Yc[i, ]))
+    ex = mu[i, t] + V[t, o, drop = FALSE] %*% solve(V[o, o]) %*% (Y[i, o] - mu[i, o])
+    testthat::expect_equal(unname(p[i, match(t, c(1L, 2L, 4L))]), as.numeric(ex), tolerance = 0.03)
+  }
+  lo = predict(m, Y = Y, loo = TRUE, sampling = 2000L)
+  testthat::expect_identical(dim(lo), c(n, J))
+  testthat::expect_identical(dim(attr(lo, "ess")), c(n, J))
+  for (i in c(5L, 80L, 150L)) {
+    ex = mu[i, 3] + V[3, -3, drop = FALSE] %*% solve(V[-3, -3]) %*% (Y[i, -3] - mu[i, -3])
+    testthat::expect_equal(lo[i, 3], as.numeric(ex), tolerance = 0.05)
+  }
+  testthat::expect_error(predict(m, Y = Yc, loo = TRUE), "complete")
+})
+
+testthat::test_that("jit = TRUE trains the same model, NA cells stay masked after the trace", {
+  skip_if_no_torch()
+  set.seed(1)
+  n = 103
+  X = data.frame(a = rnorm(n))
+  Y = 1 * (matrix(rnorm(n * 5), n) + X$a > 0)
+  Y[60:103, 2] = NA
+  fit = function(jit) sjSDM(Y, env = linear(X, ~.), iter = 5L, step_size = 20L, seed = 3L,
+                            verbose = FALSE, se = FALSE, control = sjSDMControl(jit = jit))
+  a = fit(FALSE)
+  b = fit(TRUE)
+  testthat::expect_equal(unlist(getWeights(b)), unlist(getWeights(a)), tolerance = 1e-5)
+  testthat::expect_equal(b$history$train_l, a$history$train_l, tolerance = 1e-5)
+})
+
+testthat::test_that("default df is half the species, capped at a tenth of the sites", {
+  skip_if_no_torch()
+  set.seed(1)
+  fit = function(n, J) {
+    Y = matrix(rbinom(n * J, 1, 0.4), n, J)
+    sjSDM(Y, env = linear(data.frame(a = rnorm(n)), ~.), iter = 1L, verbose = FALSE, se = FALSE)
+  }
+  testthat::expect_identical(fit(100L, 60L)$loss_properties$df, 10L)
+  testthat::expect_identical(fit(400L, 30L)$loss_properties$df, 15L)
+  testthat::expect_identical(fit(30L, 6L)$loss_properties$df, 5L)
+})
+
+testthat::test_that("conditional predictions keep newdata rows with a missing predictor as NA", {
+  skip_if_no_torch()
+  set.seed(1)
+  X = data.frame(x = rnorm(120))
+  Y = matrix(rbinom(120 * 6, 1, 0.5), 120)
+  m = sjSDM(Y, env = linear(X, ~.), iter = 5L, verbose = FALSE, se = FALSE)
+  nd = X[1:10, , drop = FALSE]
+  nd$x[2] = NA
+  Yq = Y[1:10, ]
+  Yq[, 1] = NA
+  p = predict(m, newdata = nd, Y = Yq)
+  testthat::expect_true(is.na(p[2, 1]) && is.na(attr(p, "ess")[2]))
+  testthat::expect_false(anyNA(p[-2, 1]))
+})

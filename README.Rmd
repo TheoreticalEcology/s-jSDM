@@ -7,7 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-[![Project Status: Active -- The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active) [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/sjSDM)](https://cran.r-project.org/package=sjSDM) ![R-CMD-check](https://github.com/TheoreticalEcology/s-jSDM/workflows/R-CMD-check/badge.svg?branch=master) [![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://www.doi.org/10.1111/2041-210X.13687)
+[![Project Status: Active -- The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active) [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/sjSDM)](https://cran.r-project.org/package=sjSDM) ![R-CMD-check](https://github.com/TheoreticalEcology/s-jSDM/workflows/R-CMD-check/badge.svg?branch=master) [![Publication](https://img.shields.io/badge/Publication-10.1111/2041-green.svg)](https://doi.org/10.1111/2041-210X.13687)
 
 # s-jSDM - Fast and accurate Joint Species Distribution Modeling
 
@@ -17,7 +17,7 @@ The sjSDM package is an R package for estimating joint species distribution mode
 
 ![image](sjSDM/vignettes/jSDM-structure.png)
 
-A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://www.doi.org/10.1111/2041-210X.13687. 
+A big challenge in jSDM implementation is computational speed. The goal of the sjSDM (which stands for "scalable joint species distribution models") is to make jSDM computations fast and scalable. Unlike many other packages, which use a latent-variable approximation to make estimating jSDMs faster, sjSDM fits a full covariance matrix in the likelihood, which is, however, numerically approximated via simulations. The method is described in Pichler & Hartig (2021) A new joint species distribution model for faster and more accurate inference of species associations from big community data, https://doi.org/10.1111/2041-210X.13687. 
 
 Since version 1.1.0 the core code of sjSDM is implemented in R on top of [torch](https://torch.mlverse.org/) (libtorch). Earlier versions wrapped a Python / PyTorch backend through reticulate; that is gone, and with it the need for python, conda and a separate PyTorch installation. Model code runs unchanged, but results differ from 1.0.x: the default optimizer is now `Adam()` (`sjSDMControl(optimizer = RMSprop())` restores the old one), `predict()` returns marginal predictions, and `anova()` and `Rsquared()` results change because several defects were fixed. See `news(package = "sjSDM")`.
 
@@ -96,12 +96,45 @@ Visualize the species-species association matrix
 image(getCor(model))
 ```
 
+## Conditional predictions
+
+Because the model estimates how species co-occur, knowing which species occur at a site informs the prediction of the others. Set the species to predict to `NA` in `Y`; all `NA` cells of a site are then predicted together, in one pass, conditional on the observed species of that site:
+
+```{r}
+Occ_new = Occ
+Occ_new[, 1:3] = NA
+pred_cond = predict(model, newdata = Env, SP = SP, Y = Occ_new)
+head(round(pred_cond, 3))
+```
+
+## Grouping factors (random effects)
+
+Sites that share a plot, a transect or a year are not independent. Grouping factors are written into the environmental formula with the bar syntax of 'lme4'; without them, a shared plot effect would be absorbed by the species associations. Here 20 plots of 5 sites each, with an unmeasured plot condition that some species like and others avoid:
+
+```{r}
+plot_id = factor(rep(1:20, each = 5))
+plot_condition = rnorm(20)[plot_id]
+eta = as.matrix(Env) %*% matrix(rnorm(30), 3, 10) + outer(plot_condition, runif(10, -1.5, 1.5))
+Occ_plot = 1 * (eta + rnorm(1000) > 0)
+Env_plot = data.frame(Env, plot = plot_id)
+```
+
+```{r, results='hide'}
+model_plot = sjSDM(Y = Occ_plot, env = linear(Env_plot, ~ X1 + X2 + X3 + (1 | plot)), verbose = FALSE)
+```
+
+```{r}
+summary(model_plot)
+```
+
+`getRE()` returns the estimated group covariance and the predicted group effects, and `anova()` reports the variation partitioning conditional on the grouping, together with what the grouping alone explains.
+
 
 ## Anova / Variation partitioning
 
 ### Global ANOVA
 
-As in other models, it can be interesting to analyze how much variation is explained by which parts of hte model. 
+As in other models, it can be interesting to analyze how much variation is explained by which parts of the model. 
 
 ![image](sjSDM/vignettes/jSDM-ANOVA.png){{width=70%}}
 For the Env, Spatial, Covariance terms, this is implemented in 

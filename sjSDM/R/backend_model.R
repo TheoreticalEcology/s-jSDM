@@ -291,8 +291,9 @@ Model_sjSDM = torch::nn_module(
     list(inputs = lapply(inputs, mk), Y = mk(Y))
   },
 
-  batch_loss = function(inputs, Yb, sampling, kl_scale = 0.0) {
-    l = self$loss(self$net(inputs), Yb, sampling)$mean()
+  batch_loss = function(inputs, Yb, sampling, kl_scale = 0.0, nll = NULL) {
+    mu = self$net(inputs)
+    l = (if (is.null(nll)) self$loss(mu, Yb, sampling) else nll(mu, Yb))$mean()
     for (p in c(self$net$penalty(), self$loss$penalty())) l = l$add(p)
     kl = self$net$kl()
     if (!is.null(kl)) l = l$add(kl$mul(kl_scale))
@@ -308,7 +309,7 @@ Model_sjSDM = torch::nn_module(
   },
 
   fit = function(X, Y, SP = NULL, batch_size = 25L, epochs = 100L, sampling = 1000L,
-                 parallel = 0L, early_stopping_training = -1, verbose = TRUE) {
+                 parallel = 0L, early_stopping_training = -1, verbose = TRUE, jit = FALSE) {
     d = self$as_tensors(c(as_input(X), as_input(SP)), Y)
     n = d$inputs[[1]]$shape[1]
     batch_size = max(1L, as.integer(batch_size))
@@ -320,6 +321,7 @@ Model_sjSDM = torch::nn_module(
     # the KL by n would under-weight it by exactly that (PREDICTOR_plan.md 6.2)
     kl_scale = 1.0 / sum(vapply(rng, function(r) r[2], 1L))
     if (is.null(self$optimizer)) self$build_optimizer()
+    nll = if (jit) self$loss$traced_nll(sampling)
     losses = numeric(epochs)
     done = 0L
     es_on = early_stopping_training > 0
@@ -351,7 +353,7 @@ Model_sjSDM = torch::nn_module(
         r = rng[[k]]
         if (!is.null(self$optimizer)) self$optimizer$zero_grad()
         l = self$batch_loss(narrow_all(Xs, r[1], r[2]), Ys$narrow(1, r[1], r[2]), sampling,
-                            kl_scale)
+                            kl_scale, nll)
         if (l$requires_grad) {
           l$backward()
           self$optimizer$step()
@@ -549,34 +551,67 @@ sjsdm_state = function(module, cell = new.env(parent = emptyenv())) {
   cell
 }
 
-# P(Y_k = 1 | the fully observed species), for every NA column of Y.
-# `predictions` must be on the linear scale (predict(type = "raw")).
-sjsdm_conditional = function(model, predictions, Y, sampling) {
+# Conditional predictions E[y_t | y_observed] for every family. The latent factors z of a
+# site are drawn from the Laplace approximation of p(z | observed cells) and weighted by
+# p(y_observed | z) p(z) / q(z), self-normalised; every NA cell is the weighted mean of the
+# family's response at mu + z sigma'. One pass serves all targets of a site, whatever the
+# pattern of NA cells. `loo = TRUE` needs a complete Y and predicts every species from all the
+# others: its weights drop the target's own term, w_j = w / p(y_j | z), from the same pass.
+# `predictions` must be on the linear scale (predict(type = "raw")). Sites are processed in
+# batches small enough to keep a [sampling, sites, species] tensor near 100 MB.
+sjsdm_conditional = function(model, predictions, Y, sampling, loo = FALSE) {
   Y = as.matrix(Y)
   predictions = as.matrix(predictions)
-  na_cols = which(apply(Y, 2, function(z) any(is.na(z))))
-  focal = which(apply(Y, 2, function(z) !any(is.na(z))))
-  if (length(focal) == 0) stop("conditional predictions need at least one fully observed species")
+  na = is.na(Y)
+  if (loo && any(na)) stop("loo = TRUE needs a complete Y", call. = FALSE)
+  if (!loo && !any(na)) stop("Y has no NA cells to predict", call. = FALSE)
+  if (!loo && any(rowSums(!na) == 0)) stop("every site needs at least one observed species", call. = FALSE)
+  sampling = as.integer(sampling)
   sigma = model$sigma$detach()
   theta = model$theta
-  cond_Y = cbind(1, Y[, focal, drop = FALSE])
+  link = model$link
+  derivs = sjsdm_derivs(link, model$alpha)
+  family = sjsdm_family(link)
   tt = function(m) sjsdm_tensor(m, model$dtype, model$device)
-  out = matrix(NA_real_, nrow(Y), length(na_cols))
-  torch::with_no_grad({
-    raw_ll = mvp_logLik(tt(predictions[, focal, drop = FALSE]), tt(Y[, focal, drop = FALSE]),
-                        sigma[focal, , drop = FALSE], link = model$link, alpha = model$alpha,
-                        sampling = as.integer(sampling),
-                        theta = if (is.null(theta)) NULL else theta[focal])
-    for (i in seq_along(na_cols)) {
-      ind = c(na_cols[i], focal)
-      joint_ll = mvp_logLik(tt(predictions[, ind, drop = FALSE]), tt(cond_Y),
-                            sigma[ind, , drop = FALSE], link = model$link, alpha = model$alpha,
-                            sampling = as.integer(sampling),
-                            theta = if (is.null(theta)) NULL else theta[ind])
-      out[, i] = pmin(pmax(exp(-as.numeric(joint_ll$sub(raw_ll)$cpu())), 0), 1)
-    }
-  })
-  colnames(out) = colnames(Y)[na_cols]
+  S = ncol(Y)
+  batch = max(1L, as.integer(2.5e7 / (as.numeric(sampling) * S)))
+  out = matrix(NA_real_, nrow(Y), S, dimnames = list(NULL, colnames(Y)))
+  ess = if (loo) matrix(NA_real_, nrow(Y), S) else rep(NA_real_, nrow(Y))
+  # newdata rows with a missing predictor are kept as NA (NEWS); the Laplace step cannot take them
+  ok = which(rowSums(!is.finite(predictions)) == 0)
+  for (k in seq_len(ceiling(length(ok) / batch))) {
+    rows = ok[((k - 1L) * batch + 1L):min(k * batch, length(ok))]
+    torch::with_no_grad({
+      mu = tt(predictions[rows, , drop = FALSE])
+      Yb = tt(Y[rows, , drop = FALSE])
+      if (is.null(derivs)) {
+        z = mvp_noise(sampling, length(rows), sigma$shape[2], model$device, model$dtype)
+        lw = torch::torch_zeros(c(sampling, length(rows)), dtype = model$dtype, device = model$device)
+      } else {
+        dr = mvp_laplace_draw(mvp_laplace_proposal(mu, Yb, sigma, derivs, theta), sampling)
+        z = dr$z
+        lw = dr$lw
+      }
+      lp = mvp_species_logprob(mu, Yb, sigma, link = link, alpha = model$alpha,
+                               sampling = sampling, theta = theta, noise = z)
+      E = family$predict_response(mvp_eta(mu, sigma, z, 1.0), model$alpha)
+      a = lp$sum(dim = 3)$add(lw)
+      if (loo) {
+        w = torch::nnf_softmax(a$unsqueeze(3)$sub(lp), dim = 1)
+        out[rows, ] = as.matrix(E$mul(w)$sum(dim = 1)$cpu())
+        ess[rows, ] = as.matrix(w$pow(2)$sum(dim = 1)$reciprocal()$div(sampling)$cpu())
+      } else {
+        w = torch::nnf_softmax(a, dim = 1)
+        pr = as.matrix(E$mul(w$unsqueeze(3))$sum(dim = 1)$cpu())
+        m = na[rows, , drop = FALSE]
+        out[rows, ][m] = pr[m]
+        ess[rows] = as.numeric(w$pow(2)$sum(dim = 1)$reciprocal()$div(sampling)$cpu())
+      }
+    })
+    gc(full = FALSE)
+  }
+  if (!loo) out = out[, colSums(na) > 0, drop = FALSE]
+  attr(out, "ess") = ess
   out
 }
 

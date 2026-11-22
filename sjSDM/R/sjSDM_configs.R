@@ -208,13 +208,25 @@ print.DNN = function(x, ...) {
 #' biotic structure
 #' 
 #' define biotic (species-species) association (interaction) structure
-#' @param df degree of freedom for covariance parametrization, if \code{NULL} df is set to \code{max(5, floor(ncol(Y)/2))}
+#' @param df number of latent dimensions of the association matrix, i.e. its rank. If \code{NULL}, df is
+#'   set to \code{max(5, min(floor(J/2), floor(n/10)))} for \code{J} species and \code{n} sites, see details
 #' @param lambda lambda penalty, strength of regularization: \eqn{\lambda * (lasso + ridge)}
 #' @param alpha weighting between lasso and ridge: \eqn{(1 - \alpha) * |covariances| + \alpha ||covariances||^2}
 #' @param on_diag regularization on diagonals 
 #' @param reg_on_Cov regularization on covariance matrix 
 #' @param inverse regularization on the inverse covariance matrix
 #' @param diag use diagonal matrix with zeros (internal usage)
+#' 
+#' @details
+#' The association matrix is \eqn{\sigma\sigma^T + I} with \eqn{\sigma} of size species x df. Up to 1.0.7 the
+#' default was \code{max(5, floor(J/2))}, which ignores how much information the data hold. Every latent
+#' dimension beyond what the sites can identify fits noise and inflates the associations: in simulations with
+#' 500 sites and a true rank of 5, the slope of estimated on true covariances was about 1 for df up to
+#' 100 (n/5), 1.2 at df = n/2, 1.9 at df = n and 36 at df = 5n (5000 species), and conditional predictions
+#' degraded with it. The default is therefore also capped at n/10. It changes nothing when
+#' \code{J/2 <= n/10}, i.e. for fewer species than a fifth of the sites. With many species and few sites,
+#' set df explicitly, or compare a few values by cross-validation; the cap is a guard against
+#' overfitting, not an estimate of the true rank.
 #' 
 #' @return
 #' An S3 class of type 'bioticStruct' including the following components:
@@ -254,6 +266,10 @@ bioticStruct= function(df = NULL, lambda = 0.0, alpha = 0.5, on_diag = FALSE,reg
   return(out)
 }
 
+# The default rank of the association matrix: half the species, capped at a tenth of the sites (see the
+# details of bioticStruct()). sjSDM_cv() resolves it on the full data, so every fold fits the same model.
+default_df = function(Y) max(5L, as.integer(min(floor(ncol(Y) / 2), floor(nrow(Y) / 10))))
+
 #' Print a bioticStruct object
 #' 
 #' @param x object created by \code{\link{bioticStruct}}
@@ -274,6 +290,7 @@ print.bioticStruct = function(x, ...) {
 #' @param lr_reduce_factor factor to reduce learning rate in scheduler
 #' @param early_stopping_training number of epochs without decrease in training loss before invoking early stopping (0 means no early stopping). 
 #' @param mixed mixed (half-precision) training. Accepted and ignored, 'torch' has no equivalent
+#' @param jit trace the likelihood with \code{\link[torch]{jit_trace}} on the first batch and train with the traced graph. Same model, fewer R-level dispatches per step; the last incomplete batch is dropped in either case, so every traced batch has the same shape
 #' 
 #' @return
 #' List with the following fields:
@@ -283,6 +300,7 @@ print.bioticStruct = function(x, ...) {
 #' \item{scheduler_patience}{Integer, number of epochs to wait before applying plateau scheduler.}
 #' \item{lr_reduce_factor}{Numerical, learning rate reduce factor.}
 #' \item{mixed}{Logical, use mixed training or not.}
+#' \item{jit}{Logical, train with the traced likelihood or not.}
 #' \item{early_stopping_training}{Numerical, early stopping after n epochs.}
 #' 
 #' @import checkmate
@@ -291,13 +309,15 @@ sjSDMControl = function(optimizer = Adam(),
                         scheduler = 0,
                         lr_reduce_factor = 0.99,
                         early_stopping_training = 0,
-                        mixed = FALSE) {
+                        mixed = FALSE,
+                        jit = FALSE) {
   
   qassert(optimizer, "L")
   qassert(scheduler, "X1[0,)")
   qassert(lr_reduce_factor, "R1(0,1)")
   qassert(early_stopping_training, "X1[0,)")
   qassert(mixed, "B1")
+  qassert(jit, "B1")
   
   control = list()
   control$optimizer = optimizer
@@ -307,6 +327,7 @@ sjSDMControl = function(optimizer = Adam(),
   control$scheduler_patience = as.integer(scheduler)
   control$lr_reduce_factor = lr_reduce_factor
   control$mixed = mixed
+  control$jit = jit
   
   if(early_stopping_training == 0) early_stopping_training = -1.
   else early_stopping_training = as.integer(early_stopping_training)
